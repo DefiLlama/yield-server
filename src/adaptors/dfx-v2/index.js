@@ -1,7 +1,6 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 const { Web3 } = require('web3');
 const { chains, gaugesUrl } = require('./config');

@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const mEtherABI = require('./MEtherInterfaceFull.json');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const mEtherAddresses = {
   Glasses: '0xDdf26F3529CA4dC30f484b4F9d3A7ce0b7BD1562',
@@ -73,8 +73,8 @@ const getApy = async (block) => {
   // pull token prices
   const key = `ethereum:${ETHAddr}`.toLowerCase();
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins;
 
   const ETHPrice = Number(prices[key].price);
 

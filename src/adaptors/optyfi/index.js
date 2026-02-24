@@ -1,4 +1,3 @@
-const superagent = require('superagent');
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
@@ -110,8 +109,8 @@ const main = async () => {
   }
   const keys = vaultsAddresses.join(',').toLowerCase();
   const usdPrice = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${keys}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
+  ).data.coins;
   const pools = [];
   for (let i = 0; i < filteredVaults.length; i++) {
     const vault = filteredVaults[i];

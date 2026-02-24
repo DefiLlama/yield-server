@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const VESSEL_MANAGER_ADDRESS = '0xdB5DAcB1DFbe16326C3656a88017f0cB4ece0977';
 const ADMIN_CONTRACT_ADDRESS = '0xf7Cc67326F9A1D057c1e4b110eF6c680B13a1f53';
 const GRAI_ADDRESS = '0x15f74458aE0bFdAA1a96CA1aa779D715Cc1Eefe4';
@@ -139,8 +139,8 @@ const fetchAbiData = async (target, abi, params = []) => {
 async function fetchPrice(token) {
   const key = `ethereum:${token}`.toLowerCase();
   const response = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins;
   return response[key]?.price;
 }
 

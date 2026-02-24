@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
@@ -165,16 +165,16 @@ const getApy = async (market) => {
     .map((t) => `${chain}:${t.tokenAddress}`)
     .join(',');
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
   let merklRewards = [];
   try {
     merklRewards = (
-      await superagent.get(
+      await axios.get(
         `https://api.merkl.xyz/v4/opportunities?mainProtocolId=xlend`
       )
-    ).body.filter((i) => (i.status || '').toLowerCase() === 'live');
+    ).data.filter((i) => (i.status || '').toLowerCase() === 'live');
   } catch (err) {
     console.warn('get merkl rewards error');
   }

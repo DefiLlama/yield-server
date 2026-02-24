@@ -1,6 +1,5 @@
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
-const superagent = require('superagent');
 const utils = require('../utils');
 const ABI = require('./abi.json');
 

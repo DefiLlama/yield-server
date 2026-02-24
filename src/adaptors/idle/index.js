@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const chains = {
   ethereum: 'https://api.idle.finance/pools',
@@ -12,10 +12,10 @@ const AUTH_TOKEN_ENCODED =
   'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR2xsYm5SSlpDSTZJa0Z3Y0RZaUxDSnBZWFFpT2pFMk56QXlNemMxTWpkOS5rbnNtekVOSm40Yk5Ea0ZCM3h2eWZyaDBwVlFLTHY0NW9JanJQNHdRTU5N';
 
 async function getDataWithAuth(url, token) {
-  const data = await superagent
-    .get(url)
-    .set('Authorization', `Bearer ${token}`);
-  return data?.body;
+  const data = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data?.data;
 }
 
 const getApy = async () => {

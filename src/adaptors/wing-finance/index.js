@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { mapKeys, camelCase } = require('lodash');
 
 const utils = require('../utils');
@@ -44,7 +44,7 @@ const apy = async () => {
   const data = await Promise.all(
     Object.entries(API_URL).map(async ([chain, url]) => [
       chain,
-      (await superagent.post(url).send({ address: '' })).body.result,
+      (await axios.post(url, { address: '' })).data.result,
     ])
   );
 

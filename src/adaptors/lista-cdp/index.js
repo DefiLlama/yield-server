@@ -1,6 +1,6 @@
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const { collateralList, getIlks } = require('./config');
 
 // under src/adaptors, run `npm run test --adapter=lisusd` to test the adaptor
@@ -158,7 +158,7 @@ const getApy = async () => {
     // );
     // console.log('Fetching prices for tokens:', tokenAddresses);
 
-    // const pricesResponse = await superagent.get(
+    // const pricesResponse = await axios.get(
     //   `https://coins.llama.fi/prices/current/${tokenAddresses.join(',')}`
     // );
     // const prices = pricesResponse.body.coins;

@@ -3,7 +3,7 @@ const { ethers } = require('ethers');
 const wiseLendingABI = require('./abi/wiseLendingABI.json');
 const wiseSecurityABI = require('./abi/wiseSecurityABI.json');
 const AaveHubABI = require('./abi/AaveHubABI.json');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const ChainName = {
   ethereum: "Ethereum",
@@ -78,10 +78,10 @@ const getTokenData = async (chain, token, addresses, contract) => {
     const tokenAddress = `${chain}:${address[token]}`;
 
     const usdPrice = (
-      await superagent.get(
+      await axios.get(
         `https://coins.llama.fi/prices/current/${tokenAddress}`
       )
-    ).body.coins[tokenAddress];
+    ).data.coins[tokenAddress];
 
     const lendingData = await sdk.api.abi.call({
       target: aaveHub,

@@ -1,6 +1,6 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
@@ -116,10 +116,10 @@ const query = gql`
 async function getUSDPrice(chain, address) {
   // price of base token in USD terms
   const key = `${chain}:${address}`;
-  const priceRes = await superagent.get(
+  const priceRes = await axios.get(
     `https://coins.llama.fi/prices/current/${key}`
   );
-  const price = priceRes.body.coins[key];
+  const price = priceRes.data.coins[key];
   return price ? price.price : 0;
 }
 

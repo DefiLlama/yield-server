@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const utils = require('../utils');
 const { EstimatedFees } = require('./estimateFee');
@@ -279,10 +279,10 @@ const main = async (timestamp = null) => {
     timestamp = Math.floor(Date.now() / 1000);
   }
   const stablecoins = (
-    await superagent.get(
+    await axios.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
-  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  ).data.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 

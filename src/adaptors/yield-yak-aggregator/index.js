@@ -1,5 +1,4 @@
 const axios = require('axios');
-const superagent = require('superagent');
 const { get } = require('lodash');
 const sdk = require('@defillama/sdk');
 
@@ -82,11 +81,11 @@ const getPrices = async (chain, addresses) => {
   }
 
   const priceKeys = addresses.map((address) => `${chain}:${address}`).join(',');
-  const response = await superagent.get(
+  const response = await axios.get(
     `https://coins.llama.fi/prices/current/${priceKeys.toLowerCase()}`
   );
 
-  const prices = response.body.coins || {};
+  const prices = response.data.coins || {};
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({

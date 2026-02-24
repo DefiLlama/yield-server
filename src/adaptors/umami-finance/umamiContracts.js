@@ -1,4 +1,3 @@
-const superagent = require('superagent');
 const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
 

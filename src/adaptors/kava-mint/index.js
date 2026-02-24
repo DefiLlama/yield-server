@@ -1,16 +1,15 @@
 const axios = require('axios');
-const superagent = require('superagent');
 const utils = require('../utils');
 const USDX_ID = 'usdx';
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({

@@ -1,7 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abiLendingPool = require('./abiLendingPool');
-const superagent = require('superagent');
 const abiProtocolDataProvider = require('./abiProtocolDataProvider');
 
 const utils = require('../utils');

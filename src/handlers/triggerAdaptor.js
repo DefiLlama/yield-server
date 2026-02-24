@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-const superagent = require('superagent');
+const axios = require('axios');
 
 const utils = require('../adaptors/utils');
 const AppError = require('../utils/appError');
@@ -50,8 +50,8 @@ const main = async (body) => {
   console.log(data[0]);
 
   const protocolConfig = (
-    await superagent.get('https://api.llama.fi/config/yields?a=1')
-  ).body.protocols;
+    await axios.get('https://api.llama.fi/config/yields?a=1')
+  ).data.protocols;
 
   // ---------- prepare prior insert
   // remove potential null/undefined objects in array
@@ -218,10 +218,10 @@ const main = async (body) => {
       prices7d_ = [
         ...prices7d_,
         (
-          await superagent.get(
+          await axios.get(
             `https://coins.llama.fi/prices/historical/${timestamp7daysAgo}/${x}`
           )
-        ).body.coins,
+        ).data.coins,
       ];
     }
     // flatten

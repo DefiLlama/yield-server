@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
@@ -8,12 +8,12 @@ const PUSD_ID = 'pando-usd';
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -27,7 +27,11 @@ const getPrices = async (addresses) => {
 };
 
 async function main() {
-  const resp = JSON.parse((await superagent.get(URL)).text);
+  const response = await axios.get(URL);
+  const resp =
+    typeof response.data === 'string'
+      ? JSON.parse(response.data)
+      : response.data;
   const collaterals = resp.data.collaterals;
   const coins = [`coingecko:${PUSD_ID}`];
   const prices = await getPrices(coins);

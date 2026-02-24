@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const TROVE_MANAGER_ADDRESS = '0x7A47cF15a1fCbAd09c66077d1D021430eed7AC65';
 const USC_ADDRESS = '0xD42E078ceA2bE8D03cd9dFEcC1f0d28915Edea78';
@@ -94,10 +94,10 @@ const main = async () => {
 
   const key = `cronos:${USC_ADDRESS}`.toLowerCase();
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins;
 
-  const conversionRate = (await superagent.post(URL, req)).body.result
+  const conversionRate = (await axios.post(URL, req)).data.result
     .conversion_rate;
 
   const totalSupplyUsd = (Number(uscTotalSupply) / 1e18) * prices[key].price;

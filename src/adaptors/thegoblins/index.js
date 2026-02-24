@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const bankAbi = {
   inputs: [],
@@ -30,8 +30,8 @@ const poolsFunction = async () => {
 
   const key = 'arbitrum:0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
   const price = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key].price;
 
   const tvl = await bankTvl();
 

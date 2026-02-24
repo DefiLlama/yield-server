@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const { ethers } = require('ethers');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const utils = require('../utils');
 
@@ -64,10 +64,10 @@ const buildPool = async (index) => {
 };
 
 const getApy = async (address, chain) => {
-  const res = await superagent.get(
+  const res = await axios.get(
     `https://api.indexcoop.com/v2/data/${address}?chainId=${chain}&metrics=apy`
   );
-  const json = JSON.parse(res.text);
+  const json = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
   const { APY } = json.metrics[0];
   return APY;
 };
@@ -76,8 +76,8 @@ const getPrice = async (index) => {
   const chain = utils.formatChain(index.chain);
   const key = `${chain}:${index.address}`.toLowerCase();
   const ethPriceUSD = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key].price;
   return ethPriceUSD;
 };
 
