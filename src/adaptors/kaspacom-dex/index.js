@@ -1,56 +1,11 @@
 const axios = require('axios');
-const { request, gql } = require('graphql-request');
-const { chunk } = require('lodash');
 
 const utils = require('../utils');
 
-const SUBGRAPH_URL =
-  'https://graph-kasplex.kaspa.com/subgraphs/name/kasplex-kas-v2-core';
+const BACKEND_API_URL = 'https://api-defi.kaspa.com/dex';
 const CHAIN = 'kasplex';
 const FEE_RATE = 0.01;
-const PAGE_SIZE = 1000;
 const DAY_IN_SECONDS = 86400;
-
-const PAIRS_QUERY = gql`
-  query getPairs($first: Int!, $skip: Int!) {
-    pairs(
-      first: $first
-      skip: $skip
-      orderBy: reserveKAS
-      orderDirection: desc
-    ) {
-      id
-      token0 {
-        id
-        symbol
-      }
-      token1 {
-        id
-        symbol
-      }
-      reserveKAS
-      trackedReserveKAS
-      reserve0
-      reserve1
-      volumeKAS
-    }
-  }
-`;
-
-const PAIR_DAY_DATA_QUERY = gql`
-  query getPairDayData($pairAddresses: [Bytes!]!, $startTime: Int!) {
-    pairDayDatas(
-      first: 1000
-      orderBy: date
-      orderDirection: desc
-      where: { pairAddress_in: $pairAddresses, date_gt: $startTime }
-    ) {
-      date
-      pairAddress
-      dailyVolumeKAS
-    }
-  }
-`;
 
 const fetchKasPrice = async () => {
   try {
@@ -74,66 +29,52 @@ const fetchKasPrice = async () => {
 };
 
 const fetchPairs = async () => {
-  const pairs = [];
-  let skip = 0;
-
-  while (true) {
-    const { pairs: page } = await request(SUBGRAPH_URL, PAIRS_QUERY, {
-      first: PAGE_SIZE,
-      skip,
-    });
-    pairs.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    skip += PAGE_SIZE;
-  }
-
-  return pairs;
+  return await utils.getData(
+    BACKEND_API_URL + '/graph-pairs'
+  )
 };
 
 const fetchPairDayData = async (pairIds) => {
   if (pairIds.length === 0) return { daily: {}, weekly: {} };
 
-  const startWeek = Math.floor(Date.now() / 1000) - 7 * DAY_IN_SECONDS;
-  const volumes = {};
-  const latestDaily = {};
+  const now = Math.floor(Date.now() / 1000);
+  const startDay = now - DAY_IN_SECONDS;
+  const startWeek = now - 7 * DAY_IN_SECONDS;
 
-  for (const batch of chunk(pairIds, 75)) {
-    const { pairDayDatas } = await request(SUBGRAPH_URL, PAIR_DAY_DATA_QUERY, {
-      pairAddresses: batch,
-      startTime: startWeek,
-    });
+  // Fetch 1-day and 7-day volume data in parallel
+  const dailyUrl = `${BACKEND_API_URL}/most-traded/pairs?minDate=${startDay}`;
+  const weeklyUrl = `${BACKEND_API_URL}/most-traded/pairs?minDate=${startWeek}`;
 
-    pairDayDatas.forEach((entry) => {
-      const pairAddress = entry.pairAddress?.toLowerCase();
-      const volumeKas = Number(entry.dailyVolumeKAS);
-      if (!pairAddress || !Number.isFinite(volumeKas)) return;
+  const [dailyResponse, weeklyResponse] = await Promise.all([
+    utils.getData(dailyUrl).catch(() => ({ pairs: [] })),
+    utils.getData(weeklyUrl).catch(() => ({ pairs: [] })),
+  ]);
 
-      if (!volumes[pairAddress]) {
-        volumes[pairAddress] = 0;
-      }
-      volumes[pairAddress] += volumeKas;
+  // Extract pairs array from response
+  const dailyPairs = Array.isArray(dailyResponse?.pairs) ? dailyResponse.pairs : [];
+  const weeklyPairs = Array.isArray(weeklyResponse?.pairs) ? weeklyResponse.pairs : [];
 
-      if (
-        !latestDaily[pairAddress] ||
-        entry.date > latestDaily[pairAddress].date
-      ) {
-        latestDaily[pairAddress] = {
-          date: entry.date,
-          volumeKas,
-        };
-      }
-    });
-  }
+  // Build volume maps from responses
+  const daily = {};
+  const weekly = {};
 
-  return {
-    daily: Object.fromEntries(
-      Object.entries(latestDaily).map(([pair, { volumeKas }]) => [
-        pair,
-        volumeKas,
-      ])
-    ),
-    weekly: volumes,
-  };
+  dailyPairs.forEach((entry) => {
+    const pairId = entry.pair?.id?.toLowerCase();
+    const volumeKas = Number(entry.amountKAS);
+    if (pairId && Number.isFinite(volumeKas) && volumeKas > 0) {
+      daily[pairId] = volumeKas;
+    }
+  });
+
+  weeklyPairs.forEach((entry) => {
+    const pairId = entry.pair?.id?.toLowerCase();
+    const volumeKas = Number(entry.amountKAS);
+    if (pairId && Number.isFinite(volumeKas) && volumeKas > 0) {
+      weekly[pairId] = volumeKas;
+    }
+  });
+
+  return { daily, weekly };
 };
 
 const buildPools = (pairs, volumeData, kasPrice) => {
@@ -196,3 +137,4 @@ module.exports = {
   apy,
   url: 'https://defi.kaspa.com',
 };
+	
