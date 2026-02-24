@@ -1,7 +1,5 @@
-const { getPrices } = require('../utils');
-
-const axios = require('axios');
 const utils = require('../utils');
+const axios = require('axios');
 const bs58 = require("bs58");
 
 const WAD = 10n ** 18n;
@@ -186,7 +184,7 @@ function getSupplyAPY(irPerSecond, marketState) {
 const apy = async () => {
   const tokens = await getTokens();
   const markets = await getMarkets();
-  const prices = await getPrices(Object.values(tokensMapping), 'ethereum');
+  const prices = await utils.getPrices(Object.values(tokensMapping), 'ethereum');
   let pools = [];
 
   for (const market of markets) {
