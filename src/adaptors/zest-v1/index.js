@@ -135,7 +135,7 @@ async function getZestPools() {
         pools.push({
             pool: `${assetAddress}.${contractName}-${chain}`.toLowerCase(),
             chain: chain,
-            project: 'zest',
+            project: 'zest-v1',
             symbol: assetKey,
             tvlUsd: tvlUsd,
             apyBase: supplyApy,
