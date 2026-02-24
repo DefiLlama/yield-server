@@ -361,7 +361,7 @@ const apy = async () => {
       CONFIG.ETHEREUM.USD0PP,
       CONFIG.USD0PP_SYMBOL,
       ethData.supply * ethData.price,
-      apyReward, // Corrected to USD0++ APY
+      apyReward, // Corrected to bUSD0 APY
       CONFIG.USUAL_TOKEN,
       CONFIG.ETHEREUM.USD0
     ),
@@ -370,7 +370,7 @@ const apy = async () => {
       CONFIG.ARBITRUM.USD0PP,
       CONFIG.USD0PP_SYMBOL,
       arbData.supply * arbData.price,
-      apyReward, // Corrected for Arbitrum USD0++
+      apyReward, // Corrected for Arbitrum bUSD0
       CONFIG.USUAL_TOKEN,
       CONFIG.ARBITRUM.USD0
     ),
@@ -406,7 +406,7 @@ const apy = async () => {
       project: 'usual',
       symbol: 'usUSDS++',
       tvlUsd: usUSDSppMarketCap,
-      apyBase: baseUsUSDSApy, // Weekly compounding for USUSDS++ APY in USD0++
+      apyBase: baseUsUSDSApy, // Weekly compounding for USUSDS++ APY in bUSD0
       apyReward: usUSDSRewardApy, // Reward in Usual APY for USUSDS++
       rewardTokens: [CONFIG.USUAL_TOKEN],
       underlyingTokens: [CONFIG.ETHEREUM.USD0PP],
