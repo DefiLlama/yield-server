@@ -4,26 +4,57 @@ const getLendingPoolData = async () => {
   try {
     const response = await utils.getData('https://api.curve.finance/v1/getLendingVaults/all');
     if (response.success) {
-      return response.data.lendingVaultData.map(vault =>({
+      const chains = [...new Set(response.data.lendingVaultData.map(v => v.blockchainId))];
+      const pools = response.data.lendingVaultData.map(vault =>({
         pool: vault.address + '-' + vault.blockchainId,
         chain: utils.formatChain(vault.blockchainId),
         project: 'curve-llamalend',
-        symbol: vault.assets.borrowed.symbol + '-' + vault.assets.collateral.symbol,
+        symbol: utils.formatSymbol(vault.assets.borrowed.symbol),
+        poolMeta: vault.assets.collateral.symbol + ' collateral',
         tvlUsd: vault.usdTotal,
-        underlyingTokens: [vault.assets.collateral.address],
+        underlyingTokens: [vault.assets.borrowed.address],
         url: vault.lendingVaultUrls.deposit,
         apyBase: vault.rates.lendApyPcent,
         apyBaseBorrow: vault.rates.borrowApyPcent,
-        totalSupplyUsd: vault.totalSupplied.usdTotal
-      }))
+        totalSupplyUsd: vault.totalSupplied.usdTotal,
+        totalBorrowUsd: vault.borrowed.usdTotal
+      }));
+      return { pools, chains };
     } else {
       console.error('Failed to fetch lending pool data');
-      return [];
+      return { pools: [], chains: [] };
     }
   } catch (error) {
     console.error('Error fetching lending pool data:', error);
-    return [];
+    return { pools: [], chains: [] };
   }
+};
+
+const getLtvData = async (chains) => {
+  const ltvByVault = {};
+  const perPage = 100;
+  await Promise.all(
+    chains.map(async (chain) => {
+      try {
+        let page = 1;
+        while (true) {
+          const data = await utils.getData(
+            `https://prices.curve.finance/v1/lending/markets/${chain}?page=${page}&per_page=${perPage}`
+          );
+          if (!data?.data || data.data.length === 0) break;
+          for (const market of data.data) {
+            if (!market.vault) continue;
+            ltvByVault[market.vault.toLowerCase()] = market.max_ltv / 100;
+          }
+          if (data.data.length < perPage) break;
+          page++;
+        }
+      } catch (e) {
+        console.error(`Failed to fetch LTV data for ${chain}:`, e);
+      }
+    })
+  );
+  return ltvByVault;
 };
 
 const getGaugesData = async () => {
@@ -51,17 +82,22 @@ const getGaugesData = async () => {
 };
 
 const fullLendingPoolDataWithGauges = async () => {
-  const [lendingPools, gaugesByAddress] = await Promise.all([
+  const [{ pools: lendingPools, chains }, gaugesByAddress] = await Promise.all([
     getLendingPoolData(),
     getGaugesData()
   ]);
 
+  const ltvByVault = await getLtvData(chains);
+
   return lendingPools.map(pool => {
-    const gaugeInfo = gaugesByAddress[pool.pool.split('-')[0].toLowerCase()] || {};
+    const vaultAddress = pool.pool.split('-')[0].toLowerCase();
+    const gaugeInfo = gaugesByAddress[vaultAddress] || {};
+    const ltv = ltvByVault[vaultAddress];
     return {
       ...pool,
       apyReward: gaugeInfo.crvApy,
-      rewardTokens: gaugeInfo.rewardTokens
+      rewardTokens: gaugeInfo.rewardTokens,
+      ...(ltv !== undefined && { ltv })
     };
   });
 };
