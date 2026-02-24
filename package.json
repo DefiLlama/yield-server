@@ -15,7 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@blend-capital/blend-sdk": "3.0.1",
-    "@defillama/sdk": "^5.0.206",
+    "@defillama/sdk": "^5.0.207",
     "@solana/spl-stake-pool": "^1.1.8",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.15.0",
