@@ -73,15 +73,15 @@ async function getTokens() {
 
 /********** Linx App Helpers **********/
 
-export function mulDivDown(x, y, d) {
+function mulDivDown(x, y, d) {
   return (x * y) / d;
 }
 
-export function wMulDown(x, y) {
+function wMulDown(x, y) {
   return mulDivDown(x, y, WAD);
 }
 
-export function wTaylorCompounded(x, n) {
+function wTaylorCompounded(x, n) {
   let firstTerm = x * n;
   let secondTerm = mulDivDown(firstTerm, firstTerm, 2n * WAD);
   let thirdTerm = mulDivDown(secondTerm, firstTerm, 3n * WAD);
@@ -212,12 +212,18 @@ const apy = async () => {
     const borrowRate = await getBorrowRate(config.dynamicIrmContractId, marketParams, marketState);
     const supplyApy = getSupplyAPY(borrowRate, marketState);
 
-    const supplyTokenPrice = prices.pricesByAddress[tokensMapping[marketParams.loanToken].toLowerCase()] || 0;
+    const mappedAddress = tokensMapping[marketParams.loanToken];
+    if (!mappedAddress) {
+      console.warn(`Skipping market ${market.id} due to missing price mapping for token ${marketParams.loanToken}`);
+      continue;
+    }
 
-    const totalSupply = Number(marketState.totalSupplyAssets) / 10 ** supplyToken.decimals;
+    const supplyTokenPrice = prices.pricesByAddress[mappedAddress.toLowerCase()] || 0;
+
+    const totalSupply = Number(BigInt(marketState.totalSupplyAssets) * 10000n / (10n ** BigInt(supplyToken.decimals))) / 10000;
     const totalSupplyUsd = totalSupply * supplyTokenPrice;
 
-    const totalBorrow = Number(marketState.totalBorrowAssets) / 10 ** supplyToken.decimals
+    const totalBorrow = Number(BigInt(marketState.totalBorrowAssets) * 10000n / (10n ** BigInt(supplyToken.decimals))) / 10000;
     const totalBorrowUsd = totalBorrow * supplyTokenPrice;
 
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
