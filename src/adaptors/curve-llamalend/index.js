@@ -32,16 +32,22 @@ const getLendingPoolData = async () => {
 
 const getLtvData = async (chains) => {
   const ltvByVault = {};
+  const perPage = 100;
   await Promise.all(
     chains.map(async (chain) => {
       try {
-        const data = await utils.getData(
-          `https://prices.curve.finance/v1/lending/markets/${chain}?page=1&per_page=100`
-        );
-        if (data?.data) {
+        let page = 1;
+        while (true) {
+          const data = await utils.getData(
+            `https://prices.curve.finance/v1/lending/markets/${chain}?page=${page}&per_page=${perPage}`
+          );
+          if (!data?.data || data.data.length === 0) break;
           for (const market of data.data) {
+            if (!market.vault) continue;
             ltvByVault[market.vault.toLowerCase()] = market.max_ltv / 100;
           }
+          if (data.data.length < perPage) break;
+          page++;
         }
       } catch (e) {
         console.error(`Failed to fetch LTV data for ${chain}:`, e);
