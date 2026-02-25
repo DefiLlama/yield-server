@@ -5,7 +5,7 @@ const axios = require('axios');
 const HYDRATION_GRAPHQL_URL =
   'https://galacticcouncil.squids.live/hydration-pools:unified-prod/api/graphql';
 
-// CoinGecko ID mapping for underlying token resolution
+// CoinGecko ID mapping for underlying token resolution and pricing
 const cgMapping = {
   DAI: 'dai',
   INTR: 'interlay',
@@ -45,24 +45,54 @@ const cgMapping = {
   SUI: 'sui',
   GETH: 'ethereum',
   aDOT: 'polkadot',
+  aETH: 'ethereum',
+  aUSDC: 'usd-coin',
+  aUSDT: 'tether',
+  aWBTC: 'wrapped-bitcoin',
+  avDOT: 'voucher-dot',
+  atBTC: 'tbtc',
+  wstETH: 'wrapped-steth',
+  sUSDe: 'ethena-staked-usde',
+  sUSDS: 'sdai',
+  PRIME: 'echelon-prime',
+  HOLLAR: 'hydrated-dollar',
+};
+
+// LP tokens that appear in the omnipool — map to their underlying composition
+const lpUnderlyingTokens = {
+  '2-Pool': ['coingecko:usd-coin', 'coingecko:tether'],
+  '3-Pool': ['coingecko:tether', 'coingecko:usd-coin', 'coingecko:tether'],
+  '3-Pool-MRL': ['coingecko:usd-coin', 'coingecko:tether', 'coingecko:hydrated-dollar'],
 };
 
 const poolsFunction = async () => {
   try {
     // Fetch all data in parallel
-    const [assetNodes, omnipoolMetrics, incentiveMetrics, omnipoolBalances] =
-      await Promise.all([
-        fetchAssetSymbols(),
-        fetchOmnipoolYieldMetrics(),
-        fetchIncentiveMetrics(),
-        fetchOmnipoolBalances(),
-      ]);
+    const [
+      assetNodes,
+      omnipoolMetrics,
+      incentiveMetrics,
+      omnipoolBalances,
+      stableswapMetrics,
+      stableswapAssets,
+      stableswapBalances,
+    ] = await Promise.all([
+      fetchAssetSymbols(),
+      fetchOmnipoolYieldMetrics(),
+      fetchIncentiveMetrics(),
+      fetchOmnipoolBalances(),
+      fetchStableswapYieldMetrics(),
+      fetchStableswapCompositions(),
+      fetchStableswapBalances(),
+    ]);
 
-    // Build symbol lookup from asset registry
+    // Build symbol + decimals lookup from asset registry
     const symbolMap = {};
+    const decimalsMap = {};
     assetNodes.forEach((asset) => {
       if (asset.assetRegistryId) {
         symbolMap[asset.assetRegistryId] = asset.symbol;
+        decimalsMap[asset.assetRegistryId] = asset.decimals;
       }
     });
 
@@ -72,14 +102,20 @@ const poolsFunction = async () => {
       incentiveMap[m.id] = m;
     });
 
-    // Get DOT price for LRNA calibration
-    const dotPrice = await getDotPrice();
+    // Get token prices for TVL calculation
+    const prices = await getTokenPrices();
 
-    // Calculate TVL using LRNA approach
-    const tvlData = calculateTvl(omnipoolBalances, omnipoolMetrics, dotPrice);
+    // Calculate omnipool TVL using LRNA approach
+    const omnipoolTvl = calculateOmnipoolTvl(omnipoolBalances, prices);
+
+    // Track omnipool registryIds to avoid duplicating stableswap pools
+    const omnipoolRegistryIds = new Set(
+      omnipoolMetrics.map((m) => m.assetRegistryId)
+    );
 
     const pools = [];
 
+    // --- Omnipool pools ---
     for (const metric of omnipoolMetrics) {
       const regId = metric.assetRegistryId;
       let symbol = symbolMap[regId];
@@ -87,31 +123,29 @@ const poolsFunction = async () => {
       symbol = cleanSymbol(symbol);
       if (!symbol) continue;
 
-      // Fee APY from omnipool
       const apyBase = parseFloat(metric.projectedApyPerc) || 0;
-
-      // Incentive APY from farming (if available)
       const incentive = incentiveMap[regId];
       const apyReward = incentive
         ? parseFloat(incentive.incentivesApyPerc) || 0
         : 0;
 
-      // Skip pools with no yield
       if (apyBase === 0 && apyReward === 0) continue;
 
-      // Get TVL
-      const tvlUsd = tvlData[metric.assetId] || 0;
+      const tvlUsd = omnipoolTvl[metric.assetId] || 0;
       if (tvlUsd === 0) continue;
 
-      // Map reward tokens
       const rewardTokens =
         incentive && apyReward > 0
           ? mapIncentiveTokens(incentive.incentivesTokens, symbolMap)
           : null;
 
-      // Resolve underlying token
-      const cgId = cgMapping[symbol];
-      const underlyingTokens = cgId ? [`coingecko:${cgId}`] : undefined;
+      let underlyingTokens;
+      if (lpUnderlyingTokens[symbol]) {
+        underlyingTokens = [...new Set(lpUnderlyingTokens[symbol])];
+      } else {
+        const cgId = cgMapping[symbol];
+        underlyingTokens = cgId ? [`coingecko:${cgId}`] : undefined;
+      }
 
       pools.push({
         pool: `${symbol}-hydration-dex`,
@@ -128,6 +162,97 @@ const poolsFunction = async () => {
       });
     }
 
+    // --- Stableswap pools (not already in omnipool) ---
+    // Build stableswap composition map: poolId -> [{assetId, registryId, symbol, decimals}]
+    const stableswapComps = {};
+    for (const sa of stableswapAssets) {
+      if (!stableswapComps[sa.poolId]) stableswapComps[sa.poolId] = [];
+      const asset = sa.asset || {};
+      stableswapComps[sa.poolId].push({
+        assetId: sa.assetId,
+        registryId: asset.assetRegistryId,
+        symbol: asset.symbol,
+        decimals: asset.decimals,
+      });
+    }
+
+    // Build stableswap balance map: poolId -> { assetId: freeBalance }
+    const stableswapBals = {};
+    for (const bal of stableswapBalances) {
+      if (!stableswapBals[bal.poolId]) stableswapBals[bal.poolId] = {};
+      stableswapBals[bal.poolId][bal.assetId] = bal.freeBalance;
+    }
+
+    for (const metric of stableswapMetrics) {
+      const poolId = metric.poolId;
+
+      // Skip if this stableswap LP is already represented in omnipool
+      if (omnipoolRegistryIds.has(poolId)) continue;
+
+      const composition = stableswapComps[poolId];
+      if (!composition || composition.length === 0) continue;
+
+      const apyBase = parseFloat(metric.projectedApyPerc) || 0;
+
+      // Check for incentives on this stableswap pool
+      const incentive = incentiveMap[poolId];
+      const apyReward = incentive
+        ? parseFloat(incentive.incentivesApyPerc) || 0
+        : 0;
+
+      if (apyBase === 0 && apyReward === 0) continue;
+
+      // Calculate TVL from underlying asset balances
+      const balances = stableswapBals[poolId] || {};
+      let tvlUsd = 0;
+      const underlyingTokens = [];
+
+      for (const asset of composition) {
+        const balance = balances[asset.assetId];
+        if (!balance) continue;
+
+        const sym = cleanSymbol(asset.symbol) || asset.symbol;
+        const decimals = asset.decimals || 12;
+        const amount = parseFloat(balance) / Math.pow(10, decimals);
+
+        // Get price for this asset
+        const cgId = cgMapping[sym];
+        const price = cgId ? prices[cgId] || 0 : 0;
+        tvlUsd += amount * price;
+
+        if (cgId) underlyingTokens.push(`coingecko:${cgId}`);
+      }
+
+      if (tvlUsd === 0) continue;
+
+      // Build symbol from composition
+      const poolSymbol = composition
+        .map((a) => cleanSymbol(a.symbol) || a.symbol)
+        .join('-');
+
+      const rewardTokens =
+        incentive && apyReward > 0
+          ? mapIncentiveTokens(incentive.incentivesTokens, symbolMap)
+          : null;
+
+      pools.push({
+        pool: `stableswap-${poolId}-hydration-dex`,
+        chain: 'Polkadot',
+        project: 'hydration-dex',
+        symbol: utils.formatSymbol(poolSymbol),
+        tvlUsd,
+        apyBase: apyBase > 0 ? apyBase : null,
+        apyReward: apyReward > 0 ? apyReward : null,
+        rewardTokens,
+        underlyingTokens:
+          underlyingTokens.length > 0
+            ? [...new Set(underlyingTokens)]
+            : undefined,
+        url: 'https://app.hydration.net/liquidity/all-pools',
+        poolMeta: 'Stableswap',
+      });
+    }
+
     return pools;
   } catch (error) {
     console.error('Error fetching HydraDX pools:', error);
@@ -135,7 +260,8 @@ const poolsFunction = async () => {
   }
 };
 
-// Fetch omnipool yield metrics (fee APY for all omnipool assets)
+// --- Data fetching functions ---
+
 async function fetchOmnipoolYieldMetrics() {
   const query = gql`
     query {
@@ -152,7 +278,6 @@ async function fetchOmnipoolYieldMetrics() {
   return response.omnipoolAssetsYieldMetrics.nodes || [];
 }
 
-// Fetch incentive/farming APY metrics
 async function fetchIncentiveMetrics() {
   const query = gql`
     query {
@@ -171,7 +296,21 @@ async function fetchIncentiveMetrics() {
   return response.allAssetsYieldMetrics.nodes || [];
 }
 
-// Fetch asset symbols and decimals
+async function fetchStableswapYieldMetrics() {
+  const query = gql`
+    query {
+      stableswapYieldMetrics {
+        nodes {
+          poolId
+          projectedApyPerc
+        }
+      }
+    }
+  `;
+  const response = await request(HYDRATION_GRAPHQL_URL, query);
+  return response.stableswapYieldMetrics.nodes || [];
+}
+
 async function fetchAssetSymbols() {
   const query = gql`
     query {
@@ -188,7 +327,6 @@ async function fetchAssetSymbols() {
   return response.assets.nodes || [];
 }
 
-// Fetch omnipool balances for TVL calculation
 async function fetchOmnipoolBalances() {
   const query = gql`
     query {
@@ -205,21 +343,71 @@ async function fetchOmnipoolBalances() {
   return response.omnipoolAssetHistoricalDataLatests.nodes || [];
 }
 
-// Get DOT price from coins.llama.fi
-async function getDotPrice() {
-  const res = await axios.get(
-    'https://coins.llama.fi/prices/current/coingecko:polkadot'
-  );
-  return res.data.coins['coingecko:polkadot'].price;
+async function fetchStableswapCompositions() {
+  const query = gql`
+    query {
+      stableswapAssets {
+        nodes {
+          poolId
+          assetId
+          asset {
+            assetRegistryId
+            symbol
+            decimals
+          }
+        }
+      }
+    }
+  `;
+  const response = await request(HYDRATION_GRAPHQL_URL, query);
+  return response.stableswapAssets.nodes || [];
 }
 
-// Calculate TVL for each omnipool asset using LRNA→USD conversion
+async function fetchStableswapBalances() {
+  const query = gql`
+    query {
+      stableswapAssetHistoricalDataLatests {
+        nodes {
+          poolId
+          assetId
+          freeBalance
+        }
+      }
+    }
+  `;
+  const response = await request(HYDRATION_GRAPHQL_URL, query);
+  return response.stableswapAssetHistoricalDataLatests.nodes || [];
+}
+
+// --- Pricing ---
+
+// Batch-fetch token prices from coins.llama.fi
+async function getTokenPrices() {
+  const cgIds = [...new Set(Object.values(cgMapping))];
+  const coins = cgIds.map((id) => `coingecko:${id}`).join(',');
+  const res = await axios.get(
+    `https://coins.llama.fi/prices/current/${coins}`
+  );
+
+  const prices = {};
+  for (const [key, data] of Object.entries(res.data.coins || {})) {
+    const cgId = key.replace('coingecko:', '');
+    prices[cgId] = data.price;
+  }
+  return prices;
+}
+
+// --- TVL calculation ---
+
+// Calculate omnipool TVL using LRNA→USD conversion
 // LRNA is the hub token - each asset's assetHubReserve represents its
 // value in LRNA units. We calibrate LRNA price using DOT's known USD price.
-function calculateTvl(omnipoolBalances, omnipoolMetrics, dotPrice) {
-  // Find DOT entry in omnipool (registryId "5", assetId "5")
+function calculateOmnipoolTvl(omnipoolBalances, prices) {
   const dotEntry = omnipoolBalances.find((d) => d.assetId === '5');
   if (!dotEntry) return {};
+
+  const dotPrice = prices['polkadot'] || 0;
+  if (dotPrice === 0) return {};
 
   // DOT has 10 decimals, LRNA has 12 decimals on Hydration
   const dotBalance = parseFloat(dotEntry.freeBalance) / 1e10;
@@ -227,7 +415,6 @@ function calculateTvl(omnipoolBalances, omnipoolMetrics, dotPrice) {
   const dotLrna = parseFloat(dotEntry.assetHubReserve) / 1e12;
   const lrnaPrice = dotUsdValue / dotLrna;
 
-  // Calculate TVL for each omnipool asset
   const tvlByAssetId = {};
   for (const entry of omnipoolBalances) {
     const lrnaValue = parseFloat(entry.assetHubReserve) / 1e12;
@@ -237,7 +424,8 @@ function calculateTvl(omnipoolBalances, omnipoolMetrics, dotPrice) {
   return tvlByAssetId;
 }
 
-// Helper function to map incentive token IDs to symbols
+// --- Helpers ---
+
 function mapIncentiveTokens(incentivesTokens, symbolMap) {
   if (
     !incentivesTokens ||
@@ -255,12 +443,10 @@ function mapIncentiveTokens(incentivesTokens, symbolMap) {
     })
     .filter((symbol) => symbol !== null);
 
-  // Deduplicate reward tokens
   const unique = [...new Set(mappedTokens)];
   return unique.length > 0 ? unique : null;
 }
 
-// Helper function to clean up symbol formatting
 function cleanSymbol(symbol) {
   if (!symbol) return null;
 
