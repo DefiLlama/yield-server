@@ -1,6 +1,6 @@
 const utils = require('../utils');
 const BigNumber = require('bignumber.js');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const chainId = 'neutron';
 const restEndpoint = 'https://rest-lb.neutron.org';
@@ -124,14 +124,13 @@ async function queryContract(api, contract, data, height = null) {
   const encodedData = Buffer.from(data).toString('base64');
   const endpoint = `${api}/cosmwasm/wasm/v1/contract/${contract}/smart/${encodedData}`;
 
-  let request = superagent.get(endpoint);
-
+  const headers = {};
   if (height !== null) {
-    request = request.set('x-cosmos-block-height', height.toString());
+    headers['x-cosmos-block-height'] = height.toString();
   }
 
-  const result = await request;
-  return result.body.data;
+  const result = await axios.get(endpoint, { headers });
+  return result.data.data;
 }
 
 async function getCurrentHeight() {
@@ -152,9 +151,7 @@ async function getBlockData(height) {
 }
 
 async function getVaultOverallAPY(vault_apy_endpoint) {
-  const result = await utils.getData(
-    `${vault_apy_endpoint}`
-  );
+  const result = await utils.getData(vault_apy_endpoint);
   return result.overall_average * 100;
 }
 
