@@ -45,15 +45,15 @@ const cgMapping = {
   SUI: 'sui',
   GETH: 'ethereum',
   aDOT: 'polkadot',
-  aETH: 'ethereum',
-  aUSDC: 'usd-coin',
-  aUSDT: 'tether',
-  aWBTC: 'wrapped-bitcoin',
+  aETH: 'aave-v3-weth',
+  aUSDC: 'aave-v3-usdc',
+  aUSDT: 'aave-v3-usdt',
+  aWBTC: 'aave-v3-wbtc',
   avDOT: 'voucher-dot',
   atBTC: 'tbtc',
   wstETH: 'wrapped-steth',
   sUSDe: 'ethena-staked-usde',
-  sUSDS: 'sdai',
+  sUSDS: 'susds',
   PRIME: 'echelon-prime',
   HOLLAR: 'hydrated-dollar',
 };
@@ -61,7 +61,7 @@ const cgMapping = {
 // LP tokens that appear in the omnipool — map to their underlying composition
 const lpUnderlyingTokens = {
   '2-Pool': ['coingecko:usd-coin', 'coingecko:tether'],
-  '3-Pool': ['coingecko:tether', 'coingecko:usd-coin', 'coingecko:tether'],
+  '3-Pool': ['coingecko:aave-v3-usdt', 'coingecko:usd-coin', 'coingecko:tether'],
   '3-Pool-MRL': ['coingecko:usd-coin', 'coingecko:tether', 'coingecko:hydrated-dollar'],
 };
 
@@ -413,6 +413,7 @@ function calculateOmnipoolTvl(omnipoolBalances, prices) {
   const dotBalance = parseFloat(dotEntry.freeBalance) / 1e10;
   const dotUsdValue = dotBalance * dotPrice;
   const dotLrna = parseFloat(dotEntry.assetHubReserve) / 1e12;
+  if (dotLrna === 0) return {};
   const lrnaPrice = dotUsdValue / dotLrna;
 
   const tvlByAssetId = {};
