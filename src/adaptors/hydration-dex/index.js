@@ -1,6 +1,6 @@
 const { gql, request } = require('graphql-request');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const HYDRATION_GRAPHQL_URL =
   'https://galacticcouncil.squids.live/hydration-pools:unified-prod/api/graphql';
@@ -207,10 +207,10 @@ async function fetchOmnipoolBalances() {
 
 // Get DOT price from coins.llama.fi
 async function getDotPrice() {
-  const res = await superagent.get(
+  const res = await axios.get(
     'https://coins.llama.fi/prices/current/coingecko:polkadot'
   );
-  return res.body.coins['coingecko:polkadot'].price;
+  return res.data.coins['coingecko:polkadot'].price;
 }
 
 // Calculate TVL for each omnipool asset using LRNA→USD conversion
