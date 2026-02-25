@@ -98,21 +98,26 @@ const apy = async () => {
 
   // MorphoCredit supply APY from supply share price growth (7d)
   // supply share price = totalSupplyAssets / totalSupplyShares
+  const sharesNow = Number(marketNow.output.totalSupplyShares);
+  const shares7d = Number(market7d.output.totalSupplyShares);
   const sppNow =
-    Number(marketNow.output.totalSupplyAssets) /
-    Number(marketNow.output.totalSupplyShares);
+    sharesNow > 0
+      ? Number(marketNow.output.totalSupplyAssets) / sharesNow
+      : null;
   const spp7d =
-    Number(market7d.output.totalSupplyAssets) /
-    Number(market7d.output.totalSupplyShares);
+    shares7d > 0
+      ? Number(market7d.output.totalSupplyAssets) / shares7d
+      : null;
   const creditApy =
-    spp7d > 0
+    Number.isFinite(sppNow) && Number.isFinite(spp7d) && spp7d > 0
       ? (Math.pow(sppNow / spp7d, 365 / 7) - 1) * 100
       : null;
 
   // sUSD3 gets ALL yield (Aave + credit) from USD3 vault via 100% performance fee
   // Levered by the ratio of USD3 TVL to sUSD3 TVL
   const leverage = susd3TvlUsd > 0 ? usd3TvlUsd / susd3TvlUsd : 0;
-  const susd3Apy = ((creditApy || 0) + (aaveApy || 0)) * leverage;
+  const totalVaultYield = (creditApy != null ? creditApy : 0) + (aaveApy != null ? aaveApy : 0);
+  const susd3Apy = creditApy != null || aaveApy != null ? totalVaultYield * leverage : null;
 
   return [
     {
