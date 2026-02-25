@@ -1,10 +1,11 @@
 const { gql, request } = require('graphql-request');
 const utils = require('../utils');
-const sdk = require('@defillama/sdk');
+const axios = require('axios');
 
-const HYDRATION_GRAPHQL_URL = "https://galacticcouncil.squids.live/hydration-pools:whale-prod/api/graphql";
+const HYDRATION_GRAPHQL_URL =
+  'https://galacticcouncil.squids.live/hydration-pools:unified-prod/api/graphql';
 
-// Asset mapping for TVL calculation
+// CoinGecko ID mapping for underlying token resolution
 const cgMapping = {
   DAI: 'dai',
   INTR: 'interlay',
@@ -36,141 +37,125 @@ const cgMapping = {
   UNQ: 'unique-network',
   MYTH: 'mythos',
   WUD: 'gawun-wud',
-
+  PAXG: 'pax-gold',
+  ENA: 'ethena',
+  TRAC: 'origintrail',
+  LDO: 'lido-dao',
+  ETH: 'ethereum',
+  SUI: 'sui',
+  GETH: 'ethereum',
+  aDOT: 'polkadot',
 };
 
 const poolsFunction = async () => {
   try {
-    // Fetch yield metrics for all assets
-    const yieldMetrics = await fetchYieldMetrics();
-    
-    // Fetch asset symbols mapping
-    const assetSymbols = await fetchAssetSymbols();
+    // Fetch all data in parallel
+    const [assetNodes, omnipoolMetrics, incentiveMetrics, omnipoolBalances] =
+      await Promise.all([
+        fetchAssetSymbols(),
+        fetchOmnipoolYieldMetrics(),
+        fetchIncentiveMetrics(),
+        fetchOmnipoolBalances(),
+      ]);
 
-    // Fetch TVL data
-    const tvlData = await getTvlData();
-
-    // Create symbol lookup map
+    // Build symbol lookup from asset registry
     const symbolMap = {};
-    assetSymbols.forEach(asset => {
-      symbolMap[asset.assetRegistryId] = asset.symbol;
+    assetNodes.forEach((asset) => {
+      if (asset.assetRegistryId) {
+        symbolMap[asset.assetRegistryId] = asset.symbol;
+      }
     });
+
+    // Build incentive lookup by assetRegistryId
+    const incentiveMap = {};
+    incentiveMetrics.forEach((m) => {
+      incentiveMap[m.id] = m;
+    });
+
+    // Get DOT price for LRNA calibration
+    const dotPrice = await getDotPrice();
+
+    // Calculate TVL using LRNA approach
+    const tvlData = calculateTvl(omnipoolBalances, omnipoolMetrics, dotPrice);
 
     const pools = [];
 
-    // Process each asset's yield metrics
-    for (const metric of yieldMetrics) {
-      // Handle isolated pools separately (they use pool account IDs instead of asset IDs)
-      if (metric.poolType === 'isolatedpool' && metric.id.length > 20) {
-        // For isolated pools, get the actual TVL from our TVL data using the pool account ID
-        const poolAccountId = metric.id;
-        const poolTvl = tvlData[poolAccountId] || 0;
-        
-        // Skip if no TVL data available for this pool
-        if (poolTvl === 0) {
-          continue;
-        }
-
-        // Parse APY values
-        const apyBase = parseFloat(metric.feeApyPerc) || 0;
-        const apyReward = parseFloat(metric.incentivesApyPerc) || 0;
-
-        // Skip pools with no yield
-        if (apyBase === 0 && apyReward === 0) {
-          continue;
-        }
-
-        // Get the pool composition from stored data
-        const poolComposition = tvlData[`${poolAccountId}_composition`];
-        let poolName = poolAccountId.substring(0, 10) + '...';
-        let underlyingSymbols = [poolAccountId];
-        
-        if (poolComposition) {
-          poolName = poolComposition.join('-');
-          underlyingSymbols = poolComposition;
-        }
-
-        // Map incentive tokens to symbols
-        const rewardTokens = apyReward > 0 ? mapIncentiveTokens(metric.incentivesTokens, symbolMap) : null;
-
-        const pool = {
-          pool: `${poolName}-hydration-dex`,
-          chain: 'Polkadot',
-          project: 'hydration-dex',
-          symbol: poolName,
-          tvlUsd: poolTvl,
-          apyBase: apyBase > 0 ? apyBase : null,
-          apyReward: apyReward > 0 ? apyReward : null,
-          rewardTokens: rewardTokens,
-          underlyingTokens: underlyingSymbols,
-          url: 'https://app.hydration.net/liquidity/all-pools',
-          poolMeta: formatPoolType(metric.poolType)
-        };
-
-        pools.push(pool);
-        continue;
-      }
-      
-      // Get symbol from the mapping
-      let symbol = symbolMap[metric.id];
-      
-      // Skip if no symbol found
-      if (!symbol) {
-        continue;
-      }
-      
-      // Clean up symbol formatting
+    for (const metric of omnipoolMetrics) {
+      const regId = metric.assetRegistryId;
+      let symbol = symbolMap[regId];
+      if (!symbol) continue;
       symbol = cleanSymbol(symbol);
-      
-      // Parse APY values
-      const apyBase = parseFloat(metric.feeApyPerc) || 0;
-      const apyReward = parseFloat(metric.incentivesApyPerc) || 0;
+      if (!symbol) continue;
+
+      // Fee APY from omnipool
+      const apyBase = parseFloat(metric.projectedApyPerc) || 0;
+
+      // Incentive APY from farming (if available)
+      const incentive = incentiveMap[regId];
+      const apyReward = incentive
+        ? parseFloat(incentive.incentivesApyPerc) || 0
+        : 0;
 
       // Skip pools with no yield
-      if (apyBase === 0 && apyReward === 0) {
-        continue;
-      }
+      if (apyBase === 0 && apyReward === 0) continue;
 
-      // Get TVL for this asset
-      let tvlUsd = tvlData[symbol] || 0;
+      // Get TVL
+      const tvlUsd = tvlData[metric.assetId] || 0;
+      if (tvlUsd === 0) continue;
 
-      // Skip pools with no TVL
-      if (tvlUsd === 0) {
-        continue;
-      }
+      // Map reward tokens
+      const rewardTokens =
+        incentive && apyReward > 0
+          ? mapIncentiveTokens(incentive.incentivesTokens, symbolMap)
+          : null;
 
-      // Map incentive tokens to symbols
-      const rewardTokens = apyReward > 0 ? mapIncentiveTokens(metric.incentivesTokens, symbolMap) : null;
+      // Resolve underlying token
+      const cgId = cgMapping[symbol];
+      const underlyingTokens = cgId ? [`coingecko:${cgId}`] : undefined;
 
-      const pool = {
+      pools.push({
         pool: `${symbol}-hydration-dex`,
         chain: 'Polkadot',
         project: 'hydration-dex',
         symbol: utils.formatSymbol(symbol),
-        tvlUsd: tvlUsd,
+        tvlUsd,
         apyBase: apyBase > 0 ? apyBase : null,
         apyReward: apyReward > 0 ? apyReward : null,
-        rewardTokens: rewardTokens,
-        underlyingTokens: [symbol],
+        rewardTokens,
+        underlyingTokens,
         url: 'https://app.hydration.net/liquidity/all-pools',
-        poolMeta: formatPoolType(metric.poolType)
-      };
-
-      pools.push(pool);
+        poolMeta: 'Omnipool',
+      });
     }
 
     return pools;
-
   } catch (error) {
     console.error('Error fetching HydraDX pools:', error);
     return [];
   }
 };
 
-// Fetch yield metrics for all assets
-async function fetchYieldMetrics() {
+// Fetch omnipool yield metrics (fee APY for all omnipool assets)
+async function fetchOmnipoolYieldMetrics() {
   const query = gql`
-    query MyQuery {
+    query {
+      omnipoolAssetsYieldMetrics {
+        nodes {
+          assetId
+          assetRegistryId
+          projectedApyPerc
+        }
+      }
+    }
+  `;
+  const response = await request(HYDRATION_GRAPHQL_URL, query);
+  return response.omnipoolAssetsYieldMetrics.nodes || [];
+}
+
+// Fetch incentive/farming APY metrics
+async function fetchIncentiveMetrics() {
+  const query = gql`
+    query {
       allAssetsYieldMetrics {
         nodes {
           id
@@ -179,219 +164,123 @@ async function fetchYieldMetrics() {
           incentivesApyPerc
           incentivesTokens
         }
-        totalCount
       }
     }
   `;
-
   const response = await request(HYDRATION_GRAPHQL_URL, query);
   return response.allAssetsYieldMetrics.nodes || [];
 }
 
-// Fetch asset symbols mapping
+// Fetch asset symbols and decimals
 async function fetchAssetSymbols() {
   const query = gql`
-    query MyQuery {
+    query {
       assets {
         nodes {
           assetRegistryId
           symbol
+          decimals
         }
       }
     }
   `;
-
   const response = await request(HYDRATION_GRAPHQL_URL, query);
   return response.assets.nodes || [];
 }
 
-// Fetch omnipool TVL data using the new omnipoolAssetsLatestTvl query
-async function fetchOmnipoolTvl() {
+// Fetch omnipool balances for TVL calculation
+async function fetchOmnipoolBalances() {
   const query = gql`
-    query MyQuery {
-      omnipoolAssetsLatestTvl {
+    query {
+      omnipoolAssetHistoricalDataLatests {
         nodes {
           assetId
-          assetRegistryId
-          tvlInRefAssetNorm
-          paraBlockHeight
+          freeBalance
+          assetHubReserve
         }
       }
     }
   `;
-
   const response = await request(HYDRATION_GRAPHQL_URL, query);
-  return response.omnipoolAssetsLatestTvl.nodes || [];
+  return response.omnipoolAssetHistoricalDataLatests.nodes || [];
 }
 
-// Fetch all available XYK pools to get their pool IDs
-async function fetchAllXykPools() {
-  const query = gql`
-    query MyQuery {
-      xykpoolsLatestTvl {
-        nodes {
-          poolId
-          tvlInRefAssetNorm
-          paraBlockHeight
-        }
-      }
-    }
-  `;
-
-  const response = await request(HYDRATION_GRAPHQL_URL, query);
-  return response.xykpoolsLatestTvl.nodes || [];
+// Get DOT price from coins.llama.fi
+async function getDotPrice() {
+  const res = await axios.get(
+    'https://coins.llama.fi/prices/current/coingecko:polkadot'
+  );
+  return res.data.coins['coingecko:polkadot'].price;
 }
 
-// Fetch XYK pool TVL data using the new xykpoolsLatestTvl query
-async function fetchXykPoolTvl(poolIds) {
-  if (!poolIds || poolIds.length === 0) {
-    return [];
+// Calculate TVL for each omnipool asset using LRNA→USD conversion
+// LRNA is the hub token - each asset's assetHubReserve represents its
+// value in LRNA units. We calibrate LRNA price using DOT's known USD price.
+function calculateTvl(omnipoolBalances, omnipoolMetrics, dotPrice) {
+  // Find DOT entry in omnipool (registryId "5", assetId "5")
+  const dotEntry = omnipoolBalances.find((d) => d.assetId === '5');
+  if (!dotEntry) return {};
+
+  // DOT has 10 decimals, LRNA has 12 decimals on Hydration
+  const dotBalance = parseFloat(dotEntry.freeBalance) / 1e10;
+  const dotUsdValue = dotBalance * dotPrice;
+  const dotLrna = parseFloat(dotEntry.assetHubReserve) / 1e12;
+  const lrnaPrice = dotUsdValue / dotLrna;
+
+  // Calculate TVL for each omnipool asset
+  const tvlByAssetId = {};
+  for (const entry of omnipoolBalances) {
+    const lrnaValue = parseFloat(entry.assetHubReserve) / 1e12;
+    tvlByAssetId[entry.assetId] = lrnaValue * lrnaPrice;
   }
 
-  const poolIdsFilter = poolIds.map(id => `"${id}"`).join(', ');
-  const query = gql`
-    query MyQuery {
-      xykpoolsLatestTvl(filter: {poolIds: [${poolIdsFilter}]}) {
-        nodes {
-          poolId
-          tvlInRefAssetNorm
-          paraBlockHeight
-        }
-      }
-    }
-  `;
-
-  const response = await request(HYDRATION_GRAPHQL_URL, query);
-  return response.xykpoolsLatestTvl.nodes || [];
-}
-
-// Get asset TVL using the new TVL queries
-async function getTvlData() {
-  try {
-    // Fetch asset symbols mapping
-    const assetSymbols = await fetchAssetSymbols();
-    
-    // Create asset ID to symbol mapping
-    const assetIdToSymbol = {};
-    assetSymbols.forEach(asset => {
-      assetIdToSymbol[asset.assetRegistryId] = asset.symbol;
-    });
-
-    const assetTvls = {};
-
-    // Fetch omnipool TVL data
-    const omnipoolTvlData = await fetchOmnipoolTvl();
-    
-    // Process omnipool TVL data
-    for (const tvlEntry of omnipoolTvlData) {
-      const assetId = tvlEntry.assetRegistryId;
-      const symbol = assetIdToSymbol[assetId];
-      
-      if (symbol) {
-        const cleanedSymbol = cleanSymbol(symbol);
-        // Skip if we don't have a CoinGecko mapping for this asset
-        if (cgMapping[cleanedSymbol]) {
-          const tvlUsd = parseFloat(tvlEntry.tvlInRefAssetNorm);
-          assetTvls[cleanedSymbol] = tvlUsd;
-        }
-      }
-    }
-
-    // Handle isolated pools (XYK pools) with correct pool ID mapping
-    const allXykPools = await fetchAllXykPools();
-    
-    // Known mappings of pool IDs to compositions based on actual pool IDs
-    const xykPoolMappings = {
-      '0xbf80080b4d0077544ef058a29e878ae6f6bdb8cf2f462ab390490f668eb50b73': { 
-        poolAccountId: "15L6BQ1sMd9pESapK13dHaXBPPtBYnDnKTVhb2gBeGrrJNBx", 
-        composition: ['MYTH', 'DOT'] 
-      },
-      '0xd4044eed8c3a16740b3edf9e85cd6384c66eecf21179843cd863c20bfa6b082f': {
-        poolAccountId: "15nzS2D2wJdh52tqZdUJVMeDQqQe7wJfo5NZKL7pUxhwYgwq", 
-        composition: ['DOT', 'EWT']
-      }
-    };
-
-    // Process XYK pool TVL data using known mappings
-    for (const xykPool of allXykPools) {
-      const poolTvl = parseFloat(xykPool.tvlInRefAssetNorm);
-      const poolMapping = xykPoolMappings[xykPool.poolId];
-      
-      if (poolMapping && poolTvl > 0) {
-        assetTvls[poolMapping.poolAccountId] = poolTvl;
-        assetTvls[`${poolMapping.poolAccountId}_composition`] = poolMapping.composition;
-      }
-    }
-
-    return assetTvls;
-  } catch (error) {
-    console.error('Error fetching TVL data:', error);
-    return {};
-  }
+  return tvlByAssetId;
 }
 
 // Helper function to map incentive token IDs to symbols
 function mapIncentiveTokens(incentivesTokens, symbolMap) {
-  if (!incentivesTokens || !Array.isArray(incentivesTokens) || incentivesTokens.length === 0) {
+  if (
+    !incentivesTokens ||
+    !Array.isArray(incentivesTokens) ||
+    incentivesTokens.length === 0
+  ) {
     return null;
   }
-  
+
   const mappedTokens = incentivesTokens
-    .map(tokenId => {
-      // Handle HDX (asset ID 0) specially
-      if (tokenId === "0" || tokenId === 0) {
-        return 'HDX';
-      }
-      
-      // Map other token IDs to symbols
+    .map((tokenId) => {
+      if (tokenId === '0' || tokenId === 0) return 'HDX';
       const symbol = symbolMap[tokenId];
       return symbol ? cleanSymbol(symbol) : null;
     })
-    .filter(symbol => symbol !== null); // Remove any unmapped tokens
-  
-  return mappedTokens.length > 0 ? mappedTokens : null;
+    .filter((symbol) => symbol !== null);
+
+  // Deduplicate reward tokens
+  const unique = [...new Set(mappedTokens)];
+  return unique.length > 0 ? unique : null;
 }
 
 // Helper function to clean up symbol formatting
 function cleanSymbol(symbol) {
-  // Handle null or undefined symbols
-  if (!symbol) {
-    return null;
-  }
-  
-  // Remove common prefixes that might come from the API
+  if (!symbol) return null;
+
   symbol = symbol.replace(/^2-POOL-/i, '');
   symbol = symbol.replace(/^3-POOL-/i, '');
   symbol = symbol.replace(/^4-POOL-/i, '');
   symbol = symbol.replace(/^POOL-/i, '');
-  
-  // Handle specific symbol mappings for better display
+
   const symbolMappings = {
-    'TBTC': 'tBTC',
-    'VASTR': 'vASTR',
-    'VDOT': 'vDOT'
+    TBTC: 'tBTC',
+    VASTR: 'vASTR',
+    VDOT: 'vDOT',
   };
-  
+
   const upperSymbol = symbol.toUpperCase();
   if (symbolMappings[upperSymbol]) {
     return symbolMappings[upperSymbol];
   }
-  
-  return symbol;
-}
 
-// Helper function to format pool type for display
-function formatPoolType(poolType) {
-  switch(poolType) {
-    case 'omnipool':
-      return 'Omnipool';
-    case 'isolatedpool':
-      return 'Isolated Pool';
-    case 'stableswap':
-      return 'Stable Swap';
-    default:
-      return 'Pool';
-  }
+  return symbol;
 }
 
 module.exports = {
