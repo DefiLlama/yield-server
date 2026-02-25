@@ -118,4 +118,14 @@ const getPoolsBorrow = async (req, res) => {
   });
 };
 
-module.exports = { getPoolEnriched, getPoolsEnrichedPro, getPoolsBorrow };
+const getPools = async (req, res) => {
+  const data = await readFromS3('defillama-datasets', 'yield-api/pools');
+  res.status(200).json(data);
+};
+
+const getLendBorrow = async (req, res) => {
+  const data = await readFromS3('defillama-datasets', 'yield-api/lendBorrow');
+  res.status(200).json(data);
+};
+
+module.exports = { getPoolEnriched, getPoolsEnrichedPro, getPoolsBorrow, getPools, getLendBorrow };
