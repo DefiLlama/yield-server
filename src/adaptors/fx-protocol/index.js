@@ -6,6 +6,17 @@ const reBalanceAbi = require('./abis/reBalance.json');
 
 const ALADDIN_API_BASE_URL = 'https://api.aladdin.club/';
 
+// Fallback underlying tokens for gauge pools where on-chain calls fail
+const GAUGE_FALLBACK_UNDERLYINGS = {
+  '0xA5250C540914E012E22e623275E290c4dC993D11': [
+    '0x0000000000000000000000000000000000000000', // ETH
+    '0x365AccFCa291e7D3914637ABf1F7635dB165Bb09', // FXN
+  ],
+  '0x215D87bd3c7482E2348338815E059DE07Daf798A': [
+    '0x085780639CC2cACd35E474e71f4d000e2405d8f6', // fxUSD
+  ],
+};
+
 const getRebalancePoolData = async () => {
   let RebalancePoolData = await utils.getData(
     `${ALADDIN_API_BASE_URL}api1/fx_rebalance_tvl_apy`
@@ -122,8 +133,11 @@ const getGaugePoolData = async () => {
     RebalancePoolData.data.map(async (data) => {
       const { gauge, lpAddress, name, tvl, apy } = data;
 
-      // Try to get underlying tokens from LP contract
-      const underlyingTokens = lpAddress ? await getUnderlyingTokens(lpAddress) : null;
+      // Try to get underlying tokens from LP contract, with fallback
+      let underlyingTokens = lpAddress ? await getUnderlyingTokens(lpAddress) : null;
+      if (!underlyingTokens && GAUGE_FALLBACK_UNDERLYINGS[gauge]) {
+        underlyingTokens = GAUGE_FALLBACK_UNDERLYINGS[gauge];
+      }
 
       return {
         pool: `${gauge}-f(x)`,

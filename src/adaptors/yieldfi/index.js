@@ -104,6 +104,20 @@ const UNDERLYING_TOKENS = {
   linea: {
     USDC: '0x176211869cA2b568f2A7D4EE941E073a821EE1ff',
   },
+  saga: {
+    USDC: 'coingecko:usd-coin',
+    WETH: 'coingecko:ethereum',
+  },
+  katana: {
+    USDC: 'coingecko:usd-coin',
+    WETH: 'coingecko:ethereum',
+  },
+  tac: {
+    USDC: 'coingecko:usd-coin',
+  },
+  plasma: {
+    USDC: 'coingecko:usd-coin',
+  },
 };
 
 // Supported chains

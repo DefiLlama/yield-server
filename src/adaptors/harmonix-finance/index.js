@@ -45,7 +45,8 @@ const assets = {
     wbtc: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
     rseth: '0x4186BFC76E2E237523CBC30FD220FE055156b41F',
     link: '0xf97f4df75117a78c1A5a0DBb814Af92458539FB4',
-    uni: '0xfa7f8980b0f1e64a2062791cc3b0871572f1f7f0'
+    uni: '0xfa7f8980b0f1e64a2062791cc3b0871572f1f7f0',
+    usdc: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
   },
   ethereum: {
     eth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
@@ -53,6 +54,10 @@ const assets = {
   },
   hyperevm: {
     hype: '0x0000000000000000000000000000000000000000',
+    khype: '0x0000000000000000000000000000000000000000',
+  },
+  base: {
+    usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   }
 };
 
@@ -122,7 +127,11 @@ const getApy = async () => {
         apyReward: 0, // hardcoded for now
         rewardTokens: [], // hardcoded for now
         url: `https://app.harmonix.fi/vaults/${v.slug}`, // URL to the vault
-        underlyingTokens: assets[chainId]?.[v.underlying_asset?.toLowerCase()] ? [assets[chainId][v.underlying_asset.toLowerCase()]] : undefined,
+        underlyingTokens: assets[chainId]?.[v.underlying_asset?.toLowerCase()]
+          ? [assets[chainId][v.underlying_asset.toLowerCase()]]
+          : assets[chainId]?.[v.vault_currency?.toLowerCase()]
+            ? [assets[chainId][v.vault_currency.toLowerCase()]]
+            : undefined,
       };
     }));
   }));
