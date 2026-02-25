@@ -235,11 +235,15 @@ const getGaugeApy = async () => {
       .map((i) => `${CHAIN}:${i}`)
       .join(',')
       .replaceAll('/', '');
-    pricesA = [
-      ...pricesA,
-      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
-        .coins,
-    ];
+    try {
+      const resp = await axios.get(
+        `https://coins.llama.fi/prices/current/${x}`,
+        { timeout: 10_000 }
+      );
+      if (resp?.data?.coins) pricesA = [...pricesA, resp.data.coins];
+    } catch (e) {
+      console.error('Failed to fetch token prices page:', e.message);
+    }
   }
   let prices = {};
   for (const p of pricesA.flat()) {
@@ -270,17 +274,23 @@ const getGaugeApy = async () => {
     }
   }
   // Fetch subgraph TVL data to join with valid pools
-  const { pairs: subgraphPairs } = await request(
-    SUBGRAPH,
-    gql`
-      {
-        pairs(first: 1000) {
-          id
-          reserveUSD
+  let subgraphPairs = [];
+  try {
+    const resp = await request(
+      SUBGRAPH,
+      gql`
+        {
+          pairs(first: 1000) {
+            id
+            reserveUSD
+          }
         }
-      }
-    `
-  );
+      `
+    );
+    subgraphPairs = resp?.pairs ?? [];
+  } catch (e) {
+    console.error('Failed to fetch subgraph TVL data:', e.message);
+  }
 
   const pools = validPools.map((p, i) => {
     const originalIndex = validIndices[i];
