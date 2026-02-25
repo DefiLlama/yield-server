@@ -27,10 +27,14 @@ const RWAUSDI = {
 const RWAUSDI_DECIMALS = 6;
 
 // Collateral assets used to mint rwaUSD
-const RWAUSD_UNDERLYING = [
+const RWAUSD_UNDERLYING_ETH = [
   '0x45804880De22913dAFE09f4980848ECE6EcbAf78', // PAXG
   '0x68749665FF8D2d112Fa859AA293F07A622782F38', // xAUT
   // TODO: ADD MH3 address once found
+];
+const RWAUSD_UNDERLYING_BASE = [
+  'ethereum:0x45804880De22913dAFE09f4980848ECE6EcbAf78', // PAXG
+  'ethereum:0x68749665FF8D2d112Fa859AA293F07A622782F38', // xAUT
 ];
 
 async function apy() {
@@ -129,7 +133,7 @@ async function apy() {
       symbol: 'rwaUSDi',
       tvlUsd: rwaEthTvl,
       apy: rwaUsdApy,
-      underlyingTokens: RWAUSD_UNDERLYING,
+      underlyingTokens: RWAUSD_UNDERLYING_ETH,
       url: 'https://app.multipli.fi/rwaUSD',
       poolMeta: 'Institutional only',
     });
@@ -150,7 +154,7 @@ async function apy() {
       symbol: 'rwaUSDi',
       tvlUsd: rwaBaseTvl,
       apy: rwaUsdApy,
-      underlyingTokens: RWAUSD_UNDERLYING,
+      underlyingTokens: RWAUSD_UNDERLYING_BASE,
       url: 'https://app.multipli.fi/rwaUSD',
       poolMeta: 'Institutional only',
     });

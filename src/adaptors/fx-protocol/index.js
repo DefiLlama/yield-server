@@ -96,6 +96,17 @@ const getUnderlyingTokens = async (lpAddress) => {
       return [coin0Result.output, coin1Result.output];
     }
 
+    // Try stability pool yieldToken (fxUSD base pools)
+    const yieldTokenResult = await sdk.api.abi.call({
+      target: lpAddress,
+      abi: 'address:yieldToken',
+      chain: 'ethereum',
+    }).catch(() => null);
+
+    if (yieldTokenResult?.output) {
+      return [yieldTokenResult.output];
+    }
+
     return null;
   } catch (e) {
     return null;

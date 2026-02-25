@@ -6,12 +6,35 @@ const chainMapping = {
   BCH: 'bitcoincash',
   BNB: 'binance',
   DOGE: 'doge',
-  LTC: 'litecoin', 
+  LTC: 'litecoin',
   TERRA: 'terra',
   GAIA: 'cosmos',
-  AVAX: 'avalanche', 
+  AVAX: 'avalanche',
   BASE: 'base',
   XRP: 'ripple'
+};
+
+// Native assets without contract addresses - use coingecko IDs
+const nativeCoingeckoMapping = {
+  'BTC.BTC': 'coingecko:bitcoin',
+  'BCH.BCH': 'coingecko:bitcoin-cash',
+  'DOGE.DOGE': 'coingecko:dogecoin',
+  'LTC.LTC': 'coingecko:litecoin',
+  'GAIA.ATOM': 'coingecko:cosmos',
+};
+
+const resolveUnderlying = (asset, chain) => {
+  // Native assets (BTC.BTC, DOGE.DOGE, etc.) - use coingecko
+  if (nativeCoingeckoMapping[asset]) return nativeCoingeckoMapping[asset];
+
+  // EVM tokens: CHAIN.TOKEN-0xAddress -> extract address
+  const parts = asset.split('-');
+  if (parts.length > 1 && parts[parts.length - 1].startsWith('0x')) {
+    return parts[parts.length - 1];
+  }
+
+  // Fallback to raw asset notation
+  return asset;
 };
 
 const buildPool = (entry, runePrice) => {
@@ -30,8 +53,8 @@ const buildPool = (entry, runePrice) => {
     symbol: utils.formatSymbol(symbol),
     tvlUsd: balanceAsset + balanceRune,
     apy: Number(entry.poolAPY) * 100,
-    // THORChain asset notation: CHAIN.ASSET-ID (e.g., ETH.USDC-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
-    underlyingTokens: [entry.asset],
+    // Resolve underlying: native assets use coingecko, EVM tokens extract address
+    underlyingTokens: [resolveUnderlying(entry.asset, chain)],
   };
 
   return newObj;
