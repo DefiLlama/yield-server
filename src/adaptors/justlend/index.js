@@ -1,6 +1,8 @@
 const utils = require('../utils');
 
 const API_URL = 'https://labc.ablesdxd.link/justlend/yieldInfos';
+const WTRX = 'TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR';
+const TRX_NATIVE = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
 
 const getMarketDetails = async (tokedAddress) => {
   const details = await utils.getData(
@@ -46,7 +48,7 @@ const getApy = async () => {
         100,
       apyReward: rewards[market.jtokenAddress]['USDDNEW'] * 100,
       rewardTokens: ['TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn'],
-      underlyingTokens: [market.collateralAddress],
+      underlyingTokens: [market.collateralAddress === TRX_NATIVE ? WTRX : market.collateralAddress],
       apyBaseBorrow: market.borrowedAPY * 100,
       totalSupplyUsd: Number(market.depositedUSD),
       totalBorrowUsd: Number(market.borrowedUSD),
