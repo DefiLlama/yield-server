@@ -5,7 +5,7 @@ const superagent = require('superagent');
 const chainId = 'neutron';
 const restEndpoint = 'https://rest-lb.neutron.org';
 const BLOCKS_PER_DAY = 86400; // Approximately 1 second per block on Neutron
-const APY_PERIOD_DAYS = 4; // APY calculation period
+const APY_PERIOD_DAYS = 7; // APY calculation period
 
 const vaults = [
   // ATOM vault
@@ -17,18 +17,22 @@ const vaults = [
       display_symbol: "ATOM",
       chain: "cosmos",
       decimals: 6
-    }
+    },
+    url: 'https://hydro.markets/inflow/vaults/atom',
+    vault_apy_endpoint: 'https://hydro.markets/api/vault/apy?vault=atom',
   },
-  // BTC vault
+  // WBTC vault
   {
     controlCenterContract: 'neutron1c3djqnwur4aryxe7knr4kvcm3hj2wvnl5887lc5dwsh7z40pf2cq9flznr',
     vault_deposit_denom: 'ibc/0E293A7622DC9A6439DB60E6D234B5AF446962E27CA3AB44D0590603DFF6968E',
     origin_asset: {
       symbol: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
-      display_symbol: "BTC",
+      display_symbol: "WBTC",
       chain: "ethereum",
       decimals: 8
-    }
+    },
+    url: 'https://hydro.markets/inflow/vaults/btc',
+    vault_apy_endpoint: 'https://hydro.markets/api/vault/apy?vault=btc',
   },
   // USDC vault
   {
@@ -36,10 +40,12 @@ const vaults = [
     vault_deposit_denom: 'ibc/B559A80D62249C8AA07A380E2A2BEA6E5CA9A6F079C912C3A9E9B494105E4F81',
     origin_asset: {
       symbol: "uusdc",
-      display_symbol: "USD",
+      display_symbol: "USDC",
       chain: "noble",
       decimals: 6
-    }
+    },
+    url: 'https://hydro.markets/inflow/vaults/usd',
+    vault_apy_endpoint: 'https://hydro.markets/api/vault/apy?vault=usdc',
   },
 ];
 
@@ -96,14 +102,15 @@ async function apy() {
     const tvlUsd = totalLockedTokens.times(price).toNumber();
 
     apyData.push({
-          pool: `inflow-${vault.origin_asset.display_symbol}-vault`.toLowerCase(),
+          pool: `${vault.controlCenterContract}-${chainId}`.toLowerCase(),
           symbol: vault.origin_asset.display_symbol,
           underlyingTokens: [vault.vault_deposit_denom],
           project: 'hydro-inflow',
-          chain: chainId,
+          chain: utils.formatChain(chainId),
           tvlUsd: tvlUsd,
-          apyBase: apyBase,
-          url: 'https://hydro.markets/',
+          apyBase: await getVaultOverallAPY(vault.vault_apy_endpoint),
+          apyBase7d: apyBase,
+          url: vault.url,
         });
   }
 
@@ -142,6 +149,13 @@ async function getBlockData(height) {
     height: parseInt(result.block.header.height),
     time: result.block.header.time
   };
+}
+
+async function getVaultOverallAPY(vault_apy_endpoint) {
+  const result = await utils.getData(
+    `${vault_apy_endpoint}`
+  );
+  return result.overall_average * 100;
 }
 
 module.exports = {
