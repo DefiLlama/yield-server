@@ -30,6 +30,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vDOT.apyBase),
     apyReward: Number(vToken.vDOT.apyReward),
     rewardTokens: ['DOT'],
+    underlyingTokens: ['coingecko:polkadot'],
   };
 
   const vGLMR = {
@@ -77,6 +78,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vBNC.apyBase),
     apyReward: Number(vToken.vBNC.apyReward),
     rewardTokens: ['BNC'],
+    underlyingTokens: ['coingecko:bifrost-native-coin'],
   };
 
   const vKSM = {
@@ -88,6 +90,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vKSM.apyBase),
     apyReward: Number(vToken.vKSM.apyReward),
     rewardTokens: ['KSM'],
+    underlyingTokens: ['coingecko:kusama'],
   };
 
   const vMANTA = {
@@ -110,8 +113,9 @@ const getApy = async () => {
     tvlUsd: vToken.vETH.tvm * prices['coingecko:ethereum'].price,
     apyBase: Number(vToken.vETH.apyBase),
     apyReward: Number(vToken.vETH.apyReward),
-    underlyingTokens: [veth],
+    underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     rewardTokens: ['ETH'],
+    token: veth,
   };
 
   return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC, vASTR, vMANTA];

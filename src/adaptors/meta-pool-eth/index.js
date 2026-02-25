@@ -5,6 +5,7 @@ const abi = require('./abi.json');
 
 const spETH = '0xD06f6a56c5f599cB375B616DF306f32B7F6f4A0E';
 const mpETH = '0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710';
+const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 
 const convertToAssetsAbi = abi.find((m) => m.name === 'convertToAssets');
 const totalAssetsAbi = abi.find((m) => m.name === 'totalAssets');
@@ -58,7 +59,8 @@ const apy = async () => {
       symbol: 'spETH',
       tvlUsd: (spAssets.output / 1e18) * ethPrice,
       ...calcApy(spRates),
-      underlyingTokens: [spETH],
+      underlyingTokens: [WETH],
+      token: spETH,
     },
     {
       pool: mpETH,
@@ -67,7 +69,8 @@ const apy = async () => {
       symbol: 'mpETH',
       tvlUsd: (mpAssets.output / 1e18) * ethPrice,
       ...calcApy(mpRates),
-      underlyingTokens: [mpETH],
+      underlyingTokens: [WETH],
+      token: mpETH,
     },
   ];
 };
