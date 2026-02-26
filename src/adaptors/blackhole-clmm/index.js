@@ -7,7 +7,7 @@ const utils = require('../utils');
 const gaugeManager = '0x59aa177312Ff6Bdf39C8Af6F46dAe217bf76CBf6';
 const BLACK = '0xcd94a87696FAC69Edae3a70fE5725307Ae1c43f6';
 const nullAddress = '0x0000000000000000000000000000000000000000';
-const PROJECT = 'blackhole-cl';
+const PROJECT = 'blackhole-clmm';
 const CHAIN = 'avax';
 const SUBGRAPH =
     'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/poap-subgraph-core/avax-main/gn';
