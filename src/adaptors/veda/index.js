@@ -38,9 +38,9 @@ const vaults = [
     chains: ['ethereum', 'plasma'],
     decimals: 6,
     underlyingTokens: [
-      'ethereum:0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-      'ethereum:0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT
-      'ethereum:0x6B175474E89094C44Da98b954EedeAC495271d0F', // DAI
+      'ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
+      'ethereum:0xdac17f958d2ee523a2206206994597c13d831ec7', // USDT
+      'ethereum:0x6b175474e89094c44da98b954eedeac495271d0f', // DAI
     ],
     url: 'https://app.veda.tech/vaults/plasmausd',
   },
@@ -142,7 +142,8 @@ const getTotalSupply = async (vault) => {
 
 const getTvl = async (vault, totalSupply, currentRate) => {
   const vaultKey = `${vault.chain}:${vault.vault}`;
-  const underlyingKey = `${vault.chain}:${vault.underlyingTokens[0]}`;
+  const token0 = vault.underlyingTokens[0];
+  const underlyingKey = token0.includes(':') ? token0 : `${vault.chain}:${token0}`;
   const priceRes = await axios.get(
     `https://coins.llama.fi/prices/current/${vaultKey},${underlyingKey}`
   );
