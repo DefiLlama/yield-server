@@ -23,6 +23,14 @@ const { MARKETS, CHAINLINK_FEEDS, TOKEN_CHAINLINK_FEED_MAP, UNDERLYING_ASSET_DIS
 
 const CHAIN = 'ethereum';
 
+const UNDERLYING_ASSETS = {
+  haBTC: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', // WBTC
+  haETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
+  haEUR: '0xdb25f211ab05b1c97d595516f45794528a807ad8', // EURS
+  haGOLD: 'coingecko:pax-gold', // XAU proxy
+  haSILVER: 'coingecko:silver', // XAG proxy
+};
+
 // Market configurations are imported from config.js
 // See config.js for address verification details and deployment information
 
@@ -422,7 +430,7 @@ async function fetchPoolsFromChain() {
           symbol: peggedTokenSymbol,
           tvlUsd: totalTVL,
           apyBase: validAPRs.length > 0 ? finalAPR : 0,
-          underlyingTokens: [peggedTokenAddress],
+          underlyingTokens: UNDERLYING_ASSETS[peggedTokenSymbol] ? [UNDERLYING_ASSETS[peggedTokenSymbol]] : [peggedTokenAddress],
           poolMeta: `${peggedTokenSymbol} Stability Pool`,
           url: 'https://app.harborfinance.io/anchor',
         });
