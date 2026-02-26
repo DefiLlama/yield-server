@@ -7,9 +7,17 @@ const urls = {
 };
 
 const underlyingTokenMapping = {
-  eth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-  avax: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7',
-  weth: '0x4200000000000000000000000000000000000006',
+  ethereum: {
+    eth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+  },
+  avalanche: {
+    avax: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7',
+  },
+  optimism: {
+    eth: '0x4200000000000000000000000000000000000006',
+    weth: '0x4200000000000000000000000000000000000006',
+  },
 };
 
 async function apy(chain) {
@@ -39,7 +47,7 @@ async function apy(chain) {
       rewardTokens: apyReward > 0 ? [v.rewardsTokenAddress] : [],
       underlyingTokens:
         v.asset.address === null
-          ? [underlyingTokenMapping[v.asset.symbol.toLowerCase()]]
+          ? [underlyingTokenMapping[chain]?.[v.asset.symbol.toLowerCase()]]
           : [v.asset.address],
     };
   });
