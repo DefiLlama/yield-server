@@ -250,7 +250,7 @@ const apy = async () => {
     apyBase: baseStFdxlpAprBase().toNumber(),
     apyReward: baseStFdxlpAprReward().toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESFDX],
-    underlyingTokens: [addresses.STFDXLP],
+    underlyingTokens: [addresses.FDX, addresses.WETH],
     poolMeta: 'stFdxLP Staking',
     url: 'https://app.flex.trade/base/earn',
   };
