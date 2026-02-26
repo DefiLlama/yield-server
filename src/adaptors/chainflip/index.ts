@@ -15,7 +15,7 @@ const getPool = async () => {
     tvlUsd: pool.tvl,
     apy: pool.apy,
     url: 'https://scan.chainflip.io/pools/Btc/boost',
-    underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+    underlyingTokens: ['coingecko:bitcoin'],
   };
 
   return [btcPool];
