@@ -10,9 +10,9 @@ const abiPoolsFactory = require('./abiPoolsFactory.json');
 
 const poolsFactory = '0x5aEf44EDFc5A7eDd30826c724eA12D7Be15bDc30';
 const gaugeManager = '0x19a410046Afc4203AEcE5fbFc7A6Ac1a4F517AE2';
-const SNOVA = '0x00Da8466B296E382E5Da2Bf20962D0cB87200c78';
+const BLACK = '0x00Da8466B296E382E5Da2Bf20962D0cB87200c78';
 
-const PROJECT = 'supernova-amm';
+const PROJECT = 'blackhole-amm';
 const CHAIN = 'ethereum';
 const SUBGRAPH =
   'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/sn-basic-pools-mainnet/basicsnmainnet/gn';
@@ -98,7 +98,7 @@ async function getPoolVolumes(timestamp = null) {
     const tvlUsd = p.reserveUSD;
     const apyBase = tvlUsd > 0 ? (feesUSD1d * 365 / tvlUsd) * 100 : 0;
     const apyBase7d = tvlUsd > 0 ? (feesUSD7d * 365 / 7 / tvlUsd) * 100 : 0;
-    const url = `https://supernova.xyz/deposit?token0=${p.token0.id}&token1=${p.token1.id}&pair=${p.id}&type=Basic%20${p.stable ? 'Stable' : 'Volatile'}`;
+    const url = `https://blackhole.xyz/deposit?token0=${p.token0.id}&token1=${p.token1.id}&pair=${p.id}&type=Basic%20${p.stable ? 'Stable' : 'Volatile'}`;
     const underlyingTokens = [p.token0.id, p.token1.id];
 
     pools[poolAddress] = {
@@ -221,7 +221,7 @@ const getGaugeApy = async () => {
       metaData
         .map((m) => [m.t0, m.t1])
         .flat()
-        .concat(SNOVA)
+        .concat(BLACK)
     ),
   ];
 
@@ -235,11 +235,15 @@ const getGaugeApy = async () => {
       .map((i) => `${CHAIN}:${i}`)
       .join(',')
       .replaceAll('/', '');
-    pricesA = [
-      ...pricesA,
-      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
-        .coins,
-    ];
+    try {
+      const resp = await axios.get(
+        `https://coins.llama.fi/prices/current/${x}`,
+        { timeout: 10_000 }
+      );
+      if (resp?.data?.coins) pricesA = [...pricesA, resp.data.coins];
+    } catch (e) {
+      console.error('Failed to fetch token prices page:', e.message);
+    }
   }
   let prices = {};
   for (const p of pricesA.flat()) {
@@ -247,40 +251,46 @@ const getGaugeApy = async () => {
   }
 
 
-  // fallback for SNOVA price if not on defillama
-  if (!prices[`${CHAIN}:${SNOVA}`]) {
+  // fallback for BLACK price if not on defillama
+  if (!prices[`${CHAIN}:${BLACK}`]) {
     try {
       const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/sn-basic-pools-mainnet/basicsnmainnet/gn';
-      const snovaUsdcPool = '0x4f20c37766759c3956f030d2e8749d493ef86e94';
+      const blackUsdcPool = '0x4f20c37766759c3956f030d2e8749d493ef86e94';
       const { pair } = await request(
         basicSubgraph,
         gql`
                   {
-                      pair(id: "${snovaUsdcPool}") {
+                      pair(id: "${blackUsdcPool}") {
                           token0Price
                       }
                   }
                   `
       );
       if (pair && pair.token0Price) {
-        prices[`${CHAIN}:${SNOVA}`] = { price: Number(pair.token0Price) };
+        prices[`${CHAIN}:${BLACK}`] = { price: Number(pair.token0Price) };
       }
     } catch (e) {
-      console.error('Failed to fetch fallback SNOVA price:', e.message);
+      console.error('Failed to fetch fallback BLACK price:', e.message);
     }
   }
   // Fetch subgraph TVL data to join with valid pools
-  const { pairs: subgraphPairs } = await request(
-    SUBGRAPH,
-    gql`
-      {
-        pairs(first: 1000) {
-          id
-          reserveUSD
+  let subgraphPairs = [];
+  try {
+    const resp = await request(
+      SUBGRAPH,
+      gql`
+        {
+          pairs(first: 1000) {
+            id
+            reserveUSD
+          }
         }
-      }
-    `
-  );
+      `
+    );
+    subgraphPairs = resp?.pairs ?? [];
+  } catch (e) {
+    console.error('Failed to fetch subgraph TVL data:', e.message);
+  }
 
   const pools = validPools.map((p, i) => {
     const originalIndex = validIndices[i];
@@ -295,12 +305,12 @@ const getGaugeApy = async () => {
     const ps = Number(poolSupply[i] || 0);
     const stakedSupplyRatio = ts > 0 ? ps / ts : 0;
 
-    const snovaPrice = prices[`${CHAIN}:${SNOVA}`]?.price || 0;
+    const blackPrice = prices[`${CHAIN}:${BLACK}`]?.price || 0;
 
     const rr = Number(rewardRate[i] || 0);
     const apyReward =
-      tvlUsd > 0 && snovaPrice > 0 && rr > 0
-        ? (((rr / 1e18) * 86400 * 365 * snovaPrice) / tvlUsd) *
+      tvlUsd > 0 && blackPrice > 0 && rr > 0
+        ? (((rr / 1e18) * 86400 * 365 * blackPrice) / tvlUsd) *
         stakedSupplyRatio *
         100
         : 0;
@@ -312,7 +322,7 @@ const getGaugeApy = async () => {
       symbol: s.includes('-') ? s.split('-').slice(1).join('-').replace('/', '-') : s,
       tvlUsd,
       apyReward,
-      rewardTokens: apyReward ? [SNOVA] : [],
+      rewardTokens: apyReward ? [BLACK] : [],
       underlyingTokens: [poolMeta.t0.toLowerCase(), poolMeta.t1.toLowerCase()],
       stable: poolMeta.st,
     };
@@ -342,7 +352,7 @@ async function main(timestamp = null) {
     const type = stable ? 'Stable' : 'Volatile';
     return {
       ...rest,
-      url: `https://supernova.xyz/deposit?token0=${pool.underlyingTokens[0]}&token1=${pool.underlyingTokens[1]}&pair=${pool.pool}&type=Basic%20${type}`,
+      url: `https://blackhole.xyz/deposit?token0=${pool.underlyingTokens[0]}&token1=${pool.underlyingTokens[1]}&pair=${pool.pool}&type=Basic%20${type}`,
       apyBase: v?.apyBase || 0,
       apyBase7d: v?.apyBase7d || 0,
       volumeUsd1d: v?.volumeUsd1d || 0,
@@ -354,5 +364,5 @@ async function main(timestamp = null) {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://supernova.xyz/liquidity',
+  url: 'https://blackhole.xyz/liquidity',
 };
