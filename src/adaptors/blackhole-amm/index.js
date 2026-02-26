@@ -8,14 +8,14 @@ const abiGauge = require('./abiGauge.json');
 const abiVoter = require('./abiVoter.json');
 const abiPoolsFactory = require('./abiPoolsFactory.json');
 
-const poolsFactory = '0x5aEf44EDFc5A7eDd30826c724eA12D7Be15bDc30';
-const gaugeManager = '0x19a410046Afc4203AEcE5fbFc7A6Ac1a4F517AE2';
-const BLACK = '0x00Da8466B296E382E5Da2Bf20962D0cB87200c78';
+const poolsFactory = '0xfE926062Fb99CA5653080d6C14fE945Ad68c265C';
+const gaugeManager = '0x59aa177312Ff6Bdf39C8Af6F46dAe217bf76CBf6';
+const BLACK = '0xcd94a87696FAC69Edae3a70fE5725307Ae1c43f6';
 
 const PROJECT = 'blackhole-amm';
-const CHAIN = 'ethereum';
+const CHAIN = 'avax';
 const SUBGRAPH =
-  'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/sn-basic-pools-mainnet/basicsnmainnet/gn';
+  'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain/avax-main/gn';
 
 const query = gql`
   {
@@ -141,6 +141,9 @@ const getGaugeApy = async () => {
     })
   ).output.map((o) => o.output);
 
+  console.log("allPairsLength: ", allPairsLength);
+  console.log("allPools: ", allPools);
+
   const metaData = (
     await sdk.api.abi.multiCall({
       calls: allPools.map((i) => ({
@@ -254,20 +257,21 @@ const getGaugeApy = async () => {
   // fallback for BLACK price if not on defillama
   if (!prices[`${CHAIN}:${BLACK}`]) {
     try {
-      const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/sn-basic-pools-mainnet/basicsnmainnet/gn';
-      const blackUsdcPool = '0x4f20c37766759c3956f030d2e8749d493ef86e94';
+      const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain/avax-main/gn';
+      const blackUsdcPool = '0x0d9fd6dd9b1ff55fb0a9bb0e5f1b6a2d65b741a3';
       const { pair } = await request(
         basicSubgraph,
         gql`
                   {
                       pair(id: "${blackUsdcPool}") {
-                          token0Price
+                          token1Price
                       }
                   }
                   `
       );
-      if (pair && pair.token0Price) {
-        prices[`${CHAIN}:${BLACK}`] = { price: Number(pair.token0Price) };
+      console.log(pair)
+      if (pair && pair.token1Price) {
+        prices[`${CHAIN}:${BLACK}`] = { price: Number(pair.token1Price) };
       }
     } catch (e) {
       console.error('Failed to fetch fallback BLACK price:', e.message);
@@ -306,6 +310,7 @@ const getGaugeApy = async () => {
     const stakedSupplyRatio = ts > 0 ? ps / ts : 0;
 
     const blackPrice = prices[`${CHAIN}:${BLACK}`]?.price || 0;
+    console.log("blackPrice: ", blackPrice);
 
     const rr = Number(rewardRate[i] || 0);
     const apyReward =
@@ -337,28 +342,28 @@ const getGaugeApy = async () => {
 };
 
 async function main(timestamp = null) {
-  const poolsApy = await getGaugeApy();
-  let poolsVolumes = {};
-  try {
-    poolsVolumes = await getPoolVolumes(timestamp);
-  } catch (e) {
-    console.log('Failed to fetch volume data from subgraph:', e.message);
-  }
+    const poolsApy = await getGaugeApy();
+    let poolsVolumes = {};
+    try {
+      poolsVolumes = await getPoolVolumes(timestamp);
+    } catch (e) {
+      console.log('Failed to fetch volume data from subgraph:', e.message);
+    }
 
-  // left-join volumes onto APY output to avoid filtering out pools
+    // left-join volumes onto APY output to avoid filtering out pools
   return Object.values(poolsApy).map((pool) => {
-    const { stable, ...rest } = pool;
-    const v = poolsVolumes[pool.pool];
-    const type = stable ? 'Stable' : 'Volatile';
-    return {
-      ...rest,
-      url: `https://blackhole.xyz/deposit?token0=${pool.underlyingTokens[0]}&token1=${pool.underlyingTokens[1]}&pair=${pool.pool}&type=Basic%20${type}`,
-      apyBase: v?.apyBase || 0,
-      apyBase7d: v?.apyBase7d || 0,
-      volumeUsd1d: v?.volumeUsd1d || 0,
-      volumeUsd7d: v?.volumeUsd7d || 0,
-    };
-  });
+      const { stable, ...rest } = pool;
+      const v = poolsVolumes[pool.pool];
+      const type = stable ? 'Stable' : 'Volatile';
+      return {
+        ...rest,
+        url: `https://blackhole.xyz/deposit?token0=${pool.underlyingTokens[0]}&token1=${pool.underlyingTokens[1]}&pair=${pool.pool}&type=Basic%20${type}`,
+        apyBase: v?.apyBase || 0,
+        apyBase7d: v?.apyBase7d || 0,
+        volumeUsd1d: v?.volumeUsd1d || 0,
+        volumeUsd7d: v?.volumeUsd7d || 0,
+      };
+    });
 }
 
 module.exports = {
