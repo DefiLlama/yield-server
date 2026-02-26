@@ -21,16 +21,20 @@ const nativeCoingeckoMapping = {
   'DOGE.DOGE': 'coingecko:dogecoin',
   'LTC.LTC': 'coingecko:litecoin',
   'GAIA.ATOM': 'coingecko:cosmos',
+  'ETH.ETH': 'coingecko:ethereum',
+  'AVAX.AVAX': 'coingecko:avalanche-2',
+  'XRP.XRP': 'coingecko:ripple',
+  'BASE.ETH': 'coingecko:ethereum',
 };
 
 const resolveUnderlying = (asset, chain) => {
   // Native assets (BTC.BTC, DOGE.DOGE, etc.) - use coingecko
   if (nativeCoingeckoMapping[asset]) return nativeCoingeckoMapping[asset];
 
-  // EVM tokens: CHAIN.TOKEN-0xAddress -> extract address
+  // EVM tokens: CHAIN.TOKEN-0xAddress -> extract address (lowercased)
   const parts = asset.split('-');
-  if (parts.length > 1 && parts[parts.length - 1].startsWith('0x')) {
-    return parts[parts.length - 1];
+  if (parts.length > 1 && parts[parts.length - 1].startsWith('0X')) {
+    return parts[parts.length - 1].toLowerCase();
   }
 
   // Fallback to raw asset notation
