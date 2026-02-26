@@ -10,6 +10,7 @@ const median = require('./routes/median');
 const perp = require('./routes/perp');
 const enriched = require('./routes/enriched');
 const lsd = require('./routes/lsd');
+const pools = require('./routes/pools');
 const { getCacheDates } = require('../utils/headers');
 const volatility = require('./routes/volatility');
 
@@ -47,7 +48,7 @@ app.use('/', [volatility]);
 
 app.use(redisCache)
 
-app.use('/', [yieldRoutes, config, median, perp, enriched, lsd]);
+app.use('/', [yieldRoutes, config, median, perp, enriched, lsd, pools]);
 
 function errorHandler (err, req, res, next) {
   console.log(err)

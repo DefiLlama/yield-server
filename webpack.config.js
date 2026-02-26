@@ -26,5 +26,6 @@ module.exports = {
   plugins: [
     // pg optionally requires pg-native; ignore it -> webpack doesn't fail when the native addon isn't installed
     new webpack.IgnorePlugin({ resourceRegExp: /^pg-native$/ }),
+    new webpack.IgnorePlugin({ resourceRegExp: /^pg-cloudflare$/ }),
   ],
 };
