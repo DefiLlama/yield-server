@@ -15,14 +15,13 @@ const BLACK = '0xcd94a87696FAC69Edae3a70fE5725307Ae1c43f6';
 const PROJECT = 'blackhole-amm';
 const CHAIN = 'avax';
 const SUBGRAPH =
-  'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain/avax-main/gn';
+  'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain-new-1/avax-basic/gn';
 
 const query = gql`
   {
     pairs(first: 1000, orderBy: reserveUSD, orderDirection: desc, block: {number: <PLACEHOLDER>}) {
       id
       reserveUSD
-      volumeUSD
       untrackedVolumeUSD
       feesUSD
       untrackedFeesUSD
@@ -45,7 +44,6 @@ const queryPrior = gql`
     pairs (first: 1000 orderBy: reserveUSD orderDirection: desc, block: {number: <PLACEHOLDER>}) { 
       id 
       reserveUSD
-      volumeUSD
       untrackedVolumeUSD 
       feesUSD
       untrackedFeesUSD
@@ -66,23 +64,37 @@ async function getPoolVolumes(timestamp = null) {
   );
 
   // pull data
-  let dataNow = await request(SUBGRAPH, query.replace('<PLACEHOLDER>', block));
+  let dataNow;
+  try {
+  dataNow = await request(SUBGRAPH, query.replace('<PLACEHOLDER>', block));
   dataNow = dataNow.pairs;
+  } catch (err) {
+    console.log("Error fetching dataNow: ", err);
+  }
 
   // pull 24h offset data
   let queryPriorC = queryPrior;
-  let dataPrior = (await request(
-    SUBGRAPH,
-    queryPriorC.replace('<PLACEHOLDER>', blockPrior)
-  )).pairs
+  let dataPrior;
+  try {
+    dataPrior = (await request(
+      SUBGRAPH,
+      queryPriorC.replace('<PLACEHOLDER>', blockPrior)
+    )).pairs
+  } catch (err) {
+    console.log("Error fetching dataPrior: ", err);
+  }
 
   // 7d offset
-  const dataPrior7d = (
-    await request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
-  ).pairs
+  let dataPrior7d;
+  try {
+    dataPrior7d = (
+      await request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+    ).pairs
+  } catch (err) {
+    console.log("Error fetching dataPrior7d: ", err);
+  }
 
   // calculate tvl
-
   const pools = {};
   for (const p of dataNow) {
     const poolAddress = utils.formatAddress(p.id);
@@ -257,7 +269,7 @@ const getGaugeApy = async () => {
   // fallback for BLACK price if not on defillama
   if (!prices[`${CHAIN}:${BLACK}`]) {
     try {
-      const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain/avax-main/gn';
+      const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain-new-1/avax-basic/gn';
       const blackUsdcPool = '0x0d9fd6dd9b1ff55fb0a9bb0e5f1b6a2d65b741a3';
       const { pair } = await request(
         basicSubgraph,
@@ -342,28 +354,28 @@ const getGaugeApy = async () => {
 };
 
 async function main(timestamp = null) {
-    const poolsApy = await getGaugeApy();
-    let poolsVolumes = {};
-    try {
-      poolsVolumes = await getPoolVolumes(timestamp);
-    } catch (e) {
-      console.log('Failed to fetch volume data from subgraph:', e.message);
-    }
+  const poolsApy = await getGaugeApy();
+  let poolsVolumes = {};
+  try {
+    poolsVolumes = await getPoolVolumes(timestamp);
+  } catch (e) {
+    console.log('Failed to fetch volume data from subgraph:', e.message);
+  }
 
-    // left-join volumes onto APY output to avoid filtering out pools
+  // left-join volumes onto APY output to avoid filtering out pools
   return Object.values(poolsApy).map((pool) => {
-      const { stable, ...rest } = pool;
-      const v = poolsVolumes[pool.pool];
-      const type = stable ? 'Stable' : 'Volatile';
-      return {
-        ...rest,
-        url: `https://blackhole.xyz/deposit?token0=${pool.underlyingTokens[0]}&token1=${pool.underlyingTokens[1]}&pair=${pool.pool}&type=Basic%20${type}`,
-        apyBase: v?.apyBase || 0,
-        apyBase7d: v?.apyBase7d || 0,
-        volumeUsd1d: v?.volumeUsd1d || 0,
-        volumeUsd7d: v?.volumeUsd7d || 0,
-      };
-    });
+    const { stable, ...rest } = pool;
+    const v = poolsVolumes[pool.pool];
+    const type = stable ? 'Stable' : 'Volatile';
+    return {
+      ...rest,
+      url: `https://blackhole.xyz/deposit?token0=${pool.underlyingTokens[0]}&token1=${pool.underlyingTokens[1]}&pair=${pool.pool}&type=Basic%20${type}`,
+      apyBase: v?.apyBase || 0,
+      apyBase7d: v?.apyBase7d || 0,
+      volumeUsd1d: v?.volumeUsd1d || 0,
+      volumeUsd7d: v?.volumeUsd7d || 0,
+    };
+  });
 }
 
 module.exports = {
