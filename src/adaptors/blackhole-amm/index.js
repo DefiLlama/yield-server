@@ -153,9 +153,6 @@ const getGaugeApy = async () => {
     })
   ).output.map((o) => o.output);
 
-  console.log("allPairsLength: ", allPairsLength);
-  console.log("allPools: ", allPools);
-
   const metaData = (
     await sdk.api.abi.multiCall({
       calls: allPools.map((i) => ({
@@ -281,7 +278,6 @@ const getGaugeApy = async () => {
                   }
                   `
       );
-      console.log(pair)
       if (pair && pair.token1Price) {
         prices[`${CHAIN}:${BLACK}`] = { price: Number(pair.token1Price) };
       }
@@ -322,7 +318,6 @@ const getGaugeApy = async () => {
     const stakedSupplyRatio = ts > 0 ? ps / ts : 0;
 
     const blackPrice = prices[`${CHAIN}:${BLACK}`]?.price || 0;
-    console.log("blackPrice: ", blackPrice);
 
     const rr = Number(rewardRate[i] || 0);
     const apyReward =
