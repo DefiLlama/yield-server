@@ -7,7 +7,7 @@ const abiPolygon = require('./abiPolygon');
 const token = '0xa35b1b31ce002fbf2058d22f30f95d405200a15b';
 const stakingContract = '0xcf5EA1b38380f6aF39068375516Daf40Ed70D299';
 const nodeOperatorRegistry = '0x4f4bfa0861f62309934a5551e0b2541ee82fdcf1';
-const WMATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
+const WMATIC = '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270';
 
 const getApy = async () => {
   let tvl = (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
@@ -113,7 +113,7 @@ const getApy = async () => {
       tvlUsd: tvlPolygon * maticxPrice,
       apyBase: apyBase7dPolygon,
       apyBase7d: apyBase7dPolygon,
-      underlyingTokens: [WMATIC],
+      underlyingTokens: ['coingecko:polygon-ecosystem-token'],
       token: stakeManagerContract,
     },
   ];
