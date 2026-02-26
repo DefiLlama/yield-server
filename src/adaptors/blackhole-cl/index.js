@@ -8,7 +8,7 @@ const gaugeManager = '0x59aa177312Ff6Bdf39C8Af6F46dAe217bf76CBf6';
 const BLACK = '0xcd94a87696FAC69Edae3a70fE5725307Ae1c43f6';
 const nullAddress = '0x0000000000000000000000000000000000000000';
 const PROJECT = 'blackhole-cl';
-const CHAIN = 'ethereum';
+const CHAIN = 'avax';
 const SUBGRAPH =
     'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/poap-subgraph-core/avax-main/gn';
 
@@ -309,7 +309,7 @@ const getGaugeApy = async () => {
     // fallback for BLACK price if not on defillama
     if (!prices[`${CHAIN}:${BLACK}`]) {
         try {
-            const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain/avax-main/gn';
+            const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain-new-1/avax-basic/gn';
             const blackUsdcPool = '0x0D9Fd6dd9b1FF55fB0A9bB0e5f1B6a2D65b741A3';
             const { pair } = await request(
                 basicSubgraph,
