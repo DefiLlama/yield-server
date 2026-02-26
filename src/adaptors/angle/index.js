@@ -93,7 +93,8 @@ const getPoolsData = async () => {
     if (!chain) continue;
 
     // Parse symbol from name by stripping chain suffixes, protocol prefixes, and descriptors
-    let symbol = entry?.name.replace('/', '-');
+    if (typeof entry?.name !== 'string') continue;
+    let symbol = entry.name.replace('/', '-');
     const chainSuffixes = ['gnosis chain', 'ethereum', 'arbitrum', 'optimism', 'base', 'polygon', 'celo', 'bsc'];
     const protocolPrefixes = ['curve', 'sushi', 'velodrome', 'aerodrome', 'pancakeswapv3', 'pancakeswap', 'silo', 'spectra', 'd8x', 'gauntlet', 're7'];
     const descriptorSuffixes = ['lp', 'lending', 'collateral', 'core'];

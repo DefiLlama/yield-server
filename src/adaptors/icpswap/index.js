@@ -11,7 +11,7 @@ const ICP_COINGECKO = {
   'ss2fx-dyaaa-aaaar-qacoq-cai': 'coingecko:chain-key-ethereum',
   'xevnm-gaaaa-aaaar-qafnq-cai': 'coingecko:usd-coin',
   'cngnf-vqaaa-aaaar-qag4q-cai': 'coingecko:tether',
-  'ly36x-wiaaa-aaaai-aqj7q-cai': 'coingecko:vchf',
+  'ly36x-wiaaa-aaaai-aqj7q-cai': 'coingecko:vnx-swiss-franc',
   '6c7su-kiaaa-aaaar-qaira-cai': 'coingecko:gold-token',
   'buwm7-7yaaa-aaaar-qagva-cai': 'coingecko:neuron-icp',
   '4c4fd-caaaa-aaaaq-aaa3a-cai': 'coingecko:ic-ghost',

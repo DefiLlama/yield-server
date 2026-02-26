@@ -47,7 +47,7 @@ async function apy(chain) {
       rewardTokens: apyReward > 0 ? [v.rewardsTokenAddress] : [],
       underlyingTokens:
         v.asset.address === null
-          ? [underlyingTokenMapping[chain]?.[v.asset.symbol.toLowerCase()]]
+          ? [underlyingTokenMapping[chain]?.[v.asset.symbol.toLowerCase()]].filter(Boolean)
           : [v.asset.address],
     };
   });

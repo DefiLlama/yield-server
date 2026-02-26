@@ -49,7 +49,7 @@ const tokenAddresses = {
     ONTd: 'coingecko:ontology',
     ONG: 'coingecko:ong',
     WING: 'coingecko:wing-finance',
-    pSUSD: 'coingecko:tether',
+    pSUSD: 'coingecko:nusd',
     prenBTC: 'coingecko:bitcoin',
   },
   ontologyEvm: {

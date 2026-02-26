@@ -108,11 +108,9 @@ const getAmounts = (liquidity, tickLower, tickUpper, currentTick) => {
         url: `https://app.morfi.io/pool/${pool.id}`,
         apyBase: apr,
         underlyingTokens: (() => {
-          const tokens = [
-            TOKEN_COINGECKO[pool.token0?.symbol],
-            TOKEN_COINGECKO[pool.token1?.symbol],
-          ].filter(Boolean);
-          return tokens.length > 0 ? tokens : undefined;
+          const t0 = TOKEN_COINGECKO[pool.token0?.symbol];
+          const t1 = TOKEN_COINGECKO[pool.token1?.symbol];
+          return t0 && t1 ? [t0, t1] : undefined;
         })(),
       }
     }),
