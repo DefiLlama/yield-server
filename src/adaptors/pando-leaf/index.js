@@ -37,10 +37,10 @@ async function main() {
     ...new Set(mapped.map((col) => `coingecko:${MIXIN_TO_COINGECKO[col.gem]}`)),
   ];
   const priceResp = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${coinKeys.join(',')}`
     )
-  ).body.coins;
+  ).data.coins;
 
   return mapped
     .map((col) => {
