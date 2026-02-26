@@ -3,6 +3,32 @@ const utils = require('../utils');
 const API_URL = 'https://prod-api.ekubo.org';
 const STARKNET_CHAIN_ID = '0x534e5f4d41494e';
 
+const STARKNET_COINGECKO = {
+  ETH: 'coingecko:ethereum',
+  USDC: 'coingecko:usd-coin',
+  USDT: 'coingecko:tether',
+  WBTC: 'coingecko:wrapped-bitcoin',
+  LBTC: 'coingecko:lombard-staked-btc',
+  DAI: 'coingecko:dai',
+  LORDS: 'coingecko:lords',
+  tBTC: 'coingecko:tbtc',
+  SolvBTC: 'coingecko:solv-btc',
+  FBTC: 'coingecko:ignition-fbtc',
+  STRK: 'coingecko:starknet',
+  EKUBO: 'coingecko:ekubo',
+  wstETH: 'coingecko:wrapped-steth',
+  xSTRK: 'coingecko:endur-fi-staked-strk',
+  xtBTC: 'coingecko:endur-fi-staked-btc',
+  xWBTC: 'coingecko:endur-fi-staked-wbtc',
+  xsBTC: 'coingecko:endur-fi-staked-solvbtc',
+  xLBTC: 'coingecko:lombard-staked-btc',
+  mRe7BTC: 'coingecko:midas-mre7btc-2',
+  mRe7YIELD: 'coingecko:midas-mre7yield',
+  USDU: 'coingecko:uncap-usd',
+  AUSD0: 'coingecko:agora-dollar',
+};
+const resolveStarknetToken = (token) => STARKNET_COINGECKO[token.symbol] || token.address;
+
 async function apy() {
   const [tokens, pairData] = await Promise.all([
     utils.getData(`${API_URL}/tokens`),
@@ -47,7 +73,7 @@ async function apy() {
         chain: 'Starknet',
         project: 'ekubo',
         symbol: `${token0.symbol}-${token1.symbol}`,
-        underlyingTokens: [token0.address, token1.address],
+        underlyingTokens: [resolveStarknetToken(token0), resolveStarknetToken(token1)],
         tvlUsd,
         apyBase,
         url: `https://app.ekubo.org/charts/${token0.symbol}/${token1.symbol}`,
