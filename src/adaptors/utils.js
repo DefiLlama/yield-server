@@ -22,7 +22,8 @@ exports.formatChain = (chain) => {
     chain &&
     (chain.toLowerCase() === 'zksync_era' ||
       chain.toLowerCase() === 'zksync era' ||
-      chain.toLowerCase() === 'era')
+      chain.toLowerCase() === 'era' ||
+      chain.toLowerCase() === 'zksync')
   )
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
