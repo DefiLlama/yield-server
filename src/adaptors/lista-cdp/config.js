@@ -19,6 +19,7 @@ module.exports = {
       symbol: 'ETH',
       address: '0x6C813D1d114d0caBf3F82f9E910BC29fE7f96451',
       ilkName: 'cewBETH',
+      originAddress: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
     },
     {
       symbol: 'slisBNB',
