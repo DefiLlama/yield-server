@@ -52,6 +52,15 @@ const CHAINS = [
 
 const DAY_SECONDS = 24 * 3600;
 
+/**
+ * Lookback windows (days) for APY calculation.
+ * Using multiple windows smooths out infrequent oracle updates:
+ * if the oracle hasn't updated for several days, a single 7d window
+ * would show APY=0 then spike when it updates. By blending 7/14/30d,
+ * we get a stable annualized rate regardless of oracle update frequency.
+ */
+const LOOKBACK_DAYS = [7, 14, 30];
+
 const multiCall = (targets, abi, chain, block = undefined) =>
   sdk.api.abi.multiCall({
     calls: targets.map((target) => ({ target })),
@@ -83,6 +92,59 @@ const calcApy = (currentPps, historicalPps, days) => {
   // Cap at reasonable bounds
   if (apy > 1000 || apy < 0) return 0;
   return apy;
+};
+
+/**
+ * Compute a smoothed APY from multiple lookback windows.
+ *
+ * Problem: the oracle keeper updates PPS every N days (could be 1-14 days).
+ * Between updates the on-chain PPS is frozen, so a single-window APY
+ * oscillates between 0% (stale) and a spike (post-update).
+ *
+ * Solution: compute APY at each lookback (7d, 14d, 30d) and blend them
+ * using inverse-days weighting (shorter = more weight for responsiveness,
+ * longer = stability). Only windows where PPS actually changed are included.
+ *
+ * Weights: 7d → 1/7 ≈ 0.143, 14d → 1/14 ≈ 0.071, 30d → 1/30 ≈ 0.033
+ * So 7d gets ~58% weight, 14d ~29%, 30d ~13% — responsive but stable.
+ *
+ * If only one window is valid, it's used as-is. If none, returns 0.
+ */
+const computeSmoothedApy = (currentPps, historicalPpsArray) => {
+  if (!currentPps || currentPps <= 0) return { apyBase: 0, apyBase7d: 0 };
+
+  // Compute APY per lookback window
+  const validApys = [];
+  for (let i = 0; i < LOOKBACK_DAYS.length; i++) {
+    const histPps = historicalPpsArray[i];
+    if (histPps && histPps > 0 && Math.abs(histPps - currentPps) > 1e-15) {
+      const apy = calcApy(currentPps, histPps, LOOKBACK_DAYS[i]);
+      if (apy > 0) validApys.push({ days: LOOKBACK_DAYS[i], apy });
+    }
+  }
+
+  if (validApys.length === 0) return { apyBase: 0, apyBase7d: 0 };
+
+  // Single valid window → use it directly
+  if (validApys.length === 1) {
+    return { apyBase: validApys[0].apy, apyBase7d: validApys[0].apy };
+  }
+
+  // Weighted average: weight = 1/days (shorter = more weight)
+  let totalWeight = 0;
+  let weightedSum = 0;
+  for (const { days, apy } of validApys) {
+    const w = 1 / days;
+    totalWeight += w;
+    weightedSum += apy * w;
+  }
+  const blendedApy = weightedSum / totalWeight;
+
+  // apyBase7d: prefer the 7d window directly, fallback to blended
+  const sevenDay = validApys.find((a) => a.days === 7);
+  const apyBase7d = sevenDay ? sevenDay.apy : blendedApy;
+
+  return { apyBase: blendedApy, apyBase7d };
 };
 
 /**
@@ -287,11 +349,10 @@ const main = async () => {
       const assetAddresses = [...new Set(vaults.map((v) => v.asset))];
       const prices = await utils.getPrices(assetAddresses, chain);
 
-      // Get oracle PPS: current + historical (1d, 7d) for APY
-      const [currentPps, historicalPps1d, historicalPps7d] = await Promise.all([
+      // Get oracle PPS: current + historical at multiple lookback windows
+      const [currentPps, ...historicalPpsArrays] = await Promise.all([
         getCurrentOraclePps(vaults, chain),
-        getHistoricalOraclePps(vaults, chain, 1),
-        getHistoricalOraclePps(vaults, chain, 7),
+        ...LOOKBACK_DAYS.map((d) => getHistoricalOraclePps(vaults, chain, d)),
       ]);
 
       for (const vault of vaults) {
@@ -314,11 +375,17 @@ const main = async () => {
             ? Number(vault.totalAssets) / Number(vault.totalSupply)
             : 0);
 
-        // APY from oracle PPS growth
-        const historicalPrice1d = historicalPps1d[vault.address];
-        const historicalPrice7d = historicalPps7d[vault.address];
-        const apyBase = calcApy(currentSharePrice, historicalPrice1d, 1);
-        const apyBase7d = calcApy(currentSharePrice, historicalPrice7d, 7);
+        // Collect historical PPS at each lookback window for this vault
+        const vaultHistoricalPps = historicalPpsArrays.map(
+          (ppsMap) => ppsMap[vault.address] || 0
+        );
+
+        // Smoothed APY: weighted blend across 7d/14d/30d windows
+        // This prevents spikes when oracle updates after days of silence
+        const { apyBase, apyBase7d } = computeSmoothedApy(
+          currentSharePrice,
+          vaultHistoricalPps
+        );
 
         // Build fee metadata string
         const feeParts = [];
