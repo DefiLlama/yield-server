@@ -51,7 +51,7 @@ const apy = async () => {
     return {
       pool: `${d.pool}-cardano`,
       chain: "Cardano",
-      project: "minswap",
+      project: 'minswap-dex',
       symbol: d.symbol,
       tvlUsd: d.tvlUsd,
       apyBase: d.apyBase,
