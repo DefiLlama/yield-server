@@ -43,6 +43,7 @@ const CHAINS = [
   'blast',
   'mantle',
   'mode',
+  'xdai',
   'fantom',
   'sonic',
 ];
