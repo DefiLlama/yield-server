@@ -4,8 +4,6 @@ const axios = require('axios');
 
 const chainId = 'neutron';
 const restEndpoint = 'https://rest-lb.neutron.org';
-const BLOCKS_PER_DAY = 86400; // Approximately 1 second per block on Neutron
-const APY_PERIOD_DAYS = 7; // APY calculation period
 
 const vaults = [
   // ATOM vault
@@ -52,19 +50,6 @@ const vaults = [
 async function apy() {
   const apyData = [];
 
-  // Get current and previous block heights
-  const currentHeight = await getCurrentHeight();
-  const previousHeight = currentHeight - (APY_PERIOD_DAYS * BLOCKS_PER_DAY);
-
-  // Get block data with timestamps for both blocks
-  const currentBlock = await getBlockData(currentHeight);
-  const previousBlock = await getBlockData(previousHeight);
-
-  // Calculate days between blocks
-  const currentTime = new Date(currentBlock.time).getTime();
-  const previousTime = new Date(previousBlock.time).getTime();
-  const daysSinceBlock = (currentTime - previousTime) / (1000 * 60 * 60 * 24);
-
   for (const vault of vaults) {
     // Query pool info at current height
     const poolInfoCurrent = await queryContract(
@@ -73,33 +58,14 @@ async function apy() {
       { pool_info: {} },
     );
 
-    // Query pool info at previous height
-    const poolInfoPrevious = await queryContract(
-      restEndpoint,
-      vault.controlCenterContract,
-      { pool_info: {} },
-      previousHeight
-    );
-
-    // Calculate price per share (total_pool_value / total_shares_issued) at both heights
-    // Use value 1 if total_shares_issued is 0 to avoid divide by zero
-    const pricePerShareNew = poolInfoCurrent.total_shares_issued === '0' || poolInfoCurrent.total_shares_issued === 0
-      ? new BigNumber(1)
-      : new BigNumber(poolInfoCurrent.total_pool_value).dividedBy(poolInfoCurrent.total_shares_issued);
-    
-    const pricePerShareOld = poolInfoPrevious.total_shares_issued === '0' || poolInfoPrevious.total_shares_issued === 0
-      ? new BigNumber(1)
-      : new BigNumber(poolInfoPrevious.total_pool_value).dividedBy(poolInfoPrevious.total_shares_issued);
-
-    // apy = (new_ratio/old_ratio)^(365/days_since_block) * 100 - 100
-    const ratio = pricePerShareNew.dividedBy(pricePerShareOld);
-    const apyBase7d = ratio.pow(Math.floor(365 / daysSinceBlock)).times(100).minus(100).toNumber();
-
     // Calculate TVL
     const totalLockedTokens = new BigNumber(poolInfoCurrent.total_pool_value).shiftedBy(-vault.origin_asset.decimals);
     const prices = await utils.getPrices([vault.origin_asset.symbol], vault.origin_asset.chain);
     const price = new BigNumber(prices.pricesByAddress[vault.origin_asset.symbol.toLowerCase()]);
     const tvlUsd = totalLockedTokens.times(price).toNumber();
+
+    // Fetch APY data from the vault's API endpoint
+    const vaultAPYs = await getVaultAPYs(vault.vault_apy_endpoint);
 
     apyData.push({
           pool: `${vault.controlCenterContract}-${chainId}`.toLowerCase(),
@@ -108,8 +74,8 @@ async function apy() {
           project: 'hydro-inflow',
           chain: utils.formatChain(chainId),
           tvlUsd: tvlUsd,
-          apyBase7d: apyBase7d,
-          apyBase14d: await getVaultOverallAPY(vault.vault_apy_endpoint),
+          apyBase7d: vaultAPYs.apy7d,
+          apyBase: vaultAPYs.apy14d,
           url: vault.url,
         });
   }
@@ -117,42 +83,23 @@ async function apy() {
   return apyData;
 }
 
-async function queryContract(api, contract, data, height = null) {
+async function queryContract(api, contract, data) {
   if (typeof data !== 'string') {
     data = JSON.stringify(data);
   }
   const encodedData = Buffer.from(data).toString('base64');
   const endpoint = `${api}/cosmwasm/wasm/v1/contract/${contract}/smart/${encodedData}`;
 
-  const headers = {};
-  if (height !== null) {
-    headers['x-cosmos-block-height'] = height.toString();
-  }
-
-  const result = await axios.get(endpoint, { headers });
+  const result = await axios.get(endpoint, { });
   return result.data.data;
 }
 
-async function getCurrentHeight() {
-  const result = await utils.getData(
-    `${restEndpoint}/cosmos/base/tendermint/v1beta1/blocks/latest`
-  );
-  return parseInt(result.block.header.height);
-}
-
-async function getBlockData(height) {
-  const result = await utils.getData(
-    `${restEndpoint}/cosmos/base/tendermint/v1beta1/blocks/${height}`
-  );
-  return {
-    height: parseInt(result.block.header.height),
-    time: result.block.header.time
-  };
-}
-
-async function getVaultOverallAPY(vault_apy_endpoint) {
+async function getVaultAPYs(vault_apy_endpoint) {
   const result = await utils.getData(vault_apy_endpoint);
-  return result.overall_average * 100;
+  return {
+    apy7d: result.avg_7_days * 100,
+    apy14d: result.overall_average * 100
+  };
 }
 
 module.exports = {
