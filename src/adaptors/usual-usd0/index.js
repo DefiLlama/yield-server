@@ -90,7 +90,7 @@ function createPoolData(
   return {
     pool: poolAddress,
     chain,
-    project: 'usual',
+    project: 'usual-usd0',
     symbol,
     tvlUsd,
     apyReward,
@@ -304,7 +304,7 @@ const apy = async () => {
     {
       pool: CONFIG.USUALX_TOKEN,
       chain: 'Ethereum',
-      project: 'usual',
+      project: 'usual-usd0',
       symbol: 'USUALx',
       tvlUsd: usualXUnlockedMarketCap,
       apyBase: usualxApyReward, // Daily compounding for USUALx APY
@@ -317,7 +317,7 @@ const apy = async () => {
     {
       pool: CONFIG.USUALX_LOCKUP,
       chain: 'Ethereum',
-      project: 'usual',
+      project: 'usual-usd0',
       symbol: 'USUALx',
       tvlUsd: usualXLockupMarketCap,
       apyBase: usualxApyReward, // Daily compounding for USUALx APY
@@ -330,7 +330,7 @@ const apy = async () => {
     {
       pool: CONFIG.USUSDSPP_VAULT,
       chain: 'Ethereum',
-      project: 'usual',
+      project: 'usual-usd0',
       symbol: 'usUSDS++',
       tvlUsd: usUSDSppMarketCap,
       apyBase: baseUsUSDSApy, // Weekly compounding for USUSDS++ APY in USD0++
