@@ -31,15 +31,26 @@ const fetchActiveProtocols = async () => {
   );
   const protocols = protocolsData?.protocols || [];
 
+  const symbolMeta = {
+    USDC_NOBLE: { symbol: 'USDC', meta: 'Noble' },
+    USDC_AXELAR: { symbol: 'USDC', meta: 'Axelar' },
+    USDC: { symbol: 'USDC', meta: 'Axelar' },
+    ALL_SOL: { symbol: 'SOL', meta: 'Alloyed' },
+    ALL_BTC: { symbol: 'BTC', meta: 'Alloyed' },
+  };
+
   return protocols
     .filter((p) => p.contracts?.lpp && p.contracts?.oracle)
-    .map((p) => ({
-      lpp: p.contracts.lpp,
-      oracle: p.contracts.oracle,
-      symbol: p.lpn_symbol,
-      protocolName: p.name,
-      meta: '',
-    }));
+    .map((p) => {
+      const override = symbolMeta[p.lpn_symbol];
+      return {
+        lpp: p.contracts.lpp,
+        oracle: p.contracts.oracle,
+        symbol: override ? override.symbol : p.lpn_symbol,
+        protocolName: p.name,
+        meta: override ? override.meta : '',
+      };
+    });
 };
 
 /**
