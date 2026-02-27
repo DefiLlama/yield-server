@@ -19,14 +19,16 @@ const ABI = {
   decimals: 'function decimals() view returns (uint8)',
   symbol: 'function symbol() view returns (string)',
   name: 'function name() view returns (string)',
-  convertToAssets:
-    'function convertToAssets(uint256 shares) view returns (uint256)',
   getPerfFee: 'function getPerfFee() external view returns (uint16)',
   getManagementFee:
     'function getManagementFee() external view returns (uint16 managementFeeBps, uint32 managementFeeDays)',
   getEntryFee: 'function getEntryFee() external view returns (uint16)',
   getExitFee: 'function getExitFee() external view returns (uint16)',
-  isVaultOpen: 'function isVaultOpen() external view returns (bool)',
+  // Oracle: each vault delegates NAV to a SafeOracle updated by a keeper
+  getOracle: 'function getOracle() external view returns (address)',
+  // Oracle PPS in WAD (1e18) — always up-to-date, independent of settlement
+  getLastSavedPricePerShare:
+    'function getLastSavedPricePerShare() external view returns (uint256)',
 };
 
 // Chains where T3tris will be deployed
@@ -71,12 +73,12 @@ const getBlockNumber = async (timestamp, chain) => {
 };
 
 /**
- * Calculate APY from share price change over N days.
- * APY = (currentPrice / historicalPrice - 1) / days * 365 * 100
+ * Calculate APY from oracle PPS change over N days.
+ * Oracle PPS is in WAD (1e18). APY = (current / historical - 1) / days × 365 × 100
  */
-const calcApy = (currentPrice, historicalPrice, days) => {
-  if (!historicalPrice || historicalPrice <= 0 || !currentPrice) return 0;
-  const priceChange = (currentPrice - historicalPrice) / historicalPrice;
+const calcApy = (currentPps, historicalPps, days) => {
+  if (!historicalPps || historicalPps <= 0 || !currentPps) return 0;
+  const priceChange = (currentPps - historicalPps) / historicalPps;
   const apy = (priceChange / days) * 365 * 100;
   // Cap at reasonable bounds
   if (apy > 1000 || apy < 0) return 0;
@@ -85,6 +87,7 @@ const calcApy = (currentPrice, historicalPrice, days) => {
 
 /**
  * Discover all T3tris vaults from the factory on a given chain.
+ * Also fetches each vault's oracle address for PPS lookups.
  */
 const getVaultsForChain = async (chain) => {
   let count;
@@ -112,7 +115,7 @@ const getVaultsForChain = async (chain) => {
   const vaultAddresses = vaultsResult.output;
   if (!vaultAddresses || vaultAddresses.length === 0) return [];
 
-  // Batch-fetch vault metadata
+  // Batch-fetch vault metadata + oracle addresses
   const [
     totalAssetsRes,
     totalSupplyRes,
@@ -124,6 +127,7 @@ const getVaultsForChain = async (chain) => {
     mgmtFeeRes,
     entryFeeRes,
     exitFeeRes,
+    oracleRes,
   ] = await Promise.all([
     multiCall(vaultAddresses, ABI.totalAssets, chain),
     multiCall(vaultAddresses, ABI.totalSupply, chain),
@@ -135,6 +139,7 @@ const getVaultsForChain = async (chain) => {
     multiCall(vaultAddresses, ABI.getManagementFee, chain),
     multiCall(vaultAddresses, ABI.getEntryFee, chain),
     multiCall(vaultAddresses, ABI.getExitFee, chain),
+    multiCall(vaultAddresses, ABI.getOracle, chain),
   ]);
 
   const vaults = vaultAddresses.map((address, i) => {
@@ -144,6 +149,7 @@ const getVaultsForChain = async (chain) => {
     const decimals = decimalsRes.output[i];
     const symbol = symbolRes.output[i];
     const name = nameRes.output[i];
+    const oracle = oracleRes.output[i];
 
     if (
       !totalAssets?.success ||
@@ -163,6 +169,7 @@ const getVaultsForChain = async (chain) => {
       decimals: Number(decimals.output),
       symbol: symbol.output,
       name: name?.success ? name.output : symbol.output,
+      oracle: oracle?.success ? oracle.output : null,
       perfFeeBps: perfFeeRes.output[i]?.success
         ? Number(perfFeeRes.output[i].output)
         : 0,
@@ -187,39 +194,80 @@ const getVaultsForChain = async (chain) => {
 };
 
 /**
- * Get historical share prices (totalAssets/totalSupply) for APY calculation.
+ * Get historical oracle PPS (Price Per Share) for APY calculation.
+ * Uses getLastSavedPricePerShare() on each vault's oracle contract.
+ * The oracle is updated by a keeper independently of settlements,
+ * so PPS reflects current NAV even without recent settlements.
+ * PPS is returned in WAD (1e18 precision).
  */
-const getHistoricalSharePrices = async (vaultAddresses, chain, daysAgo) => {
+const getHistoricalOraclePps = async (vaults, chain, daysAgo) => {
   const timestamp = Math.floor(Date.now() / 1000) - DAY_SECONDS * daysAgo;
   const historicalBlock = await getBlockNumber(timestamp, chain);
 
   if (!historicalBlock) return {};
 
+  // Filter vaults that have an oracle
+  const vaultsWithOracle = vaults.filter((v) => v.oracle);
+  if (vaultsWithOracle.length === 0) return {};
+
+  const oracleAddresses = vaultsWithOracle.map((v) => v.oracle);
+
   try {
-    const [totalAssetsRes, totalSupplyRes] = await Promise.all([
-      multiCall(vaultAddresses, ABI.totalAssets, chain, historicalBlock),
-      multiCall(vaultAddresses, ABI.totalSupply, chain, historicalBlock),
-    ]);
+    const ppsRes = await sdk.api.abi.multiCall({
+      calls: oracleAddresses.map((oracle) => ({ target: oracle })),
+      abi: ABI.getLastSavedPricePerShare,
+      chain,
+      block: historicalBlock,
+      permitFailure: true,
+    });
 
-    const sharePrices = {};
-    for (let i = 0; i < vaultAddresses.length; i++) {
-      const totalAssets = totalAssetsRes.output[i];
-      const totalSupply = totalSupplyRes.output[i];
-
-      if (
-        totalAssets?.success &&
-        totalSupply?.success &&
-        totalSupply.output !== '0'
-      ) {
-        sharePrices[vaultAddresses[i].toLowerCase()] =
-          Number(totalAssets.output) / Number(totalSupply.output);
+    const result = {};
+    for (let i = 0; i < vaultsWithOracle.length; i++) {
+      if (ppsRes.output[i]?.success && ppsRes.output[i].output !== '0') {
+        result[vaultsWithOracle[i].address] =
+          Number(ppsRes.output[i].output) / 1e18;
       }
     }
 
-    return sharePrices;
+    return result;
   } catch (e) {
     console.error(
-      `[t3tris] Error fetching historical data for ${chain} (${daysAgo}d ago):`,
+      `[t3tris] Error fetching historical oracle PPS for ${chain} (${daysAgo}d ago):`,
+      e.message
+    );
+    return {};
+  }
+};
+
+/**
+ * Get current oracle PPS for all vaults.
+ */
+const getCurrentOraclePps = async (vaults, chain) => {
+  const vaultsWithOracle = vaults.filter((v) => v.oracle);
+  if (vaultsWithOracle.length === 0) return {};
+
+  const oracleAddresses = vaultsWithOracle.map((v) => v.oracle);
+
+  try {
+    const ppsRes = await sdk.api.abi.multiCall({
+      calls: oracleAddresses.map((oracle) => ({ target: oracle })),
+      abi: ABI.getLastSavedPricePerShare,
+      chain,
+      permitFailure: true,
+    });
+
+    const result = {};
+    for (let i = 0; i < vaultsWithOracle.length; i++) {
+      if (ppsRes.output[i]?.success && ppsRes.output[i].output !== '0') {
+        result[vaultsWithOracle[i].address] =
+          Number(ppsRes.output[i].output) / 1e18;
+      }
+    }
+
+    return result;
+  } catch (e) {
+    console.error(
+      `[t3tris] Error fetching current oracle PPS for ${chain}:`,
       e.message
     );
     return {};
@@ -239,11 +287,11 @@ const main = async () => {
       const assetAddresses = [...new Set(vaults.map((v) => v.asset))];
       const prices = await utils.getPrices(assetAddresses, chain);
 
-      // Get historical share prices for APY (1d and 7d)
-      const vaultAddresses = vaults.map((v) => v.address);
-      const [historicalPrices1d, historicalPrices7d] = await Promise.all([
-        getHistoricalSharePrices(vaultAddresses, chain, 1),
-        getHistoricalSharePrices(vaultAddresses, chain, 7),
+      // Get oracle PPS: current + historical (1d, 7d) for APY
+      const [currentPps, historicalPps1d, historicalPps7d] = await Promise.all([
+        getCurrentOraclePps(vaults, chain),
+        getHistoricalOraclePps(vaults, chain, 1),
+        getHistoricalOraclePps(vaults, chain, 7),
       ]);
 
       for (const vault of vaults) {
@@ -258,15 +306,17 @@ const main = async () => {
         // Skip negligible vaults
         if (tvlUsd < 100) continue;
 
-        // Current share price: totalAssets / totalSupply
+        // Current oracle PPS (WAD-normalized to float)
+        // Falls back to totalAssets/totalSupply if oracle unavailable
         const currentSharePrice =
-          vault.totalSupply !== '0'
+          currentPps[vault.address] ||
+          (vault.totalSupply !== '0'
             ? Number(vault.totalAssets) / Number(vault.totalSupply)
-            : 0;
+            : 0);
 
-        // APY from share price growth
-        const historicalPrice1d = historicalPrices1d[vault.address];
-        const historicalPrice7d = historicalPrices7d[vault.address];
+        // APY from oracle PPS growth
+        const historicalPrice1d = historicalPps1d[vault.address];
+        const historicalPrice7d = historicalPps7d[vault.address];
         const apyBase = calcApy(currentSharePrice, historicalPrice1d, 1);
         const apyBase7d = calcApy(currentSharePrice, historicalPrice7d, 7);
 
