@@ -93,7 +93,7 @@ async function apy() {
 
     // apy = (new_ratio/old_ratio)^(365/days_since_block) * 100 - 100
     const ratio = pricePerShareNew.dividedBy(pricePerShareOld);
-    const apyBase = ratio.pow(Math.floor(365 / daysSinceBlock)).times(100).minus(100).toNumber();
+    const apyBase7d = ratio.pow(Math.floor(365 / daysSinceBlock)).times(100).minus(100).toNumber();
 
     // Calculate TVL
     const totalLockedTokens = new BigNumber(poolInfoCurrent.total_pool_value).shiftedBy(-vault.origin_asset.decimals);
@@ -108,8 +108,8 @@ async function apy() {
           project: 'hydro-inflow',
           chain: utils.formatChain(chainId),
           tvlUsd: tvlUsd,
-          apyBase: await getVaultOverallAPY(vault.vault_apy_endpoint),
-          apyBase7d: apyBase,
+          apyBase7d: apyBase7d,
+          apyBase14d: await getVaultOverallAPY(vault.vault_apy_endpoint),
           url: vault.url,
         });
   }
