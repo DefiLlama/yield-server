@@ -33,21 +33,7 @@ const ABI = {
 
 // Chains where T3tris will be deployed
 const CHAINS = [
-  'ethereum',
   'arbitrum',
-  'base',
-  'optimism',
-  'polygon',
-  'avax',
-  'bsc',
-  'linea',
-  'scroll',
-  'blast',
-  'mantle',
-  'mode',
-  'xdai',
-  'fantom',
-  'sonic',
 ];
 
 const DAY_SECONDS = 24 * 3600;
@@ -73,7 +59,7 @@ const multiCall = (targets, abi, chain, block = undefined) =>
 const getBlockNumber = async (timestamp, chain) => {
   try {
     const response = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
+      `https://coins.llama.fi/block/${chain}/${timestamp}`,
     );
     return response.data.height;
   } catch {
@@ -235,14 +221,20 @@ const getVaultsForChain = async (chain) => {
       perfFeeBps: perfFeeRes.output[i]?.success
         ? Number(perfFeeRes.output[i].output)
         : 0,
-      mgmtFeeBps:
-        mgmtFeeRes.output[i]?.success
-          ? Number(mgmtFeeRes.output[i].output.managementFeeBps || mgmtFeeRes.output[i].output[0] || 0)
-          : 0,
-      mgmtFeeDays:
-        mgmtFeeRes.output[i]?.success
-          ? Number(mgmtFeeRes.output[i].output.managementFeeDays || mgmtFeeRes.output[i].output[1] || 365)
-          : 365,
+      mgmtFeeBps: mgmtFeeRes.output[i]?.success
+        ? Number(
+            mgmtFeeRes.output[i].output.managementFeeBps ||
+              mgmtFeeRes.output[i].output[0] ||
+              0,
+          )
+        : 0,
+      mgmtFeeDays: mgmtFeeRes.output[i]?.success
+        ? Number(
+            mgmtFeeRes.output[i].output.managementFeeDays ||
+              mgmtFeeRes.output[i].output[1] ||
+              365,
+          )
+        : 365,
       entryFeeBps: entryFeeRes.output[i]?.success
         ? Number(entryFeeRes.output[i].output)
         : 0,
@@ -295,7 +287,7 @@ const getHistoricalOraclePps = async (vaults, chain, daysAgo) => {
   } catch (e) {
     console.error(
       `[t3tris] Error fetching historical oracle PPS for ${chain} (${daysAgo}d ago):`,
-      e.message
+      e.message,
     );
     return {};
   }
@@ -330,7 +322,7 @@ const getCurrentOraclePps = async (vaults, chain) => {
   } catch (e) {
     console.error(
       `[t3tris] Error fetching current oracle PPS for ${chain}:`,
-      e.message
+      e.message,
     );
     return {};
   }
@@ -377,14 +369,14 @@ const main = async () => {
 
         // Collect historical PPS at each lookback window for this vault
         const vaultHistoricalPps = historicalPpsArrays.map(
-          (ppsMap) => ppsMap[vault.address] || 0
+          (ppsMap) => ppsMap[vault.address] || 0,
         );
 
         // Smoothed APY: weighted blend across 7d/14d/30d windows
         // This prevents spikes when oracle updates after days of silence
         const { apyBase, apyBase7d } = computeSmoothedApy(
           currentSharePrice,
-          vaultHistoricalPps
+          vaultHistoricalPps,
         );
 
         // Build fee metadata string
@@ -415,7 +407,7 @@ const main = async () => {
     } catch (error) {
       console.error(
         `[t3tris] Error fetching data for ${chain}:`,
-        error.message
+        error.message,
       );
     }
   }
