@@ -1,17 +1,18 @@
 const sdk = require('@defillama/sdk');
-const axios = require('axios');
 const utils = require('../utils');
 
-const VAULTS = {
-  base: [
-    '0xe83EF4375d806c02387069f1b753b2ab76ab1dc5',
-    '0x1A48Cec817Bcb5436EFE99BAb6dDe228Cc37e1Cc',
-  ],
-  ethereum: [
-    '0x28966Ce36d0F25858dc5d10DfC2829F05C332C49',
-    '0x6424c7548e214f89B64Ea5981c5A0c5Ec22b6e38',
-  ],
-};
+const VAULTS = [
+  {
+    address: '0x03067bbD0d41E3Fe4A0bb6ca67c99e7352Da4CAE',
+    underlying: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC
+  },
+  {
+    address: '0x25d90ABd6c1E8DCCD40932D2fdD2Cd381bfc832D',
+    underlying: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', // USDT
+  },
+];
+
+const CHAIN = 'base';
 
 const convertToAssetsAbi =
   'function convertToAssets(uint256 shares) external view returns (uint256)';
@@ -19,66 +20,56 @@ const convertToAssetsAbi =
 const SHARE_UNIT = (10n ** 18n).toString();
 const DAY = 24 * 3600;
 
-async function getChainPools(chain, vaults) {
+async function apy() {
   const timestamp = Math.floor(Date.now() / 1000);
 
   const [{ height: blockNow }, { height: blockPrev }] = await Promise.all([
-    utils.getData(`https://coins.llama.fi/block/${chain}/${timestamp}`),
-    utils.getData(`https://coins.llama.fi/block/${chain}/${timestamp - DAY}`),
+    utils.getData(`https://coins.llama.fi/block/${CHAIN}/${timestamp}`),
+    utils.getData(`https://coins.llama.fi/block/${CHAIN}/${timestamp - DAY}`),
   ]);
 
-  const calls = vaults.map((target) => ({ target }));
-  const shareCalls = vaults.map((target) => ({
+  const addresses = VAULTS.map((v) => v.address);
+  const calls = addresses.map((target) => ({ target }));
+  const shareCalls = addresses.map((target) => ({
     target,
     params: [SHARE_UNIT],
   }));
 
-  const [assets, symbols, totalAssets, rateNow, ratePrev] = await Promise.all([
-    sdk.api.abi.multiCall({
-      abi: 'function asset() view returns (address)',
-      calls,
-      chain,
-    }),
-    sdk.api.abi.multiCall({ abi: 'erc20:symbol', calls, chain }),
-    sdk.api.abi.multiCall({
-      abi: 'uint:totalAssets',
-      calls,
-      chain,
-      block: blockNow,
-    }),
-    sdk.api.abi.multiCall({
-      abi: convertToAssetsAbi,
-      calls: shareCalls,
-      chain,
-      block: blockNow,
-    }),
-    sdk.api.abi.multiCall({
-      abi: convertToAssetsAbi,
-      calls: shareCalls,
-      chain,
-      block: blockPrev,
-    }),
-  ]);
-
-  const underlyings = assets.output.map((o) => o.output);
-  const priceKeys = underlyings
-    .map((t) => `${chain}:${t}`)
-    .join(',')
-    .toLowerCase();
-  const { data: priceData } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
+  const [symbols, decimals, totalAssets, rateNow, ratePrev] = await Promise.all(
+    [
+      sdk.api.abi.multiCall({ abi: 'erc20:symbol', calls, chain: CHAIN }),
+      sdk.api.abi.multiCall({ abi: 'erc20:decimals', calls, chain: CHAIN }),
+      sdk.api.abi.multiCall({
+        abi: 'uint:totalAssets',
+        calls,
+        chain: CHAIN,
+        block: blockNow,
+      }),
+      sdk.api.abi.multiCall({
+        abi: convertToAssetsAbi,
+        calls: shareCalls,
+        chain: CHAIN,
+        block: blockNow,
+      }),
+      sdk.api.abi.multiCall({
+        abi: convertToAssetsAbi,
+        calls: shareCalls,
+        chain: CHAIN,
+        block: blockPrev,
+      }),
+    ]
   );
 
-  return vaults.map((vault, i) => {
-    const underlying = underlyings[i];
-    const key = `${chain}:${underlying}`.toLowerCase();
-    const coin = priceData.coins[key] || {};
-    const price = coin.price || 0;
-    const dec = coin.decimals || 18;
+  const underlyings = VAULTS.map((v) => v.underlying);
+  const { pricesByAddress } = await utils.getPrices(underlyings, CHAIN);
+
+  const pools = VAULTS.map((vault, i) => {
+    const dec = Number(decimals.output[i].output);
     const symbol = symbols.output[i].output;
     const total = Number(totalAssets.output[i].output);
     const rNow = Number(rateNow.output[i].output);
     const rPrev = Number(ratePrev.output[i].output);
+    const price = pricesByAddress[vault.underlying.toLowerCase()] || 0;
 
     const tvlUsd = (total / 10 ** dec) * price;
 
@@ -88,25 +79,18 @@ async function getChainPools(chain, vaults) {
     }
 
     return {
-      pool: `${vault}-${chain}`.toLowerCase(),
-      chain: utils.formatChain(chain),
+      pool: `${vault.address}-${CHAIN}`.toLowerCase(),
+      chain: utils.formatChain(CHAIN),
       project: 'zircuit-finance',
       symbol: utils.formatSymbol(symbol),
       tvlUsd,
       apyBase,
-      underlyingTokens: [underlying],
+      underlyingTokens: [vault.underlying],
       url: 'https://finance.zircuit.com',
     };
   });
-}
 
-async function apy() {
-  const pools = await Promise.all(
-    Object.entries(VAULTS).map(([chain, vaults]) =>
-      getChainPools(chain, vaults)
-    )
-  );
-  return pools.flat().filter(utils.keepFinite);
+  return pools.filter(utils.keepFinite);
 }
 
 module.exports = {
