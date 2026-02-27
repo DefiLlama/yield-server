@@ -118,10 +118,9 @@ const getPoolsData = async () => {
       ?.map((r) => r.address)
       .filter(Boolean);
 
-    // Preserve original pool ID format for Ethereum; add chain for multi-chain pools
     const poolId = entry.network === 1
-      ? `${stakingAddress}-angle`
-      : `${stakingAddress}-${chain}-angle`;
+      ? `${stakingAddress}-${chain}`
+      : `${stakingAddress}-angle`;
 
     const pool = {
       pool: poolId,
@@ -171,7 +170,7 @@ const cdpData = async () => {
       const totalBorrowUsd = Number(_vault.totalDebt) * mintedCoinPrice;
 
       return {
-        pool: `${_vault.address}-${chain}`,
+        pool: `${_vault.address}-angle`,
         project: 'angle',
         chain: utils.formatChain(chain),
         symbol: _vault.symbol.split('-')[0],
