@@ -225,6 +225,7 @@ const excludeAdaptors = [
   'holdstation-defutures',
   'merkle-trade',
   'nayms',
+  'berancia',
 ];
 
 const excludePools = [
