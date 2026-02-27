@@ -226,6 +226,7 @@ const excludeAdaptors = [
   'merkle-trade',
   'nayms',
   'berancia',
+  'crowdswap',
 ];
 
 const excludePools = [
