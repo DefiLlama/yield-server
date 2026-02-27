@@ -1,16 +1,4 @@
 const utils = require('../utils')
-const STRK = "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
-
-const STARKNET_COINGECKO = {
-  WBTC: 'coingecko:wrapped-bitcoin',
-  tBTC: 'coingecko:tbtc',
-  LBTC: 'coingecko:lombard-staked-btc',
-  SolvBTC: 'coingecko:solv-btc',
-  ETH: 'coingecko:ethereum',
-  STRK: 'coingecko:starknet',
-  USDC: 'coingecko:usd-coin',
-  USDT: 'coingecko:tether',
-};
 
 const apy = async () => {
     const apyData = await utils.getData(
@@ -29,7 +17,7 @@ const apy = async () => {
             chain: 'Starknet',
             project: 'endur',
             symbol: currPool,
-            underlyingTokens: [STARKNET_COINGECKO[currPool] || underlyingToken],
+            underlyingTokens: [utils.padStarknetAddress(underlyingToken)],
             tvlUsd: currTvlUsd,
             apyBase: baseApy,
             url: `https://app.endur.fi/`,
