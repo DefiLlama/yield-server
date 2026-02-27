@@ -2,80 +2,13 @@ const utils = require('../utils');
 const _ = require('lodash');
 const BigNumber = require('bignumber.js');
 
-// Osmosis Noble USDC Protocol Contracts (OSMOSIS-OSMOSIS-USDC_NOBLE) pirin-1
-const osmosisUsdcOracleAddr =
-  'nolus1vjlaegqa7ssm2ygf2nnew6smsj8ref9cmurerc7pzwxqjre2wzpqyez4w6';
-const osmosisUsdcLppAddr =
-  'nolus1ueytzwqyadm6r0z8ajse7g6gzum4w3vv04qazctf8ugqrrej6n4sq027cf';
-
-// Osmosis allBTC Protocol Contracts (OSMOSIS-OSMOSIS-ALL_BTC) pirin-1
-const osmosisAllBtcOracleAddr =
-  'nolus1y0nlrnw25mh2vxhaupamwca4wdvuxs26tq4tnxgjk8pw0gxevwfq5ry07c';
-const osmosisAllBtcLppAddr =
-  'nolus1w2yz345pqheuk85f0rj687q6ny79vlj9sd6kxwwex696act6qgkqfz7jy3';
-
-// Osmosis allSOL Protocol Contracts (OSMOSIS-OSMOSIS-ALL_SOL) pirin-1
-const osmosisAllSolOracleAddr =
-  'nolus153kmhl85vavd03r9c7ardw4fgydge6kvvhrx5v2uvec4eyrlwthsejc6ce';
-const osmosisAllSolLppAddr =
-  'nolus1qufnnuwj0dcerhkhuxefda6h5m24e64v2hfp9pac5lglwclxz9dsva77wm';
-
-// Astroport USDC Protocol Contracts (NEUTRON-ASTROPORT-USDC_NOBLE) pirin-1
-const astroportUsdcOracleAddr =
-  'nolus1vhzdx9lqexuqc0wqd48c5hc437yzw7jy7ggum9k25yy2hz7eaatq0mepvn';
-const astroportUsdcLppAddr =
-  'nolus17vsedux675vc44yu7et9m64ndxsy907v7sfgrk7tw3xnjtqemx3q6t3xw6';
-
-// Osmosis stATOM Protocol Contracts (OSMOSIS-OSMOSIS-ST_ATOM) pirin-1
-//Note: APY is 0% atm, so not worth adding, but might in the future
-//const osmosisStAtomOracleAddr = 'nolus1mtcv0vhpt94s82mcemj5sc3v94pq3k2g62yfa5p82npfnd3xqx8q2w8c5f'
-//const osmosisStAtomLppAddr = 'nolus1jufcaqm6657xmfltdezzz85quz92rmtd88jk5x0hq9zqseem32ysjdm990'
-
-// Osmosis AKT Protocol Contracts (OSMOSIS-OSMOSIS-AKT) pirin-1
-//Note: APY is 0% atm, so not worth adding, but might in the future
-//const osmosisAktOracleAddr = 'nolus12sx0kr60rptp846z2wvuwyxn47spg55dcnzwrhl4f7nfdduzsrxq7rfetn'
-//const osmosisAktLppAddr = 'nolus1lxr7f5xe02jq6cce4puk6540mtu9sg36at2dms5sk69wdtzdrg9qq0t67z'
-
-// Osmosis ATOM Protocol Contracts (OSMOSIS-OSMOSIS-ATOM) pirin-1
-//Note: APY is 0% atm, so not worth adding, but might in the future
-//const osmosisAtomOracleAddr = 'nolus16xt97qd5mc2zkya7fs5hvuavk92cqds82qjuq6rf7p7akxfcuxcs5u2280'
-//const osmosisAtomLppAddr = 'nolus1u0zt8x3mkver0447glfupz9lz6wnt62j70p5fhhtu3fr46gcdd9s5dz9l6'
-
-const contracts = [
-  {
-    lpp: osmosisUsdcLppAddr,
-    oracle: osmosisUsdcOracleAddr,
-    symbol: 'USDC',
-    protocolName: 'OSMOSIS-OSMOSIS-USDC_NOBLE',
-    meta: '',
-  },
-  {
-    lpp: osmosisAllBtcLppAddr,
-    oracle: osmosisAllBtcOracleAddr,
-    symbol: 'BTC',
-    protocolName: 'OSMOSIS-OSMOSIS-ALL_BTC',
-    meta: '',
-  },
-  {
-    lpp: osmosisAllSolLppAddr,
-    oracle: osmosisAllSolOracleAddr,
-    symbol: 'SOL',
-    protocolName: 'OSMOSIS-OSMOSIS-ALL_SOL',
-    meta: '',
-  },
-  {
-    lpp: astroportUsdcLppAddr,
-    oracle: astroportUsdcOracleAddr,
-    symbol: 'USDC',
-    protocolName: 'NEUTRON-ASTROPORT-USDC_NOBLE',
-    meta: '',
-  },
-];
-
 // nolus node rest api
 const api = 'https://lcd.nolus.network';
 // ETL(extract transform load) rest api
 const etlAddress = 'https://etl.nolus.network';
+
+// Base decimals for stable price quote (USDC)
+const STABLE_QUOTE_DECIMALS = 6;
 
 const queryContract = async function (contract, data) {
   if (typeof data !== 'string') {
@@ -88,7 +21,72 @@ const queryContract = async function (contract, data) {
   return out;
 };
 
+/**
+ * Fetches active protocols from the ETL API
+ * Returns array of protocol objects with lpp, oracle, symbol, and protocolName
+ */
+const fetchActiveProtocols = async () => {
+  const protocolsData = await utils.getData(
+    `${etlAddress}/api/protocols/active`
+  );
+  const protocols = protocolsData?.protocols || [];
+
+  const symbolMeta = {
+    USDC_NOBLE: { symbol: 'USDC', meta: 'Noble' },
+    USDC_AXELAR: { symbol: 'USDC', meta: 'Axelar' },
+    USDC: { symbol: 'USDC', meta: 'Axelar' },
+    ALL_SOL: { symbol: 'SOL', meta: 'Alloyed' },
+    ALL_BTC: { symbol: 'BTC', meta: 'Alloyed' },
+  };
+
+  return protocols
+    .filter((p) => p.contracts?.lpp && p.contracts?.oracle)
+    .map((p) => {
+      const override = symbolMeta[p.lpn_symbol];
+      return {
+        lpp: p.contracts.lpp,
+        oracle: p.contracts.oracle,
+        symbol: override ? override.symbol : p.lpn_symbol,
+        protocolName: p.name,
+        meta: override ? override.meta : '',
+      };
+    });
+};
+
+/**
+ * Fetches currencies from the ETL API and builds a decimals lookup map
+ * Returns a map of ticker -> decimal_digits
+ */
+const fetchCurrencyDecimals = async () => {
+  const currenciesData = await utils.getData(`${etlAddress}/api/currencies`);
+  const currencies = currenciesData?.currencies || [];
+
+  const decimalsMap = {};
+  for (const currency of currencies) {
+    if (currency.is_active) {
+      decimalsMap[currency.ticker] = currency.decimal_digits;
+    }
+  }
+  return decimalsMap;
+};
+
+/**
+ * Calculates the decimal adjustment factor for price calculation
+ * When the LPN token has more decimals than the stable quote (6),
+ * we need to multiply the price by 10^(lpn_decimals - stable_decimals)
+ */
+const getDecimalAdjustment = (lpnDecimals) => {
+  const decimalDiff = lpnDecimals - STABLE_QUOTE_DECIMALS;
+  return decimalDiff > 0 ? Math.pow(10, decimalDiff) : 1;
+};
+
 const getApy = async () => {
+  // Fetch active protocols dynamically from ETL
+  const contracts = await fetchActiveProtocols();
+
+  // Fetch currency decimals for dynamic adjustment
+  const currencyDecimals = await fetchCurrencyDecimals();
+
   // Fetch all pool data in a single request
   const poolsData = await utils.getData(`${etlAddress}/api/pools`);
   const poolsMap = {};
@@ -129,21 +127,22 @@ const getApy = async () => {
     const totalBorrowUsd = Number(poolData?.borrowed);
     const safeEarnApr = Number.isFinite(earnApr) ? earnApr : 0;
     const safeBorrowApr = Number.isFinite(borrowApr) ? borrowApr : 0;
-    const safeTotalSupplyUsd = Number.isFinite(totalSupplyUsd) ? totalSupplyUsd : 0;
-    const safeTotalBorrowUsd = Number.isFinite(totalBorrowUsd) ? totalBorrowUsd : 0;
+    const safeTotalSupplyUsd = Number.isFinite(totalSupplyUsd)
+      ? totalSupplyUsd
+      : 0;
+    const safeTotalBorrowUsd = Number.isFinite(totalBorrowUsd)
+      ? totalBorrowUsd
+      : 0;
 
     // Calculate asset price with BigNumber
     const amount = new BigNumber(oraclePriceData.data.amount.amount);
     const amountQuote = new BigNumber(oraclePriceData.data.amount_quote.amount);
     let price = amountQuote.div(amount);
 
-    // Adjust price for decimal differences
-    const decimalsAdjustment = {
-      USDC: 1,
-      BTC: 1,
-      SOL: 1000, // 9 - 6 = 3 decimal places difference, 10^3 = 1000
-    };
-    price = price.times(decimalsAdjustment[c.symbol] || 1); // Default to 1 if symbol is not in the map
+    // Get LPN decimals from currencies API and calculate adjustment
+    const lpnDecimals = currencyDecimals[c.symbol] ?? STABLE_QUOTE_DECIMALS;
+    const decimalsAdjustment = getDecimalAdjustment(lpnDecimals);
+    price = price.times(decimalsAdjustment);
 
     // Calculate TVL in USD
     const balance = new BigNumber(lppBalanceData.data.balance.amount);
