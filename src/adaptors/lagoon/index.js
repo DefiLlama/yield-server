@@ -38,6 +38,7 @@ const gqlQueries = {
           state {
             totalAssetsUsd
             weeklyApr {
+              linearNetApr
               linearNetAprWithoutExtraYields
             }
           }
@@ -65,12 +66,19 @@ const apy = async () => {
       skip += 100;
     }
     const _pools = allVaults.map((vault) => {
+      const { linearNetApr, linearNetAprWithoutExtraYields } =
+        vault.state.weeklyApr;
+
+      const apyBase = linearNetAprWithoutExtraYields;
+      const apyReward = linearNetApr - linearNetAprWithoutExtraYields || null;
+
       return {
         pool: `lagoon-${vault.address}-${chain}`,
         chain,
         project: 'lagoon',
         symbol: vault.symbol,
-        apyBase: vault.state.weeklyApr.linearNetAprWithoutExtraYields,
+        apyBase,
+        apyReward,
         tvlUsd: vault.state.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
         url: `https://app.lagoon.finance/vault/${vault.chain.id}/${vault.address}`,
