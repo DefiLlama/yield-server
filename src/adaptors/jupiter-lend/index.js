@@ -3,7 +3,7 @@ const utils = require('../utils');
 
 const BASE_URL = 'https://api.solana.fluid.io/v1';
 
-const bpsToApy = (bps) => (Number(bps) / 1e4) * 100;
+const bpsToApr = (bps) => (Number(bps) / 1e4) * 100;
 
 const getEarnPools = (lendingTokens) =>
   lendingTokens.map((token) => {
@@ -11,13 +11,14 @@ const getEarnPools = (lendingTokens) =>
     const decimals = token.asset.decimals;
     const tvlUsd = (Number(token.totalAssets) / 10 ** decimals) * price;
 
-    // totalRate = supplyRate (interest from borrowers) + rewardsRate (protocol-native yield).
-    const apyBase = utils.aprToApy(Number(token.totalRate) / 100);
+    // supplyRate = interest earned from borrowers (excludes rewardsRate to avoid double-counting).
+    const apyBase = utils.aprToApy(Number(token.supplyRate) / 100);
     const stakingApy = token.asset.stakingApr
-      ? bpsToApy(token.asset.stakingApr)
+      ? utils.aprToApy(bpsToApr(token.asset.stakingApr))
       : 0;
-    const apyReward = token.rewardsRate ? bpsToApy(token.rewardsRate) : 0;
-
+    const apyReward = token.rewardsRate
+      ? utils.aprToApy(bpsToApr(token.rewardsRate))
+      : 0;
 
     return {
       pool: `${token.address}-solana`.toLowerCase(),
@@ -40,7 +41,7 @@ const calcVaultSupplyApy = (vault) => {
       100
   );
   const stakingApy = vault.supplyToken.stakingApr
-    ? bpsToApy(vault.supplyToken.stakingApr)
+    ? utils.aprToApy(bpsToApr(vault.supplyToken.stakingApr))
     : 0;
 
   return marketApy + stakingApy;
@@ -51,22 +52,8 @@ const calcVaultRewardApy = (vault, side) =>
     .filter((r) => r.side === side)
     .reduce((sum, r) => sum + utils.aprToApy(Number(r.apr) / 100), 0);
 
-const getVaultPools = (vaults) => {
-  const bestByToken = {};
-  for (const vault of vaults) {
-    const tokenAddr = vault.supplyToken.address;
-    const supplyApy =
-      calcVaultSupplyApy(vault) + calcVaultRewardApy(vault, 'supply');
-
-    if (
-      !bestByToken[tokenAddr] ||
-      supplyApy > bestByToken[tokenAddr].supplyApy
-    ) {
-      bestByToken[tokenAddr] = { vault, supplyApy };
-    }
-  }
-
-  return Object.values(bestByToken).map(({ vault }) => {
+const getVaultPools = (vaults) =>
+  vaults.map((vault) => {
     const supplyToken = vault.supplyToken;
     const borrowToken = vault.borrowToken;
 
@@ -78,9 +65,14 @@ const getVaultPools = (vaults) => {
 
     const apyBase = calcVaultSupplyApy(vault);
     const apyReward = calcVaultRewardApy(vault, 'supply');
+    const apyBaseBorrow = utils.aprToApy(Number(vault.borrowRate) / 100);
+    const apyRewardBorrow = calcVaultRewardApy(vault, 'borrow');
 
     const supplyRewardTokens = (vault.rewards || [])
       .filter((r) => r.side === 'supply')
+      .map((r) => r.rewardToken.address);
+    const borrowRewardTokens = (vault.rewards || [])
+      .filter((r) => r.side === 'borrow')
       .map((r) => r.rewardToken.address);
 
     return {
@@ -93,13 +85,19 @@ const getVaultPools = (vaults) => {
       apyReward: apyReward > 0 ? apyReward : null,
       rewardTokens:
         supplyRewardTokens.length > 0 ? supplyRewardTokens : undefined,
+      apyBaseBorrow,
+      apyRewardBorrow: apyRewardBorrow > 0 ? apyRewardBorrow : null,
+      ...(borrowRewardTokens.length > 0 && {
+        rewardTokensBorrow: borrowRewardTokens,
+      }),
       underlyingTokens: [supplyToken.address],
+      totalSupplyUsd,
+      totalBorrowUsd,
       ltv: Number(vault.collateralFactor) / 1e3,
       poolMeta: `${supplyToken.symbol}/${borrowToken.symbol}`,
       url: 'https://jup.ag/lend',
     };
   });
-};
 
 const getApy = async () => {
   const [lendingTokens, vaults] = await Promise.all([
