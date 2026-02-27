@@ -8,6 +8,13 @@ exports.formatAddress = (address) => {
   return String(address).toLowerCase();
 };
 
+exports.padStarknetAddress = (addr) => {
+  if (!addr || !addr.startsWith('0x')) return addr;
+  const hex = addr.slice(2);
+  if (hex.length >= 64) return addr;
+  return '0x' + hex.padStart(64, '0');
+};
+
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
@@ -22,7 +29,8 @@ exports.formatChain = (chain) => {
     chain &&
     (chain.toLowerCase() === 'zksync_era' ||
       chain.toLowerCase() === 'zksync era' ||
-      chain.toLowerCase() === 'era')
+      chain.toLowerCase() === 'era' ||
+      chain.toLowerCase() === 'zksync')
   )
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';

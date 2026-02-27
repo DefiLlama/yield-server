@@ -1,5 +1,4 @@
 const utils = require('../utils')
-const STRK = "0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d"
 
 const apy = async () => {
     const apyData = await utils.getData(
@@ -18,7 +17,7 @@ const apy = async () => {
             chain: 'Starknet',
             project: 'endur',
             symbol: currPool,
-            underlyingTokens: [underlyingToken],
+            underlyingTokens: [utils.padStarknetAddress(underlyingToken)],
             tvlUsd: currTvlUsd,
             apyBase: baseApy,
             url: `https://app.endur.fi/`,

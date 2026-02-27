@@ -173,7 +173,7 @@ const getAPYs = async () => {
       apyReward: BTCLIB.apy,
       tvlUsd: Number(BTCLIB.totalValue.toFixed(2)),
       rewardTokens: ['LIBRE'],
-      underlyingTokens: ['BTC', 'LIBRE'],
+      underlyingTokens: ['coingecko:bitcoin', 'coingecko:libre'],
       poolMeta: 'BTC - Libre farming pool',
     }, {
       pool: 'BTCUSD',
@@ -183,7 +183,7 @@ const getAPYs = async () => {
       apyReward: BTCUSD.apy,
       tvlUsd: Number(BTCUSD.totalValue.toFixed(2)),
       rewardTokens: ['LIBRE'],
-      underlyingTokens: ['BTC', 'USDT'],
+      underlyingTokens: ['coingecko:bitcoin', 'coingecko:tether'],
       poolMeta: 'BTC - USDT farming pool',
     }]
 }

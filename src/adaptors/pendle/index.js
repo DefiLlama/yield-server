@@ -3,6 +3,13 @@ const axios = require('axios');
 const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
 
+const UNRESOLVABLE_TOKENS = {
+  '0xae8fc9288685516d2eca717056ca69303b348752': 'coingecko:universal-btc',
+  '0x53176cadd446700fa6b89f840357ac586d7e33db': 'coingecko:universal-btc',
+  '0x846350bb944c9f9924d4feca0f948b73e5af5a57': 'coingecko:universal-btc',
+};
+const resolveToken = (addr) => UNRESOLVABLE_TOKENS[addr?.toLowerCase()] || addr;
+
 const chains = {
   1: {
     chainName: 'ethereum',
@@ -241,7 +248,7 @@ async function poolApys(chainId, pools) {
     apyBase: (p.details.aggregatedApy - p.details.pendleApy) * 100,
     apyReward: p.details.pendleApy * 100,
     rewardTokens: [chains[chainId].PENDLE],
-    underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address],
+    underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address].map(resolveToken),
     volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
     volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
     poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
@@ -257,7 +264,7 @@ function ptApys(chainId, pools) {
     symbol: utils.formatSymbol(p.name),
     tvlUsd: p.details.liquidity,
     apyBase: p.details.impliedApy * 100,
-    underlyingTokens: [splitId(p.underlyingAsset).address],
+    underlyingTokens: [splitId(p.underlyingAsset).address].map(resolveToken),
     poolMeta: `For buying PT-${p.name}-${expiryToText(p.expiry)}`,
     url: `https://app.pendle.finance/trade/markets/${p.address}/swap?view=pt&chain=${chains[chainId].chainSlug}&py=output`,
   }));

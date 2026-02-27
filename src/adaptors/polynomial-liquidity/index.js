@@ -8,7 +8,7 @@ const LIQUIDITY_URL = 'https://polynomial.fi/en/mainnet/earn/liquidity';
 // Token addresses on Polynomial chain (chainId 8008)
 const COLLATERAL_TOKENS = {
   fxUSDC: '0x2369eb4a76d80fbeaa7aa73e1e1f9eaee88c07f4',
-  SDAI: '0x615172e47c0C5A6dA8ea959632Ac0166f7a59eDc',
+  sDAI: '0x615172e47c0C5A6dA8ea959632Ac0166f7a59eDc',
   sUSDe: '0x2A06DEAc3E863c23DD6a89Eeacd80aBA9E08B77B',
   USD0: '0x6224dC817dC4D5c53fcF3eb08A4f84C456F9f38f',
   USDC: '0x17C9D8Cef7Ef072844EEaEdE1F9f54C7E3fa8743',

@@ -47,7 +47,7 @@ async function apy() {
         chain: 'Starknet',
         project: 'ekubo',
         symbol: `${token0.symbol}-${token1.symbol}`,
-        underlyingTokens: [token0.address, token1.address],
+        underlyingTokens: [utils.padStarknetAddress(token0.address), utils.padStarknetAddress(token1.address)],
         tvlUsd,
         apyBase,
         url: `https://app.ekubo.org/charts/${token0.symbol}/${token1.symbol}`,

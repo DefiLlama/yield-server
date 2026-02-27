@@ -41,6 +41,12 @@ const astroportUsdcLppAddr =
 //const osmosisAtomOracleAddr = 'nolus16xt97qd5mc2zkya7fs5hvuavk92cqds82qjuq6rf7p7akxfcuxcs5u2280'
 //const osmosisAtomLppAddr = 'nolus1u0zt8x3mkver0447glfupz9lz6wnt62j70p5fhhtu3fr46gcdd9s5dz9l6'
 
+const NOLUS_COINGECKO = {
+  USDC: 'coingecko:usd-coin',
+  BTC: 'coingecko:bitcoin',
+  SOL: 'coingecko:solana',
+};
+
 const contracts = [
   {
     lpp: osmosisUsdcLppAddr,
@@ -163,7 +169,7 @@ const getApy = async () => {
       totalSupplyUsd: safeTotalSupplyUsd,
       totalBorrowUsd: safeTotalBorrowUsd,
       // apyReward: null, TODO: add NLS rewards
-      underlyingTokens: [currencyData.bank_symbol, currencyData.dex_symbol], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+      underlyingTokens: [NOLUS_COINGECKO[c.symbol] || c.symbol],
       // rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], TODO: add NLS rewards
       poolMeta: c.meta,
     });

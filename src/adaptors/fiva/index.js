@@ -7,6 +7,19 @@ const TON_CHAIN = {
   chainSlug: 'ton',
 };
 
+const TON_COINGECKO = {
+  tsusde: 'coingecko:ethena-staked-usde',
+  tston: 'coingecko:the-open-network',
+  stton: 'coingecko:the-open-network',
+  ton: 'coingecko:the-open-network',
+  usdt: 'coingecko:tether',
+  'usd₮': 'coingecko:tether',
+  eusdt: 'coingecko:tether',
+  usde: 'coingecko:ethena-usde',
+  stgusd: 'coingecko:usd-coin',
+};
+const resolveTonToken = (symbol, address) => TON_COINGECKO[symbol?.toLowerCase()] || address;
+
 function expiryToText(dateIso) {
   return new Date(dateIso)
     .toLocaleDateString('en-GB', {
@@ -30,10 +43,7 @@ function createLpPools(assets) {
       apyBase: asset.pool_apr_7d, // Prefer 7-day APR
       apyReward: 0, // No separate reward system visible in API
       rewardTokens: [], // No reward tokens in current structure
-      underlyingTokens: [
-        asset.jettons.pt.master_address,
-        asset.jettons.sy.master_address
-      ],
+      underlyingTokens: [resolveTonToken(asset.jettons.underlying_jetton.symbol, asset.jettons.underlying_jetton.master_address)],
       poolMeta: `For LP | Maturity ${expiryToText(asset.maturity_date)}`,
       url: `${asset.earn_url.replace('/fixed-yield/', '/pools/')}?dir=provide&strategy=auto-mint&access=DLAMA`,
     }));
@@ -49,7 +59,7 @@ function createPtPools(assets) {
       symbol: asset.jettons.pt.symbol.replace('PT ', ''),
       tvlUsd: asset.asset_tvl_usd,
       apyBase: asset.fixed_apr,
-      underlyingTokens: [asset.jettons.underlying_jetton.master_address],
+      underlyingTokens: [resolveTonToken(asset.jettons.underlying_jetton.symbol, asset.jettons.underlying_jetton.master_address)],
       poolMeta: `For buying ${asset.jettons.pt.symbol}-${expiryToText(asset.maturity_date)}`,
       url: asset.earn_url + "?access=DLAMA",
     }));

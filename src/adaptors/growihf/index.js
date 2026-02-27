@@ -2,7 +2,7 @@ const https = require('https');
 
 const VAULT_ADDRESS = '0x1e37a337ed460039d1b15bd3bc489de789768d5e';
 const API_URL = 'https://api.hyperliquid.xyz/info';
-const USDC_ADDRESS_ARBITRUM = '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8';
+const USDC_ADDRESS = '0xb88339CB7199b77E23DB6E890353E22632Ba630f';
 
 function fetchVaultDetails() {
   return new Promise((resolve, reject) => {
@@ -121,7 +121,7 @@ function computeAPY7Day(vaultDetails) {
     tvlUsd: alltimeData['tvlUsd'],
     apy: ann_yield * 100,
     apyBaseInception: alltimeData['apyBaseInception'] * 100,
-    underlyingTokens: [USDC_ADDRESS_ARBITRUM],
+    underlyingTokens: [USDC_ADDRESS],
     poolMeta: 'Hyperliquid Vault',
     url: 'https://app.hf.growi.fi/',
   };

@@ -4,6 +4,13 @@ const { request, gql } = require('graphql-request');
 
 const { formatChain } = require('../utils');
 
+// Tokens from dHEDGE fund composition that don't resolve in the price API
+const TOROS_UNRESOLVABLE = {
+  '0x794a61358d6845594f94dc1db02a252b5b4814ad': '0x0b2c639c533813f4aa9d7837caf62653d097ff85', // Aave V3 on OP → USDC
+  '0xa238dd80c259a72e81d7e4664a9801593f98d1c5': '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', // Morpho on Base → USDC
+};
+const resolveTorosToken = (addr) => TOROS_UNRESOLVABLE[addr?.toLowerCase()] || addr;
+
 const DHEDGE_REWARDS_API_URL = 'https://app.dhedge.org/api/rewards';
 
 const DHEDGE_API_URL = 'https://api-v2.dhedge.org/graphql';
@@ -114,8 +121,8 @@ const listTorosYieldProducts = async () => {
       apy,
     }) => {
       const rewardIncentivisedPool = rewardData?.poolsWithRewards
-        .map((address) => address.toLowerCase())
-        .includes(address.toLowerCase());
+        ?.map((addr) => addr.toLowerCase())
+        ?.includes(address.toLowerCase());
       return {
         pool: address,
         chain: formatChain(blockchainCode.toLowerCase()),
@@ -129,7 +136,7 @@ const listTorosYieldProducts = async () => {
             : [],
         underlyingTokens: fundComposition
           .filter(({ amount }) => amount !== '0')
-          .map(({ tokenAddress }) => tokenAddress),
+          .map(({ tokenAddress }) => resolveTorosToken(tokenAddress)),
         url: `https://toros.finance/vault/${address}`,
       };
     }
