@@ -66,7 +66,7 @@ async function buildPool(vault) {
     return {
         pool: vault.address,
         chain,
-        project: 'ipor-fusion',
+        project: 'fusion-by-ipor',
         symbol: `${vault.asset}`,
         tvlUsd,
         apyBase,
