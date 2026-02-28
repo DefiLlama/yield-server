@@ -26,6 +26,9 @@ const CHAIN_CONFIG = {
     },
     avax: {
         chainId: 43114
+    },
+    katana: {
+        chainId: 747474
     }
 };
 
@@ -59,9 +62,11 @@ async function buildPool(vault) {
     const chainConfig = Object.entries(CHAIN_CONFIG).find(
         ([_, config]) => config.chainId === vault.chainId
     );
+
     const chain = chainConfig[0];
+    const iporChainName = chain === "avax" ? 'avalanche' : chain;
     const chainData = chainConfig[1];
-    const url = `https://app.ipor.io/fusion/${chain}/${vault.address.toLowerCase()}`;
+    const url = `https://app.ipor.io/fusion/${iporChainName}/${vault.address.toLowerCase()}`;
 
     return {
         pool: vault.address,
