@@ -13,7 +13,7 @@ const abi = {
   totalSupply: 'uint256:totalSupply',
 };
 
-const SCALE = 10n ** 12n;
+const SCALE = 10n ** 18n;
 
 // coins.llama.fi: timestamp -> closest block
 async function getBlockAtTs(chain, ts) {
@@ -62,33 +62,34 @@ async function getLpPriceAtBlockWithFallback(contractAddress, block) {
   return null;
 }
 
-async function getTVL(contractAddress) {
+async function getTVL(contractAddress, block) {
   const tvlResponse = await sdk.api.abi.call({
     target: contractAddress,
     abi: abi.totalHoldings,
     chain: CHAIN,
+    block,
   });
   return BigInt(tvlResponse.output);
 }
 
-// Compounding APY from growth ratio (growthNum/growthDen) over dtSeconds
-function annualizeCompoundingFromGrowth(growthNum, growthDen, dtSeconds) {
-  const yearSeconds = 365 * 24 * 60 * 60;
+function ratio1e18ToFloat(x1e18) {
+  const s = x1e18.toString().padStart(19, '0');
+  const intPart = s.slice(0, -18);
+  const frac = s.slice(-18, -6); // 12 decimals
+  return Number(`${intPart}.${frac}`);
+}
+
+// growthScaled1e18 = (lpNow * 1e18) / lpPrev  => ratio * 1e18
+function annualizeFromRatio1e18(growthScaled1e18, dtSeconds) {
   if (!dtSeconds || dtSeconds <= 0) return 0;
 
-  const num = Number(growthNum);
-  const den = Number(growthDen);
-  
-  if (!Number.isFinite(num) || !Number.isFinite(den) || den === 0) return 0;
-
-  const ratio = num / den; // lpNow / lpPrev
+  const ratio = ratio1e18ToFloat(growthScaled1e18); // ~1.0000x
   if (!Number.isFinite(ratio) || ratio <= 0) return 0;
 
-  const periodsPerYear = yearSeconds / dtSeconds;
-  const apy = Math.pow(ratio, periodsPerYear) - 1;
+  const periodsPerYear = (365 * 24 * 60 * 60) / dtSeconds;
+  const apy = (Math.pow(ratio, periodsPerYear) - 1) * 100;
 
-  if (!Number.isFinite(apy)) return 0;
-  return apy * 100;
+  return Number.isFinite(apy) ? apy : 0;
 }
 
 function clampApy(x) {
@@ -133,26 +134,25 @@ async function getFallbackApyFromChart() {
 }
 
 function applyLegacyMultiplier(rawApy) {
-  const currentDate = new Date();
-  const cutoffDate = new Date('2024-12-01');
-  const multiplier = currentDate < cutoffDate ? 0.85 : 0.8;
+  const multiplier = 0.8;
   return rawApy * multiplier;
 }
 
 // --------- main ---------
 
-const collectPools = async () => {
+const collectPools = async (timestamp = Math.floor(Date.now()/1000)) => {
   let usedFallback = false;
-  
-  const tvl = await getTVL(dsfPoolStables);
 
-  const nowTs = Math.floor(Date.now() / 1000);
-  const prevTs = nowTs - 24 * 60 * 60;
+  const nowTs = timestamp;
+  const DAYS = 3;
+  const prevTs = nowTs - DAYS * 24 * 60 * 60;
 
   const [blockNow, blockPrev] = await Promise.all([
     getBlockAtTs(CHAIN, nowTs),
     getBlockAtTs(CHAIN, prevTs),
   ]);
+
+  const tvl = await getTVL(dsfPoolStables, blockNow);
 
   if (blockNow === blockPrev) {
     console.log('[DSF][APY] coins.llama returned same block for now/prev', {
@@ -162,7 +162,7 @@ const collectPools = async () => {
       blockPrev,
     });
     
-    // coins.llama returned same block for now and prev -> cannot compute 24h growth
+    // coins.llama returned same block for now and prev -> cannot compute 3d growth
     const fallbackRaw = await getFallbackApyFromChart();
     const fallbackAdjusted = applyLegacyMultiplier(fallbackRaw);
     const fb = clampApy(fallbackAdjusted);
@@ -208,11 +208,11 @@ const collectPools = async () => {
   let growthScaled = null;
   
   if (lpNow && lpPrev && lpPrev > 0n) {
-    const dtSeconds = 24 * 60 * 60;
+    const dtSeconds = DAYS * 24 * 60 * 60;
 
     growthScaled = (lpNow * SCALE) / lpPrev;
 
-    apy = annualizeCompoundingFromGrowth(growthScaled, SCALE, dtSeconds);
+    apy = annualizeFromRatio1e18(growthScaled, dtSeconds);
     apy = clampApy(apy);
 
     if (apy === 0) {
@@ -222,7 +222,7 @@ const collectPools = async () => {
         lpNow: lpNow.toString(),
         lpPrev: lpPrev.toString(),
         growthScaled: growthScaled ? growthScaled.toString() : null,
-        growthRatioApprox: growthScaled ? Number(growthScaled) / Number(SCALE) : null,
+        growthRatioApprox: growthScaled ? ratio1e18ToFloat(growthScaled) : null,
       });
     }
   }
