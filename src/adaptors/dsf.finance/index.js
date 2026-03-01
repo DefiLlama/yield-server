@@ -142,6 +142,8 @@ function applyLegacyMultiplier(rawApy) {
 // --------- main ---------
 
 const collectPools = async () => {
+  let usedFallback = false;
+  
   const tvl = await getTVL(dsfPoolStables);
 
   const nowTs = Math.floor(Date.now() / 1000);
@@ -165,6 +167,8 @@ const collectPools = async () => {
     const fallbackAdjusted = applyLegacyMultiplier(fallbackRaw);
     const fb = clampApy(fallbackAdjusted);
 
+    usedFallback = true; 
+    
     return [{
       pool: `${dsfPoolStables}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
@@ -178,7 +182,9 @@ const collectPools = async () => {
         '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
         '0x6B175474e89094C44Da98b954EedeAC495271d0F',
       ],
-      poolMeta: 'Stablecoin Yield Strategy (Curve & Convex)',
+       poolMeta: usedFallback
+        ? 'Stablecoin Yield Strategy (Curve & Convex) [fallback APY]'
+        : 'Stablecoin Yield Strategy (Curve & Convex)',
       url: 'https://app.dsf.finance/',
     }];
   }
@@ -199,7 +205,6 @@ const collectPools = async () => {
   }
   
   let apy = 0;
-  let usedFallback = false;
   let growthScaled = null;
   
   if (lpNow && lpPrev && lpPrev > 0n) {
@@ -222,15 +227,17 @@ const collectPools = async () => {
     }
   }
 
-  // smarter fallback condition:
-  // - lpPrice missing OR apy not finite OR apy extremely small (likely due to block mismatch / integer rounding)
-  if (!lpNow || !lpPrev || !Number.isFinite(apy) || apy <= 0.1) {
+  // fallback condition:
+  // - lpPrice missing OR apy not finite OR apy === 0
+  const shouldFallback = !lpNow || !lpPrev || !Number.isFinite(apy) || apy === 0;
+
+  if (shouldFallback) {
     const fallbackRaw = await getFallbackApyFromChart();
     const fallbackAdjusted = applyLegacyMultiplier(fallbackRaw);
     const fb = clampApy(fallbackAdjusted);
-
-    // only override if fallback looks sane (>0)
-    if (fb > 0) {
+  
+    // accept any finite clamped fallback (including negative), but only when shouldFallback
+    if (Number.isFinite(fb)) {
       apy = fb;
       console.log('[DSF][APY] fallback used (yields.llama chart)', {
         fallbackRaw,
