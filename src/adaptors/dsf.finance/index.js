@@ -22,14 +22,14 @@ async function getBlockAtTs(chain, ts) {
 }
 
 async function getLpPriceAtBlock(contractAddress, block) {
-  const ts = await sdk.api.abi.call({
+  const totalSupplyResp = await sdk.api.abi.call({
     target: contractAddress,
     abi: abi.totalSupply,
     chain: CHAIN,
     block,
   });
 
-  const totalSupply = BigInt(ts.output);
+  const totalSupply = BigInt(totalSupplyResp.output);
   if (totalSupply === 0n) return null;
 
   try {
@@ -54,7 +54,8 @@ async function getTVL(contractAddress) {
   return BigInt(tvlResponse.output);
 }
 
-function annualizeLinearFromGrowth(growthNum, growthDen, dtSeconds) {
+// Compounding APY from growth ratio (growthNum/growthDen) over dtSeconds
+function annualizeCompoundingFromGrowth(growthNum, growthDen, dtSeconds) {
   const yearSeconds = 365 * 24 * 60 * 60;
   if (!dtSeconds || dtSeconds <= 0) return 0;
 
@@ -63,10 +64,15 @@ function annualizeLinearFromGrowth(growthNum, growthDen, dtSeconds) {
 
   if (!Number.isFinite(num) || !Number.isFinite(den) || den === 0) return 0;
 
-  const r = num / den - 1;
-  if (!Number.isFinite(r)) return 0;
+  const ratio = num / den; // lpNow / lpPrev
+  if (!Number.isFinite(ratio) || ratio <= 0) return 0;
 
-  return (r * (yearSeconds / dtSeconds)) * 100;
+  const periodsPerYear = yearSeconds / dtSeconds;
+  const apy = Math.pow(ratio, periodsPerYear) - 1;
+
+  if (!Number.isFinite(apy)) return 0;
+
+  return apy * 100;
 }
 
 function format1e18ToNumber(x) {
@@ -102,17 +108,17 @@ const collectPools = async () => {
   let apy = 0;
 
   if (lpNow && lpPrev && lpPrev > 0n) {
-    // Use fixed 24h window to keep adapter deterministic & CI-safe (no RPC calls)
+    // fixed 24h window (deterministic & CI-safe)
     const dtSeconds = 24 * 60 * 60;
 
     // Downscale ratio to avoid Number overflow; 1e12 precision is enough for APY
     const SCALE = 10n ** 12n;
-    const growthScaled = (lpNow * SCALE) / lpPrev; // scaled by 1e12
+    const growthScaled = (lpNow * SCALE) / lpPrev; // (lpNow/lpPrev) scaled by 1e12
 
-    apy = annualizeLinearFromGrowth(growthScaled, SCALE, dtSeconds);
+    apy = annualizeCompoundingFromGrowth(growthScaled, SCALE, dtSeconds);
 
-    // optional clamp
-    // apy = Math.max(Math.min(apy, 5000), -100);
+    // Clamp to avoid extreme spikes due to oracle/block mismatch or edge cases
+    apy = Math.max(Math.min(apy, 5000), -100);
   }
 
   return [
@@ -123,7 +129,7 @@ const collectPools = async () => {
       symbol: 'USDT-USDC-DAI',
       tvlUsd: format1e18ToNumber(tvl),
       apy,
-      rewardTokens: null,
+      rewardTokens: [],
       underlyingTokens: [
         '0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT
         '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
