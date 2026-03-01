@@ -1,7 +1,8 @@
+import * as utils from '../utils';
+import { BigNumber, utils as ethersUtils } from 'ethers';
+
 const axios = require('axios');
-const utils = require('../utils');
 const SDK = require('@defillama/sdk');
-const ethers = require('ethers');
 
 const GQL_URL = 'https://api.goldsky.com/api/public/project_clzibgddg2epg01ze4lq55scx/subgraphs/loan_router_arbitrum/0.0.3/gn';
 
@@ -20,26 +21,29 @@ const SECONDS_PER_YEAR = 365 * 24 * 3600;
 const BASE_YIELD_ACCRUAL_STORAGE_LOCATION =
   '0xad76c5b481cb106971e0ae4c23a09cb5b1dc9dba5fad96d9694630df5e853900';
 
-const getStorageAt = async (slot: ethers.BigNumber): Promise<ethers.BigNumber> => {
-  const result = await SDK.getProvider('arbitrum').rpcs[0].provider.send('eth_getStorageAt', [
+// SDK doesn't expose eth_getStorageAt; access underlying JSON-RPC provider
+const getRpcProvider = () => SDK.getProvider('arbitrum').rpcs[0].provider;
+
+const getStorageAt = async (slot: BigNumber): Promise<BigNumber> => {
+  const result = await getRpcProvider().send('eth_getStorageAt', [
     USDAI,
-    ethers.utils.hexZeroPad(slot.toHexString(), 32),
+    ethersUtils.hexZeroPad(slot.toHexString(), 32),
     'latest',
   ]);
-  return ethers.BigNumber.from(result);
+  return BigNumber.from(result);
 };
 
 const getRateTiersFromStorage = async () => {
   // BaseYieldAccrual struct layout: { RateTier[] rateTiers; uint256 accrued; uint64 timestamp; }
   // rateTiers array length is at BASE+0; elements start at keccak256(BASE+0).
   // RateTier struct layout: { uint256 rate; uint256 threshold; }
-  const base = ethers.BigNumber.from(BASE_YIELD_ACCRUAL_STORAGE_LOCATION);
+  const base = BigNumber.from(BASE_YIELD_ACCRUAL_STORAGE_LOCATION);
 
   const length = await getStorageAt(base);
   if (length.isZero()) throw new Error('rateTiers array is empty');
 
-  const arrayDataStart = ethers.BigNumber.from(
-    ethers.utils.keccak256(ethers.utils.hexZeroPad(base.toHexString(), 32))
+  const arrayDataStart = BigNumber.from(
+    ethersUtils.keccak256(ethersUtils.hexZeroPad(base.toHexString(), 32))
   );
 
   const tiers = await Promise.all(
@@ -73,7 +77,7 @@ const getUnderlyingYields = async (): Promise<object[]> => {
   // threshold. rate is interest per second scaled by 1e18; threshold is scaled PYUSD units (1e18).
   const base = {
     chain: utils.formatChain('arbitrum'),
-    symbol: 'PYUSD',
+    symbol: utils.formatSymbol('PYUSD'),
     project: 'usd-ai',
     underlyingTokens: [PYUSD_ADDRESS],
     url: 'https://app.usd.ai/reserves',
@@ -178,7 +182,7 @@ const BORROW_ABI = [
   },
 ];
 
-const iface = new ethers.utils.Interface(BORROW_ABI);
+const iface = new ethersUtils.Interface(BORROW_ABI);
 const BORROW_SELECTOR = iface.getSighash('borrow');
 
 function tryDecodeBorrowFromInput(rawHex: string) {
@@ -303,7 +307,7 @@ const getLoanPools = async (): Promise<object[]> => {
           pool: event.loanTermsHash,
           chain: utils.formatChain('arbitrum'),
           project: 'usd-ai',
-          symbol: event.loanOriginated.currencyToken.symbol,
+          symbol: utils.formatSymbol(event.loanOriginated.currencyToken.symbol),
           tvlUsd,
           apyBase,
           underlyingTokens: [event.loanOriginated.currencyToken.id],
@@ -319,17 +323,22 @@ const getLoanPools = async (): Promise<object[]> => {
 // --- Entry point ---
 
 const apy = async () => {
-  try {
-    const [fixedPools, loanPools] = await Promise.all([
-      getUnderlyingYields(),
-      getLoanPools(),
-    ]);
+  const [fixedResult, loanResult] = await Promise.allSettled([
+    getUnderlyingYields(),
+    getLoanPools(),
+  ]);
 
-    return [...fixedPools, ...loanPools].filter((p: any) => p.tvlUsd > 0);
-  } catch (error) {
-    console.error('Error fetching usdai data:', error);
-    return [];
-  }
+  if (fixedResult.status === 'rejected')
+    console.error('getUnderlyingYields failed:', fixedResult.reason);
+  if (loanResult.status === 'rejected')
+    console.error('getLoanPools failed:', loanResult.reason);
+
+  const fixedPools = fixedResult.status === 'fulfilled' ? fixedResult.value : [];
+  const loanPools = loanResult.status === 'fulfilled' ? loanResult.value : [];
+
+  return [...fixedPools, ...loanPools]
+    .filter((p: any) => p.tvlUsd > 0)
+    .filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
