@@ -2,8 +2,23 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
-const chainIdToName = { 143: 'monad' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+const getChainIdToNameMap = async () => {
+    try {
+        const data = await utils.getData('https://api.llama.fi/chains');
+        const chainIdMap = {};
+        data.forEach((chain) => {
+            if (chain.chainId) {
+                chainIdMap[parseInt(chain.chainId)] = chain.name;
+            }
+        });
+        return chainIdMap;
+    } catch (error) {
+        console.error('Failed to fetch chain ID map:', error.message);
+        return {};
+    }
+};
 
 const abis = {
     asset: 'function asset() view returns (address)',
@@ -72,7 +87,7 @@ const getVaultStats = async(vaults, chain = 'monad') => {
             abi: 'erc20:balanceOf',
             calls: vaults.map((vault, i) => ({
                 target: underlyings[i],
-                params: vault,
+                params: [vault],
             })),
             permitFailure: true,
         }),
@@ -104,18 +119,47 @@ const fetchBreakdowns = async(loanIds) => {
 };
 
 const apy = async() => {
-    const { items } = await utils.getData(API_URL);
+    const [{ items }, chainIdToName] = await Promise.all([
+        utils.getData(API_URL),
+        getChainIdToNameMap(),
+    ]);
     const activeLoans = items.filter((item) => item.loan_state === 3);
     const loanIds = activeLoans.map((item) => item.id);
 
     const loanVaultMap = await fetchVaultsByLoanIds(loanIds);
-    const vaultAddresses = Object.values(loanVaultMap);
-    const vaultStats = await getVaultStats(vaultAddresses);
     const breakdowns = await fetchBreakdowns(loanIds);
 
+    const vaultsByChain = {};
+    for (const item of activeLoans) {
+        const vault = loanVaultMap[item.id];
+        if (!vault) continue;
+        const rawChainName = chainIdToName[item.chain_id];
+        if (!rawChainName) continue;
+        const chainName = rawChainName.toLowerCase();
+        if (!vaultsByChain[chainName]) vaultsByChain[chainName] = [];
+        if (!vaultsByChain[chainName].includes(vault)) vaultsByChain[chainName].push(vault);
+    }
+
+    const statsResults = await Promise.allSettled(
+        Object.entries(vaultsByChain).map(async ([chain, vaults]) => {
+            const stats = await getVaultStats(vaults, chain);
+            return [chain, stats];
+        })
+    );
+    const vaultStatsByChain = Object.fromEntries(
+        statsResults
+            .filter((r) => r.status === 'fulfilled')
+            .map((r) => r.value)
+    );
+
+    const vaultStats = {};
+    for (const chainStats of Object.values(vaultStatsByChain)) {
+        Object.assign(vaultStats, chainStats);
+    }
+
     return Promise.all(
-        activeLoans.map(async(item) => {
-            const chainName = chainIdToName[item.chain_id] || 'unknown';
+        activeLoans.filter((item) => chainIdToName[item.chain_id]).map(async(item) => {
+            const chainName = chainIdToName[item.chain_id];
             const vaultAddress = loanVaultMap[item.id];
             const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
             const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
