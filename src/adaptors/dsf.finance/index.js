@@ -271,7 +271,7 @@ const collectPools = async () => {
 };
 
 module.exports = {
-  timetravel: false,
+  timetravel: true,
   apy: collectPools,
   url: 'https://dsf.finance/',
 };
