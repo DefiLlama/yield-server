@@ -323,10 +323,18 @@ const getLoanPools = async (): Promise<object[]> => {
 // --- Entry point ---
 
 const apy = async () => {
-  const [fixedPools, loanPools] = await Promise.all([
+  const [fixedResult, loanResult] = await Promise.allSettled([
     getUnderlyingYields(),
     getLoanPools(),
   ]);
+
+  if (fixedResult.status === 'rejected')
+    console.error('getUnderlyingYields failed:', fixedResult.reason);
+  if (loanResult.status === 'rejected')
+    console.error('getLoanPools failed:', loanResult.reason);
+
+  const fixedPools = fixedResult.status === 'fulfilled' ? fixedResult.value : [];
+  const loanPools = loanResult.status === 'fulfilled' ? loanResult.value : [];
 
   return [...fixedPools, ...loanPools]
     .filter((p: any) => p.tvlUsd > 0)
