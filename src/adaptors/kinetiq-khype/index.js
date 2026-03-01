@@ -78,7 +78,7 @@ const getSkntqPool = async (block1dAgo, block7dAgo, kntqPrice) => {
     .toNumber();
 
   return {
-    pool: skntq,
+    pool: `${skntq}-${chain}`,
     chain,
     project,
     symbol: 'sKNTQ',
