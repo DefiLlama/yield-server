@@ -10,7 +10,6 @@ const FALLBACK_CHART_URL =
 const abi = {
   totalHoldings: 'uint256:totalHoldings',
   lpPrice: 'uint256:lpPrice',
-  totalSupply: 'uint256:totalSupply',
 };
 
 const SCALE = 10n ** 18n;
@@ -27,16 +26,6 @@ async function getBlockAtTs(chain, ts) {
 }
 
 async function getLpPriceAtBlock(contractAddress, block) {
-  const totalSupplyResp = await sdk.api.abi.call({
-    target: contractAddress,
-    abi: abi.totalSupply,
-    chain: CHAIN,
-    block,
-  });
-
-  const totalSupply = BigInt(totalSupplyResp.output);
-  if (totalSupply === 0n) return null;
-
   try {
     const lp = await sdk.api.abi.call({
       target: contractAddress,
@@ -44,7 +33,12 @@ async function getLpPriceAtBlock(contractAddress, block) {
       chain: CHAIN,
       block,
     });
-    return BigInt(lp.output);
+
+    const v = BigInt(lp.output);
+
+    if (v === 0n) return null;
+
+    return v;
   } catch (e) {
     return null;
   }
