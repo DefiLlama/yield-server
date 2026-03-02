@@ -98,7 +98,7 @@ async function getVaultAPYs(vault_apy_endpoint) {
   const result = await utils.getData(vault_apy_endpoint);
   return {
     apy7d: result.avg_7_days * 100,
-    apy14d: result.overall_average * 100
+    apy14d: result.avg_14_days * 100
   };
 }
 
