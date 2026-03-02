@@ -8,7 +8,7 @@ const VAULTS = [
   {
     address: '0xe8dd6a1e13244a27bdaa19ccbf33013647c675d1',
     underlyingToken: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D',
-    decimals: 18,
+    decimals: 6,
     symbol: 'COREUSDT0',
   },
   {
@@ -20,7 +20,7 @@ const VAULTS = [
   {
     address: '0x53184adabf312b490bf1ebcfdc896feff6019a14',
     underlyingToken: '0xAd552A648C74D49E10027AB8a618A3ad4901c5bE',
-    decimals: 18,
+    decimals: 6,
     symbol: 'CSXRP',
   },
 ];
