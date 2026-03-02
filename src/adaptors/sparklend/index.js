@@ -193,6 +193,7 @@ const spkFarm = async () => {
       apyReward,
       underlyingTokens: [stakingToken],
       rewardTokens: [SPK],
+      url: 'https://app.spark.fi/spk/farm',
     },
   ];
 };
