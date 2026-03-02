@@ -11,36 +11,68 @@ const utils = require("../utils");
 
 const SAID_VAULT = "0xB3B3c527BA57cd61648e2EC2F5e006A0B390A9F8";
 const AID_TOKEN = "0x18F52B3fb465118731d9e0d276d4Eb3599D57596";
+const DAY = 24 * 60 * 60;
+const APY_LOOKBACK_DAYS = 30;
 
 const poolsFunction = async () => {
-  const totalAssets = (
-    await sdk.api.abi.call({
+  const timestamp30d = Math.floor(Date.now() / 1000) - APY_LOOKBACK_DAYS * DAY;
+  const block30d = (
+    await utils.getData(`https://coins.llama.fi/block/ethereum/${timestamp30d}`)
+  ).height;
+
+  const [
+    totalAssetsNowRes,
+    totalSupplyNowRes,
+    totalAssets30dRes,
+    totalSupply30dRes,
+    assetDecimalsRes,
+    { pricesByAddress },
+  ] = await Promise.all([
+    sdk.api.abi.call({
       abi: "uint256:totalAssets",
       target: SAID_VAULT,
       chain: "ethereum",
-    })
-  ).output;
-
-  const totalSupply = (
-    await sdk.api.abi.call({
+    }),
+    sdk.api.abi.call({
       abi: "erc20:totalSupply",
       target: SAID_VAULT,
       chain: "ethereum",
-    })
-  ).output;
+    }),
+    sdk.api.abi.call({
+      abi: "uint256:totalAssets",
+      target: SAID_VAULT,
+      chain: "ethereum",
+      block: block30d,
+    }),
+    sdk.api.abi.call({
+      abi: "erc20:totalSupply",
+      target: SAID_VAULT,
+      chain: "ethereum",
+      block: block30d,
+    }),
+    sdk.api.abi.call({
+      abi: "erc20:decimals",
+      target: AID_TOKEN,
+      chain: "ethereum",
+    }),
+    utils.getPrices([AID_TOKEN], "ethereum"),
+  ]);
 
-  const tvlUsd = Number(totalAssets) / 1e18;
+  const totalAssetsNow = Number(totalAssetsNowRes.output);
+  const totalSupplyNow = Number(totalSupplyNowRes.output);
+  const totalAssets30d = Number(totalAssets30dRes.output);
+  const totalSupply30d = Number(totalSupply30dRes.output);
+  const assetDecimals = Number(assetDecimalsRes.output);
+  const assetPrice = pricesByAddress[AID_TOKEN.toLowerCase()] ?? 0;
 
-  // Compute APY from on-chain NAV growth
-  const nav = Number(totalAssets) / Number(totalSupply);
-  const startDate = new Date("2025-12-01");
-  const now = new Date();
-  const daysSinceStart = (now - startDate) / (1000 * 60 * 60 * 24);
+  const tvlUsd = (totalAssetsNow / 10 ** assetDecimals) * assetPrice;
 
-  const cumulativeReturn = nav - 1;
+  // Annualize return from the last 30d NAV change (instead of since inception).
+  const navNow = totalSupplyNow > 0 ? totalAssetsNow / totalSupplyNow : 0;
+  const nav30d = totalSupply30d > 0 ? totalAssets30d / totalSupply30d : 0;
   const apyBase =
-    daysSinceStart > 0
-      ? ((1 + cumulativeReturn) ** (365.25 / daysSinceStart) - 1) * 100
+    navNow > 0 && nav30d > 0
+      ? ((navNow / nav30d) ** (365.25 / APY_LOOKBACK_DAYS) - 1) * 100
       : 0;
 
   return [
@@ -50,7 +82,7 @@ const poolsFunction = async () => {
       project: "gaib",
       symbol: utils.formatSymbol("sAID"),
       tvlUsd,
-      apyBase, // Net yield to sAID holders (~11.85% currently)
+      apyBase,
       underlyingTokens: [AID_TOKEN],
       poolMeta: "30d withdrawal cycle",
     },
