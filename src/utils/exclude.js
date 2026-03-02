@@ -1859,6 +1859,8 @@ const excludePools = [
   '0x8df5131e0382854f126028fa32e4671edf54af4cfa21a0a978e801171943ad90-polygon-uniswap-v4',
   '0xe6b8b2f7320759927c826e663ba1a77eaf8156bad1422234d5282c17c5e8f637-base-uniswap-v4',
   '0x3b1dba2583fd36aab4865b5cdb4453da2b615657a4389a461a2901c24dcc3340-polygon-uniswap-v4',
+  // sparklend old SKY farm - epoch finished Jan 2026, replaced by new SPK farm
+  '0x0650CAF159C5A49f711e8169D4336ECB9b950275',
 ];
 
 const boundaries = {

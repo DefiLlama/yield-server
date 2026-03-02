@@ -135,45 +135,6 @@ async function fetchV3Pools(chain) {
     .filter((p) => utils.keepFinite(p));
 }
 
-const skyFarmOld = async () => {
-  const stakingRewards = '0x0650CAF159C5A49f711e8169D4336ECB9b950275';
-  const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
-  const SKY = '0x56072C95FAA701256059aa122697B133aDEd9279';
-
-  const totalSupply =
-    (
-      await sdk.api.abi.call({
-        target: stakingRewards,
-        abi: 'erc20:totalSupply',
-      })
-    ).output / 1e18;
-
-  const stakingToken = (
-    await sdk.api.abi.call({
-      target: stakingRewards,
-      abi: abiSKYFarm.find((m) => m.name === 'stakingToken'),
-    })
-  ).output;
-
-  const priceUSDS = (
-    await axios.get(`https://coins.llama.fi/prices/current/ethereum:${USDS}`)
-  ).data.coins[`ethereum:${USDS}`].price;
-
-  return [
-    {
-      pool: stakingRewards,
-      chain: 'Ethereum',
-      project: 'sparklend',
-      symbol: 'USDS',
-      poolMeta: 'SKY Farming Pool',
-      tvlUsd: totalSupply * priceUSDS,
-      apyReward: 0,
-      underlyingTokens: [stakingToken],
-      rewardTokens: [SKY],
-    },
-  ];
-};
-
 const spkFarm = async () => {
   const stakingRewards = '0x173e314C7635B45322cd8Cb14f44b312e079F3af';
   const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
@@ -237,10 +198,7 @@ const spkFarm = async () => {
 };
 
 const apy = async () => {
-  const [skyFarmPool, spkFarmPool] = await Promise.all([
-    skyFarmOld(),
-    spkFarm(),
-  ]);
+  const spkFarmPool = await spkFarm();
 
   const v3Pools = [
     ...(await Promise.all(sparkChains.map(fetchV3Pools))),
@@ -277,7 +235,7 @@ const apy = async () => {
   ethereumDaiPool.tvlUsd =
     ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
 
-  return [...v3Pools, ...skyFarmPool, ...spkFarmPool];
+  return [...v3Pools, ...spkFarmPool];
 };
 
 module.exports = {
