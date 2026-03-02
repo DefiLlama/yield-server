@@ -135,47 +135,52 @@ async function fetchV3Pools(chain) {
     .filter((p) => utils.keepFinite(p));
 }
 
-const skyFarm = async () => {
-  const stakingRewards = '0x0650CAF159C5A49f711e8169D4336ECB9b950275';
+const spkFarm = async () => {
+  const stakingRewards = '0x173e314C7635B45322cd8Cb14f44b312e079F3af';
   const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
-  const SKY = '0x56072C95FAA701256059aa122697B133aDEd9279';
+  const SPK = '0xc20059e0317DE91738d13af027DfC4a50781b066';
 
-  const totalSupply =
-    (
-      await sdk.api.abi.call({
+  const [totalSupplyRes, stakingTokenRes, rewardRateRes, periodFinishRes] =
+    await Promise.all([
+      sdk.api.abi.call({
         target: stakingRewards,
         abi: 'erc20:totalSupply',
-      })
-    ).output / 1e18;
+      }),
+      sdk.api.abi.call({
+        target: stakingRewards,
+        abi: abiSKYFarm.find((m) => m.name === 'stakingToken'),
+      }),
+      sdk.api.abi.call({
+        target: stakingRewards,
+        abi: abiSKYFarm.find((m) => m.name === 'rewardRate'),
+      }),
+      sdk.api.abi.call({
+        target: stakingRewards,
+        abi: abiSKYFarm.find((m) => m.name === 'periodFinish'),
+      }),
+    ]);
 
-  const stakingToken = (
-    await sdk.api.abi.call({
-      target: stakingRewards,
-      abi: abiSKYFarm.find((m) => m.name === 'stakingToken'),
-    })
-  ).output;
+  const totalSupply = totalSupplyRes.output / 1e18;
+  const stakingToken = stakingTokenRes.output;
+  const rewardRate = rewardRateRes.output / 1e18;
+  const periodFinish = Number(periodFinishRes.output);
 
   const prices = await axios.get(
-    `https://coins.llama.fi/prices/current/${[USDS, SKY]
+    `https://coins.llama.fi/prices/current/${[USDS, SPK]
       .map((i) => `ethereum:${i}`)
       .join(',')}`
   );
 
   const priceUSDS = prices.data.coins[`ethereum:${USDS}`].price;
-  const priceSKY = prices.data.coins[`ethereum:${SKY}`].price;
+  const priceSPK = prices.data.coins[`ethereum:${SPK}`].price;
 
   const tvlUsd = totalSupply * priceUSDS;
 
-  const rewardRate =
-    (
-      await sdk.api.abi.call({
-        target: stakingRewards,
-        abi: abiSKYFarm.find((m) => m.name === 'rewardRate'),
-      })
-    ).output / 1e18;
-
+  const isActive = Date.now() / 1000 < periodFinish;
   const secPerDay = 86400;
-  const apyReward = ((rewardRate * secPerDay * 365 * priceSKY) / tvlUsd) * 100;
+  const apyReward = isActive
+    ? ((rewardRate * secPerDay * 365 * priceSPK) / tvlUsd) * 100
+    : 0;
 
   return [
     {
@@ -183,17 +188,17 @@ const skyFarm = async () => {
       chain: 'Ethereum',
       project: 'sparklend',
       symbol: 'USDS',
-      poolMeta: 'SKY Farming Pool',
-      tvlUsd: totalSupply * priceUSDS,
+      poolMeta: 'SPK Farming Pool',
+      tvlUsd,
       apyReward,
       underlyingTokens: [stakingToken],
-      rewardTokens: [SKY],
+      rewardTokens: [SPK],
     },
   ];
 };
 
 const apy = async () => {
-  const skyFarmPool = await skyFarm();
+  const spkFarmPool = await spkFarm();
 
   const v3Pools = [
     ...(await Promise.all(sparkChains.map(fetchV3Pools))),
@@ -230,7 +235,7 @@ const apy = async () => {
   ethereumDaiPool.tvlUsd =
     ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
 
-  return [...v3Pools, ...skyFarmPool];
+  return [...v3Pools, ...spkFarmPool];
 };
 
 module.exports = {
