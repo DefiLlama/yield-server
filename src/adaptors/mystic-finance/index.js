@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { formatChain, getERC4626Info, getPrices } = require('../utils');
 
-const PROJECT_NAME = 'mystic-finance';
+const PROJECT_NAME = 'morpho-v1';
 const CHAIN = 'flare';
 
 const VAULTS = [
