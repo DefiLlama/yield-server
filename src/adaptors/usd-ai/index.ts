@@ -58,7 +58,7 @@ const getRateTiersFromStorage = async () => {
   return tiers;
 };
 
-const getUnderlyingYields = async (): Promise<object[]> => {
+const getUnderlyingYields = async (): Promise<{ tvlUsd: number; apyBase: number }[]> => {
   const [result, prices, rateTiers] = await Promise.all([
     SDK.api.abi.call({
       abi: 'erc20:balanceOf',
@@ -71,47 +71,41 @@ const getUnderlyingYields = async (): Promise<object[]> => {
   ]);
 
   const price = prices.pricesByAddress[PYUSD_ADDRESS.toLowerCase()] ?? 1;
-  const balanceUsd = (Number(result.output) / 10 ** PYUSD_DECIMALS) * price;
+  const balanceUsd = Number(result.output) * price / 10 ** PYUSD_DECIMALS;
 
-  // Build one pool per rate tier. Each tier covers TVL from the previous tier's cap up to its own
-  // threshold. rate is interest per second scaled by 1e18; threshold is scaled PYUSD units (1e18).
-  const base = {
-    chain: utils.formatChain('arbitrum'),
-    symbol: utils.formatSymbol('PYUSD'),
-    project: 'usd-ai',
-    underlyingTokens: [PYUSD_ADDRESS],
-    url: 'https://app.usd.ai/reserves',
-  };
-
-  const poolMetas = [
-    'PayPal Incentives for first billion of PYUSD',
-    'T-bill yield for beyond first billion of PYUSD',
-  ];
-
-  const pools: object[] = [];
+  const pools: { tvlUsd: number; apyBase: number }[] = [];
   let remainingTvl = balanceUsd;
 
   for (let i = 0; i < rateTiers.length; i++) {
-    // threshold is in scaled units (1e18 per USD), convert to USD
     const capUsd = Number(rateTiers[i].threshold) / 1e18;
-    const tierTvl = Math.min(capUsd, remainingTvl);
-    const apyBase = Math.round((Number(rateTiers[i].rate) / 1e18) * SECONDS_PER_YEAR * 100 * 100) / 100;
-
-    pools.push({
-      ...base,
-      pool: `${USDAI}-tier${i + 1}`,
-      tvlUsd: tierTvl,
-      apyBase,
-      poolMeta: poolMetas[i] ?? `Tier ${i + 1}`,
-    });
-
-    remainingTvl -= tierTvl;
+    const tvlUsd = Math.min(capUsd, remainingTvl);
+    const apyBase = Math.round(Number(rateTiers[i].rate) * SECONDS_PER_YEAR * 100 * 100 / 1e18) / 100;
+    pools.push({ tvlUsd, apyBase });
+    remainingTvl -= tvlUsd;
   }
 
   return pools;
 };
 
 // Loan Yields
+
+const SUSDAI_ADDRESS = '0x0B2b2B2076d95dda7817e785989fE353fe955ef9';
+
+const TOTAL_SHARES_ABI = {
+  inputs: [],
+  name: 'totalShares',
+  outputs: [{ name: '', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function',
+};
+
+const REDEMPTION_SHARE_PRICE_ABI = {
+  inputs: [],
+  name: 'redemptionSharePrice',
+  outputs: [{ name: '', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function',
+};
 
 const LOAN_ROUTER_ADDRESS = '0x0C2ED170F2bB1DF1a44292Ad621B577b3C9597D1';
 
@@ -212,7 +206,6 @@ const GQL_QUERY = `
       loanOriginated {
         currencyToken {
           id
-          symbol
         }
       }
       txHash
@@ -222,7 +215,7 @@ const GQL_QUERY = `
 
 const GQL_PAGE_SIZE = 1000;
 
-const getLoanPools = async (): Promise<object[]> => {
+const getLoanPools = async (): Promise<{ tvlUsd: number; apyBase: number }[]> => {
   // 1. Paginate through all LoanOriginated events
   const allEvents: any[] = [];
   let skip = 0;
@@ -241,14 +234,12 @@ const getLoanPools = async (): Promise<object[]> => {
     skip += GQL_PAGE_SIZE;
   }
 
-  const events: any[] = allEvents.map((e: any, i: number) => ({ ...e, id: i + 1 }));
-
-  if (!events.length) return [];
+  if (!allEvents.length) return [];
 
   // 2. Unique currency token addresses
   const uniqueTokens: string[] = [
     ...new Set(
-      events.map((e) => e.loanOriginated.currencyToken.id.toLowerCase())
+      allEvents.map((e) => e.loanOriginated.currencyToken.id.toLowerCase())
     ),
   ];
 
@@ -256,7 +247,7 @@ const getLoanPools = async (): Promise<object[]> => {
   const [loanStates, prices] = await Promise.all([
     SDK.api.abi.multiCall({
       abi: LOAN_STATE_ABI,
-      calls: events.map((e) => ({
+      calls: allEvents.map((e) => ({
         target: LOAN_ROUTER_ADDRESS,
         params: [e.loanTermsHash],
       })),
@@ -266,7 +257,7 @@ const getLoanPools = async (): Promise<object[]> => {
   ]);
 
   // 4. Annotate events with loanState output, filter to active only
-  const activeEvents = events
+  const activeEvents = allEvents
     .map((event, i) => ({
       event,
       status: Number(loanStates.output[i].output.status),
@@ -274,7 +265,7 @@ const getLoanPools = async (): Promise<object[]> => {
     }))
     .filter(({ status }) => status === 1); // LoanStatus.Active = 1
 
-  // 5. For each active loan: fetch tx, decode LoanTerms, build pool
+  // 5. For each active loan: fetch tx, decode LoanTerms, extract tvlUsd + apyBase
   const provider = SDK.getProvider('arbitrum');
   const poolGroups = await Promise.all(
     activeEvents.map(async ({ event, scaledBalance }) => {
@@ -298,22 +289,9 @@ const getLoanPools = async (): Promise<object[]> => {
       if (!loanTerms.trancheSpecs.length || totalTrancheAmount === 0) return [];
       const tranche0 = loanTerms.trancheSpecs[0];
       const tvlUsd = loanBalanceUsd * (Number(tranche0.amount) / totalTrancheAmount);
+      const apyBase = Math.round(Number(tranche0.rate) * SECONDS_PER_YEAR * 100 * 100 / 1e18) / 100;
 
-      // Round to 2 decimal places
-      const apyBase = Math.round(Number(tranche0.rate) * SECONDS_PER_YEAR * 100 / 1e18 * 100) / 100;
-
-      return [
-        {
-          pool: event.loanTermsHash,
-          chain: utils.formatChain('arbitrum'),
-          project: 'usd-ai',
-          symbol: utils.formatSymbol(event.loanOriginated.currencyToken.symbol),
-          tvlUsd,
-          apyBase,
-          underlyingTokens: [event.loanOriginated.currencyToken.id],
-          url: 'https://app.usd.ai/loans',
-        },
-      ];
+      return [{ tvlUsd, apyBase }];
     })
   );
 
@@ -323,22 +301,60 @@ const getLoanPools = async (): Promise<object[]> => {
 // --- Entry point ---
 
 const apy = async () => {
-  const [fixedResult, loanResult] = await Promise.allSettled([
-    getUnderlyingYields(),
-    getLoanPools(),
-  ]);
+  try {
+    const [fixedPools, loanPools, prices, totalSharesResult, pricePerShareResult] = await Promise.all([
+      getUnderlyingYields(),
+      getLoanPools(),
+      utils.getPrices([PYUSD_ADDRESS], 'arbitrum'),
+      SDK.api.abi.call({
+        abi: TOTAL_SHARES_ABI,
+        target: SUSDAI_ADDRESS,
+        chain: 'arbitrum',
+      }),
+      SDK.api.abi.call({
+        abi: REDEMPTION_SHARE_PRICE_ABI,
+        target: SUSDAI_ADDRESS,
+        chain: 'arbitrum',
+      }),
+    ]);
 
-  if (fixedResult.status === 'rejected')
-    console.error('getUnderlyingYields failed:', fixedResult.reason);
-  if (loanResult.status === 'rejected')
-    console.error('getLoanPools failed:', loanResult.reason);
+    const pyusdPrice = prices.pricesByAddress[PYUSD_ADDRESS.toLowerCase()] ?? 1;
 
-  const fixedPools = fixedResult.status === 'fulfilled' ? fixedResult.value : [];
-  const loanPools = loanResult.status === 'fulfilled' ? loanResult.value : [];
+    // Price of 1 sUSDai derived on-chain: redemptionSharePrice() returns value scaled to 1e18
+    const sUSDaiPrice = Number(pricePerShareResult.output) * pyusdPrice / 1e18;
 
-  return [...fixedPools, ...loanPools]
-    .filter((p: any) => p.tvlUsd > 0)
-    .filter((p) => utils.keepFinite(p));
+    // TVL and APY denominator are both the on-chain redemption value
+    const redemptionValueUsd = Number(totalSharesResult.output) * sUSDaiPrice / 1e18;
+
+    const allPools = [...fixedPools, ...loanPools].filter((p) => p.tvlUsd > 0);
+    if (!allPools.length || redemptionValueUsd === 0) return [];
+
+    // Total interest earned per year across all deployed assets
+    const totalInterestPerYear = allPools.reduce(
+      (sum, p) => sum + (p.tvlUsd * p.apyBase) / 100,
+      0
+    );
+
+    // APY to sUSDai holders = all interest earned / on-chain redemption value
+    const apyBase = Math.round((totalInterestPerYear / redemptionValueUsd) * 100 * 100) / 100;
+
+    return [
+      {
+        pool: SUSDAI_ADDRESS,
+        chain: utils.formatChain('arbitrum'),
+        project: 'usd-ai',
+        symbol: 'sUSDai',
+        tvlUsd: redemptionValueUsd,
+        apyBase,
+        underlyingTokens: [PYUSD_ADDRESS],
+        poolMeta: '30d unlock',
+        url: 'https://app.usd.ai',
+      },
+    ];
+  } catch (error) {
+    console.error('Error fetching usdai data:', error);
+    return [];
+  }
 };
 
 module.exports = {
