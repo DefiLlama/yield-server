@@ -64,32 +64,33 @@ async function getPoolVolumes(timestamp = null) {
   );
 
   // pull data
-  let dataNow;
+  let dataNow = [];
   try {
   dataNow = await request(SUBGRAPH, query.replace('<PLACEHOLDER>', block));
   dataNow = dataNow.pairs;
   } catch (err) {
     console.log("Error fetching dataNow: ", err);
+    return {};
   }
 
   // pull 24h offset data
   let queryPriorC = queryPrior;
-  let dataPrior;
+  let dataPrior = [];
   try {
     dataPrior = (await request(
       SUBGRAPH,
       queryPriorC.replace('<PLACEHOLDER>', blockPrior)
-    )).pairs
+    )).pairs;
   } catch (err) {
     console.log("Error fetching dataPrior: ", err);
   }
 
   // 7d offset
-  let dataPrior7d;
+  let dataPrior7d = [];
   try {
     dataPrior7d = (
       await request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
-    ).pairs
+    ).pairs;
   } catch (err) {
     console.log("Error fetching dataPrior7d: ", err);
   }
