@@ -231,6 +231,7 @@ const excludeAdaptors = [
   'covo-v2',
   'arbitrum-exchange-v2',
   'premia-v2',
+  'angle',
 ];
 
 const excludePools = [
