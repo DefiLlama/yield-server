@@ -382,7 +382,9 @@ const main = async (body) => {
         ? p.rewardTokens.filter(Boolean)
         : null,
       searchTokenOverride: p.searchTokenOverride || null,
-      token: p.token || null,
+      token: p.token
+        || extractTokenFromPoolId(p.pool)
+        || null,
     };
   });
 
@@ -483,6 +485,13 @@ const main = async (body) => {
   const response = await insertConfigYieldTransaction(dataDB);
   console.log(response);
 };
+
+function extractTokenFromPoolId(poolId) {
+  if (!poolId || typeof poolId !== 'string') return null;
+  const hexMatch = poolId.match(/(0x[a-fA-F0-9]{40})/);
+  if (hexMatch) return hexMatch[1].toLowerCase();
+  return null;
+}
 
 // --------- transaction query
 const insertConfigYieldTransaction = async (payload) => {
