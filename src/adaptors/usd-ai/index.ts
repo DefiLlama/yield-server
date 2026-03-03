@@ -1,6 +1,5 @@
-import * as utils from '../utils';
-import { BigNumber, utils as ethersUtils } from 'ethers';
-
+const utils = require('../utils');
+const { BigNumber, utils: ethersUtils } = require('ethers');
 const axios = require('axios');
 const SDK = require('@defillama/sdk');
 

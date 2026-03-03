@@ -1,7 +1,4 @@
-import type { MultiRewardFarmsApy } from '../abracadabra-spell/common';
-const { multiRewardFarmsApy } = require('../abracadabra-spell/common') as {
-  multiRewardFarmsApy: MultiRewardFarmsApy;
-};
+const { multiRewardFarmsApy } = require('../abracadabra-spell/common');
 
 module.exports = {
   timetravel: false,
