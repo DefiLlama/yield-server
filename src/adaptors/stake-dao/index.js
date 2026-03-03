@@ -9,6 +9,7 @@ const CHAINS = {
   56: 'bsc',
   252: 'fraxtal',
   10: 'optimism',
+  100: 'gnosis',
   8453: 'base',
   146: 'sonic',
   42793: 'etherlink',
@@ -18,23 +19,23 @@ const poolsFunction = async () => {
   const resp = await Promise.all([
     // Strategies v1
     utils.getData(`${API_ENDPOINT}strategies/pendle`),
-    utils.getData(`${API_ENDPOINT}strategies/balancer`),
     utils.getData(`${API_ENDPOINT}strategies/yearn`),
     // Strategies v2
     utils.getData(`${API_ENDPOINT}strategies/v2/curve`),
+    utils.getData(`${API_ENDPOINT}strategies/v2/balancer`),
     // Lockers
     utils.getData(`${API_ENDPOINT}lockers`),
   ]);
 
   const pendleStrategies = resp[0].deployed;
-  const balancerStrategies = resp[1].deployed;
-  const yearnStrategies = resp[2].deployed;
+  const yearnStrategies = resp[1].deployed;
 
-  const v2CurveStrategies = resp[3];
+  const v2CurveStrategies = resp[2];
+  const v2BalancerStrategies = resp[3];
 
   const strats = v2CurveStrategies
+    .concat(v2BalancerStrategies)
     .concat(pendleStrategies)
-    .concat(balancerStrategies)
     .concat(yearnStrategies)
     .reduce((acc, strat) => {
       const rewardTokens = strat?.rewards
