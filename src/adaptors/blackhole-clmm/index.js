@@ -306,9 +306,6 @@ const getGaugeApy = async () => {
         prices = { ...prices, ...p };
     }
 
-    console.log("prices : ", prices, " black price: ", prices[`${CHAIN}:${BLACK}`])
-
-
     const pools = validPools.map((p, i) => {
         const poolType = Number(p.tickSpacing) > 1 ? 'Concentrated%20Volatile' : 'Concentrated%20Stable';
         const url = `https://blackhole.xyz/deposit?token0=${p.token0.id}&token1=${p.token1.id}&pair=${p.id}&type=${poolType}`;
