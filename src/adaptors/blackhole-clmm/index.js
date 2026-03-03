@@ -3,7 +3,7 @@ const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
-// Blackhole CL (Algebra) on Ethereum
+// Blackhole CL (Algebra) on Avalanche
 const gaugeManager = '0x59aa177312Ff6Bdf39C8Af6F46dAe217bf76CBf6';
 const BLACK = '0xcd94a87696FAC69Edae3a70fE5725307Ae1c43f6';
 const nullAddress = '0x0000000000000000000000000000000000000000';
