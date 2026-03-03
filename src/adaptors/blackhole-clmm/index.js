@@ -306,6 +306,30 @@ const getGaugeApy = async () => {
         prices = { ...prices, ...p };
     }
 
+    // fallback for BLACK price if not on defillama
+    if (prices[`${CHAIN}:${BLACK}`]) {
+        try {
+            const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain-new-1/avax-basic/gn';
+            const blackUsdcPool = '0x0d9fd6dd9b1ff55fb0a9bb0e5f1b6a2d65b741a3';
+            const { pair } = await request(
+                basicSubgraph,
+                gql`
+                {
+                    pair(id: "${blackUsdcPool}") {
+                        token1Price
+                    }
+                }
+                `
+            );
+
+            if (pair && pair.token1Price) {
+                prices[`${CHAIN}:${BLACK}`] = { price: Number(pair.token1Price) };
+            }
+        } catch (e) {
+            console.error('Failed to fetch fallback BLACK price:', e.message);
+        }
+    }
+
     const pools = validPools.map((p, i) => {
         const poolType = Number(p.tickSpacing) > 1 ? 'Concentrated%20Volatile' : 'Concentrated%20Stable';
         const url = `https://blackhole.xyz/deposit?token0=${p.token0.id}&token1=${p.token1.id}&pair=${p.id}&type=${poolType}`;
