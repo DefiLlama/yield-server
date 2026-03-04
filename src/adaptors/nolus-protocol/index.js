@@ -7,6 +7,12 @@ const api = 'https://lcd.nolus.network';
 // ETL(extract transform load) rest api
 const etlAddress = 'https://etl.nolus.network';
 
+const NOLUS_COINGECKO = {
+  USDC: 'coingecko:usd-coin',
+  BTC: 'coingecko:bitcoin',
+  SOL: 'coingecko:solana',
+};
+
 // Base decimals for stable price quote (USDC)
 const STABLE_QUOTE_DECIMALS = 6;
 
@@ -162,7 +168,7 @@ const getApy = async () => {
       totalSupplyUsd: safeTotalSupplyUsd,
       totalBorrowUsd: safeTotalBorrowUsd,
       // apyReward: null, TODO: add NLS rewards
-      underlyingTokens: [currencyData.bank_symbol, currencyData.dex_symbol], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
+      underlyingTokens: [NOLUS_COINGECKO[c.symbol] || c.symbol],
       // rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], TODO: add NLS rewards
       poolMeta: c.meta,
     });
