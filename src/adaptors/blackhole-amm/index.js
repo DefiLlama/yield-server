@@ -217,11 +217,10 @@ const getGaugeApy = async () => {
   const poolSupply = poolSupplyR.output.map((o) => o.output);
   const totalSupply = totalSupplyR.output.map((o) => o.output);
 
-  const prices = (await utils.getPrices(tokens, CHAIN)).pricesByAddress;
-
+  const { pricesByAddress: prices } = await utils.getPrices(tokens, CHAIN);
 
   // fallback for BLACK price if not on defillama
-  if (!prices[`${CHAIN}:${BLACK}`]) {
+  if (!prices[BLACK.toLowerCase()]) {
     try {
       const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain-new-1/avax-basic/gn';
       const blackUsdcPool = '0x0d9fd6dd9b1ff55fb0a9bb0e5f1b6a2d65b741a3';
@@ -236,7 +235,7 @@ const getGaugeApy = async () => {
                   `
       );
       if (pair && pair.token1Price) {
-        prices[`${CHAIN}:${BLACK}`] = { price: Number(pair.token1Price) };
+        prices[BLACK.toLowerCase()] = Number(pair.token1Price);
       }
     } catch (e) {
       console.error('Failed to fetch fallback BLACK price:', e.message);
@@ -274,7 +273,7 @@ const getGaugeApy = async () => {
     const ps = Number(poolSupply[i] || 0);
     const stakedSupplyRatio = ts > 0 ? ps / ts : 0;
 
-    const blackPrice = prices[`${CHAIN}:${BLACK}`]?.price || 0;
+    const blackPrice = prices[BLACK.toLowerCase()] || 0;
 
     const rr = Number(rewardRate[i] || 0);
     const apyReward =
