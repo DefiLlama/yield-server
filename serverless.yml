@@ -7,7 +7,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs22.x
+  runtime: nodejs24.x
   stage: dev
   region: eu-central-1
   tracing:
@@ -173,6 +173,15 @@ functions:
       - schedule: cron(40 * * * ? *)
     environment:
       STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
+
+  triggerVolatility:
+    handler: src/handlers/triggerVolatility.handler
+    description: Lambda which computes pool volatility metrics
+    timeout: 60
+    memorySize: 1024
+    events:
+      # every hour at :00
+      - schedule: cron(0 * * * ? *)
 
 resources:
   Resources:

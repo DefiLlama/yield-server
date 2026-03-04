@@ -1,5 +1,30 @@
 const { request, gql } = require('graphql-request');
-const fetch = require('node-fetch');
+
+// Cardano symbol → coingecko ID mapping for underlying/reward tokens
+const CARDANO_COINGECKO = {
+  Ada: 'coingecko:cardano',
+  USDC: 'coingecko:usd-coin',
+  NIGHT: 'coingecko:midnight-3',
+  DJED: 'coingecko:djed',
+  USDA: 'coingecko:anzens-usda',
+  USDM: 'coingecko:usdm-2',
+  IUSD: 'coingecko:iusd',
+  SNEK: 'coingecko:snek',
+  USDT: 'coingecko:tether',
+  MIN: 'coingecko:minswap',
+  IAG: 'coingecko:iagon',
+  SHEN: 'coingecko:shen',
+  ERG: 'coingecko:ergo',
+  BTC: 'coingecko:bitcoin',
+  COPI: 'coingecko:cornucopias',
+  DAI: 'coingecko:dai',
+  ETH: 'coingecko:ethereum',
+  PYUSD: 'coingecko:paypal-usd',
+  EURC: 'coingecko:euro-coin',
+};
+
+const LQ_TOKEN_ID =
+  'da8c30857834c6ae7203935b89278c532b3995245295456f993e1d244c51';
 
 const apy = async () => {
   const endpoint = 'https://v2.api.liqwid.finance/graphql';
@@ -8,7 +33,7 @@ const apy = async () => {
     query {
       liqwid {
         data {
-          markets (input: { perPage: 100 }) {
+          markets(input: { perPage: 100 }) {
             page
             results {
               id
@@ -20,6 +45,7 @@ const apy = async () => {
               borrow
               utilization
               asset {
+                id
                 price
               }
               registry {
@@ -42,6 +68,8 @@ const apy = async () => {
   );
 
   const getPool = (market) => {
+    const tokenId = CARDANO_COINGECKO[market.id];
+
     return {
       pool: market.registry.actionScriptHash,
       chain: 'Cardano',
@@ -53,8 +81,10 @@ const apy = async () => {
           ? market.lqSupplyAPY
           : market.lqSupplyAPY * 100,
       apyBase: market.supplyAPY * 100,
-      rewardTokens: [market.id, 'LQ'],
-      underlyingTokens: [market.id],
+      rewardTokens: market.asset.id
+        ? [market.asset.id, LQ_TOKEN_ID]
+        : [LQ_TOKEN_ID],
+      underlyingTokens: tokenId ? [tokenId] : undefined,
       apyBaseBorrow:
         market.borrowAPY * 100 > 100
           ? market.borrowAPY

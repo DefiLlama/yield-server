@@ -85,7 +85,7 @@ const topLvl = async (timestamp) => {
             underlyingTokens = [token1.address];
           } else {
             symbol = 'UNKNOWN';
-            underlyingTokens = [];
+            underlyingTokens = undefined;
           }
 
           // Get reward tokens if they exist

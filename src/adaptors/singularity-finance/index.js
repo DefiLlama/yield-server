@@ -65,6 +65,7 @@ async function getApy() {
         tvlUsd: tvlUsd / 10 ** USDC.decimals,
         apyBase,
         url: `https://singularityfinance.ai/vaults/${vault.vault}:8453`,
+        underlyingTokens: [referenceAssetAddress],
       };
     }));
 

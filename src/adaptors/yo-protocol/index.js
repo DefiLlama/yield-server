@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { formatChain, getPrices, getERC4626Info } = require('../utils');
 const { getVaultReward } = require('./services');
 
@@ -15,8 +15,8 @@ const symboToNameMap = {
 };
 
 const apy = async () => {
-  const response = await superagent.get(API_URL);
-  const vaults = response.body.data;
+  const response = await axios.get(API_URL);
+  const vaults = response.data.data;
 
   const priceQuery = vaults
     .map((vault) => `${vault.chain.name}:${vault.asset.address}`)

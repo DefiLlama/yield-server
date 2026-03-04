@@ -12,7 +12,7 @@ const API_URL = 'https://api.multiversx.com';
 // re-added by querying queryRewardsBatchState for speed and rewardsToken data.
 
 const MARKETS = [
-  { symbol: 'EGLD', address: 'erd1qqqqqqqqqqqqqpgq35qkf34a8svu4r2zmfzuztmeltqclapv78ss5jleq3', decimals: 18, tokenId: null },
+  { symbol: 'EGLD', address: 'erd1qqqqqqqqqqqqqpgq35qkf34a8svu4r2zmfzuztmeltqclapv78ss5jleq3', decimals: 18, tokenId: 'EGLD' },
   { symbol: 'SEGLD', address: 'erd1qqqqqqqqqqqqqpgqxmn4jlazsjp6gnec95423egatwcdfcjm78ss5q550k', decimals: 18, tokenId: 'SEGLD-3ad2d0' },
   { symbol: 'WBTC', address: 'erd1qqqqqqqqqqqqqpgqg47t8v5nwzvdxgf6g5jkxleuplu8y4f678ssfcg5gy', decimals: 8, tokenId: 'WBTC-5349b3' },
   { symbol: 'WETH', address: 'erd1qqqqqqqqqqqqqpgq8h8upp38fe9p4ny9ecvsett0usu2ep7978ssypgmrs', decimals: 18, tokenId: 'WETH-b4ca29' },
@@ -23,6 +23,19 @@ const MARKETS = [
   { symbol: 'WTAO', address: 'erd1qqqqqqqqqqqqqpgqz9pvuz22qvqxfqpk6r3rluj0u2can55c78ssgcqs00', decimals: 9, tokenId: 'WTAO-4f5363' },
   { symbol: 'SWTAO', address: 'erd1qqqqqqqqqqqqqpgq7sspywe6e2ehy7dn5dz00ved3aa450mv78ssllmln6', decimals: 9, tokenId: 'SWTAO-356a25' },
 ];
+
+const COINGECKO_MAP = {
+  EGLD: 'coingecko:elrond-erd-2',
+  SEGLD: 'coingecko:elrond-erd-2',
+  WBTC: 'coingecko:wrapped-bitcoin',
+  WETH: 'coingecko:ethereum',
+  USDC: 'coingecko:usd-coin',
+  USDT: 'coingecko:tether',
+  UTK: 'coingecko:utrust',
+  HTM: 'coingecko:hatom',
+  WTAO: 'coingecko:bittensor',
+  SWTAO: 'coingecko:bittensor',
+};
 
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
 
@@ -55,6 +68,7 @@ async function getMarketData(market) {
     cash,
     supplyRatePerSecond,
     decimals: market.decimals,
+    tokenId: market.tokenId,
   };
 }
 
@@ -116,6 +130,7 @@ const apy = async () => {
         symbol: market.symbol,
         tvlUsd,
         apyBase,
+        underlyingTokens: COINGECKO_MAP[market.symbol] ? [COINGECKO_MAP[market.symbol]] : [market.tokenId],
       };
     });
 }

@@ -1,9 +1,7 @@
 const axios = require('axios')
 const sdk = require('@defillama/sdk')
 const BigNumber = require('bignumber.js')
-const {sparkSavingsAbi} = require('./abi.js')
-
-import type { Pool } from '../../types/Pool'
+const { sparkSavingsAbi } = require('./abi.js')
 
 const sparkBaseUrl = 'https://app.spark.fi/savings'
 
@@ -46,8 +44,8 @@ const sparkSavings: Record<Chain, VaultConfig[]> = {
   ],
 }
 
-async function getPools(): Promise<Pool[]> {
-  const pools: Pool[] = []
+async function getPools() {
+  const pools = []
   const chains = Object.keys(sparkSavings) as Chain[]
 
   for (const chain of chains) {
@@ -83,11 +81,21 @@ async function getPools(): Promise<Pool[]> {
       }),
     )
 
+    const assets = toOutput<string>(
+      await sdk.api.abi.multiCall({
+        abi: sparkSavingsAbi.asset,
+        chain,
+        calls: vaults.map((config) => ({
+          target: config.address,
+        })),
+      }),
+    )
+
     const prices = await fetchPrices(chain, vaults)
 
     pools.push(
       ...vaults.map(
-        (vaultConfig, i): Pool => ({
+        (vaultConfig, i) => ({
           pool: `${vaultConfig.address}-${chain}`,
           chain,
           apyBase: rateToApy(rates[i]),
@@ -98,6 +106,7 @@ async function getPools(): Promise<Pool[]> {
             .div(10 ** vaultConfig.decimals)
             .times(prices[`${chain}:${vaultConfig.address.toLowerCase()}`].price)
             .toNumber(),
+          underlyingTokens: [assets[i]],
         }),
       ),
     )

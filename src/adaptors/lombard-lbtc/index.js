@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 const token = '0x8236a87084f8B84306f72007F36F2618A5634494';
+const WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
 
 const apy = async () => {
   const [{ data: apy }, { data: tvl }, { data: price }] = await Promise.all([
@@ -17,11 +18,13 @@ const apy = async () => {
     {
       pool: token,
       project: 'lombard-lbtc',
-      chain: 'bitcoin',
+      chain: 'ethereum',
       symbol: 'lBTC',
       tvlUsd:
         (Number(tvl.balance) / 1e8) * price.coins[`ethereum:${token}`]?.price,
       apy: apy.lbtc_estimated_apy * 100,
+      underlyingTokens: [WBTC],
+      searchTokenOverride: token,
     },
   ];
 };

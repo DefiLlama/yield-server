@@ -147,6 +147,7 @@ const getTvl = async () => {
         symbol: utils.formatSymbol('SEED'),
         tvlUsd: tvlUsd,
         apy: apyData.data,
+        underlyingTokens: [SEED_TOKEN],
       },
     ];
   } catch (error) {

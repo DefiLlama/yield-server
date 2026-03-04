@@ -2,7 +2,6 @@ const { Web3 } = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const { request, gql, batchRequests } = require('graphql-request');
-const superagent = require('superagent');
 const { chunk } = require('lodash');
 
 const {

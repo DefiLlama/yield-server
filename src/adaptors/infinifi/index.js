@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const { ethers } = require('ethers');
 
 const siUSDAddress = '0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB';
+const iUSDAddress = '0x48f9e38f3070AD8945DFEae3FA70987722E3D89c';
 
 const lockingControllerCallData = {
   address: '0x1d95cC100D6Cd9C7BbDbD7Cb328d99b3D6037fF7',
@@ -43,6 +44,7 @@ async function computeStakedTokenAPY() {
     apyBase: erc4626Infos.apyBase,
     poolMeta: 'Staked iUSD',
     url: 'https://infinifi.xyz/',
+    underlyingTokens: [iUSDAddress],
   };
 
 }
@@ -120,6 +122,7 @@ async function computeLockedTokensAPY() {
       apyBase: apy,
       poolMeta: `Locked iUSD - ${bucket} week${bucket > 1 ? 's' : ''}`,
       url: 'https://infinifi.xyz/',
+      underlyingTokens: [iUSDAddress],
     });
   }
 

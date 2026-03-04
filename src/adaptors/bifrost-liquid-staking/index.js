@@ -30,6 +30,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vDOT.apyBase),
     apyReward: Number(vToken.vDOT.apyReward),
     rewardTokens: ['DOT'],
+    underlyingTokens: ['coingecko:polkadot'],
   };
 
   const vGLMR = {
@@ -41,6 +42,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vGLMR.apyBase),
     apyReward: Number(vToken.vGLMR.apyReward),
     rewardTokens: ['GLMR'],
+    underlyingTokens: ['0xacc15dc74880c9944775448304b263d191c6077f'], // WGLMR
   };
 
   const vASTR = {
@@ -52,6 +54,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vASTR.apyBase),
     apyReward: Number(vToken.vASTR.apyReward),
     rewardTokens: ['ASTR'],
+    underlyingTokens: ['0xaeaaf0e2c81af264101b9129c00f4440ccf0f720'], // WASTR
   };
 
   const vMOVR = {
@@ -63,6 +66,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vMOVR.apyBase),
     apyReward: Number(vToken.vMOVR.apyReward),
     rewardTokens: ['MOVR'],
+    underlyingTokens: ['0x98878b06940ae243284ca214f92bb71a2b032b8a'], // WMOVR
   };
 
   const vBNC = {
@@ -74,6 +78,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vBNC.apyBase),
     apyReward: Number(vToken.vBNC.apyReward),
     rewardTokens: ['BNC'],
+    underlyingTokens: ['coingecko:bifrost-native-coin'],
   };
 
   const vKSM = {
@@ -85,6 +90,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vKSM.apyBase),
     apyReward: Number(vToken.vKSM.apyReward),
     rewardTokens: ['KSM'],
+    underlyingTokens: ['coingecko:kusama'],
   };
 
   const vMANTA = {
@@ -96,6 +102,7 @@ const getApy = async () => {
     apyBase: Number(vToken.vMANTA.apyBase),
     apyReward: Number(vToken.vMANTA.apyReward),
     rewardTokens: ['MANTA'],
+    underlyingTokens: ['0x0dc808adce2099a9f62aa87d9670745aba741746'], // WMANTA
   };
 
   const vETH = {
@@ -106,8 +113,9 @@ const getApy = async () => {
     tvlUsd: vToken.vETH.tvm * prices['coingecko:ethereum'].price,
     apyBase: Number(vToken.vETH.apyBase),
     apyReward: Number(vToken.vETH.apyReward),
-    underlyingTokens: [veth],
+    underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     rewardTokens: ['ETH'],
+    searchTokenOverride: veth,
   };
 
   return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC, vASTR, vMANTA];

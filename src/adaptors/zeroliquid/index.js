@@ -72,6 +72,7 @@ const poolsFunction = async () => {
           data_liquidity.amountETHPOL +
           (data_liquidity.amountZETH - data_liquidity.amountZETHPOL))) *
       100,
+    underlyingTokens: [zETH, WETH],
   };
 
   return [zethPool]; // Anchor only has a single pool with APY

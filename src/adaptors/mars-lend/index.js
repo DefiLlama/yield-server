@@ -4,6 +4,31 @@ const BigNumber = require('bignumber.js');
 
 const chains = ['osmosis', 'neutron'];
 
+const IBC_COINGECKO = {
+  // Osmosis
+  'ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4': 'coingecko:usd-coin',
+  'ibc/C140AFD542AE77BD7DCC83F13FDD8C5E5BB8C4929785E6EC2F4C636F98F17901': 'coingecko:stride-staked-atom',
+  'ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2': 'coingecko:cosmos',
+  'ibc/D176154B0C63D1F9C6DCFB4F70349EBF2E2B5A87A05902F57A6AE92B863E9AEC': 'coingecko:stride-staked-osmo',
+  'ibc/1480B8FD20AD5FCAE81EA87584D269547DD4D436843C1D20F15E00EB64743EF4': 'coingecko:akash-network',
+  'ibc/D79E7D83AB399BFFF93433E54FAA480C191248FC556924A2A8351AE2638B3877': 'coingecko:celestia',
+  'ibc/2F21E6D4271DE3F561F20A02CD541DAF7405B1E9CB3B9B07E3C2AC7D8A4338A5': 'coingecko:wrapped-steth',
+  'ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273': 'coingecko:injective-protocol',
+  'ibc/698350B8A61D575025F3ED13E9AC9C0F45C89DEFE92F76D5838F1D3C1A7FF7C9': 'coingecko:stride-staked-tia',
+  'ibc/4ABBEF4C8926DDDB320AE5188CFD63267ABBCEFC0583E4AE05D6E5AA2401DDAB': 'coingecko:tether',
+  'factory/osmo1z0qrq605sjgcqpylfl4aa6s90x738j7m58wyatt0tdzflg2ha26q67k743/wbtc': 'coingecko:wrapped-bitcoin',
+  'ibc/EA1D43981D5C9A1C4AAEA9C23BB1D4FA126BA9BC7020A25E0AE4AA841EA25DC5': 'coingecko:axlweth',
+  'ibc/D1542AA8762DB13087D8364F3EA6509FD6F009A34F00426AF9E4F9FA85CBBF1F': 'coingecko:axlwbtc',
+  // Neutron
+  'ibc/B559A80D62249C8AA07A380E2A2BEA6E5CA9A6F079C912C3A9E9B494105E4F81': 'coingecko:usd-coin',
+  'ibc/C4CFF46FD6DE35CA4CF4CE031E643C8FDC9BA4B99AE598E9B0ED98FE3A2319F9': 'coingecko:cosmos',
+  'ibc/B7864B03E1B9FD4F049243E92ABD691586F682137037A9F3FCA5222815620B3C': 'coingecko:stride-staked-atom',
+  'factory/neutron1k6hr0f83e7un2wjf29cspk7j69jrnskk65k3ek2nj9dztrlzpj6q00rtsa/udatom': 'coingecko:cosmos',
+  'factory/neutron1ut4c6pv4u6vyu97yw48y8g7mle0cat54848v6m97k977022lzxtsaqsgmq/udtia': 'coingecko:celestia',
+  'factory/neutron1ug740qrkquxzrk2hh29qrlx3sktkfml3je7juusc2te7xmvsscns0n2wry/wstETH': 'coingecko:wrapped-steth',
+};
+const resolveIbcToken = (denom) => IBC_COINGECKO[denom] || denom;
+
 const contractAddresses = {
   osmosis: {
     params: 'osmo1nlmdxt9ctql2jr47qd4fpgzg84cjswxyw6q99u4y4u4q6c2f5ksq7ysent',
@@ -99,7 +124,7 @@ async function apy() {
         apyData.push({
           pool: `mars-cpv-${perpsDenom[chain]}-${chain}`.toLowerCase(),
           symbol: perpsAsset.symbol,
-          underlyingTokens: [perpsAsset.denom],
+          underlyingTokens: [resolveIbcToken(perpsAsset.denom)],
           project: 'mars-lend',
           chain: `${chain.charAt(0).toUpperCase()}${chain.slice(1)}`,
           tvlUsd,
@@ -171,7 +196,7 @@ async function apy() {
             symbol: asset.symbol,
             tvlUsd: totalSupplied.minus(totalBorrowed).times(price).toNumber(),
             apyBase: utils.aprToApy(depositApr, 365),
-            underlyingTokens: [asset.denom],
+            underlyingTokens: [resolveIbcToken(asset.denom)],
             totalSupplyUsd: totalSupplied.times(price).toNumber(),
             totalBorrowUsd: totalBorrowed.times(price).toNumber(),
             apyBaseBorrow: utils.aprToApy(borrowApr, 365),

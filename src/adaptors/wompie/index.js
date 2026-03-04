@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 const _ = require('lodash');
+const axios = require('axios');
 
 const MagpieReaderABI = require('./abis/MagpieReader.json');
 const config = require('./config');
@@ -13,22 +14,140 @@ function formatEther(value, unit = 18) {
   return result.toString();
 }
 
+const chainToCoinKey = {
+  bsc: 'bsc',
+  arbitrum: 'arbitrum',
+};
+
+async function getMagpieInfoFallback(conf) {
+  const target = conf.contract.MagpieReaderAddress;
+  const chain = conf.chain;
+  const getMagpiePoolInfoAbi = MagpieReaderABI.find(
+    (n) => n.name === 'getMagpiePoolInfo'
+  );
+
+  // Get core addresses
+  const [mgpResult, womResult, vlmgpResult] = await Promise.all([
+    sdk.api.abi.call({
+      target,
+      chain,
+      abi: MagpieReaderABI.find((n) => n.name === 'mgp'),
+    }),
+    sdk.api.abi.call({
+      target,
+      chain,
+      abi: MagpieReaderABI.find((n) => n.name === 'wom'),
+    }),
+    sdk.api.abi.call({
+      target,
+      chain,
+      abi: MagpieReaderABI.find((n) => n.name === 'vlmgp'),
+    }),
+  ]);
+
+  // Enumerate pools individually
+  const pools = [];
+  const tokenAddresses = new Set();
+  for (let i = 0; i < 60; i++) {
+    try {
+      const result = await sdk.api.abi.call({
+        target,
+        chain,
+        abi: getMagpiePoolInfoAbi,
+        params: [i, ZERO_ADDRESS],
+      });
+      const pool = result.output;
+      pools.push(pool);
+
+      if (pool.isActive) {
+        if (
+          pool.poolType === 'WOMBAT_POOL' &&
+          pool.wombatHelperInfo?.depositToken
+        ) {
+          tokenAddresses.add(pool.wombatHelperInfo.depositToken.toLowerCase());
+        }
+        tokenAddresses.add(pool.stakingToken.toLowerCase());
+      }
+    } catch (e) {
+      break;
+    }
+  }
+
+  // Add core token addresses
+  tokenAddresses.add(mgpResult.output.toLowerCase());
+  tokenAddresses.add(womResult.output.toLowerCase());
+
+  // Fetch prices from DefiLlama
+  const coinPrefix = chainToCoinKey[chain] || chain;
+  const coinKeys = [...tokenAddresses]
+    .map((addr) => `${coinPrefix}:${addr}`)
+    .join(',');
+  const priceResp = await axios.get(
+    `https://coins.llama.fi/prices/current/${coinKeys}`
+  );
+  const coins = priceResp.data.coins;
+
+  // Build tokenPriceList in the same format as getMagpieInfo returns
+  // price is stored as uint256 with 18 decimals
+  const tokenPriceList = [];
+  const seenSymbols = new Set();
+  for (const addr of tokenAddresses) {
+    const key = `${coinPrefix}:${addr}`;
+    const coinData = coins[key];
+    if (coinData && !seenSymbols.has(coinData.symbol.toUpperCase())) {
+      seenSymbols.add(coinData.symbol.toUpperCase());
+      tokenPriceList.push({
+        symbol: coinData.symbol,
+        price: BigNumber(coinData.price)
+          .multipliedBy(BigNumber(10).pow(18))
+          .toFixed(0),
+      });
+    }
+  }
+
+  return {
+    mgp: mgpResult.output,
+    vlmgp: vlmgpResult.output,
+    wom: womResult.output,
+    tokenPriceList,
+    pools,
+  };
+}
+
 async function getMagpieInfo() {
   const infos = [];
   for (let conf of config) {
-    const result = (
-      await sdk.api.abi.call({
-        target: conf.contract.MagpieReaderAddress,
+    try {
+      const result = (
+        await sdk.api.abi.call({
+          target: conf.contract.MagpieReaderAddress,
+          chain: conf.chain,
+          abi: MagpieReaderABI.find((n) => n.name === 'getMagpieInfo'),
+          params: [ZERO_ADDRESS],
+        })
+      ).output;
+      infos.push({
         chain: conf.chain,
-        abi: MagpieReaderABI.find((n) => n.name === 'getMagpieInfo'),
-        params: [ZERO_ADDRESS],
-      })
-    ).output;
-    infos.push({
-      chain: conf.chain,
-      masterMagpie: conf.contract.MasterMagpieAddress,
-      result: result,
-    });
+        masterMagpie: conf.contract.MasterMagpieAddress,
+        result: result,
+      });
+    } catch (e) {
+      console.log(
+        `wompie: getMagpieInfo failed for ${conf.chain}, trying fallback`
+      );
+      try {
+        const result = await getMagpieInfoFallback(conf);
+        infos.push({
+          chain: conf.chain,
+          masterMagpie: conf.contract.MasterMagpieAddress,
+          result: result,
+        });
+      } catch (e2) {
+        console.log(
+          `wompie: fallback also failed for ${conf.chain} - ${e2.message?.slice(0, 100)}`
+        );
+      }
+    }
   }
 
   return infos;

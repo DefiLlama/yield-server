@@ -4,7 +4,7 @@ const utils = require('../utils');
 const apy = async () => {
   const pools = await Promise.all(
     ['avalanche', 'arbitrum', 'ethereum'].map(async (chain) => {
-      const apiUrl = `https://api.lfj.dev/v1/pools/${chain}?filterBy=1d&orderBy=volume&pageNum=1&pageSize=100&status=main`;
+      const apiUrl = `https://api.lfj.dev/v1/pools/${chain}?filterBy=1d&orderBy=volume&pageNum=1&pageSize=100&status=main&version=v2.1`;
 
       const pools = (
         await axios.get(apiUrl, {
@@ -13,6 +13,7 @@ const apy = async () => {
           },
         })
       ).data;
+
 
       return pools.map((p) => {
         return {
@@ -24,6 +25,7 @@ const apy = async () => {
           tvlUsd: p.liquidityUsd,
           apyBase: ((p.feesUsd * 365) / p.liquidityUsd) * 100,
           volumeUsd1d: p.volumeUsd,
+          url: `https://lfj.gg/${chain}/pool/v21/${p.tokenX.address}/${p.tokenY.address}/${p.lbBinStep}`,
         };
       });
     })

@@ -42,6 +42,7 @@ const createPool = (pair, chainString) => {
     tvlUsd,
     apyReward,
     rewardTokens: ['0x6cacdb97e3fc8136805a9e7c342d866ab77d0957'],
+    underlyingTokens: [token0.id, token1.id],
   };
 };
 

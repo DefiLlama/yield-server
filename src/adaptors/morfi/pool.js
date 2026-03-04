@@ -1,6 +1,16 @@
 const { SubgraphService } = require('./subgraph');
-const axios = require('axios');
-const sdk = require('@defillama/sdk');
+
+// Token symbol → coingecko ID mapping for underlying token resolution
+const TOKEN_COINGECKO = {
+  WETH: 'coingecko:weth',
+  USDT: 'coingecko:tether',
+  USDC: 'coingecko:usd-coin',
+  WBTC: 'coingecko:wrapped-bitcoin',
+  DAI: 'coingecko:dai',
+  weETH: 'coingecko:wrapped-eeth',
+  BGB: 'coingecko:bitget-token',
+  MIM: 'coingecko:magic-internet-money',
+};
 
 const tickToSqrtPrice = (tick) => {
     return Math.sqrt(Math.pow(1.0001, tick));
@@ -96,7 +106,12 @@ const getAmounts = (liquidity, tickLower, tickUpper, currentTick) => {
         symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
         tvlUsd: pool.totalValueLockedUSD,
         url: `https://app.morfi.io/pool/${pool.id}`,
-        apyBase: apr
+        apyBase: apr,
+        underlyingTokens: (() => {
+          const t0 = TOKEN_COINGECKO[pool.token0?.symbol];
+          const t1 = TOKEN_COINGECKO[pool.token1?.symbol];
+          return t0 && t1 ? [t0, t1] : undefined;
+        })(),
       }
     }),
   );

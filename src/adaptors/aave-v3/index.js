@@ -233,6 +233,7 @@ const stkGho = async () => {
     tvlUsd: stkghoSupply * ghoPrice,
     apy: stkghoApy,
     url: 'https://app.aave.com/staking',
+    underlyingTokens: [GHO],
   };
 
   return pool;

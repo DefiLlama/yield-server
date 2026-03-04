@@ -9,6 +9,7 @@ const Addresses = {
     cdo: '0x908B3921aaE4fC17191D382BB61020f2Ee6C0e20',
     srUSDe: '0x3d7d6fdf07EE548B939A80edbc9B2256d0cdc003',
     jrUSDe: '0xC58D044404d8B14e953C115E67823784dEA53d8F',
+    underlying: '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3', // USDe
   },
 };
 
@@ -77,6 +78,7 @@ async function loadPool(tranche, symbol) {
     project: 'strata-markets',
     tvlUsd: totalSupply * price,
     apyBase: apy,
+    underlyingTokens: [Addresses[tranche].underlying],
   };
 }
 

@@ -54,6 +54,7 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       poolMeta: '7 days unstaking',
+      underlyingTokens: [USDz],
     },
   ];
 };

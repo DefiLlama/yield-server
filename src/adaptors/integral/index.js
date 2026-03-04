@@ -1,4 +1,5 @@
 const { default: BigNumber } = require('bignumber.js');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const mainnetUrlSize = `https://size-api.integral.link/api/v6/pools?apiKey=00Gfs4iNa%2FXJDBkF%2B%2FX83SRqx3MXXAngJMkpx3lM%2FTU=&network=Mainnet`;
@@ -10,8 +11,33 @@ const chains = {
   arb: 'arbitrum',
 };
 
-const buildPool = (entry, chainString, version) => {
-  const newObj = {
+// Fetch token0 and token1 from LP contract
+const getPoolTokens = async (poolAddress, chain) => {
+  try {
+    const [token0, token1] = await Promise.all([
+      sdk.api.abi.call({
+        target: poolAddress,
+        abi: 'address:token0',
+        chain,
+      }),
+      sdk.api.abi.call({
+        target: poolAddress,
+        abi: 'address:token1',
+        chain,
+      }),
+    ]);
+
+    const tokens = [token0.output, token1.output].filter(
+      t => t && t !== '0x0000000000000000000000000000000000000000'
+    );
+    return tokens.length > 0 ? tokens : undefined;
+  } catch (e) {
+    return undefined;
+  }
+};
+
+const buildPool = (entry, chainString, version, underlyingTokens) => {
+  return {
     pool: entry.address,
     chain: utils.formatChain(chainString),
     project: 'integral',
@@ -20,18 +46,22 @@ const buildPool = (entry, chainString, version) => {
     tvlUsd: parseFloat(BigNumber(entry.totalTokenValue).div(10 ** 18)),
     apyBase: entry.swapApr ? parseFloat(BigNumber(entry.swapApr).div(10 ** 18).times(100)) : 0,
     apyReward: entry.lpRewardApr ? parseFloat(BigNumber(entry.lpRewardApr).div(10 ** 18).times(100)) : 0,
+    underlyingTokens,
   };
-
-  return newObj;
 };
 
 const topLvl = async (chainString, url, version) => {
-  // pull data
-  let data = await utils.getData(url);
-  // build pool objects
-  data = data.data.map((element) => buildPool(element, chainString, version));
+  const data = await utils.getData(url);
 
-  return data;
+  // Fetch underlying tokens for all pools in parallel
+  const poolsWithTokens = await Promise.all(
+    data.data.map(async (entry) => {
+      const underlyingTokens = await getPoolTokens(entry.address, chainString);
+      return buildPool(entry, chainString, version, underlyingTokens);
+    })
+  );
+
+  return poolsWithTokens;
 };
 
 const main = async () => {

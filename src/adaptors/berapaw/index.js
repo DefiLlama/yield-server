@@ -225,6 +225,15 @@ const getPoolData = async () => {
             lbgtApr = bgtApr * (lbgtPrice / beraPrice);
         }
 
+        // Try to resolve ERC-4626 asset for vault-type staking tokens
+        let underlying = vault.stakingToken.address;
+        try {
+            const asset = await callContract(vault.stakingToken.address, 'address:asset');
+            if (asset && asset !== '0x0000000000000000000000000000000000000000') {
+                underlying = asset;
+            }
+        } catch {}
+
         pools.push({
             pool: vault.vaultAddress,
             chain: 'berachain',
@@ -233,7 +242,7 @@ const getPoolData = async () => {
             tvlUsd: parseFloat(vault.dynamicData.tvl),
             apyReward: lbgtApr,
             rewardTokens: [ADDRESSES.LBGT],
-            underlyingTokens: [vault.stakingToken.address],
+            underlyingTokens: [underlying],
             url: 'https://www.berapaw.com/vaults',
         });
     }

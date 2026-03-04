@@ -1,5 +1,4 @@
 const { request } = require('graphql-request');
-const superagent = require('superagent');
 const BigNumber = require("bignumber.js");
 const utils = require('../utils');
 const { getAllVeloPools } = require('./contract')

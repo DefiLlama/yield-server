@@ -19,6 +19,10 @@ const CHAIN_TYPE_AND_NAMES: ByChainTypeAndId<string> = {
     43_111: 'Hemi',
     232: 'Lens',
     994_873_017: 'Lumia',
+    42_161: 'Arbitrum',
+    9_745: 'Plasma',
+    5_464: 'Saga',
+    56: 'BSC',
   },
   aptos: {
     1: 'Aptos',
@@ -134,7 +138,8 @@ module.exports = {
           !chain ||
           chainId !== campaign.target.chainId ||
           !campaign.apr ||
-          !campaign.usdTvl
+          !campaign.usdTvl ||
+          !campaign.rewards?.assets?.length
         )
           continue;
 
@@ -188,7 +193,7 @@ function processCampaign(campaign: Campaign): ProcessedCampaign | null {
     case 'liquity-v2-stability-pool': {
       return {
         symbol: formatSymbol(campaign.target.collateral.symbol),
-        underlyingTokens: [campaign.target.collateral.symbol],
+        underlyingTokens: [campaign.target.collateral.address],
       };
     }
     case 'gmx-v1-liquidity': {
@@ -201,7 +206,7 @@ function processCampaign(campaign: Campaign): ProcessedCampaign | null {
     case 'aave-v3-net-supply': {
       return {
         symbol: formatSymbol(campaign.target.collateral.symbol),
-        underlyingTokens: [campaign.target.collateral.symbol],
+        underlyingTokens: [campaign.target.collateral.address],
       };
     }
     default: {

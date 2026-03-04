@@ -1,4 +1,3 @@
-const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');

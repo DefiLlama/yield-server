@@ -1,7 +1,6 @@
 const utils = require('../utils');
 const data = require('./farms');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
 const BigNumber = require('bignumber.js');
 
 const abi = [{
@@ -97,6 +96,7 @@ const main = async () => {
             poolList[i]['project'] = 'crowdswap';
             poolList[i]['pool'] = item[i].farmAddress;
             poolList[i]['rewardTokens'] = [item[i].rewardToken.address];
+            poolList[i]['underlyingTokens'] = [item[i].pairAddress];
           }
     }
     return poolList;

@@ -85,6 +85,7 @@ const getVaultStats = async(vaults, chain = 'monad') => {
             totalSupplied: supplies[i],
             totalBorrowed: Number(totalAssets[i]) - Number(liquidity[i] || 0),
             tvl: liquidity[i],
+            underlying: underlyings[i],
         };
         return acc;
     }, {});
@@ -170,6 +171,7 @@ const apy = async() => {
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
                 totalSupplyUsd: formatAmount(stats.totalSupplied, 6),
                 totalBorrowUsd: formatAmount(stats.totalBorrowed, 6),
+                underlyingTokens: stats.underlying ? [stats.underlying] : undefined,
             };
         })
     );

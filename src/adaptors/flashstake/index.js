@@ -28,7 +28,7 @@ const processItems = async (data) => {
           blockTimestamp: poolDataItem['blockTimestamp']
        */
 
-      returnPayload.push({
+      const poolObj = {
         pool: `${poolDataItem['network']}:${poolDataItem['strategyAddress']}`.toLowerCase(),
         chain: poolDataItem['network'],
         project: 'flashstake',
@@ -36,7 +36,11 @@ const processItems = async (data) => {
         tvlUsd: tvlInUSD,
         apy: parseFloat(poolDataItem["apr"]),
         poolMeta: "1min lock"
-      })
+      };
+      if (poolDataItem['principalToken']['address']) {
+        poolObj.underlyingTokens = [poolDataItem['principalToken']['address']];
+      }
+      returnPayload.push(poolObj)
     }
   }
 

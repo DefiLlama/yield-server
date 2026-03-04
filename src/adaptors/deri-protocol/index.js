@@ -9,6 +9,7 @@ const pools = [
     chain: "bsc",
     chainId: "56",
     btoken: "BUSD",
+    underlyingToken: "0xe9e7cea3dedca5984780bafc599bd69add087d56",
   },
   {
     pool: "0xDE3447Eb47EcDf9B5F90E7A6960a14663916CeE8",
@@ -16,6 +17,7 @@ const pools = [
     chain: "arbitrum",
     chainId: "42161",
     btoken: "USDC",
+    underlyingToken: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
   }
 ]
 const poolsFunction = async () => {
@@ -32,6 +34,7 @@ const poolsFunction = async () => {
           project: item.project,
           apyReward: apy * 100,
           symbol: token.bTokenSymbol,
+          underlyingToken: item.underlyingToken,
         })
       }
     })
@@ -55,7 +58,8 @@ const poolsFunction = async () => {
         "tvlUsd": Number(tvl.output) / 10 ** 18,
         "symbol": apyItem.symbol,
         "apyReward": apyItem.apyReward,
-        "rewardTokens":["0xa487bf43cf3b10dffc97a9a744cbb7036965d3b9"]
+        "rewardTokens":["0xa487bf43cf3b10dffc97a9a744cbb7036965d3b9"],
+        "underlyingTokens": [apyItem.underlyingToken],
       }
       return poolObj
     })

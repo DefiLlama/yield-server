@@ -1,9 +1,9 @@
-const superagent = require('superagent');
+const axios = require('axios');
 
 const YOGOLD_ADDRESS = '0x586675a3a46b008d8408933cf42d8ff6c9cc61a1';
 
 exports.getVaultReward = async (url) => {
-  const response = (await superagent.get(url)).body;
+  const response = (await axios.get(url)).data;
 
   // Check if data exists and is an array
   if (!response || !Array.isArray(response)) {

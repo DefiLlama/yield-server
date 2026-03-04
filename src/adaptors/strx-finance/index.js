@@ -3,6 +3,8 @@ const { fetchURL } = require('../../helper/utils');
 
 const STAKING_ADDRESS = 'TGrdCu9fu8csFmQptVE25fDzFmPU9epamH';
 const REVENUE_ADDRESS = 'TWisShDfhZGXLy1s5uoWjyyucSKwfkohu7';
+// WTRX (Wrapped TRX) on Tron
+const WTRX = 'TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR';
 
 const getCurrentStake = async () => {
   const postdata = {
@@ -46,7 +48,8 @@ const poolsFunction = async () => {
     project: 'strx-finance',
     symbol: utils.formatSymbol('TRX'),
     tvlUsd: dataTvl,
-    apyBase: dailyAPY > 0 ? Number(dailyAPY) : 0
+    apyBase: dailyAPY > 0 ? Number(dailyAPY) : 0,
+    underlyingTokens: [WTRX],
   }];
 };
 

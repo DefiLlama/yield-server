@@ -16,6 +16,8 @@ const config = {
   },
   bsc: {
     usdo: '0x302e52AFf9815B9D1682473DBFB9C74F9B750AA8',
+    // uncomment if cannot be resolve dim
+    // usdo: 'coingecko: openeden-open-dollar' 
     cusdo: '0x64748ea3E31d0B7916F0fF91b017B9f404DED8eF',
   },
   solana: {

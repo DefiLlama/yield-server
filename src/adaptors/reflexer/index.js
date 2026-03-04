@@ -120,6 +120,7 @@ const main = async () => {
       chain: 'ethereum',
       apy: 0,
       tvlUsd: tvlUsd.toNumber(),
+      underlyingTokens: [ETH],
       // borrow fields
       apyBaseBorrow: ((stabilityFee - 1) / 1) * 100,
       totalSupplyUsd: tvlUsd.toNumber(),

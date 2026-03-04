@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const { ethers } = require('ethers');
 
 const BOLD_TOKEN = '0x6440f144b7e50d6a8439336510312d2f54beb01d';
@@ -331,7 +331,7 @@ const ABIS = {
 
   const getPrices = async (addresses) => {
     const req = addresses.map((address) => `ethereum:${address}`).join(',').toLowerCase();
-    const prices = (await superagent.get(`https://coins.llama.fi/prices/current/${req}`)).body.coins;
+    const prices = (await axios.get(`https://coins.llama.fi/prices/current/${req}`)).data.coins;
 
     const pricesObj = Object.fromEntries(
       Object.entries(prices).map(([address, priceData]) => [address.split(':')[1].toLowerCase(), priceData.price])

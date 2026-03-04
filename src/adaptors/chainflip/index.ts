@@ -1,11 +1,11 @@
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const getPool = async () => {
-  const apyData = await superagent.get(
+  const apyData = await axios.get(
     'https://explorer-service-processor.chainflip.io/defi-llama/yield'
   );
-  const [pool] = apyData.body;
+  const [pool] = apyData.data;
 
   const btcPool = {
     pool: 'chainflip-boost-btc',
@@ -15,6 +15,7 @@ const getPool = async () => {
     tvlUsd: pool.tvl,
     apy: pool.apy,
     url: 'https://scan.chainflip.io/pools/Btc/boost',
+    underlyingTokens: ['coingecko:bitcoin'],
   };
 
   return [btcPool];

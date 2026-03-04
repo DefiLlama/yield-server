@@ -219,7 +219,7 @@ const apy = async () => {
     `ethereum:${liquidETH}`,
     `ethereum:${liquidUSD}`,
     `ethereum:${WBTC}`,
-    `hyperliquid:${HYPE}`,
+    `hyperliquid:0x0000000000000000000000000000000000000000`,
   ];
   const pricesRes = await axios.get(
     `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
@@ -231,9 +231,7 @@ const apy = async () => {
     pricesRes.data.coins[`ethereum:${liquidUSD}`]?.price || 1;
   const wbtcPrice = pricesRes.data.coins[`ethereum:${WBTC}`]?.price || 0;
   const hypePrice =
-    pricesRes.data.coins[
-      'hyperliquid:0x0000000000000000000000000000000000000000'
-    ]?.price || 0;
+    pricesRes.data.coins[`hyperliquid:0x0000000000000000000000000000000000000000`]?.price || 0;
 
   // Calculate liquidETH APY
   const liquidETHRateCurrent = Number(liquidETHRates[0].output);
@@ -349,6 +347,7 @@ const apy = async () => {
       apyBase: liquidETHApr1d > 0 ? liquidETHApr1d : liquidETHApr7d,
       apyBase7d: liquidETHApr7d,
       underlyingTokens: [weETH],
+      searchTokenOverride: liquidETH,
       url: 'https://app.ether.fi/liquid/eth',
     },
     {
@@ -360,6 +359,7 @@ const apy = async () => {
       apyBase: liquidUSDApr1d > 0 ? liquidUSDApr1d : liquidUSDApr7d,
       apyBase7d: liquidUSDApr7d,
       underlyingTokens: [USDC],
+      searchTokenOverride: liquidUSD,
       url: 'https://app.ether.fi/liquid/usd',
     },
     {
@@ -371,6 +371,7 @@ const apy = async () => {
       apyBase: liquidBTCApr1d > 0 ? liquidBTCApr1d : liquidBTCApr7d,
       apyBase7d: liquidBTCApr7d,
       underlyingTokens: [WBTC],
+      searchTokenOverride: liquidBTC,
       url: 'https://app.ether.fi/liquid/btc',
     },
     {
@@ -382,6 +383,7 @@ const apy = async () => {
       apyBase: liquidHYPEApr1d > 0 ? liquidHYPEApr1d : liquidHYPEApr7d,
       apyBase7d: liquidHYPEApr7d > 0 ? liquidHYPEApr7d : undefined,
       underlyingTokens: [HYPE, beHYPE],
+      searchTokenOverride: liquidHYPE,
       url: 'https://app.ether.fi/liquid/hype',
     },
   ];
