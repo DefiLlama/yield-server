@@ -1,22 +1,14 @@
-const SQS = require('aws-sdk/clients/sqs');
+const sdk = require('@defillama/sdk');
 
 const {
-  scanTransfers,
-  deriveMetrics,
-  getLatestBlock,
+  fetchHolders,
   parsePoolField,
   isValidEvmAddress,
-  resolveIndexerChain,
-} = require('../utils/holderScanner');
-const {
-  getAllHolderStates,
-  getPoolsWithoutHolderState,
-  getHolderState,
-  insertHolder,
-  upsertHolderState,
-} = require('../queries/holder');
+  resolveChainId,
+} = require('../utils/holderApi');
+const { getEligiblePools, insertHolder } = require('../queries/holder');
 
-const CONCURRENCY = 5;
+const BATCH_SIZE = 10;
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -24,197 +16,132 @@ module.exports.handler = async (event, context) => {
 };
 
 const main = async () => {
-  console.log('START DAILY HOLDER UPDATE');
+  console.log('START DAILY HOLDER PROCESSING');
 
-  try {
-  // 1. Get all pools that already have holder state (without balanceMaps)
-  const pools = await getAllHolderStates();
-  console.log(`${pools.length} pools with existing holder state`);
+  // 1. Get all pools with TVL >= $10k
+  const pools = await getEligiblePools();
+  console.log(`Found ${pools.length} eligible pools`);
 
-  // 2. Pre-parse pool fields (avoids double-parsing later)
-  const parsedPools = pools.map((p) => ({ ...p, ...parsePoolField(p.pool) }));
+  // 2. Filter to valid EVM pools on supported chains and resolve chain IDs
+  const tasks = [];
+  for (const pool of pools) {
+    const { tokenAddress, chain } = parsePoolField(pool.pool);
+    if (!chain) continue;
+    if (!isValidEvmAddress(tokenAddress)) continue;
+    const chainId = resolveChainId(chain);
+    if (chainId == null) continue;
 
-  // Get current block per chain (dedupe chain lookups)
-  const chainBlocks = {};
-  const chains = [...new Set(parsedPools.map((p) => p.chain).filter(Boolean))];
-  await Promise.all(
-    chains.map(async (chain) => {
-      if (!resolveIndexerChain(chain)) return;
-      try {
-        chainBlocks[chain] = await getLatestBlock(chain);
-      } catch (e) {
-        console.log(`Failed to get block for ${chain}: ${e.message}`);
-      }
-    })
+    tasks.push({
+      configID: pool.configID,
+      chain,
+      chainId,
+      tokenAddress,
+      tvlUsd: pool.tvlUsd,
+    });
+  }
+
+  console.log(
+    `${tasks.length} valid EVM pools (${pools.length - tasks.length} filtered out)`
   );
 
-  // 3. Incremental update with concurrency batching
-  // Truncate to midnight UTC so the holder table has exactly 1 row per configID/day
+  // 3. Batch totalSupply calls per chain for top10Pct denominator
+  const chainGroups = {};
+  for (const t of tasks) {
+    if (!chainGroups[t.chain]) chainGroups[t.chain] = [];
+    chainGroups[t.chain].push(t);
+  }
+
+  const totalSupplyMap = {};
+  for (const [chain, group] of Object.entries(chainGroups)) {
+    try {
+      const calls = group.map((t) => ({
+        target: t.tokenAddress,
+        params: [],
+      }));
+      const result = await sdk.api.abi.multiCall({
+        abi: 'erc20:totalSupply',
+        calls,
+        chain,
+      });
+      for (const item of result.output) {
+        if (item.output) {
+          totalSupplyMap[`${item.input.target.toLowerCase()}-${chain}`] =
+            BigInt(item.output);
+        }
+      }
+    } catch (err) {
+      console.log(`totalSupply multicall failed for ${chain}: ${err.message}`);
+    }
+  }
+
+  // 4. Process pools in batches with concurrency
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
-  const dayTimestamp = today.toISOString();
-  let updated = 0;
-  let skipped = 0;
+
+  let success = 0;
   let failed = 0;
 
-  // Process pools in batches of CONCURRENCY
-  for (let i = 0; i < parsedPools.length; i += CONCURRENCY) {
-    const batch = parsedPools.slice(i, i + CONCURRENCY);
+  for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+    const batch = tasks.slice(i, i + BATCH_SIZE);
     const results = await Promise.allSettled(
-      batch.map(async (pool) => {
-        const { tokenAddress, chain } = pool;
-        if (!chain || !chainBlocks[chain] || !resolveIndexerChain(chain)) {
-          return 'skipped';
-        }
-        if (!isValidEvmAddress(tokenAddress)) {
-          return 'skipped';
-        }
-
-        const fromBlock = Number(pool.lastBlock) + 1;
-        const toBlock = chainBlocks[chain];
-
-        if (fromBlock >= toBlock) {
-          return 'skipped';
-        }
-
-        // Lazy-load this pool's balanceMap individually to avoid OOM
-        const state = await getHolderState(pool.configID);
-        const existingMap = state?.balanceMap || {};
-
-        // Scan only new blocks
-        const updatedMap = await scanTransfers(
-          chain,
-          tokenAddress,
-          fromBlock,
-          toBlock,
-          existingMap
-        );
-
-        // Skip pools with 0 holders (likely non-ERC20 / incompatible pool type)
-        if (Object.keys(updatedMap).length === 0) {
-          console.log(`Skipping ${tokenAddress}: 0 holders (likely non-ERC20 pool)`);
-          return 'skipped';
-        }
-
-        const metrics = deriveMetrics(updatedMap, pool.tvlUsd);
-
-        // Store snapshot + updated state
-        await insertHolder({
-          configID: pool.configID,
-          timestamp: dayTimestamp,
-          holderCount: metrics.holderCount,
-          avgPositionUsd: metrics.avgPositionUsd,
-          top10Pct: metrics.top10Pct,
-          top10Holders: metrics.top10Holders,
-          medianPositionUsd: metrics.medianPositionUsd,
-        });
-
-        await upsertHolderState(pool.configID, toBlock, updatedMap);
-        return 'updated';
-      })
+      batch.map((t) => processPool(t, totalSupplyMap, today))
     );
 
-    for (let j = 0; j < results.length; j++) {
-      const result = results[j];
-      if (result.status === 'fulfilled') {
-        if (result.value === 'updated') updated++;
-        else skipped++;
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        success++;
       } else {
-        const p = batch[j];
-        console.log(`Failed ${p.tokenAddress} on ${p.chain} (${p.configID}): ${result.reason?.message}`);
         failed++;
+        console.log(`Pool failed: ${r.reason?.message || r.reason}`);
       }
-    }
-
-    const total = updated + skipped + failed;
-    if (total % (CONCURRENCY * 20) === 0 || i + CONCURRENCY >= parsedPools.length) {
-      console.log(`Progress: ${total}/${parsedPools.length} (${updated} updated, ${skipped} skipped, ${failed} failed)`);
     }
   }
 
   console.log(
-    `Daily update complete: ${updated} updated, ${skipped} skipped, ${failed} failed`
+    `DAILY HOLDER PROCESSING COMPLETE: ${success} success, ${failed} failed`
   );
-
-  // 4. Process NEW pools — always queue to SQS
-  const newPools = await getPoolsWithoutHolderState();
-  if (newPools.length > 0) {
-    console.log(`${newPools.length} new pools found`);
-
-    const queueUrl = process.env.HOLDER_QUEUE_URL;
-    if (!queueUrl) {
-      console.log('HOLDER_QUEUE_URL not set — processing new pools inline (max 5)');
-      // Fallback: process a small number inline
-      for (const pool of newPools.slice(0, 5)) {
-        try {
-          const { tokenAddress, chain } = parsePoolField(pool.pool);
-          if (!chain || !chainBlocks[chain] || !resolveIndexerChain(chain)) continue;
-          if (!isValidEvmAddress(tokenAddress)) continue;
-
-          const toBlock = chainBlocks[chain];
-          const balanceMap = await scanTransfers(chain, tokenAddress, 0, toBlock);
-
-          if (Object.keys(balanceMap).length === 0) {
-            console.log(`New pool ${tokenAddress}: 0 holders — marking processed`);
-            await upsertHolderState(pool.configID, toBlock, {});
-            continue;
-          }
-
-          const metrics = deriveMetrics(balanceMap, pool.tvlUsd);
-          await insertHolder({
-            configID: pool.configID,
-            timestamp: dayTimestamp,
-            holderCount: metrics.holderCount,
-            avgPositionUsd: metrics.avgPositionUsd,
-            top10Pct: metrics.top10Pct,
-            top10Holders: metrics.top10Holders,
-            medianPositionUsd: metrics.medianPositionUsd,
-          });
-          await upsertHolderState(pool.configID, toBlock, balanceMap);
-        } catch (e) {
-          console.log(`Failed new pool ${pool.configID}: ${e.message}`);
-        }
-      }
-    } else {
-      // Queue all new pools to SQS via sendMessageBatch
-      const sqs = new SQS();
-      const messages = [];
-
-      for (const pool of newPools) {
-        const { tokenAddress, chain } = parsePoolField(pool.pool);
-        if (!chain || !resolveIndexerChain(chain)) continue;
-        if (!isValidEvmAddress(tokenAddress)) continue;
-
-        messages.push({
-          Id: pool.configID.replace(/-/g, ''),
-          MessageBody: JSON.stringify({
-            configID: pool.configID,
-            chain,
-            tokenAddress,
-            tvlUsd: pool.tvlUsd,
-          }),
-        });
-      }
-
-      // sendMessageBatch supports max 10 per call
-      let sqsQueued = 0;
-      for (let i = 0; i < messages.length; i += 10) {
-        const batch = messages.slice(i, i + 10);
-        const result = await sqs
-          .sendMessageBatch({ QueueUrl: queueUrl, Entries: batch })
-          .promise();
-        if (result.Failed?.length > 0) {
-          console.error(`SQS: ${result.Failed.length}/${batch.length} messages failed`,
-            result.Failed.map(f => f.Id));
-        }
-        sqsQueued += result.Successful?.length || 0;
-      }
-      console.log(`Queued ${sqsQueued}/${messages.length} new pools to SQS`);
-    }
-  }
-
-  } catch (err) {
-    console.error('DAILY HOLDER UPDATE FAILED:', err.message, err.stack);
-    throw err;
-  }
 };
+
+async function processPool(task, totalSupplyMap, today) {
+  const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
+
+  // Fetch holder data from external API
+  const data = await fetchHolders(chainId, tokenAddress);
+  const holderCount = data.total_holders;
+
+  if (holderCount == null || holderCount === 0) return;
+
+  const avgPositionUsd = holderCount > 0 ? tvlUsd / holderCount : null;
+
+  // Compute top10Pct from deltas + totalSupply
+  let top10Pct = null;
+  let top10Holders = null;
+  const supplyKey = `${tokenAddress.toLowerCase()}-${chain}`;
+  const totalSupply = totalSupplyMap[supplyKey];
+
+  if (data.deltas && data.deltas.length > 0 && totalSupply && totalSupply > 0n) {
+    const top10Balance = data.deltas.reduce(
+      (sum, d) => sum + BigInt(d.balance || d.amount || 0),
+      0n
+    );
+    top10Pct = Number((top10Balance * 10000n) / totalSupply) / 100;
+
+    top10Holders = data.deltas.map((d) => ({
+      address: d.address || d.owner,
+      balance: String(d.balance || d.amount || 0),
+      balancePct:
+        totalSupply > 0n
+          ? Number((BigInt(d.balance || d.amount || 0) * 10000n) / totalSupply) / 100
+          : 0,
+    }));
+  }
+
+  await insertHolder({
+    configID,
+    timestamp: today.toISOString(),
+    holderCount,
+    avgPositionUsd,
+    top10Pct,
+    top10Holders,
+  });
+}
