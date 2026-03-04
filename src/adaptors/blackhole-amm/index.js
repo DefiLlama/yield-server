@@ -192,10 +192,7 @@ const getGaugeApy = async () => {
     ),
   ];
 
-  const maxSize = 50;
-  const pages = Math.ceil(tokens.length / maxSize);
-
-  const [rewardRateR, poolSupplyR, totalSupplyR, pricesResps] = await Promise.all([
+  const [rewardRateR, poolSupplyR, totalSupplyR] = await Promise.all([
     sdk.api.abi.multiCall({
       calls: validGauges.map((i) => ({ target: i })),
       abi: abiGauge.find((m) => m.name === 'rewardRate'),
@@ -214,21 +211,13 @@ const getGaugeApy = async () => {
       chain: CHAIN,
       permitFailure: true,
     }),
-    Promise.all([...Array(pages).keys()].map(async (p) => {
-      const x = tokens.slice(p * maxSize, maxSize * (p + 1)).map((i) => `${CHAIN}:${i}`).join(',').replaceAll('/', '');
-      const resp = await axios.get(`https://coins.llama.fi/prices/current/${x}`, { timeout: 10_000 }).catch(() => ({}));
-      return resp?.data?.coins ?? {};
-    })),
   ]);
 
   const rewardRate = rewardRateR.output.map((o) => o.output);
   const poolSupply = poolSupplyR.output.map((o) => o.output);
   const totalSupply = totalSupplyR.output.map((o) => o.output);
 
-  let prices = {};
-  for (const p of pricesResps) {
-    prices = { ...prices, ...p };
-  }
+  const prices = (await utils.getPrices(tokens, CHAIN)).pricesByAddress;
 
 
   // fallback for BLACK price if not on defillama
