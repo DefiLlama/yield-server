@@ -148,8 +148,8 @@ async function getPoolVolumes(timestamp = null) {
         const t1 = x.find((i) => i.input.target === p.token1.id);
         return {
             ...p,
-            reserve0: t0 && t0.output ? t0.output / `1e${p.token0.decimals}` : p.reserve0,
-            reserve1: t1 && t1.output ? t1.output / `1e${p.token1.decimals}` : p.reserve1,
+            reserve0: t0 && t0.output ? t0.output / 10 ** Number(p.token0.decimals) : p.reserve0,
+            reserve1: t1 && t1.output ? t1.output / 10 ** Number(p.token1.decimals) : p.reserve1,
         };
     });
 
