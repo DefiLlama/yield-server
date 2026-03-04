@@ -113,21 +113,32 @@ async function getPoolVolumes(timestamp = null) {
     );
 
     // pull data
-    let dataNow = await request(SUBGRAPH, query.replace('<PLACEHOLDER>', block));
-    dataNow = dataNow.pools;
+    const dataNowResp = await request(SUBGRAPH, query.replace('<PLACEHOLDER>', block)).catch((e) => {
+        console.error('Failed to fetch dataNow:', e.message);
+        return { pools: [] };
+    });
+    let dataNow = dataNowResp.pools;
 
     // pull 24h offset data to calculate fees from swap volume
     let queryPriorC = queryPrior;
-    let dataPrior = await request(
+    const dataPriorResp = await request(
         SUBGRAPH,
         queryPriorC.replace('<PLACEHOLDER>', blockPrior)
-    );
-    dataPrior = dataPrior.pools;
+    ).catch((e) => {
+        console.error('Failed to fetch dataPrior:', e.message);
+        return { pools: [] };
+    });
+    let dataPrior = dataPriorResp.pools;
 
     // 7d offset
-    const dataPrior7d = (
-        await request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
-    ).pools;
+    const dataPrior7dResp = await request(
+        SUBGRAPH,
+        queryPriorC.replace('<PLACEHOLDER>', blockPrior7d)
+    ).catch((e) => {
+        console.error('Failed to fetch dataPrior7d:', e.message);
+        return { pools: [] };
+    });
+    const dataPrior7d = dataPrior7dResp.pools;
     // Use on-chain balances for accurate CL TVL
     const balanceCalls = [];
     for (const pool of dataNow) {
@@ -285,29 +296,10 @@ const getGaugeApy = async () => {
         ),
     ];
 
-    const maxSize = 50;
-    const pages = Math.ceil(tokens.length / maxSize);
-    let pricesA = [];
-    let x = '';
-    for (const pg of [...Array(pages).keys()]) {
-        x = tokens
-            .slice(pg * maxSize, maxSize * (pg + 1))
-            .map((i) => `${CHAIN}:${i}`)
-            .join(',')
-            .replaceAll('/', '');
-        pricesA = [
-            ...pricesA,
-            (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
-                .coins,
-        ];
-    }
-    let prices = {};
-    for (const p of pricesA.flat()) {
-        prices = { ...prices, ...p };
-    }
+    const { pricesByAddress: prices } = await utils.getPrices(tokens, CHAIN);
 
     // fallback for BLACK price if not on defillama
-    if (prices[`${CHAIN}:${BLACK}`]) {
+    if (!prices[BLACK.toLowerCase()]) {
         try {
             const basicSubgraph = 'https://api.goldsky.com/api/public/project_cm8gyxv0x02qv01uphvy69ey6/subgraphs/blackhole-basic-pools-avalanche-c-chain-new-1/avax-basic/gn';
             const blackUsdcPool = '0x0d9fd6dd9b1ff55fb0a9bb0e5f1b6a2d65b741a3';
@@ -316,14 +308,21 @@ const getGaugeApy = async () => {
                 gql`
                 {
                     pair(id: "${blackUsdcPool}") {
+                        token0 { id }
+                        token1 { id }
+                        token0Price
                         token1Price
                     }
                 }
                 `
             );
 
-            if (pair && pair.token1Price) {
-                prices[`${CHAIN}:${BLACK}`] = { price: Number(pair.token1Price) };
+            if (pair) {
+                if (pair.token1.id.toLowerCase() === BLACK.toLowerCase() && pair.token1Price) {
+                    prices[BLACK.toLowerCase()] = Number(pair.token1Price);
+                } else if (pair.token0.id.toLowerCase() === BLACK.toLowerCase() && pair.token0Price) {
+                    prices[BLACK.toLowerCase()] = Number(pair.token0Price);
+                }
             }
         } catch (e) {
             console.error('Failed to fetch fallback BLACK price:', e.message);
@@ -343,8 +342,8 @@ const getGaugeApy = async () => {
         const r0 = balT0 && balT0.output ? balT0.output / 10 ** Number(p.token0.decimals) : 0;
         const r1 = balT1 && balT1.output ? balT1.output / 10 ** Number(p.token1.decimals) : 0;
 
-        const p0 = prices[`${CHAIN}:${p.token0.id}`]?.price || 0;
-        const p1 = prices[`${CHAIN}:${p.token1.id}`]?.price || 0;
+        const p0 = prices[p.token0.id.toLowerCase()] || 0;
+        const p1 = prices[p.token1.id.toLowerCase()] || 0;
 
         const tvlUsd = r0 * p0 + r1 * p1;
 
@@ -358,7 +357,7 @@ const getGaugeApy = async () => {
 
         const activeTvlUsd = activeAmounts.amount0 * p0 + activeAmounts.amount1 * p1;
 
-        const blackPrice = prices[`${CHAIN}:${BLACK}`]?.price || 0;
+        const blackPrice = prices[BLACK.toLowerCase()] || 0;
         const apyReward =
             activeTvlUsd > 0 && blackPrice > 0 && rewardRates[i] && rewardRates[i] !== '0'
                 ? ((rewardRates[i] / 1e18) * 86400 * 365 * blackPrice * 100) / activeTvlUsd
