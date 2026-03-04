@@ -382,9 +382,9 @@ const main = async (body) => {
         ? p.rewardTokens.filter(Boolean)
         : null,
       searchTokenOverride: p.searchTokenOverride || null,
-      token: p.token
-        || extractTokenFromPoolId(p.pool)
-        || null,
+      token: ('token' in p)
+        ? (p.token || null)
+        : (extractTokenFromPoolId(p.pool) || null),
     };
   });
 
