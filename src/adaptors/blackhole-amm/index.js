@@ -63,37 +63,31 @@ async function getPoolVolumes(timestamp = null) {
     604800
   );
 
-  // pull data
-  let dataNow = [];
-  try {
-  dataNow = await request(SUBGRAPH, query.replace('<PLACEHOLDER>', block));
-  dataNow = dataNow.pairs;
-  } catch (err) {
-    console.log("Error fetching dataNow: ", err);
-    return {};
-  }
+  // pull data in parallel
+  const [dataNowResp, dataPriorResp, dataPrior7dResp] = await Promise.all([
+    request(SUBGRAPH, query.replace('<PLACEHOLDER>', block)).catch((err) => {
+      console.log('Error fetching dataNow: ', err);
+      return { pairs: [] };
+    }),
+    request(SUBGRAPH, queryPrior.replace('<PLACEHOLDER>', blockPrior)).catch(
+      (err) => {
+        console.log('Error fetching dataPrior: ', err);
+        return { pairs: [] };
+      }
+    ),
+    request(SUBGRAPH, queryPrior.replace('<PLACEHOLDER>', blockPrior7d)).catch(
+      (err) => {
+        console.log('Error fetching dataPrior7d: ', err);
+        return { pairs: [] };
+      }
+    ),
+  ]);
 
-  // pull 24h offset data
-  let queryPriorC = queryPrior;
-  let dataPrior = [];
-  try {
-    dataPrior = (await request(
-      SUBGRAPH,
-      queryPriorC.replace('<PLACEHOLDER>', blockPrior)
-    )).pairs;
-  } catch (err) {
-    console.log("Error fetching dataPrior: ", err);
-  }
+  const dataNow = dataNowResp.pairs;
+  const dataPrior = dataPriorResp.pairs;
+  const dataPrior7d = dataPrior7dResp.pairs;
 
-  // 7d offset
-  let dataPrior7d = [];
-  try {
-    dataPrior7d = (
-      await request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
-    ).pairs;
-  } catch (err) {
-    console.log("Error fetching dataPrior7d: ", err);
-  }
+  if (!dataNow.length) return {};
 
   // calculate tvl
   const pools = {};
@@ -108,7 +102,7 @@ async function getPoolVolumes(timestamp = null) {
     const volumeUsd1d = p1d ? Number(p.untrackedVolumeUSD) - Number(p1d.untrackedVolumeUSD) : Number(p.untrackedVolumeUSD);
     const volumeUsd7d = p7d ? Number(p.untrackedVolumeUSD) - Number(p7d.untrackedVolumeUSD) : Number(p.untrackedVolumeUSD);
 
-    const tvlUsd = p.reserveUSD;
+    const tvlUsd = Number(p.reserveUSD);
     const apyBase = tvlUsd > 0 ? (feesUSD1d * 365 / tvlUsd) * 100 : 0;
     const apyBase7d = tvlUsd > 0 ? (feesUSD7d * 365 / 7 / tvlUsd) * 100 : 0;
     const url = `https://blackhole.xyz/deposit?token0=${p.token0.id}&token1=${p.token1.id}&pair=${p.id}&type=Basic%20${p.stable ? 'Stable' : 'Volatile'}`;
@@ -154,36 +148,27 @@ const getGaugeApy = async () => {
     })
   ).output.map((o) => o.output);
 
-  const metaData = (
-    await sdk.api.abi.multiCall({
-      calls: allPools.map((i) => ({
-        target: i,
-      })),
+  const [metaDataR, symbolsR, gaugesR, subgraphPairsResp] = await Promise.all([
+    sdk.api.abi.multiCall({
+      calls: allPools.map((i) => ({ target: i })),
       abi: abiPool.find((m) => m.name === 'metadata'),
       chain: CHAIN,
-    })
-  ).output.map((o) => o.output);
-
-  const symbols = (
-    await sdk.api.abi.multiCall({
-      calls: allPools.map((i) => ({
-        target: i,
-      })),
+    }),
+    sdk.api.abi.multiCall({
+      calls: allPools.map((i) => ({ target: i })),
       abi: abiPool.find((m) => m.name === 'symbol'),
       chain: CHAIN,
-    })
-  ).output.map((o) => o.output);
-
-  const gauges = (
-    await sdk.api.abi.multiCall({
-      calls: allPools.map((i) => ({
-        target: gaugeManager,
-        params: [i],
-      })),
+    }),
+    sdk.api.abi.multiCall({
+      calls: allPools.map((i) => ({ target: gaugeManager, params: [i] })),
       abi: abiVoter.find((m) => m.name === 'gauges'),
       chain: CHAIN,
-    })
-  ).output.map((o) => o.output);
+    }),
+  ]);
+
+  const metaData = metaDataR.output.map((o) => o.output);
+  const symbols = symbolsR.output.map((o) => o.output);
+  const gauges = gaugesR.output.map((o) => o.output);
 
   // remove pools without valid gauges
   const validIndices = [];
@@ -198,37 +183,6 @@ const getGaugeApy = async () => {
     }
   });
 
-  const rewardRate = (
-    await sdk.api.abi.multiCall({
-      calls: validGauges.map((i) => ({
-        target: i,
-      })),
-      abi: abiGauge.find((m) => m.name === 'rewardRate'),
-      chain: CHAIN,
-      permitFailure: true,
-    })
-  ).output.map((o) => o.output);
-
-  const poolSupply = (
-    await sdk.api.abi.multiCall({
-      calls: validPools.map((i) => ({ target: i })),
-      chain: CHAIN,
-      abi: 'erc20:totalSupply',
-      permitFailure: true,
-    })
-  ).output.map((o) => o.output);
-
-  const totalSupply = (
-    await sdk.api.abi.multiCall({
-      calls: validGauges.map((i) => ({
-        target: i,
-      })),
-      abi: abiGauge.find((m) => m.name === 'totalSupply'),
-      chain: CHAIN,
-      permitFailure: true,
-    })
-  ).output.map((o) => o.output);
-
   const tokens = [
     ...new Set(
       metaData
@@ -240,26 +194,39 @@ const getGaugeApy = async () => {
 
   const maxSize = 50;
   const pages = Math.ceil(tokens.length / maxSize);
-  let pricesA = [];
-  let x = '';
-  for (const p of [...Array(pages).keys()]) {
-    x = tokens
-      .slice(p * maxSize, maxSize * (p + 1))
-      .map((i) => `${CHAIN}:${i}`)
-      .join(',')
-      .replaceAll('/', '');
-    try {
-      const resp = await axios.get(
-        `https://coins.llama.fi/prices/current/${x}`,
-        { timeout: 10_000 }
-      );
-      if (resp?.data?.coins) pricesA = [...pricesA, resp.data.coins];
-    } catch (e) {
-      console.error('Failed to fetch token prices page:', e.message);
-    }
-  }
+
+  const [rewardRateR, poolSupplyR, totalSupplyR, pricesResps] = await Promise.all([
+    sdk.api.abi.multiCall({
+      calls: validGauges.map((i) => ({ target: i })),
+      abi: abiGauge.find((m) => m.name === 'rewardRate'),
+      chain: CHAIN,
+      permitFailure: true,
+    }),
+    sdk.api.abi.multiCall({
+      calls: validPools.map((i) => ({ target: i })),
+      chain: CHAIN,
+      abi: 'erc20:totalSupply',
+      permitFailure: true,
+    }),
+    sdk.api.abi.multiCall({
+      calls: validGauges.map((i) => ({ target: i })),
+      abi: abiGauge.find((m) => m.name === 'totalSupply'),
+      chain: CHAIN,
+      permitFailure: true,
+    }),
+    Promise.all([...Array(pages).keys()].map(async (p) => {
+      const x = tokens.slice(p * maxSize, maxSize * (p + 1)).map((i) => `${CHAIN}:${i}`).join(',').replaceAll('/', '');
+      const resp = await axios.get(`https://coins.llama.fi/prices/current/${x}`, { timeout: 10_000 }).catch(() => ({}));
+      return resp?.data?.coins ?? {};
+    })),
+  ]);
+
+  const rewardRate = rewardRateR.output.map((o) => o.output);
+  const poolSupply = poolSupplyR.output.map((o) => o.output);
+  const totalSupply = totalSupplyR.output.map((o) => o.output);
+
   let prices = {};
-  for (const p of pricesA.flat()) {
+  for (const p of pricesResps) {
     prices = { ...prices, ...p };
   }
 
