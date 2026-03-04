@@ -46,11 +46,20 @@ async function getRewardData(pool, reward) {
   return { apr };
 }
 
+async function getTotalAssets(chain, address) {
+  const { output } = await sdk.api.abi.call({
+    chain: chain.toLowerCase(),
+    target: address,
+    abi: 'function totalAssets() view returns (uint256)',
+  });
+  return output / CONFIG.SCALAR;
+}
+
 async function getChainDataSEUR0(chainConfig) {
-  const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.SEUR0);
+  const assets = await getTotalAssets(chainConfig.CHAIN, chainConfig.SEUR0);
   // fetches the price of EUROC (Circle's euro stablecoin) as EUR0 price is not available
   const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.EUROC);
-  return { supply, price };
+  return { assets, price };
 }
 
 const apy = async () => {
@@ -67,7 +76,7 @@ const apy = async () => {
       chain: CONFIG.ETHEREUM.CHAIN,
       project: 'usual-eur0',
       symbol: CONFIG.SEUR0_SYMBOL,
-      tvlUsd: seur0Data.supply * seur0Data.price,
+      tvlUsd: seur0Data.assets * seur0Data.price,
       apyBase: apyRewardSEUR0, // weekly compounding for sEUR0 APY
       apyReward: 0, // No additional reward for sEUR0
       rewardTokens: [CONFIG.ETHEREUM.EUR0],

@@ -57,6 +57,15 @@ async function getTokenSupply(chain, address) {
   return output / CONFIG.SCALAR;
 }
 
+async function getTotalAssets(chain, address) {
+  const { output } = await sdk.api.abi.call({
+    chain: chain.toLowerCase(),
+    target: address,
+    abi: abi.find((a) => a.name === 'totalAssets'),
+  });
+  return output / CONFIG.SCALAR;
+}
+
 async function getTokenBalance(chain, address, user) {
   const params = {
     target: address,
@@ -103,7 +112,7 @@ async function getChainDataBUSD0(chainConfig) {
 }
 
 async function getChainDataSUSD0(chainConfig) {
-  const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.SUSD0);
+  const supply = await getTotalAssets(chainConfig.CHAIN, chainConfig.SUSD0);
   const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.USD0);
   return { supply, price };
 }
