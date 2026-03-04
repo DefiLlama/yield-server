@@ -18,7 +18,6 @@ yarn.lock
 .test-adapter-output/
 .claude/
 
-
 src/adaptors/maverick-protocol/
 src/adaptors/metavault-v3/
 src/adaptors/muuu-finance/navi-lending/

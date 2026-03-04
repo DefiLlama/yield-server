@@ -200,9 +200,6 @@ const getHolders = async (req, res) => {
         avgPositionUsd: Number.isFinite(h.avgPositionUsd)
           ? +h.avgPositionUsd.toFixed(0)
           : null,
-        medianPositionUsd: Number.isFinite(h.medianPositionUsd)
-          ? +h.medianPositionUsd.toFixed(0)
-          : null,
         top10Pct: Number.isFinite(h.top10Pct)
           ? +h.top10Pct.toFixed(2)
           : null,
