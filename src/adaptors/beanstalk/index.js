@@ -8,21 +8,28 @@ const chains = {
     startBlock: 15289934,
     startTime: 1659800414,
     api: "https://api.bean.money/silo/yield",
-    subgraph: "https://graph.node.bean.money/subgraphs/name/bean/",
+    subgraph: "https://graph.bean.money/bean_eth/",
     // For Bean tokens which are no longer tracked by a Beanstalk, specifies an end block
     oldTokens: {
       // 2022 Exploit
-      "0xdc59ac4fefa32293a95889dc396682858d52e5db": 14602790
-      // L2 migration? (future)
-      // "0xbea0000029ad1c77d3d5d23ba2d8893db9d1efab": possibly in the future
+      "0xdc59ac4fefa32293a95889dc396682858d52e5db": 14602790,
+      // 2024 L2 migration
+      "0xbea0000029ad1c77d3d5d23ba2d8893db9d1efab": 20921738
     }
+  },
+  "arbitrum": {
+    // L2 migration 10/10/2024
+    startBlock: 262211594,
+    startTime: 1728528834,
+    api: "https://api.bean.money/silo/yield",
+    subgraph: "https://graph.bean.money/bean/",
+    oldTokens: {}
   }
 };
 
 async function getPools(timestamp = null) {
-  return [
-    ...await getPoolsForChain("ethereum", timestamp)
-  ];
+  const pools = await Promise.all(Object.keys(chains).map(chain => getPoolsForChain(chain, timestamp)));
+  return pools.flat();
 }
 
 async function getPoolsForChain(chain, timestamp) {
@@ -42,12 +49,8 @@ async function getPoolsForChain(chain, timestamp) {
   // Query subgraph to identify each yield-bearing pool and its info
   const poolData = await request(chains[chain].subgraph, gql`
     {
-      beans(
-        where: {chain: "${chain}"}
-        ${block ? `block: {number: ${block}}` : ''}
-      ) {
+      beans${block ? `(block: {number: ${block}})` : ''} {
         id
-        beanstalk
         lastSeason
         pools {
           id
@@ -69,17 +72,18 @@ async function getPoolsForChain(chain, timestamp) {
 
   for (const bean of beans) {
 
-    const pools = bean.pools;
     // Get apy info
     const apy = await axios.post(chains[chain].api, {
-      beanstalk: bean.beanstalk,
       season: bean.lastSeason,
       emaWindows: [720],
-      tokens: pools.map(p => p.id),
+      tokens: bean.pools.map(p => p.id),
       options: {
         initType: 'NEW'
       }
     });
+    // Uses the available window if fewer datapoints were available
+    const yields = apy.data.yields[Object.keys(apy.data.yields)[0]];
+    const pools = bean.pools.filter(p => yields[p.id]);
 
     // Add results for each pool
     for (const pool of pools) {
@@ -92,7 +96,7 @@ async function getPoolsForChain(chain, timestamp) {
         symbol: `${tokens[0].name}-${tokens[1].name}`,
         tvlUsd: parseInt(pool.liquidityUSD),
         apyBase: 0,
-        apyReward: Math.round(apy.data.yields[720][pool.id].bean * 10000) / 100,
+        apyReward: Math.round(yields[pool.id].bean * 10000) / 100,
         rewardTokens: [bean.id],
         underlyingTokens: tokens.map(p => p.id.toLowerCase()),
         poolMeta: 'Beanstalk Silo'

@@ -1,13 +1,16 @@
 // https://www.starknetjs.com/docs/API/contract
 const { Contract, validateAndParseAddress, number, hash, uint256, } = require('starknet')
 const axios = require('axios')
-const plimit = require('p-limit')
 const { sliceIntoChunks, sleep } = require('./utils')
 
-const _rateLimited = plimit(1)
-const rateLimited = fn => (...args) => _rateLimited(() => fn(...args))
+let _pending = Promise.resolve()
+const rateLimited = fn => (...args) => {
+  const p = _pending.then(() => fn(...args))
+  _pending = p.catch(() => {})
+  return p
+}
 
-const STARKNET_RPC = 'https://starknet-mainnet.public.blastapi.io'
+const STARKNET_RPC = process.env.STARKNET_RPC
 
 function formCallBody({ abi, target, params = [], allAbi = [] }, id = 0) {
   if ((params || params === 0) && !Array.isArray(params))

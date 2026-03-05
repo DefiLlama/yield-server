@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
@@ -13,6 +13,7 @@ const BORROW_RATE = 'borrowRatePerBlock';
 const REWARD_SPEEDS = 'compSupplySpeeds';
 const BORROW_SPEEDS = 'compBorrowSpeeds';
 const TOTAL_BORROWS = 'totalBorrows';
+const TOTAL_RESERVES = 'totalReserves';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
 const SECONDS_PER_DAY = 86400;
@@ -49,12 +50,12 @@ const getRewards = async (markets, isBorrow) => {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -136,6 +137,12 @@ const lendingApy = async () => {
     ercDelegator
   );
 
+  const totalReserves = await multiCallMarkets(
+    allMarkets,
+    TOTAL_RESERVES,
+    ercDelegator
+  );
+
   const underlyingTokens = await multiCallMarkets(
     allMarkets,
     UNDERLYING,
@@ -170,11 +177,14 @@ const lendingApy = async () => {
       price = symbol.toLowerCase().includes('usd') ? 1 : 0;
 
     const totalSupplyUsd =
-      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      ((Number(marketsCash[i]) +
+        Number(totalBorrows[i]) -
+        Number(totalReserves[i])) /
+        10 ** decimals) *
       price;
-    const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);

@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const ethers = require('ethers');
 
 const arbitrumConstants = require('./arbitrum/umamiConstants.js');
@@ -42,15 +42,15 @@ const getIncentivesAprForVault = async (vault, chain) => {
       .call(),
     vaultContract.methods.balanceOf(masterChefAddress).call(),
     vaultContract.methods.pps().call(),
-    superagent.get(
+    axios.get(
       `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
     ),
-    superagent.get(`https://coins.llama.fi/prices/current/${arbTokenPriceKey}`),
+    axios.get(`https://coins.llama.fi/prices/current/${arbTokenPriceKey}`),
   ]);
 
   const underlyingTokenPrice =
-    underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
-  const arbTokenPrice = arbTokenPriceObj.body.coins[arbTokenPriceKey].price;
+    underlyingTokenPriceObj.data.coins[underlyingTokenPriceKey].price;
+  const arbTokenPrice = arbTokenPriceObj.data.coins[arbTokenPriceKey].price;
 
   const arbPerSec = Number(ethers.utils.formatUnits(arbPerSecRaw, 18));
   const vaultAllocPoints = Number(

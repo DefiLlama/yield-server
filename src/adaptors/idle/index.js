@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const chains = {
   ethereum: 'https://api.idle.finance/pools',
@@ -8,24 +8,25 @@ const chains = {
   polygon_zkevm: 'https://api-zkevm.idle.finance/pools',
 };
 
-const AUTH_TOKEN_ENCODED = 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR2xsYm5SSlpDSTZJa0Z3Y0RZaUxDSnBZWFFpT2pFMk56QXlNemMxTWpkOS5rbnNtekVOSm40Yk5Ea0ZCM3h2eWZyaDBwVlFLTHY0NW9JanJQNHdRTU5N';
+const AUTH_TOKEN_ENCODED =
+  'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR2xsYm5SSlpDSTZJa0Z3Y0RZaUxDSnBZWFFpT2pFMk56QXlNemMxTWpkOS5rbnNtekVOSm40Yk5Ea0ZCM3h2eWZyaDBwVlFLTHY0NW9JanJQNHdRTU5N';
 
 async function getDataWithAuth(url, token) {
-  const data = await superagent
-    .get(url)
-    .set('Authorization', `Bearer ${token}`);
-  return data?.body;
+  const data = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data?.data;
 }
 
 const getApy = async () => {
   const AUTH_TOKEN_DECODED = atob(AUTH_TOKEN_ENCODED);
-  const data = await Promise.all(
+  const data = await Promise.allSettled(
     Object.entries(chains).map(async (chain) => {
       const data = await getDataWithAuth(chain[1], AUTH_TOKEN_DECODED);
       return data.map((v) => {
         let protocolName = v.protocolName;
-        if (v.borrowerName){
-          protocolName += ` ${v.borrowerName}`
+        if (v.borrowerName) {
+          protocolName += ` ${v.borrowerName}`;
         }
         const apyReward = v.apyReward || Number(0);
         const rewardTokens = v.rewardTokens || [];
@@ -42,19 +43,19 @@ const getApy = async () => {
           project: 'idle',
           chain: utils.formatChain(chain[0]),
           underlyingTokens: [v.underlyingAddress],
-        }
+        };
       });
     })
   );
 
-  return (
-    data
-      .flat()
-  );
+  return data
+    .filter((i) => i.status === 'fulfilled')
+    .map((i) => i.value)
+    .flat();
 };
 
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://app.idle.finance/'
+  url: 'https://app.idle.finance/',
 };

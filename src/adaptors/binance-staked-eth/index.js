@@ -2,7 +2,6 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const wbeth = '0xa2E3356610840701BDf5611a53974510Ae27E2e1';
-const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const project = 'binance-staked-eth';
 const symbol = 'wbeth';
 
@@ -14,7 +13,15 @@ const apy = async () => {
     (await sdk.api.erc20.totalSupply({ target: wbeth, chain: 'bsc' })).output /
     1e18;
 
-  const priceKey = `ethereum:${weth}`;
+  const wbethExchangeRateRaw = await sdk.api.abi.call({
+    target: wbeth,
+    abi: 'uint256:exchangeRate',
+    chain: 'ethereum',
+  });
+
+  const wbethExchangeRate = wbethExchangeRateRaw.output / 1e18;
+
+  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).data.coins[priceKey]?.price;
@@ -32,18 +39,20 @@ const apy = async () => {
       chain: 'ethereum',
       project,
       symbol,
-      underlyingTokens: [weth],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      searchTokenOverride: wbeth,
       apyBase: apr,
-      tvlUsd: tvlEthereum * ethPrice,
+      tvlUsd: tvlEthereum * ethPrice * wbethExchangeRate,
     },
     {
       pool: `${wbeth}-bsc`,
       chain: 'bsc',
       project,
       symbol,
-      underlyingTokens: [weth],
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      searchTokenOverride: wbeth,
       apyBase: apr,
-      tvlUsd: tvlBsc * ethPrice,
+      tvlUsd: tvlBsc * ethPrice * wbethExchangeRate,
     },
   ];
 };

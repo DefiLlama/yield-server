@@ -1,0 +1,475 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_fpd",
+        "internalType": "contract PoolDirectory",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "claimAllRewardTokens",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "address[]",
+        "type": "address[]"
+      },
+      {
+        "name": "",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "market",
+        "internalType": "contract ERC20",
+        "type": "address"
+      },
+      {
+        "name": "flywheels",
+        "internalType": "contract IonicFlywheelCore[]",
+        "type": "address[]"
+      },
+      {
+        "name": "accrue",
+        "internalType": "bool[]",
+        "type": "bool[]"
+      }
+    ],
+    "name": "claimRewardsForMarket",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "contract IonicFlywheelCore[]",
+        "type": "address[]"
+      },
+      {
+        "name": "rewardTokens",
+        "internalType": "address[]",
+        "type": "address[]"
+      },
+      {
+        "name": "rewards",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "markets",
+        "internalType": "contract ERC20[]",
+        "type": "address[]"
+      },
+      {
+        "name": "flywheels",
+        "internalType": "contract IonicFlywheelCore[]",
+        "type": "address[]"
+      },
+      {
+        "name": "accrue",
+        "internalType": "bool[]",
+        "type": "bool[]"
+      }
+    ],
+    "name": "claimRewardsForMarkets",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "contract IonicFlywheelCore[]",
+        "type": "address[]"
+      },
+      {
+        "name": "rewardTokens",
+        "internalType": "address[]",
+        "type": "address[]"
+      },
+      {
+        "name": "rewards",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "comptroller",
+        "internalType": "contract IonicComptroller",
+        "type": "address"
+      }
+    ],
+    "name": "claimRewardsForPool",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "contract IonicFlywheelCore[]",
+        "type": "address[]"
+      },
+      {
+        "name": "",
+        "internalType": "address[]",
+        "type": "address[]"
+      },
+      {
+        "name": "",
+        "internalType": "uint256[]",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "rewardToken",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "claimRewardsOfRewardToken",
+    "outputs": [
+      {
+        "name": "rewardsClaimed",
+        "internalType": "uint256",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "fpd",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "contract PoolDirectory",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "blocksPerYear",
+        "internalType": "int256",
+        "type": "int256"
+      },
+      {
+        "name": "offchainRewardsAprMarkets",
+        "internalType": "address[]",
+        "type": "address[]"
+      },
+      {
+        "name": "offchainRewardsAprs",
+        "internalType": "int256[]",
+        "type": "int256[]"
+      }
+    ],
+    "name": "getAdjustedUserNetApr",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "int256",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [],
+    "name": "getAllRewardTokens",
+    "outputs": [
+      {
+        "name": "uniqueRewardTokens",
+        "internalType": "address[]",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "markets",
+        "internalType": "contract ICErc20[]",
+        "type": "address[]"
+      }
+    ],
+    "name": "getMarketRewardsInfo",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "struct IonicFlywheelLensRouter.MarketRewardsInfo[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "underlyingPrice",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "market",
+            "internalType": "contract ICErc20",
+            "type": "address"
+          },
+          {
+            "name": "rewardsInfo",
+            "internalType": "struct IonicFlywheelLensRouter.RewardsInfo[]",
+            "type": "tuple[]",
+            "components": [
+              {
+                "name": "rewardSpeedPerSecondPerToken",
+                "internalType": "uint256",
+                "type": "uint256"
+              },
+              {
+                "name": "rewardTokenPrice",
+                "internalType": "uint256",
+                "type": "uint256"
+              },
+              {
+                "name": "formattedAPR",
+                "internalType": "uint256",
+                "type": "uint256"
+              },
+              {
+                "name": "flywheel",
+                "internalType": "address",
+                "type": "address"
+              },
+              {
+                "name": "rewardToken",
+                "internalType": "address",
+                "type": "address"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "comptroller",
+        "internalType": "contract IonicComptroller",
+        "type": "address"
+      }
+    ],
+    "name": "getPoolMarketRewardsInfo",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "struct IonicFlywheelLensRouter.MarketRewardsInfo[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "underlyingPrice",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "market",
+            "internalType": "contract ICErc20",
+            "type": "address"
+          },
+          {
+            "name": "rewardsInfo",
+            "internalType": "struct IonicFlywheelLensRouter.RewardsInfo[]",
+            "type": "tuple[]",
+            "components": [
+              {
+                "name": "rewardSpeedPerSecondPerToken",
+                "internalType": "uint256",
+                "type": "uint256"
+              },
+              {
+                "name": "rewardTokenPrice",
+                "internalType": "uint256",
+                "type": "uint256"
+              },
+              {
+                "name": "formattedAPR",
+                "internalType": "uint256",
+                "type": "uint256"
+              },
+              {
+                "name": "flywheel",
+                "internalType": "address",
+                "type": "address"
+              },
+              {
+                "name": "rewardToken",
+                "internalType": "address",
+                "type": "address"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "internalType": "address",
+        "type": "address"
+      },
+      {
+        "name": "markets",
+        "internalType": "contract ICErc20[]",
+        "type": "address[]"
+      }
+    ],
+    "name": "getUserRewardsInfo",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "struct IonicFlywheelLensRouter.UserRewardsInfo[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "rewardToken",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "claimedRewards",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "unclaimedRewards",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "formattedAPR",
+            "internalType": "uint256",
+            "type": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "markets",
+        "internalType": "contract ICErc20[]",
+        "type": "address[]"
+      }
+    ],
+    "name": "getUserTotalRewardsInfo",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "struct IonicFlywheelLensRouter.UserTotalRewardsInfo[]",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "rewardToken",
+            "internalType": "address",
+            "type": "address"
+          },
+          {
+            "name": "claimedRewards",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "unclaimedRewards",
+            "internalType": "uint256",
+            "type": "uint256"
+          },
+          {
+            "name": "formattedAPR",
+            "internalType": "uint256",
+            "type": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "inputs": [
+      {
+        "name": "user",
+        "internalType": "address",
+        "type": "address"
+      }
+    ],
+    "name": "hasClaimableRewards",
+    "outputs": [
+      {
+        "name": "",
+        "internalType": "bool",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

@@ -24,24 +24,21 @@ const pancakeFarm = require('./ush-bnb-pancake');
 // .
 // Please reach out to wagmi33 on twitter or wagmi@unsheth.xyz if you have any questions
 
-
 const getApy = async () => {
-  let unshETHPool = await unshETHFarm.getPoolInfo();
-  let bnbUnshETHPool = await BNBunshETHFarm.getPoolInfo();
-  let sushiPool = await sushiFarm.getPoolInfo();
-  let pancakePool = await pancakeFarm.getPoolInfo();
+  const promises = [
+    unshETHFarm.getPoolInfo(),
+    BNBunshETHFarm.getPoolInfo(),
+    sushiFarm.getPoolInfo(),
+    pancakeFarm.getPoolInfo(),
+  ];
 
-  return [
-    unshETHPool,
-    bnbUnshETHPool,
-    sushiPool,
-    pancakePool
-  ]
+  const results = await Promise.allSettled(promises);
+
+  return results.filter((i) => i.status === 'fulfilled').map((i) => i.value);
 };
 
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://unsheth.xyz'
+  url: 'https://unsheth.xyz',
 };
-

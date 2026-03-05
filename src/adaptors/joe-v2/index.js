@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
@@ -11,7 +10,6 @@ const chains = {
   arbitrum: sdk.graph.modifyEndpoint(
     '9RoEdAwZiP651miLbKLYQczjckg7HxmyoKXWYXBDYsJc'
   ),
-  bsc: sdk.graph.modifyEndpoint('9ANwfoCsnDa2fREYqEpGxWcTQHsmBDeTkdSDXGYAspN7'),
 };
 
 const query = gql`

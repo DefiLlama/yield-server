@@ -1,10 +1,11 @@
-const superagent = require('superagent');
+const axios = require('axios');
 
 const utils = require('../utils');
 
 const savingsPool = '0xAF985437DCA19DEFf89e61F83Cd526b272523719';
 const savingsPlusPolygonPool = '0x77D5333d97A092cA01A783468E53E550C379dc3C';
 const USDCinPolygon = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
+const USDCinEthereum = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 
 const { default: BigNumber } = require('bignumber.js');
 
@@ -21,8 +22,8 @@ const savings = async () => {
   // get asset price in usd
   const key = 'ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
   const usdcInUSDEth = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key].price;
 
   let tvl = new BigNumber(
     (
@@ -53,6 +54,7 @@ const savings = async () => {
     symbol: utils.formatSymbol('USDC'),
     tvlUsd: parseInt(tvl.toFixed(0)),
     apy: parseFloat(apy.toFixed(2)),
+    underlyingTokens: [USDCinEthereum],
   };
 };
 
@@ -62,8 +64,8 @@ const savingsPlus = async () => {
   // get asset price in usd
   const key = `polygon:${USDCinPolygon}`.toLowerCase();
   const usdcInUSDPolygon = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key].price;
 
   let tvl = new BigNumber(
     (
@@ -106,6 +108,7 @@ const savingsPlus = async () => {
     symbol: utils.formatSymbol('USDC'),
     tvlUsd: parseInt(tvl.toFixed(0)),
     apy: parseFloat(apy.toFixed(2)),
+    underlyingTokens: [USDCinPolygon],
   };
 };
 

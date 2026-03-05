@@ -8,7 +8,7 @@ const oRetro = '0x3a29cab2e124919d14a6f735b6033a3aad2b260f';
 
 const getPoolsData = async () => {
   const { data: pools = [] } = await utils.getData(
-    'https://retro-backend.stabl.finance/api/v1/fusions'
+    'https://retro-backend-production.up.railway.app/api/v1/fusions'
   );
 
   const merklData = await utils.getData(
@@ -16,7 +16,7 @@ const getPoolsData = async () => {
   );
 
   const { data: assets = [] } = await utils.getData(
-    'https://retro-backend.stabl.finance/api/v1/assets'
+    'https://retro-backend-production.up.railway.app/api/v1/assets'
   );
 
   return pools.map((pool) => {

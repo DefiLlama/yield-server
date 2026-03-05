@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
@@ -26,9 +26,11 @@ const urlGnosis = sdk.graph.modifyEndpoint(
   'EJezH1Cp31QkKPaBDerhVPRWsKVZLrDfzjrLqpmv6cGg'
 );
 const urlArbitrum = sdk.graph.modifyEndpoint(
-  '4AQ6YqEyZapJmuFCqhFXfh24qYUykkKeCboL4vpoYQqv'
+  '98cQDy6tufTJtshDCuhh9z2kWXsQWBHVh2bqnLHsGAeS'
 );
-const urlBaseChain = `https://api.studio.thegraph.com/query/24660/balancer-base-v2/version/latest`;
+const urlBaseChain = sdk.graph.modifyEndpoint(
+  'E7XyutxXVLrp8njmjF16Hh38PCJuHm12RRyMt5ma4ctX'
+);
 const urlAvalanche = sdk.graph.modifyEndpoint(
   '7asfmtQA1KYu6CP7YVm5kv4bGxVyfAHEiptt2HMFgkHu'
 );
@@ -94,6 +96,7 @@ const query = gql`
         symbol
         weight
       }
+      address
     }
   }
 `;
@@ -171,7 +174,10 @@ const correctMaker = (entry) => {
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
-  const balanceDetails = entry.tokens.filter(
+  // remove the pool address from tvl calculation to calculate tvl from underlying tokens only
+  let balanceDetails = entry.tokens.filter((i) => i.address !== entry.address);
+
+  balanceDetails = balanceDetails.filter(
     (t) =>
       ![
         'B-STETH-Stable',
@@ -256,7 +262,11 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   let childChainRootGauges;
   if (chainString != 'ethereum') {
     childChainRootGauges = await getChildChainRootGauge(
-      chainString === 'avax' ? 'avalanche' : chainString
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString
     );
   }
 
@@ -276,8 +286,8 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   // get BAL price
   const balKey = `ethereum:${BAL}`.toLowerCase();
   const balPrice = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${balKey}`)
-  ).body.coins[balKey].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${balKey}`)
+  ).data.coins[balKey].price;
 
   // add LM rewards if available to each pool in data
   for (const pool of liquidityGauges) {
@@ -358,8 +368,8 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         // get cg price of reward token
         const key = `${chainString}:${add}`.toLowerCase();
         const price = (
-          await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-        ).body.coins[key]?.price;
+          await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+        ).data.coins[key]?.price;
 
         // call reward data
         const { rate, period_finish } = (
@@ -458,8 +468,8 @@ const topLvl = async (
       .replaceAll('/', '');
     pricesA = [
       ...pricesA,
-      (await superagent.get(`https://coins.llama.fi/prices/current/${keys}`))
-        .body.coins,
+      (await axios.get(`https://coins.llama.fi/prices/current/${keys}`))
+        .data.coins,
     ];
   }
   let tokenPriceList = {};
@@ -480,6 +490,13 @@ const topLvl = async (
 
   // build pool objects
   return tvlInfo.map((p) => {
+    const chainUrl =
+      chainString === 'avax'
+        ? 'avalanche'
+        : chainString === 'xdai'
+        ? 'gnosis'
+        : chainString;
+
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -494,9 +511,7 @@ const topLvl = async (
           : p.aprLM,
       rewardTokens: p.rewardTokens,
       underlyingTokens: p.tokensList,
-      url: `https://${
-        chainString === 'ethereum' ? 'app' : chainString
-      }.balancer.fi/#/pool/${p.id}`,
+      url: `https://balancer.fi/pools/${chainUrl}/v2/${p.id}`,
     };
   });
 };

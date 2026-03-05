@@ -54,6 +54,11 @@ const chainIds = {
     mchef: '0x05ddEDd07C51739d2aE21F6A9d97a8d69C2C3aaA',
     abi: abiMcV3Arbitrum,
   },
+  base: {
+    id: 8453, 
+    mchef: '0xC6A2Db661D5a5690172d8eB0a7DEA2d3008665A3', 
+    abi: abiMcV3Arbitrum
+  }
 };
 
 const getCakeAprs = async (chain) => {
@@ -129,7 +134,7 @@ const getCakeAprs = async (chain) => {
   const tvls = {};
 
   for (const [index, allStakedTVLResult] of allStakedTVL.entries()) {
-    if (allStakedTVLResult.status === 'fulfilled') {
+    if (allStakedTVLResult.status === 'fulfilled' && 'formatted' in allStakedTVLResult.value) {
       tvls[poolInfos[index].v3Pool] = allStakedTVLResult.value.formatted;
     }
   }

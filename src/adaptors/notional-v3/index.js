@@ -1,19 +1,22 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
+const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
 const API = (chain) =>
   chain === 'ethereum'
-    ? `https://data-dev.notional.finance/mainnet/yields`
-    : `https://data-dev.notional.finance/${chain}/yields`;
+    ? `https://registry.notional.finance/mainnet/yields`
+    : `https://registry.notional.finance/${chain}/yields`;
 const NOTE_Mainnet = '0xCFEAead4947f0705A14ec42aC3D44129E1Ef3eD5';
 
 const SUBGRAPHS = {
-  arbitrum:
-    'https://api.studio.thegraph.com/query/60626/notional-v3-arbitrum/version/latest',
-  ethereum:
-    'https://api.studio.thegraph.com/query/60626/notional-v3-mainnet/version/latest',
+  arbitrum: sdk.graph.modifyEndpoint(
+    'DnghsCNvJ4xmp4czX8Qn7UpkJ8HyHjy7cFN4wcH91Nrx'
+  ),
+  ethereum: sdk.graph.modifyEndpoint(
+    '4oVxkMtN4cFepbiYrSKz1u6HWnJym435k5DQRAFt2vHW'
+  ),
 };
 
 const query = gql`
@@ -113,10 +116,10 @@ const query = gql`
 async function getUSDPrice(chain, address) {
   // price of base token in USD terms
   const key = `${chain}:${address}`;
-  const priceRes = await superagent.get(
+  const priceRes = await axios.get(
     `https://coins.llama.fi/prices/current/${key}`
   );
-  const price = priceRes.body.coins[key];
+  const price = priceRes.data.coins[key];
   return price ? price.price : 0;
 }
 
@@ -240,45 +243,47 @@ const getPools = async (chain) => {
 
   const fCash = await Promise.all(
     results['activeMarkets'].flatMap(({ fCashMarkets }) => {
-      return fCashMarkets.map(async (f) => {
-        const underlyingDecimals = BigNumber(10).pow(f.underlying.decimals);
-        const totalfCashUnderlying = BigNumber(
-          f.current.totalfCashPresentValue
-        ).div(underlyingDecimals);
-        const totalDebtUnderlying = BigNumber(
-          f.current.totalfCashDebtOutstandingPresentValue
-        ).div(-underlyingDecimals);
-        const tvlUnderlying = totalfCashUnderlying
-          .plus(BigNumber(f.current.totalPrimeCashInUnderlying))
-          .div(underlyingDecimals);
+      return fCashMarkets
+        .filter(({ maturity }) => Number(maturity) * 1000 > Date.now())
+        .map(async (f) => {
+          const underlyingDecimals = BigNumber(10).pow(f.underlying.decimals);
+          const totalfCashUnderlying = BigNumber(
+            f.current.totalfCashPresentValue
+          ).div(underlyingDecimals);
+          const totalDebtUnderlying = BigNumber(
+            f.current.totalfCashDebtOutstandingPresentValue
+          ).div(-underlyingDecimals);
+          const tvlUnderlying = totalfCashUnderlying
+            .plus(BigNumber(f.current.totalPrimeCashInUnderlying))
+            .div(underlyingDecimals);
 
-        const underlyingPrice = await getUSDPrice(chain, f.underlying.id);
-        const tvlUsd = tvlUnderlying.times(underlyingPrice).toNumber();
-        const totalSupplyUsd = totalfCashUnderlying
-          .times(underlyingPrice)
-          .toNumber();
-        const totalBorrowUsd = totalDebtUnderlying
-          .times(underlyingPrice)
-          .toNumber();
-        const date = new Date(Number(f.maturity) * 1000)
-          .toISOString()
-          .split('T')[0];
+          const underlyingPrice = await getUSDPrice(chain, f.underlying.id);
+          const tvlUsd = tvlUnderlying.times(underlyingPrice).toNumber();
+          const totalSupplyUsd = totalfCashUnderlying
+            .times(underlyingPrice)
+            .toNumber();
+          const totalBorrowUsd = totalDebtUnderlying
+            .times(underlyingPrice)
+            .toNumber();
+          const date = new Date(Number(f.maturity) * 1000)
+            .toISOString()
+            .split('T')[0];
 
-        return {
-          pool: `${f.fCash.id}-${chain}`,
-          chain,
-          project,
-          symbol: `f${f.underlying.symbol}`,
-          underlyingTokens: [f.underlying.id],
-          poolMeta: `Fixed Lend Maturing On ${date}`,
-          url: `https://notional.finance/lend-fixed/${notionalChain}/${f.underlying.symbol}`,
-          tvlUsd,
-          apyBase: (Number(f.current.lastImpliedRate) * 100) / 1e9,
-          apyBaseBorrow: (Number(f.current.lastImpliedRate) * 100) / 1e9,
-          totalSupplyUsd,
-          totalBorrowUsd,
-        };
-      });
+          return {
+            pool: `${f.fCash.id}-${chain}`,
+            chain,
+            project,
+            symbol: `f${f.underlying.symbol}`,
+            underlyingTokens: [f.underlying.id],
+            poolMeta: `Fixed Lend Maturing On ${date}`,
+            url: `https://notional.finance/lend-fixed/${notionalChain}/${f.underlying.symbol}`,
+            tvlUsd,
+            apyBase: (Number(f.current.lastImpliedRate) * 100) / 1e9,
+            apyBaseBorrow: (Number(f.current.lastImpliedRate) * 100) / 1e9,
+            totalSupplyUsd,
+            totalBorrowUsd,
+          };
+        });
     })
   );
 
@@ -319,16 +324,14 @@ const getPools = async (chain) => {
 
   // NOTE: internal API results are only used for vaults, which often have off-chain custom
   // calculations to get the current APY
-  const apiResults = await utils.getData(API(chain));
+  const apiResults = await (await fetch(API(chain))).json();
   const vaultAddresses = unique(
     apiResults
+      .filter((r) => Number(r.token.maturity) * 1000 > Date.now())
       .filter((r) => r.token.tokenType === 'VaultShare' && !!r['leveraged'])
       .map((r) => r.token.vaultAddress)
   );
 
-  const allVaultMaturities = apiResults.filter(
-    (r) => r.token.tokenType === 'VaultShare' && !!r['leveraged']
-  );
   const vaults = await Promise.all(
     vaultAddresses.map(async (vaultAddress) => {
       const maturities = apiResults.filter(
@@ -370,13 +373,28 @@ const getPools = async (chain) => {
     .concat(primeCash)
     .concat(fCash)
     .concat(leveragedLiquidity)
-    .concat(vaults);
+    .concat(vaults)
+    .filter(
+      (i) => i.pool !== '0xc87a900078f04c45b7f14e46c520d4a6f37296b0-ethereum'
+    );
 };
 
 const main = async () => {
-  return Object.keys(SUBGRAPHS).reduce(async (acc, chain) => {
-    return [...(await acc), ...(await getPools(chain))];
-  }, Promise.resolve([]));
+  const chains = Object.keys(SUBGRAPHS);
+  const results = await Promise.allSettled(
+    chains.map((chain) => getPools(chain))
+  );
+
+  return results.reduce((acc, result, index) => {
+    if (result.status === 'fulfilled') {
+      return acc.concat(result.value);
+    }
+    console.error(
+      `Notional-v3 subgraph request failed for ${chains[index]}:`,
+      result.reason
+    );
+    return acc;
+  }, []);
 };
 
 module.exports = {

@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
 
@@ -10,6 +10,8 @@ const {
   getUmamiContractsForChain,
   getAggregateVaultContractForVault,
 } = require('./umamiContracts.js');
+
+const INCENTIVES_ENABLED = false;
 
 /** ---- GM VAULTS ---- */
 
@@ -46,14 +48,14 @@ const getUmamiGmVaultsYield = async (chain, gmMarketsInfos) => {
       aggregateVaultContract.methods
         .getVaultTVL(vault.address.toLowerCase(), false)
         .call(),
-      superagent.get(
+      axios.get(
         `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
       ),
       ,
     ]);
 
     const underlyingTokenPrice =
-      underlyingTokenPriceObj.body.coins[underlyingTokenPriceKey].price;
+      underlyingTokenPriceObj.data.coins[underlyingTokenPriceKey].price;
     const tvl = Number(tvlRaw) / 10 ** vault.decimals;
 
     let vaultObject = {
@@ -65,7 +67,7 @@ const getUmamiGmVaultsYield = async (chain, gmMarketsInfos) => {
       url: vault.url,
     };
 
-    if (rewardToken) {
+    if (INCENTIVES_ENABLED) {
       const vaultIncentivesApr = await getIncentivesAprForVault(vault, chain);
 
       vaultObject = {

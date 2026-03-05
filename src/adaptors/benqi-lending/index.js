@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
@@ -29,12 +29,12 @@ const SECONDS_PER_DAY = 86400;
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -136,6 +136,11 @@ const getApy = async () => {
     'totalBorrows',
     qiErc
   );
+  const totalReserves = await multiCallMarkets(
+    allMarkets,
+    'totalReserves',
+    qiErc
+  );
 
   const underlyingTokens = await multiCallMarkets(
     allMarkets,
@@ -161,13 +166,15 @@ const getApy = async () => {
     const token = underlyingTokens[i] || AVAX.address;
     const decimals = Number(underlyingDecimals[i]) || AVAX.decimals;
     const totalSupplyUsd =
-      ((Number(marketsCash[i]) + Number(totalBorrows[i])) / 10 ** decimals) *
+      ((Number(marketsCash[i]) +
+        Number(totalBorrows[i]) -
+        Number(totalReserves[i])) /
+        10 ** decimals) *
       prices[token.toLowerCase()];
 
     const totalBorrowUsd =
       (Number(totalBorrows[i]) / 10 ** decimals) * prices[token.toLowerCase()];
-    const tvlUsd =
-      (marketsCash[i] / 10 ** decimals) * prices[token.toLowerCase()];
+    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
     const apyBase = calculateApy(supplyRatePerTimestamp[i]);
     const apyBaseBorrow = calculateApy(borrowRatePerTimestamp[i]);

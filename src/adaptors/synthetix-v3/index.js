@@ -32,9 +32,7 @@ const apy = async () => {
       project: 'synthetix-v3',
       chain: 'Base',
       tvlUsd: deposits * price,
-      apyBase: apr.aprPnl * 100,
-      apyReward: apr.aprRewards * 100,
-      rewardTokens: [USDC, SNX],
+      apy: apr.apr28d * 100,
       underlyingTokens: [USDC],
     },
   ];

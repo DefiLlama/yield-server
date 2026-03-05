@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
@@ -191,8 +191,8 @@ const getApy = async () => {
       .toLowerCase();
     pricesA = [
       ...pricesA,
-      (await superagent.get(`https://coins.llama.fi/prices/current/${url}`))
-        .body.coins,
+      (await axios.get(`https://coins.llama.fi/prices/current/${url}`))
+        .data.coins,
     ];
   }
   let prices = {};

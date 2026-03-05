@@ -4,7 +4,9 @@ const axios = require('axios');
 
 const utils = require('../utils');
 
-const url = sdk.graph.modifyEndpoint('7mPnp1UqmefcCycB8umy4uUkTkFxMoHn1Y7ncBUscePp');
+const url = sdk.graph.modifyEndpoint(
+  '3utanEBA9nqMjPnuQP1vMCCys6enSM3EawBpKTVwnUw2'
+);
 
 const query = gql`
   {

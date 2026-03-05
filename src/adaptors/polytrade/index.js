@@ -16,6 +16,7 @@ const poolsFunction = async () => {
   const STRATEGY_CONTRACT = '0xfE624A12b1732d19680A7a2a2efBe21f1C0F3F19';
   const TRADE_REWARD = '0xa3e8e842683d48bf2e929eda240c368ec6f8b986';
   const STABLE_REWARD = '0x352A424Caf2aB698570b1E9a273209b5A0fF52BD';
+  const USDC = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
   const chain = 'polygon';
   const abis = {
     getReward: {"inputs":[],"name":"getReward","outputs":[{"internalType":"uint16","name":"","type":"uint16"}],"stateMutability":"view","type":"function"},
@@ -58,7 +59,8 @@ const poolsFunction = async () => {
     tvlUsd: Number(tvl) / 1e6,
     apyBase: formatUnits(stableReward, '2'),
     apyReward: tokenPrice,
-    rewardTokens: ['0x692ac1e363ae34b6b489148152b12e2785a3d8d6']
+    rewardTokens: ['0x692ac1e363ae34b6b489148152b12e2785a3d8d6'],
+    underlyingTokens: [USDC],
   };
 
   return [lenderPool];

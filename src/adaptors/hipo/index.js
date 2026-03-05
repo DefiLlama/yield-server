@@ -66,6 +66,7 @@ module.exports = {
         symbol: utils.formatSymbol('hTON'),
         tvlUsd,
         apyBase,
+        underlyingTokens: ['EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c'], // native TON
       },
     ];
   },

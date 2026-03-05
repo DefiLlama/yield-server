@@ -1,0 +1,298 @@
+[
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "admin",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "createProxy",
+      "inputs": [
+        {
+          "name": "desiredImplementation",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "upgradeable",
+          "type": "bool",
+          "internalType": "bool"
+        },
+        {
+          "name": "trailingData",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getProxyConfig",
+      "inputs": [
+        {
+          "name": "proxy",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "config",
+          "type": "tuple",
+          "internalType": "struct GenericFactory.ProxyConfig",
+          "components": [
+            {
+              "name": "upgradeable",
+              "type": "bool",
+              "internalType": "bool"
+            },
+            {
+              "name": "implementation",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "trailingData",
+              "type": "bytes",
+              "internalType": "bytes"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getProxyListLength",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getProxyListSlice",
+      "inputs": [
+        {
+          "name": "start",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "end",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "list",
+          "type": "address[]",
+          "internalType": "address[]"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "implementation",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "isProxy",
+      "inputs": [
+        {
+          "name": "proxy",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "proxyList",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "setImplementation",
+      "inputs": [
+        {
+          "name": "newImplementation",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setUpgradeAdmin",
+      "inputs": [
+        {
+          "name": "newUpgradeAdmin",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "upgradeAdmin",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "Genesis",
+      "inputs": [],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ProxyCreated",
+      "inputs": [
+        {
+          "name": "proxy",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "upgradeable",
+          "type": "bool",
+          "indexed": false,
+          "internalType": "bool"
+        },
+        {
+          "name": "implementation",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "trailingData",
+          "type": "bytes",
+          "indexed": false,
+          "internalType": "bytes"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "SetImplementation",
+      "inputs": [
+        {
+          "name": "newImplementation",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "SetUpgradeAdmin",
+      "inputs": [
+        {
+          "name": "newUpgradeAdmin",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "E_BadAddress",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "E_BadQuery",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "E_DeploymentFailed",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "E_Implementation",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "E_Reentrancy",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "E_Unauthorized",
+      "inputs": []
+    }
+  ]

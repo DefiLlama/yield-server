@@ -1,9 +1,10 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const ss = require('simple-statistics');
 
 const utils = require('../utils/s3');
 const {
   getYieldFiltered,
+  getLatestYieldForPool,
   getYieldOffset,
   getYieldAvg30d,
   getYieldLendBorrow,
@@ -11,6 +12,7 @@ const {
 const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
+const { getExcludedAdaptors } = require('../utils/exclude');
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -22,12 +24,33 @@ const main = async () => {
   // ---------- get lastet unique pool
   console.log('\ngetting pools');
   let data = await getYieldFiltered();
+  const aaveGHO = await getLatestYieldForPool(
+    '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40'
+  );
+  data = [...data, ...aaveGHO];
+
+  const excludedProjects = await getExcludedAdaptors();
+  data = data.filter((p) => !excludedProjects.has(p.project));
 
   // remove aave v2 frozen assets from dataEnriched (we keep ingesting into db, but don't
   // want to display frozen pools on the UI)
   data = data.filter(
     (p) => !(p.project === 'aave-v2' && p.poolMeta === 'frozen')
   );
+
+  // remove expired pendle pools (expiration is in poolMeta)
+  data = data.filter((p) => {
+    if (p.project !== 'pendle') return true;
+
+    const match = p.poolMeta?.match(/(\d{2}[A-Z]{3}\d{4})/);
+    if (!Array.isArray(match) || match.length < 2) return true; // keep if no valid match
+
+    const date = new Date(match[1]);
+    return !isNaN(date) && date > new Date(); // keep if valid future date
+  });
+
+  // remove past Merkl pools
+  data = data.filter((p) => !(p.project === 'merkl' && p.poolMeta === 'past'));
 
   // ---------- add additional fields
   // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
@@ -74,23 +97,27 @@ const main = async () => {
   // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
   const stablecoins = (
-    await superagent.get(
+    await axios.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
-  ).body.peggedAssets
+  ).data.peggedAssets
     // removing any stable which a price 30% from 1usd
     .filter((s) => s.price >= 0.7)
     .map((s) => s.symbol.toLowerCase())
-    .filter((s) => s !== 'r');
+    .filter((s) => !['r', 'm'].includes(s));
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
   if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
   if (!stablecoins.includes('usdr')) stablecoins.push('usdr');
+  if (!stablecoins.includes('more')) stablecoins.push('more');
+  if (!stablecoins.includes('ustb')) stablecoins.push('ustb');
+  if (!stablecoins.includes('usdn')) stablecoins.push('usdn');
+  if (!stablecoins.includes('aiusd')) stablecoins.push('aiusd');
 
   // get catgory data (we hardcode IL to true for options protocols)
   const config = (
-    await superagent.get('https://api.llama.fi/config/yields?a=1')
-  ).body.protocols;
+    await axios.get('https://api.llama.fi/config/yields?a=1')
+  ).data.protocols;
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
 
   // add ML and overview plot fields
@@ -175,12 +202,8 @@ const main = async () => {
   }));
 
   const y_pred = (
-    await superagent
-      .post(
-        'https://yet9i1xlhf.execute-api.eu-central-1.amazonaws.com/predictions'
-      )
-      // filter to required features only
-      .send(
+    await axios.post(
+        'https://yet9i1xlhf.execute-api.eu-central-1.amazonaws.com/predictions',
         dataEnriched.map((el) => ({
           apy: el.apy,
           tvlUsd: el.tvlUsd,
@@ -190,7 +213,7 @@ const main = async () => {
           project_factorized: el.project_factorized,
         }))
       )
-  ).body.predictions;
+  ).data.predictions;
   // add predictions to dataEnriched
   if (dataEnriched.length !== y_pred.length) {
     throw new Error(
@@ -353,6 +376,8 @@ const checkStablecoin = (el, stablecoins) => {
     !symbolLC.includes('btc')
   ) {
     stable = true;
+  } else if (el.project === 'curve-dex' && symbolLC.includes('xstable')) {
+    stable = true;
   } else if (el.project === 'convex-finance' && symbolLC.includes('3crv')) {
     stable = true;
   } else if (el.project === 'aave-v2' && symbolLC.includes('amm')) {
@@ -382,20 +407,33 @@ const checkStablecoin = (el, stablecoins) => {
     tokens.some((t) => t.includes('emaid')) ||
     tokens.some((t) => t.includes('grail')) ||
     tokens.some((t) => t.includes('oxai')) ||
-    tokens.some((t) => t.includes('crv')) ||
-    tokens.some((t) => t.includes('wbai'))
+    tokens.some((t) => t.includes('crv') && !t.includes('crvusd')) ||
+    tokens.some((t) => t.includes('wbai')) ||
+    tokens.some((t) => t.includes('move'))
   ) {
     stable = false;
   } else if (tokens.length === 1) {
-    stable = stablecoins.some((x) =>
-      tokens[0].replace(/\s*\(.*?\)\s*/g, '').includes(x)
-    );
+    const tokenClean = tokens[0].replace(/\s*\(.*?\)\s*/g, '');
+    stable = stablecoins.some((x) => {
+      if (!x || x.trim().length === 0) return false;
+      if (x.length === 1) {
+        return tokenClean === x;
+      }
+      return tokenClean.includes(x);
+    });
   } else if (tokens.length > 1) {
     let x = 0;
     for (const t of tokens) {
-      x += stablecoins.some((x) => t.includes(x));
+      const tokenClean = t.replace(/\s*\(.*?\)\s*/g, '');
+      x += stablecoins.some((sc) => {
+        if (!sc || sc.trim().length === 0) return false;
+        if (sc.length === 1) {
+          return tokenClean === sc;
+        }
+        return tokenClean.includes(sc);
+      });
     }
-    stable = x === tokens.length ? true : false;
+    stable = x === tokens.length;
   }
 
   return stable;

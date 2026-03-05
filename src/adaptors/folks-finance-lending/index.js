@@ -10,12 +10,10 @@ const utils = require('../utils');
 
 const { pools } = constants;
 
-const poolsFunction = async () => {
-  let poolArr = [];
-
-  const depositsStakingInfo = await getStakingProgram();
-  const { pools: poolsLoanInfo } = await retrieveLoanInfo();
-  for (const pool of pools) {
+const buildDataSource = async (poolArr, depositsStakingInfo, loanType) => {
+  const loanAppId = constants.MainnetLoans[loanType];
+  const { pools: poolsLoanInfo } = await retrieveLoanInfo(loanAppId);
+  for (const pool of pools.filter((p) => p.loanType === loanType)) {
     const poolInfo = await getPoolsInfo(pool);
     const {
       depositsUsd,
@@ -41,6 +39,7 @@ const poolsFunction = async () => {
       apyBase,
       apyBaseBorrow,
       ltv,
+      underlyingTokens: [String(pool.assetId == 0 ? 1 : pool.assetId)],
     };
 
     if (pool.hasReward) {
@@ -55,9 +54,18 @@ const poolsFunction = async () => {
       );
       dataSource = { ...dataSource, ...dataSourceRewards };
     }
-
     poolArr.push(dataSource);
   }
+}
+
+const poolsFunction = async () => {
+  let poolArr = [];
+
+  const depositsStakingInfo = await getStakingProgram();
+
+  await buildDataSource(poolArr, depositsStakingInfo, constants.LoanType.GENERAL);
+  await buildDataSource(poolArr, depositsStakingInfo, constants.LoanType.ALGORAND_ECOSYSTEM);
+
   return poolArr;
 };
 

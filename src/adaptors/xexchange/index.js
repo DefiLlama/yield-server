@@ -1,5 +1,6 @@
 const { request } = require('graphql-request');
 const { query } = require('./query.json');
+const utils = require('../utils');
 
 const API_URL = 'https://graph.xexchange.com/graphql';
 
@@ -27,7 +28,7 @@ const apy = async () => {
     };
   });
 
-  return pools;
+  return utils.removeDuplicates(pools);
 };
 
 module.exports = {

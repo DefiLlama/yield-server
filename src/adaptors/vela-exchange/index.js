@@ -16,6 +16,10 @@ const USDC_ADDRESS = {
   ['base']: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
 };
 
+const GHO_ADDRESS = {
+  ['arbitrum']: '0x7dfF72693f6A4149b17e7C6314655f6A9F7c8B33',
+};
+
 const VELA_REWARDER_ADDRESS = {
   ['arbitrum']: '0x1353e6C747Da576cEB760862f610b3ec5DBA0D21',
   ['base']: '0xDD5aD536E987bF72Dddc1BF518f3bb8Cc2c615e2'
@@ -93,8 +97,8 @@ const poolsFunction = async () => {
           chain: `${chain}`,
           params: [esVela]
         })
-      ).output.rewardsPerSec[0],
-      6
+      ).output.rewardsPerSec[1],
+      18
     );
 
 
@@ -145,10 +149,20 @@ const poolsFunction = async () => {
       poolMeta: 'VLP',
       tvlUsd: (Number(totalSupply) / 1e18) * Number(current),
       apyBase: APR,
-      underlyingTokens: [USDC_ADDRESS[chain]],
-      poolMeta: 'VLP',
+      underlyingTokens: chain === 'arbitrum'? [USDC_ADDRESS[chain], GHO_ADDRESS[chain]] : [USDC_ADDRESS[chain]],
     };
 
+    const GHOPool = {
+      pool: `${VAULT_ADDRESS}-${GHO_ADDRESS[chain]}-${chain}`.toLowerCase(),
+      chain: utils.formatChain(`${chain}`),
+      project: 'vela-exchange',
+      symbol: 'GHO',
+      poolMeta: 'VLP',
+      tvlUsd: (Number(totalSupply) / 1e18) * Number(current),
+      apyBase: APR,
+      underlyingTokens: [GHO_ADDRESS[chain], USDC_ADDRESS[chain]],
+    };
+  
     const VelaPool = {
       pool: `${TOKEN_FARM_ADDRESS[chain]}-${chain}`.toLowerCase(),
       chain: utils.formatChain(`${chain}`),
@@ -156,13 +170,15 @@ const poolsFunction = async () => {
       symbol: 'esVELA',
       poolMeta: 'esVela vesting is up to 6 months',
       tvlUsd: Number(poolTotalLP) * Number(velaPrice),
-      apyReward: USDC_ROI,
+      apyReward: (USDC_ROI * current) + APR,
       underlyingTokens: [VELA_ADDRESS[chain]],
       rewardTokens: [USDC_ADDRESS[chain]]
     };
 
     pools.push(VLPPool);
     pools.push(VelaPool)
+    if(chain === 'arbitrum'){ pools.push(GHOPool) }
+
   }
 
   return pools;

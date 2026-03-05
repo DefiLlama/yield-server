@@ -56,6 +56,8 @@ const poolsFunction = async () => {
     target: wbtcVaultAddress,
   });
 
+  const usdc = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+
   const usdcPool = {
     pool: usdcVaultAddress,
     chain: 'ethereum',
@@ -63,6 +65,7 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('USDC'),
     tvlUsd: Number(usdcTotalAsset.output)/1e6,
     apy: usdcApy,
+    underlyingTokens: [usdc],
   };
 
   const wstethPool = {
@@ -72,6 +75,7 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('WSTETH'),
     tvlUsd: (Number(wstethTotalAsset.output)/1e18) * prices[wsteth.toLowerCase()],
     apy: wstethApy,
+    underlyingTokens: [wsteth],
   };
 
   const wbtcPool = {
@@ -81,6 +85,7 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('WBTC'),
     tvlUsd: (Number(wbtcTotalAsset.output)/1e8) * prices[wbtc.toLowerCase()],
     apy: wbtcApy,
+    underlyingTokens: [wbtc],
   };
 
   return [usdcPool, wstethPool, wbtcPool];

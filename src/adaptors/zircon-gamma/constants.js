@@ -20,7 +20,6 @@ module.exports = Object.freeze({
     // Events
     "event Transfer(address indexed from, address indexed to, uint amount)"
   ],
-  GITHUB_TOKEN: "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",
   OWNER_REPO: "Zircon-Finance",
   REPO: "zircon-interface",
   COMMIT_MESSAGE: "Updating LP APR",

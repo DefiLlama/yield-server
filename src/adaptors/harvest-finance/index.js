@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 
 const utils = require('../utils');
 const { readFromS3 } = require('../../utils/s3');
@@ -14,7 +14,15 @@ const chains = {
   matic: 'polygon',
   arbitrum: 'arbitrum',
   base: 'base',
+  zksync: 'era',
 };
+const url_config = {
+  eth: 'ethereum',
+  matic: 'polygon',
+  arbitrum: 'arbitrum',
+  base: 'base',
+  zksync: 'zksync',
+}
 
 function aggregateBaseApys(farm, poolsResponse) {
   const farmApy = farm.estimatedApy;
@@ -47,9 +55,9 @@ async function apy() {
   // instead, we use a python lambda which bypasses cloudflare
   // and stores the output to s3 (i tried node js packages, none of them worked; the repo to the
   // lambda
-  const farmsResponse = (await superagent.get(farmsUrl)).body;
-  const poolsResponse = (await superagent.get(poolsUrl)).body;
-  const statsResponse = (await superagent.get(statsUrl)).body;
+  const farmsResponse = (await axios.get(farmsUrl)).data;
+  const poolsResponse = (await axios.get(poolsUrl)).data;
+  const statsResponse = (await axios.get(statsUrl)).data;
   // const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
   // const farmsResponse = data['vaults'];
   // const poolsResponse = data['pools'];
@@ -118,6 +126,9 @@ async function apy() {
         apyBase,
         apyReward: aggregateRewardApys(v, poolsResponse[chain]),
         rewardTokens,
+        underlyingTokens: v.tokenAddress ? [v.tokenAddress] : undefined,
+        poolMeta: v.platform ? `${v.platform[0]}` : null,
+        url: `https://app.harvest.finance/${url_config[chain]}/${v.vaultAddress}`,
       };
     });
 
@@ -143,5 +154,4 @@ async function apy() {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.harvest.finance/',
 };

@@ -57,6 +57,7 @@ const poolsFunction = async () => {
         tvlUsd: Number(pool.tvl),
         apyBase: apr ? Number(apr.aprDayAgo) : Number(pool.apr),
         poolMeta: '7 day lockup',
+        underlyingTokens: pool.token ? [pool.token] : undefined,
       });
     });
   }

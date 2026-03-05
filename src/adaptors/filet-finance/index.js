@@ -1,5 +1,8 @@
 const utils = require('../utils');
 
+// Wrapped FIL on Filecoin
+const WFIL = '0x60E1773636CF5E4A227d9AC24F20fEca034ee25A';
+
 const poolsFunction = async () => {
   const apyData = await utils.getData(
     'https://api.filet.finance/pledge/pool/all?source=2'
@@ -18,6 +21,7 @@ const poolsFunction = async () => {
     tvlUsd: tvlData.data.tvl,
     apy: Number(poolData.incomeRate),
     poolMeta: '360days lockup',
+    underlyingTokens: [WFIL],
   };
 
   return [filPool];

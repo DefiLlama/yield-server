@@ -11,6 +11,7 @@ const LEVERAGE_VAULT_ADDRESS = '0xd68871bd7D28572860b2E0Ee5c713b64445104F9';
 const FLAGSHIP_VAULT_ADDRESS = '0xAe11ae7CaD244dD1d321Ff2989543bCd8a6Db6DF';
 const BLUR_VAULT_ADDRESS = '0xfC287513E2DD58fbf952eB0ED05D511591a6215B';
 const ETHUSD_ORACLE_ADDRESS = '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419';
+const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 
 const web3 = new Web3(RPC_URL);
 
@@ -73,6 +74,7 @@ async function apr() {
       tvlUsd: tvlUsdPrologue,
       apyBase: apyPrologue,
       apyBaseInception: actualApyPrologue,
+      underlyingTokens: [WETH],
     },
     {
       pool: `Spice-Leverage-Vault`,
@@ -83,6 +85,7 @@ async function apr() {
       tvlUsd: tvlUsdLeverage,
       apyBase: apyLeverage,
       apyBaseInception: actualApyLeverage,
+      underlyingTokens: [WETH],
     },
     {
       pool: `Spice-Flagship-Vault`,
@@ -93,6 +96,7 @@ async function apr() {
       tvlUsd: tvlUsdFlagship,
       apyBase: apyFlagship,
       apyBaseInception: actualApyFlagship,
+      underlyingTokens: [WETH],
     },
     {
       pool: `Spice-Blur-Vault`,
@@ -103,6 +107,7 @@ async function apr() {
       tvlUsd: tvlUsdBlur,
       apyBase: apyBlur,
       apyBaseInception: actualApyBlur,
+      underlyingTokens: [WETH],
     },
   ];
 }

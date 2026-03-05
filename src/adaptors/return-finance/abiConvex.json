@@ -1,79 +1,6 @@
 [
   {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "contract IERC20",
-            "name": "usdc",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "cvx",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "crv",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "curveLpToken",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "curveDepositZap",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "convexBooster",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "convexRewards",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "convexHandler",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "convexPoolId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint24",
-            "name": "uniswapFee",
-            "type": "uint24"
-          },
-          {
-            "internalType": "address",
-            "name": "uniswapV3Router",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "chainlinkDataFeedCVXUSD",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "chainlinkDataFeedCRVUSD",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct IReturnFinanceConvexUSDCVault.Config",
-        "name": "config",
-        "type": "tuple"
-      }
-    ],
+    "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
@@ -291,6 +218,11 @@
   },
   {
     "inputs": [],
+    "name": "InvalidInitialization",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "MathOverflowedMulDiv",
     "type": "error"
   },
@@ -303,6 +235,11 @@
       }
     ],
     "name": "NotInWhitelist",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotInitializing",
     "type": "error"
   },
   {
@@ -435,6 +372,19 @@
       }
     ],
     "name": "HarvestRewards",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
+    ],
+    "name": "Initialized",
     "type": "event"
   },
   {
@@ -1005,6 +955,86 @@
         "type": "uint256"
       }
     ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "contract IERC20",
+            "name": "usdc",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "cvx",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "crv",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "curveLpToken",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "curveDepositZap",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "convexBooster",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "convexRewards",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "convexHandler",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "convexPoolId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint24",
+            "name": "uniswapFee",
+            "type": "uint24"
+          },
+          {
+            "internalType": "address",
+            "name": "uniswapV3Router",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "chainlinkDataFeedCVXUSD",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "chainlinkDataFeedCRVUSD",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct IReturnFinanceConvexUSDCVault.Config",
+        "name": "config",
+        "type": "tuple"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },

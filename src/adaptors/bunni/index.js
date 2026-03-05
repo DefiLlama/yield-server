@@ -407,9 +407,7 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
         ...(rewardApr && { apyReward: apy(rewardApr, 365) }),
         ...(rewardTokens && { rewardTokens: rewardTokens }),
         underlyingTokens: [b.pool.token0, b.pool.token1],
-        poolMeta: `${parseInt(b.pool.fee) / 10000}%, tickLower: ${
-          b.tickLower
-        }, tickUpper: ${b.tickUpper}`,
+        poolMeta: `${parseInt(b.pool.fee) / 10000}%`,
         url: `https://bunni.pro/pools/${chainString}/${b.pool.id}/${b.address}`,
       };
     });

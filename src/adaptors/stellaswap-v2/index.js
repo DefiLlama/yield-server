@@ -239,6 +239,7 @@ const getApy = async (timestamp = null) => {
       })),
       chain: 'moonbeam',
       abi: abiMasterchef.find((m) => m.name === 'poolRewardsPerSec'),
+      permitFailure: true,
     })
   ).output.map((o) => o.output);
 
@@ -273,6 +274,7 @@ const getApy = async (timestamp = null) => {
           params: method === 'balanceOf' ? [masterchef] : null,
         })),
         chain: 'moonbeam',
+        permitFailure: true,
       })
     )
   );
@@ -297,7 +299,16 @@ const getApy = async (timestamp = null) => {
     const farmTvlUsd = reserveRatio * pool.tvlUsd;
     const stellaAPR = ((stellaPrice * stellaPerDay * 365) / farmTvlUsd) * 100;
 
-    const extraRewardAddresses = poolRewardsPerSec[i].addresses;
+    const extraRewardAddresses = poolRewardsPerSec[i]?.addresses;
+    if (!extraRewardAddresses)
+      return {
+        ...p,
+        stellaAPR,
+        extraAPR: 0,
+        rewardTokens: stellaAPR > 0 ? [STELLA] : [],
+        farmTvlUsd,
+      };
+
     const extraRewardDecimals = poolRewardsPerSec[i].decimals;
     const rewardsPerSec = poolRewardsPerSec[i].rewardsPerSec;
 

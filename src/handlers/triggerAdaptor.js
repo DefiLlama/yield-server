@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-const superagent = require('superagent');
+const axios = require('axios');
 
 const utils = require('../adaptors/utils');
 const AppError = require('../utils/appError');
@@ -50,8 +50,8 @@ const main = async (body) => {
   console.log(data[0]);
 
   const protocolConfig = (
-    await superagent.get('https://api.llama.fi/config/yields?a=1')
-  ).body.protocols;
+    await axios.get('https://api.llama.fi/config/yields?a=1')
+  ).data.protocols;
 
   // ---------- prepare prior insert
   // remove potential null/undefined objects in array
@@ -117,7 +117,9 @@ const main = async (body) => {
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
       protocolConfig[body.adaptor]?.category === 'Options' ||
-      ['mellow-protocol', 'sommelier', 'abracadabra'].includes(body.adaptor)
+      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
+        body.adaptor
+      )
         ? p.apyBase
         : p.apyBase < 0
         ? 0
@@ -181,7 +183,7 @@ const main = async (body) => {
   if (
     data[0]?.underlyingTokens?.length &&
     protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer-v2', 'curve-dex', 'clipper', 'astroport', 'cetus'].includes(
+    !['balancer-v2', 'curve-dex', 'clipper', 'astroport', 'cetus-amm'].includes(
       body.adaptor
     ) &&
     !['elrond', 'near', 'hedera', 'carbon'].includes(
@@ -216,10 +218,10 @@ const main = async (body) => {
       prices7d_ = [
         ...prices7d_,
         (
-          await superagent.get(
+          await axios.get(
             `https://coins.llama.fi/prices/historical/${timestamp7daysAgo}/${x}`
           )
-        ).body.coins,
+        ).data.coins,
       ];
     }
     // flatten
@@ -312,7 +314,9 @@ const main = async (body) => {
       ...p,
       config_id: id, // config PK field
       configID: id, // yield FK field referencing config_id in config
-      symbol: ['USDC+', 'ETH+', 'USDEX+'].some((i) => p.symbol.includes(i))
+      symbol: ['usdc+', 'eth+', 'usdex+', 'usd0++', 'arb++'].some((i) =>
+        p.symbol.toLowerCase().includes(i)
+      )
         ? p.symbol
         : utils.formatSymbol(p.symbol),
       tvlUsd: Math.round(p.tvlUsd), // round tvlUsd to integer and apy fields to n-dec
@@ -360,11 +364,25 @@ const main = async (body) => {
         p.apyRewardBorrowFake !== null
           ? +p.apyRewardBorrowFake.toFixed(precision)
           : p.apyRewardBorrowFake,
-      volumeUsd1d: p.volumeUsd1d ? +p.volumeUsd1d.toFixed(precision) : null,
-      volumeUsd7d: p.volumeUsd7d ? +p.volumeUsd7d.toFixed(precision) : null,
+      volumeUsd1d:
+        p.volumeUsd1d >= 0
+          ? +parseFloat(p.volumeUsd1d).toFixed(precision)
+          : null,
+      volumeUsd7d:
+        p.volumeUsd7d >= 0
+          ? +parseFloat(p.volumeUsd7d).toFixed(precision)
+          : null,
       apyBaseInception: p.apyBaseInception
         ? +p.apyBaseInception.toFixed(precision)
         : null,
+      underlyingTokens: p.underlyingTokens?.filter(Boolean)?.length
+        ? p.underlyingTokens.filter(Boolean)
+        : null,
+      rewardTokens: p.rewardTokens?.filter(Boolean)?.length
+        ? p.rewardTokens.filter(Boolean)
+        : null,
+      searchTokenOverride: p.searchTokenOverride || null,
+      token: p.token || null,
     };
   });
 

@@ -4,22 +4,20 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - id: file_changes
-        uses: trilom/file-changes-action@v1.2.3
-        with:
-          output: 'json'
-          fileOutput: 'json'
       - name: Check out repository code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+      - id: file_changes
+        uses: tj-actions/changed-files@v44
       - name: Run changes files through test script
         env:
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
           ALCHEMY_CONNECTION_ETHEREUM: ${{ secrets.ALCHEMY_CONNECTION_ETHEREUM }}
           ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
+          COMMENT_TOKEN: ${{ secrets.LLAMATESTER_TOKEN }}
         run: |
           RUN_FILES=$(
-            MODIFIED=${{ steps.file_changes.outputs.files_modified}} \
-            ADDED=${{ steps.file_changes.outputs.files_added}} \
+            MODIFIED="${{ steps.file_changes.outputs.modified_files }}" \
+            ADDED="${{ steps.file_changes.outputs.added_files }}" \
             node ${{ github.workspace }}/.github/workflows/getFileList.js
           )
 

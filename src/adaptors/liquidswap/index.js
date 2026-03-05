@@ -1,5 +1,6 @@
 const { BigNumber } = require('bignumber.js');
 const utils = require('../utils');
+const axios = require('axios');
 const {
   FARMS,
   LP_DECIMALS,
@@ -144,24 +145,64 @@ async function getAPRandTVL(farmPool) {
   };
 }
 
-async function main() {
+async function aptosPools() {
   const pools = [];
 
   for (let farmPool of FARMS) {
-    const farmPoolInfo = await getAPRandTVL(farmPool);
-    const { coinX, coinY, uniqueFarmKey  } = farmPool;
+    try {
+      const farmPoolInfo = await getAPRandTVL(farmPool);
+      const { coinX, coinY, uniqueFarmKey  } = farmPool;
 
-    pools.push({
-      pool: uniqueFarmKey,
-      chain: utils.formatChain('aptos'),
-      project: 'liquidswap',
-      symbol: `${coinX.symbol}-${coinY.symbol}`,
-      tvlUsd: farmPoolInfo.tvl,
-      apy: farmPoolInfo.apr,
-    });
+      pools.push({
+        pool: uniqueFarmKey,
+        chain: utils.formatChain('aptos'),
+        project: 'liquidswap',
+        symbol: `${coinX.symbol}-${coinY.symbol}`,
+        tvlUsd: farmPoolInfo.tvl,
+        apy: farmPoolInfo.apr,
+        underlyingTokens: [coinX.type, coinY.type],
+      });
+    } catch (e) {
+      console.error(`liquidswap: failed to fetch Aptos farm ${farmPool.uniqueFarmKey}:`, e.message);
+    }
   }
 
   return pools;
+}
+
+async function movementPools() {
+  let pools;
+  try {
+    const response = await axios.get('https://api.liquidswap.com/pools/registered?networkId=126');
+    pools = response.data;
+  } catch (e) {
+    console.error('liquidswap: failed to fetch Movement pools:', e.message);
+    return [];
+  }
+
+ return pools.filter(pool => pool.tvl !== null).map(pool => {
+  const [lpID,,curveId] = pool.stats.curve.split('::');
+  const poolId = `${lpID}-${pool.coinX.symbol}-${pool.coinY.symbol}-${curveId}`;
+
+  const volumeUsd1d = parseFloat(pool.volume24);
+  const fee24h = volumeUsd1d * parseFloat(pool.normalizedFee);
+
+  const underlyingTokens = [pool.coinX?.type, pool.coinY?.type].filter(Boolean);
+  return {
+    pool: poolId,
+    chain: utils.formatChain('movement'),
+    project: 'liquidswap',
+    symbol: `${pool.coinX.symbol}-${pool.coinY.symbol}`,
+    tvlUsd: Number(pool.tvl),
+    apyBase: volumeUsd1d > 0 ? fee24h * 365 * 100 / volumeUsd1d : 0,
+    volumeUsd1d: volumeUsd1d,
+    ...(underlyingTokens.length > 0 && { underlyingTokens }),
+  }
+ })
+}
+
+async function main() {
+  return (await aptosPools()).concat(await movementPools())
 }
 
 module.exports = {

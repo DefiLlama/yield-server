@@ -1,12 +1,15 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
 
 const {
+  API_CORE_BASE_URL,
   CRV_API_BASE_URL,
+  CRV_API_BASE_URL_V1,
   BLOCKCHAINIDS,
   BLOCKCHAINID_TO_REGISTRIES,
+  OVERRIDE_DATA,
 } = require('./config');
 
 const assetTypeMapping = {
@@ -39,11 +42,39 @@ const getPools = async (blockchainId) => {
     } catch (error) {
       continue;
     }
+
+    if (blockchainId === "monad" && (!response?.success || !response?.data?.poolData?.length)) {
+      try {
+        response = await utils.getData(API_CORE_BASE_URL + uri);
+      } catch {
+        continue;
+      }
+    }
+
     if (response?.success && response?.data?.poolData?.length) {
       const poolsByAddressForRegistry = Object.fromEntries(
         response.data.poolData.map((pool) => [pool.address, pool])
       );
       Object.assign(poolsByAddress, poolsByAddressForRegistry);
+    }
+  }
+  return poolsByAddress;
+};
+
+const getPoolsVolumes = async (blockchainId) => {
+  const poolsByAddress = {};
+  for (const registry of BLOCKCHAINID_TO_REGISTRIES[blockchainId]) {
+    const uri = `/getVolumes/${blockchainId}`;
+    let response;
+    try {
+      response = await utils.getData(CRV_API_BASE_URL_V1 + uri);
+    } catch (error) {
+      continue;
+    }
+    if (response?.success && response?.data?.pools?.length) {
+      for (const pool of response.data.pools) {
+        poolsByAddress[String(pool.address).toLowerCase()] = pool;
+      }
     }
   }
   return poolsByAddress;
@@ -207,6 +238,9 @@ const main = async () => {
   const blockchainToPoolPromise = Object.fromEntries(
     BLOCKCHAINIDS.map((blockchainId) => [blockchainId, getPools(blockchainId)])
   );
+  const blockchainToPoolsVolumesPromise = Object.fromEntries(
+    BLOCKCHAINIDS.map((blockchainId) => [blockchainId, getPoolsVolumes(blockchainId)])
+  );
 
   // we need the ethereum data first for the crv prive and await extra query to CG
   const ethereumPools = await blockchainToPoolPromise.ethereum;
@@ -215,15 +249,15 @@ const main = async () => {
   // get wbtc and weth price which we use for reward APR in case totalSupply field = 0
   const coins = Object.values(assetTypeMapping).join(',').toLowerCase();
   const underlyingPrices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
+  ).data.coins;
 
   // const celoApy = (
-  //   await utils.getData('https://api.curve.fi/api/getFactoryAPYs-celo')
+  //   await utils.getData('https://api.curve.fiance/api/getFactoryAPYs-celo')
   // ).data.poolDetails;
 
   const baseApy = (
-    await utils.getData('https://api.curve.fi/api/getFactoryAPYs-base')
+    await utils.getData('https://api.curve.finance/api/getFactoryAPYs-base')
   ).data.poolDetails;
 
   // create feeder closure to fill defillamaPooldata asynchroniously
@@ -232,6 +266,7 @@ const main = async () => {
     const [
       addressToPool,
       addressToPoolSubgraph,
+      addressToPoolVolumes,
       addressToGauge,
       gaugeAddressToExtraRewards,
     ] = poolData;
@@ -240,7 +275,7 @@ const main = async () => {
     if (['optimism', 'celo', 'kava', 'base'].includes(blockchainId)) {
       factoryAprData = (
         await utils.getData(
-          `https://api.curve.fi/api/getFactoGauges/${blockchainId}`
+          `https://api.curve.finance/api/getFactoGauges/${blockchainId}`
         )
       ).data.gauges;
     }
@@ -324,21 +359,6 @@ const main = async () => {
         ); // CRV
       }
 
-      // separate reward tokens (eg OP on curve optimism), adding this to aprExtra if available
-      if (['optimism', 'kava'].includes(blockchainId)) {
-        const x = factoryAprData.find(
-          (x) => x.gauge?.toLowerCase() === pool.gaugeAddress?.toLowerCase()
-        );
-        const extraRewardsFactory = x?.extraRewards
-          .filter((i) => i.apyData.isRewardStillActive)
-          .map((i) => i.apy)
-          .reduce((a, b) => a + b, 0);
-
-        if (extraRewardsFactory > 0) {
-          aprExtra += extraRewardsFactory;
-          rewardTokens.push(x.extraRewards.map((i) => i.tokenAddress));
-        }
-      }
       // note(!) curve api uses coingecko prices and am3CRV is wrongly priced
       // this leads to pool.usdTotal to be inflated, going to hardcode temporarly hardcode this
       // to 1usd
@@ -363,11 +383,17 @@ const main = async () => {
         continue;
       }
 
-      defillamaPooldata.push({
+      const overrideData = OVERRIDE_DATA?.[blockchainId]?.[address];
+      const symbol =
+        overrideData?.symbol || pool.coins.map((coin) => coin.symbol).join('-');
+      const url =
+        overrideData?.url || `https://curve.finance/#/${blockchainId}/pools`;
+
+      const yieldPool = {
         pool: address + '-' + blockchainId,
         chain: utils.formatChain(blockchainId),
         project: 'curve-dex',
-        symbol: pool.coins.map((coin) => coin.symbol).join('-'),
+        symbol,
         tvlUsd,
         apyBase,
         apyReward:
@@ -384,8 +410,18 @@ const main = async () => {
           .flat()
           .filter((i) => i !== '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'),
         underlyingTokens,
-        url: `https://curve.fi/#/${blockchainId}/pools`,
-      });
+        url,
+      }
+
+      if (addressToPoolVolumes) {
+        const normalAddress = String(address).toLowerCase();
+        if (addressToPoolVolumes[normalAddress]) {
+          yieldPool.volumeUsd1d = addressToPoolVolumes[normalAddress].volumeUSD
+          yieldPool.volumeUsd7d = yieldPool.volumeUsd1d * 7 * Number(addressToPoolVolumes[normalAddress].latestWeeklyApyPcent) / Number(addressToPoolVolumes[normalAddress].latestDailyApyPcent);
+        }
+      }
+
+      defillamaPooldata.push(yieldPool);
     }
   };
 
@@ -398,6 +434,7 @@ const main = async () => {
       Promise.all([
         poolPromise,
         blockchainToPoolSubgraphPromise[blockchainId],
+        blockchainToPoolsVolumesPromise[blockchainId],
         gaugePromise,
         extraRewardPromise,
       ]).then((poolData) => feedLlama(poolData, blockchainId))
@@ -415,6 +452,7 @@ const main = async () => {
   const correct = [
     '0x7f90122BF0700F9E7e1F688fe926940E8839F353-avalanche',
     '0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1-ethereum',
+    '0x7f90122BF0700F9E7e1F688fe926940E8839F353-xdai',
   ];
   return defillamaPooldata.map((p) => ({
     ...p,

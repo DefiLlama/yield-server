@@ -177,7 +177,12 @@ async function addLiquidityData(vault: Vault, interval: number): Promise<Vault> 
     const chain = vault.chain
     const tokenName = vault.isAsset0Main ? "token0" : "token1"
     const token = getUnderlyingToken(tokenName, vault)
-    const rewardTokens = vault.rewardTokens
+    let rewardTokens = vault.rewardTokens;
+    if (rewardTokens.length) {
+      rewardTokens = rewardTokens.filter(
+        (t) => new Date(+t.rewardBook.endTime * 1000) > new Date()
+      );
+    }
     const {
         tvl, shareSupply
     } = await getLiquidityData(vault)

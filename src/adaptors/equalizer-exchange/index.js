@@ -7,16 +7,29 @@ const abiPair = require('./abiPair.json');
 const abiGauge = require('./abiGauge.json');
 const abiVoter = require('./abiVoter.json');
 
-const pairFactory = '0xc6366EFD0AF1d09171fe0EBF32c7943BB310832a';
-const voter = '0xE3D1A117dF7DCaC2eB0AC8219341bAd92f18dAC1';
-const EQUAL = '0x3Fd3A0c85B70754eFc07aC9Ac0cbBDCe664865A6';
+const CHAINS = {
+  fantom: {
+    pairFactory: '0xc6366EFD0AF1d09171fe0EBF32c7943BB310832a',
+    voter: '0xE3D1A117dF7DCaC2eB0AC8219341bAd92f18dAC1',
+    EQUAL: '0x3Fd3A0c85B70754eFc07aC9Ac0cbBDCe664865A6',
+  },
+  sonic: {
+    pairFactory: '0xDDD9845Ba0D8f38d3045f804f67A1a8B9A528FcC',
+    voter: '0x17fa9dA6e01aD59513707F92033a6eb03CcB10B4',
+    EQUAL: '0xddf26b42c1d903de8962d3f79a74a501420d5f19',
+  },
+};
 
-const getApy = async () => {
+const getApy = async (chain) => {
+  const pairFactory = CHAINS[chain].pairFactory;
+  const voter = CHAINS[chain].voter;
+  const EQUAL = CHAINS[chain].EQUAL;
+
   const allPairsLength = (
     await sdk.api.abi.call({
       target: pairFactory,
       abi: abiPairFactory.find((m) => m.name === 'allPairsLength'),
-      chain: 'fantom',
+      chain,
       permitFailure: true,
     })
   ).output;
@@ -28,7 +41,7 @@ const getApy = async () => {
         params: [i],
       })),
       abi: abiPairFactory.find((m) => m.name === 'allPairs'),
-      chain: 'fantom',
+      chain,
       permitFailure: true,
     })
   ).output.map((o) => o.output);
@@ -39,7 +52,7 @@ const getApy = async () => {
         target: i,
       })),
       abi: abiPair.find((m) => m.name === 'metadata'),
-      chain: 'fantom',
+      chain,
       permitFailure: true,
     })
   ).output.map((o) => o.output);
@@ -50,7 +63,7 @@ const getApy = async () => {
         target: i,
       })),
       abi: abiPair.find((m) => m.name === 'symbol'),
-      chain: 'fantom',
+      chain,
       permitFailure: true,
     })
   ).output.map((o) => o.output);
@@ -62,7 +75,7 @@ const getApy = async () => {
         params: [i],
       })),
       abi: abiVoter.find((m) => m.name === 'gauges'),
-      chain: 'fantom',
+      chain,
       permitFailure: true,
     })
   ).output.map((o) => o.output);
@@ -74,7 +87,7 @@ const getApy = async () => {
         params: [EQUAL],
       })),
       abi: abiGauge.find((m) => m.name === 'rewardRate'),
-      chain: 'fantom',
+      chain,
       permitFailure: true,
     })
   ).output.map((o) => o.output);
@@ -95,7 +108,7 @@ const getApy = async () => {
   for (const p of [...Array(pages).keys()]) {
     keys = tokens
       .slice(p * maxSize, maxSize * (p + 1))
-      .map((i) => `fantom:${i}`)
+      .map((i) => `${chain}:${i}`)
       .join(',')
       .replaceAll('/', '');
     pricesA = [
@@ -114,20 +127,20 @@ const getApy = async () => {
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
 
-    const p0 = prices[`fantom:${poolMeta.t0}`]?.price;
-    const p1 = prices[`fantom:${poolMeta.t1}`]?.price;
+    const p0 = prices[`${chain}:${poolMeta.t0}`]?.price;
+    const p1 = prices[`${chain}:${poolMeta.t1}`]?.price;
 
     const tvlUsd = r0 * p0 + r1 * p1;
 
     const s = symbols[i];
 
     const rewardPerSec =
-      (rewardRate[i] / 1e18) * prices[`fantom:${EQUAL}`]?.price;
+      (rewardRate[i] / 1e18) * prices[`${chain}:${EQUAL}`]?.price;
     const apyReward = ((rewardPerSec * 86400 * 365) / tvlUsd) * 100;
 
     return {
       pool: p,
-      chain: utils.formatChain('fantom'),
+      chain: utils.formatChain(chain),
       project: 'equalizer-exchange',
       symbol: utils.formatSymbol(s.split('-')[1]),
       tvlUsd,
@@ -140,8 +153,19 @@ const getApy = async () => {
   return pools.filter((p) => utils.keepFinite(p));
 };
 
+const apy = async () => {
+  const pools = (
+    await Promise.all(
+      Object.keys(CHAINS).map(async (chain) => {
+        return await getApy(chain);
+      })
+    )
+  ).flat();
+  return pools;
+};
+
 module.exports = {
   timetravel: false,
-  apy: getApy,
+  apy,
   url: 'https://equalizer.exchange/liquidity',
 };

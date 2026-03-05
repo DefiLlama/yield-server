@@ -7,6 +7,7 @@ const cdpAbi = require('./abis/cdp.json');
 
 const oracleContract = '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419';
 const cdpContract = '0x7f0A0C7149a46Bf943cCd412da687144b49C6014';
+const stETH = '0xae7ab96520de3a18e5e111b5eaab095312d7fe84';
 
 const getCats = async () => {
   const decimals = (
@@ -43,8 +44,8 @@ const getCats = async () => {
   tdl = ethers.utils.formatEther(tdl);
 
   const lidoStethApr = (
-    await axios.get('https://stake.lido.fi/api/sma-steth-apr')
-  )['data'];
+    await axios.get('https://eth-api.lido.fi/v1/protocol/steth/apr/last')
+  )['data'].apr;
   const userPoints = 1 - 0;
   const totalPoints = tvl + 1 - tdl;
   let totalProtocolYieldCollateral = (tvl + 1) * (lidoStethApr / 100);
@@ -70,6 +71,7 @@ const getCats = async () => {
       symbol: 'stETH',
       tvlUsd: Math.round(tvl * ethereumPriceInDollar * 100) / 100,
       apyBase: Math.round(depositAprPercentage * 100) / 100,
+      underlyingTokens: [stETH],
     },
   ];
 };
