@@ -41,7 +41,7 @@ const getFilecoinPool = async () => {
     apy: Number(apyData.apy),
     poolMeta: 'GLIF',
     underlyingTokens: [WFIL],
-    token: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd', // iFIL
+    searchTokenOverride: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd', // iFIL
   };
 };
 

@@ -1,5 +1,5 @@
 const { default: BigNumber } = require('bignumber.js');
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
@@ -149,8 +149,8 @@ const getApy = async () => {
     .join(',')
     .toLowerCase();
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
+  ).data.coins;
 
   const davosPrice = prices[`polygon:${DAVOS.toLowerCase()}`]?.price;
   const wmaticPrice = prices[`polygon:${WMATIC.toLowerCase()}`]?.price;

@@ -149,6 +149,19 @@ const main = async () => {
 
         let underlyingTokens = getUnderlyingTokens(pool);
 
+        // For ERC-4626 vault pools where the only underlying is the vault itself,
+        // resolve to the actual asset via on-chain asset()
+        if (underlyingTokens.length === 1 && underlyingTokens[0].toLowerCase() === poolAddress.toLowerCase()) {
+          try {
+            const result = await sdk.api.abi.call({
+              target: poolAddress,
+              chain,
+              abi: 'address:asset',
+            });
+            if (result.output) underlyingTokens = [result.output];
+          } catch {}
+        }
+
         // For Aave-type borrow pools, token list may only contain aTokens/debtTokens
         // Resolve to actual underlying asset via on-chain UNDERLYING_ASSET_ADDRESS()
         if (pool.type === 'AAVE_NET_BORROWING' && underlyingTokens.length > 0) {

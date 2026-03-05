@@ -75,8 +75,8 @@ const getApy = async () => {
     tvlUsd: filTvl, // number representing current USD TVL in pool
     apyBase: parseFloat(getFilAPY / 100), // APY from pool fees/supplying in %
     url,
-    underlyingTokens: [WFIL],
-    token: filHubPool,
+    underlyingTokens: ['coingecko:filecoin'],
+    searchTokenOverride: filHubPool,
   };
 
   return [filecoinAPY];

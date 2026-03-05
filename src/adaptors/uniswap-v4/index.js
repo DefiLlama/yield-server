@@ -140,7 +140,10 @@ const main = async (timestamp = null) => {
   for (const [chain, url] of Object.entries(chains)) {
     data.push(await topLvl(chain, url, query, timestamp));
   }
-  return data.flat().filter((p) => utils.keepFinite(p));
+  return data
+    .flat()
+    .filter((p) => utils.keepFinite(p))
+    .filter((p) => !(p.tvlUsd > 1e7 && p.volumeUsd1d < 10));
 };
 
 module.exports = {

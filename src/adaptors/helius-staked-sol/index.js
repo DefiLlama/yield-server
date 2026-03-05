@@ -27,7 +27,7 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apyBase: apy * 100,
       underlyingTokens: [SOL],
-      token: HSOL_ADDRESS,
+      searchTokenOverride: HSOL_ADDRESS,
     },
   ];
 };

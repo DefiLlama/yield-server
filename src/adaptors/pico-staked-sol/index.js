@@ -34,7 +34,7 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apyBase,
       underlyingTokens: [SOL],
-      token: PICOSOL_MINT,
+      searchTokenOverride: PICOSOL_MINT,
       poolMeta: '2.5% rewards fee',
       url: 'https://app.sanctum.so/stake/picoSOL',
     },

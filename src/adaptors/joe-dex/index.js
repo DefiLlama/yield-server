@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
@@ -137,8 +137,8 @@ const topLvl = async (chainString, timestamp, url) => {
   // get joe price
   const key = 'avax:0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd';
   const joeUsd = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins;
 
   const dataLM = {};
   for (const p of poolInfo) {

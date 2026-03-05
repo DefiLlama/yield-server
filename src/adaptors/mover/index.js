@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 
 const utils = require('../utils');
 
@@ -22,8 +22,8 @@ const savings = async () => {
   // get asset price in usd
   const key = 'ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
   const usdcInUSDEth = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key].price;
 
   let tvl = new BigNumber(
     (
@@ -64,8 +64,8 @@ const savingsPlus = async () => {
   // get asset price in usd
   const key = `polygon:${USDCinPolygon}`.toLowerCase();
   const usdcInUSDPolygon = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key].price;
 
   let tvl = new BigNumber(
     (

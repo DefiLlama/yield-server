@@ -5,6 +5,10 @@ const utils = require('../utils');
 const uniquePools = new Set();
 const project = 'ghost';
 
+const KUJIRA_IBC_COINGECKO = {
+  'ibc/FE98AAD68F02F03565E9FA39A5E627946699B2B07115889ED812D8BA639576A9': 'coingecko:usd-coin',
+};
+
 // Kujira REST API base URL
 const KUJIRA_REST_URL = 'https://kujira-api.polkachu.com';
 
@@ -45,7 +49,7 @@ const getApy = async () => {
           apyRewardBorrow: 0,
           totalSupplyUsd,
           totalBorrowUsd,
-          underlyingTokens: contract.config.denom ? [contract.config.denom] : undefined,
+          underlyingTokens: contract.config.denom ? [KUJIRA_IBC_COINGECKO[contract.config.denom] || contract.config.denom] : undefined,
         };
       } else {
         const totalSupplyUsd =
@@ -64,7 +68,7 @@ const getApy = async () => {
           apyRewardBorrow: 0,
           totalSupplyUsd,
           totalBorrowUsd,
-          underlyingTokens: contract.config.denom ? [contract.config.denom] : undefined,
+          underlyingTokens: contract.config.denom ? [KUJIRA_IBC_COINGECKO[contract.config.denom] || contract.config.denom] : undefined,
         };
       }
     })

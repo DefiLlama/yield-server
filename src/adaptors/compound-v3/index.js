@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.js');
@@ -184,8 +184,8 @@ const main = async (pool) => {
     ...tokens.map((t) => `${pool.chain}:${t}`),
   ].join(',');
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
   const collateralDecimalsRes = await sdk.api.abi.multiCall({
     abi: 'erc20:decimals',

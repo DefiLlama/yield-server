@@ -69,6 +69,7 @@ const cdpDataFunction = async () => {
         ltv: Number(pool.liqLtvPercent) / 100,
         mintedCoin: 'KSD',
         poolMeta: symbols[index] === 'KSLP' ? 'KlaySwap LP' : null,
+        underlyingTokens: symbols[index] !== 'KSLP' ? [pool.address] : undefined,
       };
     })
     .filter((e) => e.symbol);

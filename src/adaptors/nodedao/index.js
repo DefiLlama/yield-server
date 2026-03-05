@@ -101,7 +101,7 @@ const getApy = async () => {
       apyBase: nEthData.apyBase,
       apyBase7d: nEthData.apyBase7d,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      token: nETH,
+      searchTokenOverride: nETH,
       url: `https://app.nodedao.com/`,
     },
     {
@@ -113,7 +113,7 @@ const getApy = async () => {
       apyBase: rnEthData.apyBase,
       apyBase7d: rnEthData.apyBase7d,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      token: rnETH,
+      searchTokenOverride: rnETH,
       url: `https://app.nodedao.com/re_stake`,
     },
   ];

@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
 const { getAsset, getTotalSupply } = require('./queries');
@@ -134,8 +134,8 @@ const lendingApys = async () => {
     .concat([`arbitrum:${usdcAddress}`])
     .join(',');
   const pricesEthereum = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
   return await Promise.all(
     pairs.map(async (pair) => {

@@ -29,21 +29,87 @@ const chainDisplayNames = {
   avax: 'avalanche',
 };
 
-// Fetch underlying token from vault using token() method
-const getVaultToken = async (vaultAddress, chain) => {
-  try {
-    const result = await sdk.api.abi.call({
-      target: vaultAddress,
-      abi: 'address:token',
-      chain,
-    });
-    if (result.output && result.output !== '0x0000000000000000000000000000000000000000') {
-      return [result.output];
-    }
-  } catch (e) {
-    // Vault might not have token() method
+const ZERO = '0x0000000000000000000000000000000000000000';
+const valid = (o) => o?.output && o.output !== ZERO;
+
+// Batch-resolve underlying tokens for all vaults, grouped by chain
+const resolveAllUnderlyingTokens = async (vaults) => {
+  const byChain = {};
+  for (const v of vaults) {
+    if (!byChain[v.chain]) byChain[v.chain] = [];
+    byChain[v.chain].push(v);
   }
-  return undefined;
+
+  const results = {};
+
+  for (const [chain, chainVaults] of Object.entries(byChain)) {
+    const calls = chainVaults.map((v) => ({ target: v.address }));
+
+    // Step 1: try token0/token1 directly on vault
+    // + try token() and pool() on vault
+    const [directT0, directT1, tokenCall, poolCall] = await Promise.all([
+      sdk.api.abi.multiCall({ abi: 'address:token0', calls, chain, permitFailure: true }),
+      sdk.api.abi.multiCall({ abi: 'address:token1', calls, chain, permitFailure: true }),
+      sdk.api.abi.multiCall({ abi: 'address:token', calls, chain, permitFailure: true }),
+      sdk.api.abi.multiCall({ abi: 'address:pool', calls, chain, permitFailure: true }),
+    ]);
+
+    // Step 2: for vaults where direct token0/token1 failed,
+    // try token0/token1 on intermediate addresses (token() or pool())
+    const indirectNeeded = [];
+    for (let i = 0; i < chainVaults.length; i++) {
+      const hasDirect = valid(directT0.output[i]) && valid(directT1.output[i]);
+      if (hasDirect) continue;
+
+      // Prefer pool() for V3 wrappers, fall back to token() for LP wrappers
+      const intermediateAddr = valid(poolCall.output[i])
+        ? poolCall.output[i].output
+        : valid(tokenCall.output[i])
+          ? tokenCall.output[i].output
+          : null;
+
+      if (intermediateAddr) {
+        indirectNeeded.push({ i, addr: intermediateAddr });
+      }
+    }
+
+    let indirectT0 = {}, indirectT1 = {};
+    if (indirectNeeded.length > 0) {
+      const indCalls = indirectNeeded.map((n) => ({ target: n.addr }));
+      const [iT0, iT1] = await Promise.all([
+        sdk.api.abi.multiCall({ abi: 'address:token0', calls: indCalls, chain, permitFailure: true }),
+        sdk.api.abi.multiCall({ abi: 'address:token1', calls: indCalls, chain, permitFailure: true }),
+      ]);
+      for (let j = 0; j < indirectNeeded.length; j++) {
+        const idx = indirectNeeded[j].i;
+        indirectT0[idx] = iT0.output[j];
+        indirectT1[idx] = iT1.output[j];
+      }
+    }
+
+    // Assemble results per vault
+    for (let i = 0; i < chainVaults.length; i++) {
+      const id = chainVaults[i].id;
+
+      // Priority 1: direct token0/token1 on vault
+      if (valid(directT0.output[i]) && valid(directT1.output[i])) {
+        results[id] = [directT0.output[i].output, directT1.output[i].output];
+        continue;
+      }
+      // Priority 2: indirect token0/token1 via pool() or token()
+      if (valid(indirectT0[i]) && valid(indirectT1[i])) {
+        results[id] = [indirectT0[i].output, indirectT1[i].output];
+        continue;
+      }
+      // Priority 3: token() as single underlying
+      if (valid(tokenCall.output[i])) {
+        results[id] = [tokenCall.output[i].output];
+        continue;
+      }
+    }
+  }
+
+  return results;
 };
 
 const fetch = (dataTvl, chainMapping) => {
@@ -77,26 +143,25 @@ const main = async () => {
   const dataApi = await utils.getData(urlApi);
   const vaults = fetch(dataApi.assets, chainMapping);
 
-  // Fetch underlying tokens for all vaults in parallel
-  const poolsWithTokens = await Promise.all(
-    vaults.map(async (vault) => {
-      const underlyingTokens = await getVaultToken(vault.address, vault.chain);
-      const displayChain = chainDisplayNames[vault.chain] || vault.chain;
+  // Batch-resolve underlying tokens for all vaults
+  const underlyingMap = await resolveAllUnderlyingTokens(vaults);
 
-      return {
-        pool: vault.id,
-        chain: utils.formatChain(displayChain),
-        project: 'acryptos',
-        symbol: utils.formatSymbol(vault.symbol),
-        poolMeta: vault.platform.charAt(0).toUpperCase() + vault.platform.slice(1),
-        tvlUsd: Number(vault.tvl),
-        apy: Number(vault.apy),
-        underlyingTokens,
-      };
-    })
-  );
+  const pools = vaults.map((vault) => {
+    const displayChain = chainDisplayNames[vault.chain] || vault.chain;
 
-  return poolsWithTokens.filter((p) => utils.keepFinite(p));
+    return {
+      pool: vault.id,
+      chain: utils.formatChain(displayChain),
+      project: 'acryptos',
+      symbol: utils.formatSymbol(vault.symbol),
+      poolMeta: vault.platform.charAt(0).toUpperCase() + vault.platform.slice(1),
+      tvlUsd: Number(vault.tvl),
+      apy: Number(vault.apy),
+      underlyingTokens: underlyingMap[vault.id] || null,
+    };
+  });
+
+  return pools.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

@@ -1,6 +1,5 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
 const { default: BigNumber } = require('bignumber.js');
 
 const lpTokenABI = require('./abis/abi-lp-token.json');
@@ -51,10 +50,10 @@ const getPairInfo = async (pairs, apiUrl) => {
 const getPrices = async (addresses, chain) => {
   const addy = addresses.map((address) => `${chain}:${address}`).join(',');
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addy.toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({

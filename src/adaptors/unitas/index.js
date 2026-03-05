@@ -4,7 +4,7 @@ const {aprToApy} = require("../utils");
 const SOL_RPC = 'https://api.mainnet-beta.solana.com';
 const STAKE_POOL = 'CFgrWjb9DYKVqf7QyQfmwjboDDkXpFHQ6292rnYxrjsa';
 const SUSDU = '9iq5Q33RSiz1WcupHAQKbHBZkpn92UxBG2HfPWAZhMCa';
-const USDU = 'BAci7aT8yvgP8DJQChVZyE1iMCRb9yBgqVsGLXMZjcmk'; // USDu underlying token
+const USDU = '9ckR7pPPvyPadACDTzLwK2ZAEeUJ3qGSnzPs8bVaHrSy'; // USDu mint on Solana
 const DISTRIBUTE_ACCOUNT = "AmAcmYeJgxdHfoMSb3zwWFFPwWivADiyMozHwg5WyTtW"
 const DISTRIBUTOR_DISCRIMINATOR = "FytrVezW"
 

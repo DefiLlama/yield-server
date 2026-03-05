@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const ethers = require('ethers');
@@ -105,7 +105,7 @@ const main = async (unixTimestamp) => {
 
     // get token price from llama coins api
     const coinLists = Object.keys(allTokens).map(token => `${chain}:${token}`);
-    const coinPrices = (await superagent.get(`https://coins.llama.fi/prices/current/${coinLists.toString()}`)).body.coins;
+    const coinPrices = (await axios.get(`https://coins.llama.fi/prices/current/${coinLists.toString()}`)).data.coins;
     for (const [coinId, coinPrice] of Object.entries(coinPrices)) {
       allTokens[formatAddress(coinId.split(':')[1])].price = Number(coinPrice.price);
     }

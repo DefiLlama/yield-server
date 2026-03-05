@@ -1,6 +1,6 @@
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const utils = require('../utils');
 const { zenBullAbi, eulerSimpleLens } = require('./abi');
 
@@ -13,13 +13,13 @@ const poolsFunction = async () => {
   // get eth usd price
   const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
   const ethPriceUSD = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key].price;
   // get squeeth usd price
   const squeethKey = 'ethereum:0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b';
   const squeethPriceUSD = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${squeethKey}`)
-  ).body.coins[squeethKey].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${squeethKey}`)
+  ).data.coins[squeethKey].price;
   const usdc = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
   const weth = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 

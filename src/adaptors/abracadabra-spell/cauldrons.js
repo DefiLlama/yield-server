@@ -3,7 +3,7 @@ const {
 } = require('ethers');
 const _ = require('lodash');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const utils = require('../utils');
 const MARKET_LENS_ABI = require('./abis/MarketLens.json');
 const CAULDRON_V2_ABI = require('./abis/CauldronV2.json');
@@ -633,7 +633,7 @@ const marketInfoToPool = (chain, marketInfo, collateral, pricesObj) => {
 };
 
 const poolsApy = async () =>
-  (await superagent.get('https://yields.llama.fi/pools')).body.data;
+  (await axios.get('https://yields.llama.fi/pools')).data.data;
 
 const getApy = async () => {
   const collateralsPromise = getCauldronDetails(POOLS, 'collateral');

@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 const { getMerklRewardsForChain } = require('../merkl/merkl-by-identifier');
 
 const PROJECT_NAME = 'lazy-summer-protocol';
@@ -42,10 +42,10 @@ const multiCall = (targets, abi, chain, block = undefined) =>
 
 const getBlockNumber = async (timestamp, chain) => {
   try {
-    const response = await superagent.get(
+    const response = await axios.get(
       `https://coins.llama.fi/block/${chain}/${timestamp}`
     );
-    return response.body.height;
+    return response.data.height;
   } catch (e) {
     return null;
   }

@@ -24,6 +24,19 @@ const MARKETS = [
   { symbol: 'SWTAO', address: 'erd1qqqqqqqqqqqqqpgq7sspywe6e2ehy7dn5dz00ved3aa450mv78ssllmln6', decimals: 9, tokenId: 'SWTAO-356a25' },
 ];
 
+const COINGECKO_MAP = {
+  EGLD: 'coingecko:elrond-erd-2',
+  SEGLD: 'coingecko:elrond-erd-2',
+  WBTC: 'coingecko:wrapped-bitcoin',
+  WETH: 'coingecko:ethereum',
+  USDC: 'coingecko:usd-coin',
+  USDT: 'coingecko:tether',
+  UTK: 'coingecko:utrust',
+  HTM: 'coingecko:hatom',
+  WTAO: 'coingecko:bittensor',
+  SWTAO: 'coingecko:bittensor',
+};
+
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
 
 async function queryContract(address, funcName) {
@@ -117,7 +130,7 @@ const apy = async () => {
         symbol: market.symbol,
         tvlUsd,
         apyBase,
-        underlyingTokens: [market.tokenId],
+        underlyingTokens: COINGECKO_MAP[market.symbol] ? [COINGECKO_MAP[market.symbol]] : [market.tokenId],
       };
     });
 }

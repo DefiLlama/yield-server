@@ -1,6 +1,13 @@
 const { callReadOnlyFunction, contractPrincipalCV } = require("@stacks/transactions");
 const { StacksMainnet } = require("@stacks/network");
 
+const STACKS_COINGECKO = {
+  STX: 'coingecko:blockstack',
+  stSTX: 'coingecko:blockstack',
+  aeUSDC: 'coingecko:usd-coin',
+  DIKO: 'coingecko:arkadiko-protocol',
+};
+
 const AssetConfig = {
     stSTX: {
         assetAddress: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG',
@@ -135,11 +142,11 @@ async function getZestPools() {
         pools.push({
             pool: `${assetAddress}.${contractName}-${chain}`.toLowerCase(),
             chain: chain,
-            project: 'zest',
+            project: 'zest-v1',
             symbol: assetKey,
             tvlUsd: tvlUsd,
             apyBase: supplyApy,
-            underlyingTokens: [`${assetAddress}.${contractName}`],
+            underlyingTokens: [STACKS_COINGECKO[assetKey] || `${assetAddress}.${contractName}`],
         });
     }
   return pools;

@@ -224,6 +224,15 @@ const excludeAdaptors = [
   'hord',
   'holdstation-defutures',
   'merkle-trade',
+  'nayms',
+  'berancia',
+  'crowdswap',
+  'wise-lending-v2',
+  'covo-v2',
+  'arbitrum-exchange-v2',
+  'premia-v2',
+  'angle',
+  'basisos',
 ];
 
 const excludePools = [
@@ -1853,6 +1862,16 @@ const excludePools = [
   '0x8df5131e0382854f126028fa32e4671edf54af4cfa21a0a978e801171943ad90-polygon-uniswap-v4',
   '0xe6b8b2f7320759927c826e663ba1a77eaf8156bad1422234d5282c17c5e8f637-base-uniswap-v4',
   '0x3b1dba2583fd36aab4865b5cdb4453da2b615657a4389a461a2901c24dcc3340-polygon-uniswap-v4',
+  // sparklend old SKY farm - epoch finished Jan 2026, replaced by new SPK farm
+  '0x0650CAF159C5A49f711e8169D4336ECB9b950275',
+  '0x0a1a1a107e45b7ced86833863f482bc5f4ed82ef-tier1',
+  '0xbf19ec938f91b22605a5a07e87aa6b3b8ff5d7daeaec3a75c3a810c5c3fd7454',
+  '0xaab64e2d4a4e6c39c0216fd540935093607093c2ea81393bc22c861bff326232',
+  '0x8e0a968ed1854e1f2b62c70c53b10c4efbd9fd893b5fddd918166eb2abc5f95a',
+  '0x196e8b5bd231a782bb023324df2b695092b54d140980e0ebcfbfc3f55260ce76',
+  '0x3dd21d776db9cbdac1c5f1077a0046be2baed6b08b30f46aea3c5f81133757b7',
+  '0x3047c57b06074d55a3fe804ec5e8b9325d445462e9946dd89f755cfb5741b338',
+  '0xe4ed597cd290ff2c855659ff0bc8206146c1a9bd48ba2e90253bd81c60bfd919',
 ];
 
 const boundaries = {

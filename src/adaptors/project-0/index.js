@@ -80,7 +80,7 @@ const getApy = async () => {
     };
   });
 
-  return bankApys;
+  return utils.removeDuplicates(bankApys);
 };
 
 module.exports = {

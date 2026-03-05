@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const SUBGRAPH_URL =
   'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-production';
@@ -8,14 +8,11 @@ const CHAIN_NAME = 'Ethereum';
 const getData = async (url, query = null) => {
   let res;
   if (query !== null) {
-    res = await superagent
-      .post(url)
-      .send(query)
-      .set('Content-Type', 'application/json');
+    res = await axios.post(url, query);
   } else {
-    res = await superagent.get(url);
+    res = await axios.get(url);
   }
-  return res.body;
+  return res.data;
 };
 
 const wsdQuery = `

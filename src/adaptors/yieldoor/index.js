@@ -1,5 +1,4 @@
 const { request, gql } = require('graphql-request');
-const superagent = require('superagent');
 const { formatChain, getPrices, getERC4626Info } = require('../utils');
 const BigNumber = require('bignumber.js');
 const { formatCollectsQuery } = require('./queries');

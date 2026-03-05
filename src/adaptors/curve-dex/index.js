@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
@@ -249,8 +249,8 @@ const main = async () => {
   // get wbtc and weth price which we use for reward APR in case totalSupply field = 0
   const coins = Object.values(assetTypeMapping).join(',').toLowerCase();
   const underlyingPrices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
+  ).data.coins;
 
   // const celoApy = (
   //   await utils.getData('https://api.curve.fiance/api/getFactoryAPYs-celo')

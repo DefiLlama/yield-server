@@ -562,7 +562,7 @@ const getApy = async () => {
       apyBase: btcMarketplace.apy,
       chain: 'bitcoin',
       url: 'https://app.b14g.xyz/marketplace',
-      underlyingTokens: ['0x0000000000000000000000000000000000000000'], // native BTC
+      underlyingTokens: ['coingecko:bitcoin'], // native BTC
     },
   ];
 };

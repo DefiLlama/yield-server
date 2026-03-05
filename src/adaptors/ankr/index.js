@@ -34,7 +34,7 @@ const buildObject = (entry, tokenString, chainString, serviceName) => {
     apy: Number(entry.apy),
     url: `https://www.ankr.com/staking/stake/${serviceToUrl[serviceName]}`,
     underlyingTokens: [underlying[serviceName]],
-    token: tokenAddresses[serviceName],
+    searchTokenOverride: tokenAddresses[serviceName],
   };
 
   return payload;

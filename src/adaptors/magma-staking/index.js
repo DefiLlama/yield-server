@@ -211,7 +211,7 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apyBase,
       underlyingTokens: [WMON],
-      token: MAGMA_ADDRESS,
+      searchTokenOverride: MAGMA_ADDRESS,
     },
   ];
 };

@@ -188,7 +188,7 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apyBase,
       underlyingTokens: [WMON],
-      token: SHMONAD_CONTRACT,
+      searchTokenOverride: SHMONAD_CONTRACT,
     },
   ];
 };

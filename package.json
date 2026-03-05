@@ -15,8 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@blend-capital/blend-sdk": "3.0.1",
-    "@dfinity/agent": "^2.3.0",
-    "@defillama/sdk": "^5.0.206",
+    "@defillama/sdk": "^5.0.207",
     "@solana/spl-stake-pool": "^1.1.8",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.15.0",
@@ -42,11 +41,9 @@
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
     "node-fetch": "^2.6.1",
-    "p-limit": "^3.1.0",
     "pg-promise": "^10.11.1",
     "simple-statistics": "^7.7.5",
     "starknet": "^4.22.0",
-    "superagent": "^6.1.0",
     "validator": "^13.9.0",
     "web3": "^4.9.0"
   },

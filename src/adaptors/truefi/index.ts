@@ -1,5 +1,5 @@
 const BigNumber = require('bignumber.js');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const { web3 } = require('./connection');
 const { getPoolValues } = require('./getPoolValues');
@@ -113,8 +113,8 @@ const apy = async () => {
     .join(',')
     .toLowerCase();
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
+  ).data.coins;
 
   const truPrice = prices[getAddressKey(TRU_ADDRESS)].price;
   const activeLoans = await getActiveLoans();

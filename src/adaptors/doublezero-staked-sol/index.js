@@ -31,7 +31,7 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apyBase,
       underlyingTokens: [SOL],
-      token: DZSOL_MINT,
+      searchTokenOverride: DZSOL_MINT,
       poolMeta: '6% epoch fee',
     },
   ];

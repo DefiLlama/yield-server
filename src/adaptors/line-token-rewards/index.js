@@ -66,6 +66,7 @@ const apy = async () => {
         tvlUsd: totalBalanceOfLineTokensInUsd,
         pool: `LINE-${CHAIN}`.toLowerCase(),
         symbol: 'LINE',
+        underlyingTokens: ['coingecko:byteball'],
     }]
 }
 

@@ -449,7 +449,7 @@ const getXrplPools = async (sharedData) => {
           apyBase7d: Number(apyBase7d.toFixed(2)),
           poolMeta: xrplConfig.ousg.name,
           url: 'https://app.ondo.finance/assets/ousg',
-          underlyingTokens: [xrplConfig.ousg.issuer],
+          underlyingTokens: ['coingecko:ousg'],
         });
       }
     }
@@ -517,7 +517,7 @@ const getStellarPools = async (sharedData) => {
           apyBase7d: Number(apyBase7d.toFixed(2)),
           poolMeta: stellarConfig.usdy.name,
           url: 'https://app.ondo.finance/assets/usdy',
-          underlyingTokens: [stellarConfig.usdy.issuer],
+          underlyingTokens: ['coingecko:ondo-us-dollar-yield'],
         });
       }
     }
@@ -551,7 +551,7 @@ const getOsmosisPools = async (sharedData) => {
           apyBase7d: Number(apyBase7d.toFixed(2)),
           poolMeta: osmosisConfig.usdy.name,
           url: 'https://app.ondo.finance/assets/usdy',
-          underlyingTokens: [osmosisConfig.usdy.ibcDenom],
+          underlyingTokens: ['coingecko:ondo-us-dollar-yield'],
         });
       }
     }

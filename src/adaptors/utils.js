@@ -1,4 +1,3 @@
-const superagent = require('superagent');
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
@@ -7,6 +6,13 @@ const { default: BigNumber } = require('bignumber.js');
 
 exports.formatAddress = (address) => {
   return String(address).toLowerCase();
+};
+
+exports.padStarknetAddress = (addr) => {
+  if (!addr || !addr.startsWith('0x')) return addr;
+  const hex = addr.slice(2);
+  if (hex.length >= 64) return addr;
+  return '0x' + hex.padStart(64, '0');
 };
 
 exports.formatChain = (chain) => {
@@ -23,7 +29,8 @@ exports.formatChain = (chain) => {
     chain &&
     (chain.toLowerCase() === 'zksync_era' ||
       chain.toLowerCase() === 'zksync era' ||
-      chain.toLowerCase() === 'era')
+      chain.toLowerCase() === 'era' ||
+      chain.toLowerCase() === 'zksync')
   )
     return 'zkSync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
@@ -60,11 +67,11 @@ exports.formatSymbol = (symbol) => {
 exports.getData = async (url, query = null) => {
   let res;
   if (query !== null) {
-    res = await superagent.post(url).send(query);
+    res = await axios.post(url, query);
   } else {
-    res = await superagent.get(url);
+    res = await axios.get(url);
   }
-  return res.body;
+  return res.data;
 };
 
 // retrive block based on unixTimestamp array
@@ -72,10 +79,10 @@ const getBlocksByTime = async (timestamps, chainString) => {
   const chain = chainString === 'avalanche' ? 'avax' : chainString;
   const blocks = [];
   for (const timestamp of timestamps) {
-    const response = await superagent.get(
+    const response = await axios.get(
       `https://coins.llama.fi/block/${chain}/${timestamp}`
     );
-    blocks.push(response.body.height);
+    blocks.push(response.data.height);
   }
   return blocks;
 };
@@ -329,12 +336,12 @@ exports.getPrices = async (addresses, chain) => {
     ? addresses.map((address) => `${chain}:${address}`)
     : addresses;
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${priceKeys
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [address, price]) => ({

@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
@@ -33,12 +33,12 @@ const PROTOCOL_TOKEN = {
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
       ...acc,

@@ -93,7 +93,7 @@ const UNDERLYING_TOKENS = {
     USDC: '0x29219dd400f2Bf60E5a23d13Be72B486D4038894',
   },
   plume_mainnet: {
-    USDC: '0xB0EA0eF6D3B0E01747a7145d83022afC4a7e30Fd',
+    USDC: '0xdddd73f5df1f0dc31373357beac77545dc5a6f3f',
   },
   bsc: {
     USDC: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
@@ -103,6 +103,20 @@ const UNDERLYING_TOKENS = {
   },
   linea: {
     USDC: '0x176211869cA2b568f2A7D4EE941E073a821EE1ff',
+  },
+  saga: {
+    USDC: 'coingecko:usd-coin',
+    WETH: 'coingecko:ethereum',
+  },
+  katana: {
+    USDC: 'coingecko:usd-coin',
+    WETH: 'coingecko:ethereum',
+  },
+  tac: {
+    USDC: 'coingecko:usd-coin',
+  },
+  plasma: {
+    USDC: 'coingecko:usd-coin',
   },
 };
 

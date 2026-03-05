@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const { formatChain, formatSymbol } = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 const { format } = require('date-fns');
 const { compact } = require('lodash');
 
@@ -146,10 +146,10 @@ const getPools = async (chain) => {
 
       // price of base token in USD terms
       const key = `${chain}:${baseAddr}`;
-      const priceRes = await superagent.get(
+      const priceRes = await axios.get(
         `https://coins.llama.fi/prices/current/${key}`
       );
-      const price = priceRes.body.coins[key];
+      const price = priceRes.data.coins[key];
       const priceBaseUsd = price ? price.price : 0;
 
       // total base value in pool plus total fyToken value (in base) in pool, converted to USD

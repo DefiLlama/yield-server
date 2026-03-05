@@ -336,7 +336,7 @@ const getFarmAPY = async (block, blockPrior, blockPrior7d, hydtPrice) => {
         ? utils.formatSymbol(`${p.token1.symbol}-${p.token0.symbol}`)
         : utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
     const rewardTokens = [hygt];
-    const underlyingTokens = [p.id];
+    const underlyingTokens = [p.token0.id, p.token1.id];
     const url = 'https://app.hydtprotocol.com/HYDT/farm';
 
     const totalDeposit = new BigNumber(p.totalDeposit)

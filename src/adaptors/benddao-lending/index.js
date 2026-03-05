@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const BigNumber = require('bignumber.js');
 
 const AddressMap = {
@@ -33,10 +33,10 @@ async function apy() {
             .join(',')
             .toLowerCase();
 
-          const ret = await superagent.get(
+          const ret = await axios.get(
             `https://coins.llama.fi/prices/current/${coins}`
           );
-          return ret.body.coins;
+          return ret.data.coins;
         })(),
         sdk.api.abi.call({
           target: AddressMap[chain].UiPoolDataProvider,

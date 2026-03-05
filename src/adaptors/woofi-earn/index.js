@@ -32,6 +32,16 @@ const rewardTokensMapping = {
   mantle: '0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8', // WMNT
 };
 
+// Known underlying tokens for vaults where want() call fails
+const KNOWN_UNDERLYING = {
+  era: {
+    '0x1d686250bbffa9fe120b591f5992dd7fc0fd99a4': ['0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91'], // WETH
+    '0xdca324bdd4ebb6b8a1802959324ce125b5d57921': ['0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4'], // USDC
+    '0xa8bbab0ac88382a0f507b9e93cdbe65ffa1f50d1': ['0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4'], // USDC.E
+    '0x85167f7f3f367e0be7b4d3a8c2b1648f56dfdb45': ['0x5A7d6b2F92C77FAD6CCaBd7EE0624E64907Eaf3E'], // ZK
+  },
+};
+
 // Fetch underlying token from vault using want() method
 const getVaultUnderlying = async (vaultAddress, chain) => {
   const sdkChain = chainMapping[chain] || chain;
@@ -47,6 +57,9 @@ const getVaultUnderlying = async (vaultAddress, chain) => {
   } catch (e) {
     // Vault might not have want() method or call failed
   }
+  // Fallback to known mapping
+  const known = KNOWN_UNDERLYING[chain]?.[vaultAddress.toLowerCase()];
+  if (known) return known;
   return undefined;
 };
 

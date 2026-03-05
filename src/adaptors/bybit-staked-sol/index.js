@@ -29,7 +29,7 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apy: bbSolApy,
       underlyingTokens: [SOL],
-      token: BBSOL_ADDRESS,
+      searchTokenOverride: BBSOL_ADDRESS,
     },
   ];
 };

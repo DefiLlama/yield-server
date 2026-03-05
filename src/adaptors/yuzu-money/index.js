@@ -9,52 +9,26 @@ const YEAR_IN_DAYS = 365;
 const DAY_IN_SECONDS = 24 * 60 * 60;
 const APY_REFERENCE_PERIOD_IN_DAYS = 7;
 
-// USDT address on Plasma (underlying asset for yzPP)
-const PLASMA_USDT_ADDRESS = '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb';
 const USDT_UNIT = 1e6;
 
 const yuzuConfig = {
   plasma: {
-    yzUSD: {
-      address: '0x6695c0f8706c5ace3bdf8995073179cca47926dc',
-      unit: UNIT,
-    },
-    syzUSD: {
-      address: '0xc8a8df9b210243c55d31c73090f06787ad0a1bf6',
-      unit: UNIT,
-    },
-    yzPP: {
-      address: '0xEbFC8C2Fe73C431Ef2A371AeA9132110aaB50DCa',
-      unit: UNIT,
-    },
+    usdt: '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb',
+    yzUSD: { address: '0x6695c0f8706c5ace3bdf8995073179cca47926dc', unit: UNIT },
+    syzUSD: { address: '0xc8a8df9b210243c55d31c73090f06787ad0a1bf6', unit: UNIT },
+    yzPP: { address: '0xEbFC8C2Fe73C431Ef2A371AeA9132110aaB50DCa', unit: UNIT },
   },
   ethereum: {
-    yzUSD: {
-      address: '0x387167e5C088468906Bcd67C06746409a8E44abA',
-      unit: UNIT,
-    },
-    syzUSD: {
-      address: '0x6DFF69eb720986E98Bb3E8b26cb9E02Ec1a35D12',
-      unit: UNIT,
-    },
-    yzPP: {
-      address: '0xB2429bA2cfa6387C9A336Da127d34480C069F851',
-      unit: UNIT,
-    },
+    usdt: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+    yzUSD: { address: '0x387167e5C088468906Bcd67C06746409a8E44abA', unit: UNIT },
+    syzUSD: { address: '0x6DFF69eb720986E98Bb3E8b26cb9E02Ec1a35D12', unit: UNIT },
+    yzPP: { address: '0xB2429bA2cfa6387C9A336Da127d34480C069F851', unit: UNIT },
   },
   monad: {
-    yzUSD: {
-      address: '0x9dcB0D17eDDE04D27F387c89fECb78654C373858',
-      unit: UNIT,
-    },
-    syzUSD: {
-      address: '0x484be0540aD49f351eaa04eeB35dF0f937D4E73f',
-      unit: UNIT,
-    },
-    yzPP: {
-      address: '0xb37476cB1F6111cC682b107B747b8652f90B0984',
-      unit: UNIT,
-    },
+    usdt: '0xe7cd86e13ac4309349f30b3435a9d337750fc82d',
+    yzUSD: { address: '0x9dcB0D17eDDE04D27F387c89fECb78654C373858', unit: UNIT },
+    syzUSD: { address: '0x484be0540aD49f351eaa04eeB35dF0f937D4E73f', unit: UNIT },
+    yzPP: { address: '0xb37476cB1F6111cC682b107B747b8652f90B0984', unit: UNIT },
   },
 };
 
@@ -63,12 +37,12 @@ const TOKEN_META = {
   syzUSD: {
     symbol: 'syzUSD',
     url: 'https://app.yuzu.money/yzusd-syzusd',
-    getUnderlyingTokens: (chain) => [yuzuConfig['plasma'].yzUSD.address],
+    getUnderlyingTokens: (chain) => [yuzuConfig[chain].yzUSD.address],
   },
   yzPP: {
     symbol: 'yzPP',
     url: 'https://app.yuzu.money/yzpp',
-    getUnderlyingTokens: () => [PLASMA_USDT_ADDRESS],
+    getUnderlyingTokens: (chain) => [yuzuConfig[chain].usdt],
   },
 };
 

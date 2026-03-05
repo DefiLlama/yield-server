@@ -1,9 +1,7 @@
 const axios = require('axios')
 const sdk = require('@defillama/sdk')
 const BigNumber = require('bignumber.js')
-const {sparkSavingsAbi} = require('./abi.js')
-
-import type { Pool } from '../../types/Pool'
+const { sparkSavingsAbi } = require('./abi.js')
 
 const sparkBaseUrl = 'https://app.spark.fi/savings'
 
@@ -46,8 +44,8 @@ const sparkSavings: Record<Chain, VaultConfig[]> = {
   ],
 }
 
-async function getPools(): Promise<Pool[]> {
-  const pools: Pool[] = []
+async function getPools() {
+  const pools = []
   const chains = Object.keys(sparkSavings) as Chain[]
 
   for (const chain of chains) {
@@ -97,7 +95,7 @@ async function getPools(): Promise<Pool[]> {
 
     pools.push(
       ...vaults.map(
-        (vaultConfig, i): Pool => ({
+        (vaultConfig, i) => ({
           pool: `${vaultConfig.address}-${chain}`,
           chain,
           apyBase: rateToApy(rates[i]),

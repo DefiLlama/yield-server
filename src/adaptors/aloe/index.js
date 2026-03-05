@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const { secondsInYear } = require('date-fns');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 const { rewardTokens } = require('../sommelier/config');
 
 const EVENTS = {
@@ -63,12 +63,12 @@ async function getPrices(chain, addresses) {
     (address) => `${chain}:${address}`
   );
   return (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${priceKeys
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 }
 
 async function getPoolsFor(chain) {

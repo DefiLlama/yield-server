@@ -37,7 +37,7 @@ async function apy() {
       symbol: "TRX",
       tvlUsd,
       apyBase: baseApy,
-      underlyingTokens: ["TRX"],
+      underlyingTokens: ["TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR"],
       url: "https://tr.energy",
     },
   ];
