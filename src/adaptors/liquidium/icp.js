@@ -1,3 +1,10 @@
+const nodeFetch = !globalThis.fetch ? require('node-fetch') : null
+const fetch = globalThis.fetch || nodeFetch
+const AbortController =
+  globalThis.AbortController ||
+  (nodeFetch && nodeFetch.AbortController) ||
+  require('abort-controller')
+
 const ICP_HOST = 'https://ic0.app'
 const CANISTER_TIMEOUT_MS = 30_000
 const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER)
@@ -94,34 +101,43 @@ function encodeCbor(value) {
 
 // --- CBOR decoder ---
 
+function ensureBytesAvailable(bytes, state, required = 1, context = 'CBOR input') {
+  if (state.i + required > bytes.length) {
+    throw new Error(`Unexpected end of ${context}`)
+  }
+}
+
+function readByte(bytes, state, context = 'CBOR input') {
+  ensureBytesAvailable(bytes, state, 1, context)
+  return bytes[state.i++]
+}
+
 function readCborUint(bytes, state, additionalInfo) {
   if (additionalInfo === 31) return null
   if (additionalInfo < 24) return BigInt(additionalInfo)
-  if (additionalInfo === 24) return BigInt(bytes[state.i++])
+  if (additionalInfo === 24) return BigInt(readByte(bytes, state))
   if (additionalInfo === 25) {
-    const out = (BigInt(bytes[state.i]) << 8n) | BigInt(bytes[state.i + 1])
-    state.i += 2
+    const out = (BigInt(readByte(bytes, state)) << 8n) | BigInt(readByte(bytes, state))
     return out
   }
   if (additionalInfo === 26) {
     const out =
-      (BigInt(bytes[state.i]) << 24n) |
-      (BigInt(bytes[state.i + 1]) << 16n) |
-      (BigInt(bytes[state.i + 2]) << 8n) |
-      BigInt(bytes[state.i + 3])
-    state.i += 4
+      (BigInt(readByte(bytes, state)) << 24n) |
+      (BigInt(readByte(bytes, state)) << 16n) |
+      (BigInt(readByte(bytes, state)) << 8n) |
+      BigInt(readByte(bytes, state))
     return out
   }
   if (additionalInfo === 27) {
     let out = 0n
-    for (let i = 0; i < 8; i++) out = (out << 8n) | BigInt(bytes[state.i++])
+    for (let i = 0; i < 8; i++) out = (out << 8n) | BigInt(readByte(bytes, state))
     return out
   }
   throw new Error(`Unsupported CBOR additional info ${additionalInfo}`)
 }
 
 function decodeCbor(bytes, state = { i: 0 }) {
-  const first = bytes[state.i++]
+  const first = readByte(bytes, state)
   const major = first >> 5
   const additionalInfo = first & 0x1f
 
@@ -138,11 +154,20 @@ function decodeCbor(bytes, state = { i: 0 }) {
   if (major === 2) {
     if (additionalInfo === 31) {
       const parts = []
-      while (bytes[state.i] !== 0xff) parts.push(Buffer.from(decodeCbor(bytes, state)))
-      state.i += 1
+      while (true) {
+        if (state.i >= bytes.length) {
+          throw new Error('Unexpected end of CBOR input while reading indefinite bytes')
+        }
+        if (bytes[state.i] === 0xff) {
+          state.i += 1
+          break
+        }
+        parts.push(Buffer.from(decodeCbor(bytes, state)))
+      }
       return Buffer.concat(parts)
     }
     const length = Number(readCborUint(bytes, state, additionalInfo))
+    ensureBytesAvailable(bytes, state, length, 'CBOR bytes payload')
     const out = bytes.slice(state.i, state.i + length)
     state.i += length
     return out
@@ -151,11 +176,20 @@ function decodeCbor(bytes, state = { i: 0 }) {
   if (major === 3) {
     if (additionalInfo === 31) {
       let out = ''
-      while (bytes[state.i] !== 0xff) out += decodeCbor(bytes, state)
-      state.i += 1
+      while (true) {
+        if (state.i >= bytes.length) {
+          throw new Error('Unexpected end of CBOR input while reading indefinite text')
+        }
+        if (bytes[state.i] === 0xff) {
+          state.i += 1
+          break
+        }
+        out += decodeCbor(bytes, state)
+      }
       return out
     }
     const length = Number(readCborUint(bytes, state, additionalInfo))
+    ensureBytesAvailable(bytes, state, length, 'CBOR text payload')
     const out = Buffer.from(bytes.slice(state.i, state.i + length)).toString('utf8')
     state.i += length
     return out
@@ -164,8 +198,16 @@ function decodeCbor(bytes, state = { i: 0 }) {
   if (major === 4) {
     if (additionalInfo === 31) {
       const out = []
-      while (bytes[state.i] !== 0xff) out.push(decodeCbor(bytes, state))
-      state.i += 1
+      while (true) {
+        if (state.i >= bytes.length) {
+          throw new Error('Unexpected end of CBOR input while reading indefinite array')
+        }
+        if (bytes[state.i] === 0xff) {
+          state.i += 1
+          break
+        }
+        out.push(decodeCbor(bytes, state))
+      }
       return out
     }
     const length = Number(readCborUint(bytes, state, additionalInfo))
@@ -176,16 +218,22 @@ function decodeCbor(bytes, state = { i: 0 }) {
 
   if (major === 5) {
     if (additionalInfo === 31) {
-      const out = {}
-      while (bytes[state.i] !== 0xff) {
+      const out = Object.create(null)
+      while (true) {
+        if (state.i >= bytes.length) {
+          throw new Error('Unexpected end of CBOR input while reading indefinite map')
+        }
+        if (bytes[state.i] === 0xff) {
+          state.i += 1
+          break
+        }
         const key = decodeCbor(bytes, state)
         out[key] = decodeCbor(bytes, state)
       }
-      state.i += 1
       return out
     }
     const length = Number(readCborUint(bytes, state, additionalInfo))
-    const out = {}
+    const out = Object.create(null)
     for (let i = 0; i < length; i++) {
       const key = decodeCbor(bytes, state)
       out[key] = decodeCbor(bytes, state)
@@ -213,6 +261,9 @@ function decodeUleb128(bytes, state) {
   let out = 0n
   let shift = 0n
   while (true) {
+    if (state.i >= bytes.length) {
+      throw new Error('Unexpected end of Candid input while reading uleb128')
+    }
     const byte = bytes[state.i++]
     out |= BigInt(byte & 0x7f) << shift
     if ((byte & 0x80) === 0) return out
@@ -225,6 +276,9 @@ function decodeSleb128(bytes, state) {
   let shift = 0n
   let byte = 0
   while (true) {
+    if (state.i >= bytes.length) {
+      throw new Error('Unexpected end of Candid input while reading sleb128')
+    }
     byte = bytes[state.i++]
     out |= BigInt(byte & 0x7f) << shift
     shift += 7n

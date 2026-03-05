@@ -1,5 +1,5 @@
 const utils = require('../utils')
-const { queryCanister, decodeCandid, hashCandidLabel } = require('../../helper/icp')
+const { queryCanister, decodeCandid, hashCandidLabel } = require('./icp')
 
 const LENDING_CANISTER_ID = 'hyk4r-jqaaa-aaaar-qb4ca-cai'
 const BTC_POOL_CANISTER_ID = 'hkmli-faaaa-aaaar-qb4ba-cai'
@@ -163,29 +163,30 @@ function getUnderlyingToken(pool, fallbackToken) {
 
 let sourcePromise
 async function getSourceData() {
-  if (sourcePromise) return sourcePromise
+  if (!sourcePromise) {
+    const pending = (async () => {
+      const [poolsResponse, pricesResponse] = await Promise.all([
+        queryCanister({
+          canisterId: LENDING_CANISTER_ID,
+          methodName: 'list_pools',
+        }),
+        queryCanister({
+          canisterId: LENDING_CANISTER_ID,
+          methodName: 'get_prices',
+        }),
+      ])
 
-  sourcePromise = (async () => {
-    const [poolsResponse, pricesResponse] = await Promise.all([
-      queryCanister({
-        canisterId: LENDING_CANISTER_ID,
-        methodName: 'list_pools',
-      }),
-      queryCanister({
-        canisterId: LENDING_CANISTER_ID,
-        methodName: 'get_prices',
-      }),
-    ])
+      const [pools] = decodeCandid(poolsResponse, LABEL_HASH_MAP)
+      const [rawPrices] = decodeCandid(pricesResponse, {})
+      const prices = rawPrices.map((tuple) => [tuple['0'], tuple['1'], tuple['2']])
+      return { pools, prices }
+    })()
 
-    const [pools] = decodeCandid(poolsResponse, LABEL_HASH_MAP)
-    const [rawPrices] = decodeCandid(pricesResponse, {})
-    const prices = rawPrices.map((tuple) => [tuple['0'], tuple['1'], tuple['2']])
-
-    return { pools, prices }
-  })().catch((error) => {
-    sourcePromise = null
-    throw error
-  })
+    sourcePromise = pending
+    pending.finally(() => {
+      if (sourcePromise === pending) sourcePromise = null
+    })
+  }
 
   return sourcePromise
 }
@@ -219,62 +220,68 @@ const apy = async () => {
   const priceMap = buildPriceMap(prices)
 
   const data = allowedPools.map((pool) => {
-    const asset = getVariantKey(pool.asset)
-    const chainKey = getVariantKey(pool.chain)
-    const meta = ASSET_META[asset] || { decimals: 0 }
-    const price = STABLES.has(asset) ? 1 : priceMap[asset]
-    if (price === null || !Number.isFinite(price) || price <= 0) {
+    try {
+      const asset = getVariantKey(pool.asset)
+      const chainKey = getVariantKey(pool.chain)
+      const meta = ASSET_META[asset] || { decimals: 0 }
+      const price = STABLES.has(asset) ? 1 : priceMap[asset]
+      if (price === null || !Number.isFinite(price) || price <= 0) {
+        return null
+      }
+
+      const totalSupplyRaw = toBigInt(pool.total_supply_at_last_sync, 'total_supply_at_last_sync')
+      const totalBorrowRaw = toBigInt(pool.total_debt_at_last_sync, 'total_debt_at_last_sync')
+      const totalSupply = fixedPointToNumber(
+        totalSupplyRaw,
+        meta.decimals,
+        'total_supply_at_last_sync'
+      )
+      const totalBorrow = fixedPointToNumber(
+        totalBorrowRaw,
+        meta.decimals,
+        'total_debt_at_last_sync'
+      )
+
+      const utilizationRay =
+        totalSupplyRaw > 0n ? clampRay((totalBorrowRaw * RAY) / totalSupplyRaw) : 0n
+      const borrowRateRay = calculateBorrowRateRay(pool, utilizationRay)
+      const reserveFactor = clampRay(
+        (toBigInt(pool.reserve_factor, 'reserve_factor') * RAY) / 10_000n
+      )
+      const supplyRateRay =
+        (((borrowRateRay * utilizationRay) / RAY) * (RAY - reserveFactor)) / RAY
+
+      const apyBaseBorrow = rayToPercent(borrowRateRay, 'borrow_rate')
+      const apyBase = rayToPercent(supplyRateRay, 'supply_rate')
+
+      const totalSupplyUsd = totalSupply * price
+      const totalBorrowUsd = totalBorrow * price
+      const tvlUsd = totalSupplyUsd - totalBorrowUsd
+      const ltv = toSafeInteger(pool.max_ltv, 'max_ltv') / 10000
+
+      const poolId = `${pool.principal.toString()}-${asset}`
+      const underlyingToken = getUnderlyingToken(pool, asset)
+
+      return {
+        pool: poolId,
+        chain: utils.formatChain('ICP'),
+        project: 'liquidium',
+        symbol: asset,
+        tvlUsd,
+        apyBase,
+        apyReward: null,
+        apyBaseBorrow,
+        underlyingTokens: [underlyingToken],
+        poolMeta: `Asset chain: ${chainKey}`,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        ltv: Number.isFinite(ltv) ? ltv : null,
+        borrowable: true,
+      }
+    } catch (error) {
+      const poolId = pool?.principal?.toString?.() || 'unknown_pool'
+      console.error(`Liquidium pool parse failed (${poolId}): ${error.message}`)
       return null
-    }
-
-    const totalSupplyRaw = toBigInt(pool.total_supply_at_last_sync, 'total_supply_at_last_sync')
-    const totalBorrowRaw = toBigInt(pool.total_debt_at_last_sync, 'total_debt_at_last_sync')
-    const totalSupply = fixedPointToNumber(
-      totalSupplyRaw,
-      meta.decimals,
-      'total_supply_at_last_sync'
-    )
-    const totalBorrow = fixedPointToNumber(
-      totalBorrowRaw,
-      meta.decimals,
-      'total_debt_at_last_sync'
-    )
-
-    const utilizationRay =
-      totalSupplyRaw > 0n ? clampRay((totalBorrowRaw * RAY) / totalSupplyRaw) : 0n
-    const borrowRateRay = calculateBorrowRateRay(pool, utilizationRay)
-    const reserveFactor = clampRay(
-      (toBigInt(pool.reserve_factor, 'reserve_factor') * RAY) / 10_000n
-    )
-    const supplyRateRay =
-      (((borrowRateRay * utilizationRay) / RAY) * (RAY - reserveFactor)) / RAY
-
-    const apyBaseBorrow = rayToPercent(borrowRateRay, 'borrow_rate')
-    const apyBase = rayToPercent(supplyRateRay, 'supply_rate')
-
-    const totalSupplyUsd = totalSupply * price
-    const totalBorrowUsd = totalBorrow * price
-    const tvlUsd = totalSupplyUsd - totalBorrowUsd
-    const ltv = toSafeInteger(pool.max_ltv, 'max_ltv') / 10000
-
-    const poolId = `${pool.principal.toString()}-${asset}`
-    const underlyingToken = getUnderlyingToken(pool, asset)
-
-    return {
-      pool: poolId,
-      chain: utils.formatChain('ICP'),
-      project: 'liquidium',
-      symbol: asset,
-      tvlUsd,
-      apyBase,
-      apyReward: null,
-      apyBaseBorrow,
-      underlyingTokens: [underlyingToken],
-      poolMeta: `Asset chain: ${chainKey}`,
-      totalSupplyUsd,
-      totalBorrowUsd,
-      ltv: Number.isFinite(ltv) ? ltv : null,
-      borrowable: true,
     }
   })
 
