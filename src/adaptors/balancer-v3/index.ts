@@ -105,7 +105,7 @@ const poolsFunction = async () => {
     getV3Pools('BASE', 'base'),
     getV3Pools('HYPEREVM', 'hyperliquid'),
     getV3Pools('PLASMA', 'plasma'),
-    getV3Pools('Monad', 'monad'),
+    getV3Pools('MONAD', 'monad'),
   ]);
 
   return [
