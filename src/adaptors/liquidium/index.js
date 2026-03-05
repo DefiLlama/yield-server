@@ -1,4 +1,5 @@
 const utils = require('../utils')
+const { queryCanister, decodeCandid, hashCandidLabel } = require('../../helper/icp')
 
 const LENDING_CANISTER_ID = 'hyk4r-jqaaa-aaaar-qb4ca-cai'
 const BTC_POOL_CANISTER_ID = 'hkmli-faaaa-aaaar-qb4ba-cai'
@@ -7,8 +8,6 @@ const ALLOWED_POOL_CANISTERS = new Set([
   BTC_POOL_CANISTER_ID,
   ERC_POOL_CANISTER_ID,
 ])
-const ICP_HOST = 'https://icp-api.io'
-const CALL_TIMEOUT_MS = 30_000
 const RAY = 10n ** 27n
 const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER)
 
@@ -20,67 +19,48 @@ const ASSET_META = {
 }
 
 const STABLES = new Set(['USDC', 'USDT'])
-const CHAIN_MAP = {
-  BTC: 'Bitcoin',
-  ETH: 'Ethereum',
-  SOL: 'Solana',
-}
 
-const idlFactory = ({ IDL }) => {
-  const Assets = IDL.Variant({
-    BTC: IDL.Null,
-    SOL: IDL.Null,
-    USDC: IDL.Null,
-    USDT: IDL.Null,
-  })
-  const Chains = IDL.Variant({
-    BTC: IDL.Null,
-    ETH: IDL.Null,
-    SOL: IDL.Null,
-  })
-  const AssetType = IDL.Variant({
-    CkAsset: IDL.Principal,
-    Unknown: IDL.Null,
-  })
-  const Pool = IDL.Record({
-    optimal_utilization_rate: IDL.Nat,
-    principal: IDL.Principal,
-    total_generated_interest_snapshot: IDL.Nat,
-    asset_type: AssetType,
-    supply_cap: IDL.Opt(IDL.Nat),
-    same_asset_borrowing: IDL.Opt(IDL.Bool),
-    asset: Assets,
-    rate_slope_before: IDL.Nat,
-    borrow_cap: IDL.Opt(IDL.Nat),
-    total_debt_at_last_sync: IDL.Nat,
-    supply_at_last_sync: IDL.Nat,
-    chain: Chains,
-    rate_slope_after: IDL.Nat,
-    reserve_factor: IDL.Nat64,
-    last_updated: IDL.Opt(IDL.Nat64),
-    lending_index: IDL.Nat,
-    protocol_liquidation_fee: IDL.Nat64,
-    treasury_supply_scaled: IDL.Nat,
-    same_asset_borrowing_dust_threshold: IDL.Nat,
-    borrow_index: IDL.Nat,
-    base_rate: IDL.Nat,
-    frozen: IDL.Bool,
-    liquidation_bonus: IDL.Nat64,
-    liquidation_threshold: IDL.Nat64,
-    max_ltv: IDL.Nat64,
-    repay_grace_period: IDL.Opt(IDL.Nat64),
-    pending_service_fees: IDL.Nat,
-    total_supply_at_last_sync: IDL.Nat,
-  })
-  return IDL.Service({
-    list_pools: IDL.Func([], [IDL.Vec(Pool)], ['query']),
-    get_prices: IDL.Func(
-      [],
-      [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat, IDL.Nat32))],
-      ['query']
-    ),
-  })
-}
+const CANDID_LABELS = [
+  'optimal_utilization_rate',
+  'principal',
+  'total_generated_interest_snapshot',
+  'asset_type',
+  'supply_cap',
+  'same_asset_borrowing',
+  'asset',
+  'rate_slope_before',
+  'borrow_cap',
+  'total_debt_at_last_sync',
+  'supply_at_last_sync',
+  'chain',
+  'rate_slope_after',
+  'reserve_factor',
+  'last_updated',
+  'lending_index',
+  'protocol_liquidation_fee',
+  'treasury_supply_scaled',
+  'same_asset_borrowing_dust_threshold',
+  'borrow_index',
+  'base_rate',
+  'frozen',
+  'liquidation_bonus',
+  'liquidation_threshold',
+  'max_ltv',
+  'repay_grace_period',
+  'pending_service_fees',
+  'total_supply_at_last_sync',
+  'BTC',
+  'ETH',
+  'SOL',
+  'USDC',
+  'USDT',
+  'CkAsset',
+  'Unknown',
+]
+
+const LABEL_HASH_MAP = Object.fromEntries(
+  CANDID_LABELS.map((label) => [hashCandidLabel(label), label])
+)
 
 const getVariantKey = (variant) => Object.keys(variant)[0]
 
@@ -137,19 +117,6 @@ function fixedPointToNumber(value, decimals, field = 'value') {
   return negative ? -result : result
 }
 
-function withTimeout(promise, label) {
-  let timeoutId
-  const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(
-        new Error(`Liquidium canister timeout for ${label} after ${CALL_TIMEOUT_MS}ms`)
-      )
-    }, CALL_TIMEOUT_MS)
-  })
-
-  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId))
-}
-
 function clampRay(value) {
   if (value < 0n) return 0n
   if (value > RAY) return RAY
@@ -199,13 +166,20 @@ async function getSourceData() {
   if (sourcePromise) return sourcePromise
 
   sourcePromise = (async () => {
-    const { HttpAgent, Actor } = await import('@dfinity/agent')
-    const agent = await HttpAgent.create({ host: ICP_HOST })
-    const actor = Actor.createActor(idlFactory, { agent, canisterId: LENDING_CANISTER_ID })
-    const [pools, prices] = await Promise.all([
-      withTimeout(actor.list_pools(), 'list_pools'),
-      withTimeout(actor.get_prices(), 'get_prices'),
+    const [poolsResponse, pricesResponse] = await Promise.all([
+      queryCanister({
+        canisterId: LENDING_CANISTER_ID,
+        methodName: 'list_pools',
+      }),
+      queryCanister({
+        canisterId: LENDING_CANISTER_ID,
+        methodName: 'get_prices',
+      }),
     ])
+
+    const [pools] = decodeCandid(poolsResponse, LABEL_HASH_MAP)
+    const [rawPrices] = decodeCandid(pricesResponse, {})
+    const prices = rawPrices.map((tuple) => [tuple['0'], tuple['1'], tuple['2']])
 
     return { pools, prices }
   })().catch((error) => {
@@ -247,7 +221,6 @@ const apy = async () => {
   const data = allowedPools.map((pool) => {
     const asset = getVariantKey(pool.asset)
     const chainKey = getVariantKey(pool.chain)
-    const chainName = CHAIN_MAP[chainKey] || chainKey
     const meta = ASSET_META[asset] || { decimals: 0 }
     const price = STABLES.has(asset) ? 1 : priceMap[asset]
     if (price === null || !Number.isFinite(price) || price <= 0) {
@@ -289,7 +262,7 @@ const apy = async () => {
 
     return {
       pool: poolId,
-      chain: utils.formatChain(chainName),
+      chain: utils.formatChain('ICP'),
       project: 'liquidium',
       symbol: asset,
       tvlUsd,
@@ -297,6 +270,7 @@ const apy = async () => {
       apyReward: null,
       apyBaseBorrow,
       underlyingTokens: [underlyingToken],
+      poolMeta: `Asset chain: ${chainKey}`,
       totalSupplyUsd,
       totalBorrowUsd,
       ltv: Number.isFinite(ltv) ? ltv : null,
