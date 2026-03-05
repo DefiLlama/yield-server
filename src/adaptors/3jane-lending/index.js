@@ -1,3 +1,5 @@
+// testing the llama tester github
+
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
@@ -51,8 +53,7 @@ const apy = async () => {
 
   const usd3TvlUsd = Number(usd3TotalAssets.output) / 1e6;
   const susd3TvlUsd =
-    (Number(susd3TotalAssets.output) / 1e6) *
-    (Number(usd3Pps.output) / 1e6);
+    (Number(susd3TotalAssets.output) / 1e6) * (Number(usd3Pps.output) / 1e6);
 
   // --- APY ---
   // USD3 APY = Aave supply rate (from waUSDC rate growth)
@@ -93,7 +94,9 @@ const apy = async () => {
   // Aave APY from waUSDC rate growth (7d)
   const aaveApy =
     Number(waRate7d.output) > 0
-      ? (Math.pow(Number(waRateNow.output) / Number(waRate7d.output), 365 / 7) - 1) * 100
+      ? (Math.pow(Number(waRateNow.output) / Number(waRate7d.output), 365 / 7) -
+          1) *
+        100
       : null;
 
   // MorphoCredit supply APY from supply share price growth (7d)
@@ -105,9 +108,7 @@ const apy = async () => {
       ? Number(marketNow.output.totalSupplyAssets) / sharesNow
       : null;
   const spp7d =
-    shares7d > 0
-      ? Number(market7d.output.totalSupplyAssets) / shares7d
-      : null;
+    shares7d > 0 ? Number(market7d.output.totalSupplyAssets) / shares7d : null;
   const creditApy =
     Number.isFinite(sppNow) && Number.isFinite(spp7d) && spp7d > 0
       ? (Math.pow(sppNow / spp7d, 365 / 7) - 1) * 100
@@ -116,8 +117,10 @@ const apy = async () => {
   // sUSD3 gets ALL yield (Aave + credit) from USD3 vault via 100% performance fee
   // Levered by the ratio of USD3 TVL to sUSD3 TVL
   const leverage = susd3TvlUsd > 0 ? usd3TvlUsd / susd3TvlUsd : 0;
-  const totalVaultYield = (creditApy != null ? creditApy : 0) + (aaveApy != null ? aaveApy : 0);
-  const susd3Apy = creditApy != null || aaveApy != null ? totalVaultYield * leverage : null;
+  const totalVaultYield =
+    (creditApy != null ? creditApy : 0) + (aaveApy != null ? aaveApy : 0);
+  const susd3Apy =
+    creditApy != null || aaveApy != null ? totalVaultYield * leverage : null;
 
   return [
     {
