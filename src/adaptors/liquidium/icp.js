@@ -162,7 +162,11 @@ function decodeCbor(bytes, state = { i: 0 }) {
           state.i += 1
           break
         }
-        parts.push(Buffer.from(decodeCbor(bytes, state)))
+        const chunk = decodeCbor(bytes, state)
+        if (!(Buffer.isBuffer(chunk) || chunk instanceof Uint8Array)) {
+          throw new Error('Invalid CBOR indefinite bytes chunk type')
+        }
+        parts.push(Buffer.from(chunk))
       }
       return Buffer.concat(parts)
     }
@@ -184,7 +188,11 @@ function decodeCbor(bytes, state = { i: 0 }) {
           state.i += 1
           break
         }
-        out += decodeCbor(bytes, state)
+        const chunk = decodeCbor(bytes, state)
+        if (typeof chunk !== 'string') {
+          throw new Error('Invalid CBOR indefinite text chunk type')
+        }
+        out += chunk
       }
       return out
     }
@@ -261,10 +269,7 @@ function decodeUleb128(bytes, state) {
   let out = 0n
   let shift = 0n
   while (true) {
-    if (state.i >= bytes.length) {
-      throw new Error('Unexpected end of Candid input while reading uleb128')
-    }
-    const byte = bytes[state.i++]
+    const byte = readCandidByte(bytes, state, 'Candid input while reading uleb128')
     out |= BigInt(byte & 0x7f) << shift
     if ((byte & 0x80) === 0) return out
     shift += 7n
@@ -276,10 +281,7 @@ function decodeSleb128(bytes, state) {
   let shift = 0n
   let byte = 0
   while (true) {
-    if (state.i >= bytes.length) {
-      throw new Error('Unexpected end of Candid input while reading sleb128')
-    }
-    byte = bytes[state.i++]
+    byte = readCandidByte(bytes, state, 'Candid input while reading sleb128')
     out |= BigInt(byte & 0x7f) << shift
     shift += 7n
     if ((byte & 0x80) === 0) break
@@ -288,10 +290,29 @@ function decodeSleb128(bytes, state) {
   return out
 }
 
+function ensureCandidBytesAvailable(bytes, state, required = 1, context = 'Candid input') {
+  if (state.i + required > bytes.length) {
+    throw new Error(`Unexpected end of ${context} (truncated payload)`)
+  }
+}
+
+function readCandidByte(bytes, state, context = 'Candid input') {
+  ensureCandidBytesAvailable(bytes, state, 1, context)
+  return bytes[state.i++]
+}
+
+function toSafeLength(value, context) {
+  if (value > MAX_SAFE_BIGINT) {
+    throw new Error(`${context} exceeds Number.MAX_SAFE_INTEGER`)
+  }
+  return Number(value)
+}
+
 function decodeFixedNat(bytes, state, byteLength) {
+  ensureCandidBytesAvailable(bytes, state, byteLength, 'Candid fixed nat')
   let out = 0n
   for (let i = 0; i < byteLength; i++) {
-    out |= BigInt(bytes[state.i++]) << BigInt(i * 8)
+    out |= BigInt(readCandidByte(bytes, state, 'Candid fixed nat')) << BigInt(i * 8)
   }
   return out
 }
@@ -308,12 +329,13 @@ function hashCandidLabel(label) {
 
 function decodeCandid(bytes, labelHashMap) {
   const state = { i: 0 }
+  ensureCandidBytesAvailable(bytes, state, 4, 'Candid header')
   if (Buffer.from(bytes.slice(0, 4)).toString('ascii') !== 'DIDL') {
     throw new Error('Invalid Candid payload')
   }
   state.i = 4
 
-  const typeCount = Number(decodeUleb128(bytes, state))
+  const typeCount = toSafeLength(decodeUleb128(bytes, state), 'Candid type count')
   const typeTable = []
   const readTypeRef = () => Number(decodeSleb128(bytes, state))
 
@@ -324,7 +346,10 @@ function decodeCandid(bytes, labelHashMap) {
       continue
     }
     if (kind === CANDID_TYPE.record || kind === CANDID_TYPE.variant) {
-      const fieldCount = Number(decodeUleb128(bytes, state))
+      const fieldCount = toSafeLength(
+        decodeUleb128(bytes, state),
+        'Candid record/variant field count'
+      )
       const fields = []
       for (let j = 0; j < fieldCount; j++) {
         const id = Number(decodeUleb128(bytes, state))
@@ -337,7 +362,7 @@ function decodeCandid(bytes, labelHashMap) {
     throw new Error(`Unsupported Candid type table kind ${kind}`)
   }
 
-  const argCount = Number(decodeUleb128(bytes, state))
+  const argCount = toSafeLength(decodeUleb128(bytes, state), 'Candid argument count')
   const argTypes = []
   for (let i = 0; i < argCount; i++) argTypes.push(readTypeRef())
 
@@ -347,14 +372,14 @@ function decodeCandid(bytes, labelHashMap) {
       if (!definition) throw new Error(`Unknown Candid type ref ${typeRef}`)
 
       if (definition.kind === CANDID_TYPE.opt) {
-        const tag = bytes[state.i++]
+        const tag = readCandidByte(bytes, state, 'Candid opt tag')
         if (tag === 0) return []
         if (tag === 1) return [decodeType(definition.type)]
         throw new Error(`Invalid Candid opt tag ${tag}`)
       }
 
       if (definition.kind === CANDID_TYPE.vec) {
-        const length = Number(decodeUleb128(bytes, state))
+        const length = toSafeLength(decodeUleb128(bytes, state), 'Candid vec length')
         const out = []
         for (let i = 0; i < length; i++) out.push(decodeType(definition.type))
         return out
@@ -382,7 +407,7 @@ function decodeCandid(bytes, labelHashMap) {
 
     if (typeRef === CANDID_TYPE.null) return null
     if (typeRef === CANDID_TYPE.bool) {
-      const value = bytes[state.i++]
+      const value = readCandidByte(bytes, state, 'Candid bool')
       if (value !== 0 && value !== 1) throw new Error(`Invalid Candid bool value ${value}`)
       return value === 1
     }
@@ -394,15 +419,17 @@ function decodeCandid(bytes, labelHashMap) {
       return decodeFixedNat(bytes, state, 8)
     }
     if (typeRef === CANDID_TYPE.text) {
-      const length = Number(decodeUleb128(bytes, state))
+      const length = toSafeLength(decodeUleb128(bytes, state), 'Candid text length')
+      ensureCandidBytesAvailable(bytes, state, length, 'Candid text payload')
       const out = Buffer.from(bytes.slice(state.i, state.i + length)).toString('utf8')
       state.i += length
       return out
     }
     if (typeRef === CANDID_TYPE.principal) {
-      const principalTag = bytes[state.i++]
+      const principalTag = readCandidByte(bytes, state, 'Candid principal tag')
       if (principalTag !== 1) throw new Error(`Invalid Candid principal tag ${principalTag}`)
-      const length = Number(decodeUleb128(bytes, state))
+      const length = toSafeLength(decodeUleb128(bytes, state), 'Candid principal length')
+      ensureCandidBytesAvailable(bytes, state, length, 'Candid principal payload')
       const principalBytes = bytes.slice(state.i, state.i + length)
       state.i += length
       return principalBytesToText(principalBytes)

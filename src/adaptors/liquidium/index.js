@@ -182,10 +182,10 @@ async function getSourceData() {
       return { pools, prices }
     })()
 
-    sourcePromise = pending
-    pending.finally(() => {
-      if (sourcePromise === pending) sourcePromise = null
+    const tracked = pending.finally(() => {
+      if (sourcePromise === tracked) sourcePromise = null
     })
+    sourcePromise = tracked
   }
 
   return sourcePromise
@@ -213,9 +213,18 @@ function buildPriceMap(prices) {
 
 const apy = async () => {
   const { pools, prices } = await getSourceData()
-  const allowedPools = pools.filter((pool) =>
-    ALLOWED_POOL_CANISTERS.has(pool.principal.toString()) && pool.frozen === false
-  )
+  const allowedPools = pools.filter((pool) => {
+    try {
+      const principal = pool?.principal?.toString?.()
+      return (
+        Boolean(principal) &&
+        ALLOWED_POOL_CANISTERS.has(principal) &&
+        pool?.frozen === false
+      )
+    } catch (_error) {
+      return false
+    }
+  })
 
   const priceMap = buildPriceMap(prices)
 
