@@ -2,14 +2,16 @@
   Yield assets:
   - loAZND (ERC4626 vault): 
     tvlUsd = totalAssets * price(asset) / 10^assetDecimals;
-    apyBase = (convertToAssets(1 share)_today / convertToAssets(1 share)_yesterday) ^ 365 - 1.
+    apyBase = (convertToAssets(1 share)_today / convertToAssets(1 share)_yesterday) ^ yearDays - 1.
   - muBOND (rebase/index token; PriceUpdated is per-share/index/NAV): 
     tvlUsd = circulatingSupply * price / 10^decimals;
     on Monad, circulatingSupply = totalSupply(monad) - totalSupply(ethereum);
     on Ethereum, circulatingSupply = totalSupply(ethereum).
-    apyBase = (price_now / price_prev) ^ (365 / gapDays) - 1,
-    where: 
+    apyBase = (price_now / price_prev) ^ (yearDays / gapDays) - 1,
+    
+    Where: 
     - price_prev: the price from the previous observed plateau before the current plateau
+    - yearDays: 365 or 366 (for leap year) based on calculation timestamp
     - gapDays: the approximate duration in days between the starts of the current and previous plateaus,
       found by daily snapshots first and then refined hourly near the change boundaries.
 */
@@ -62,7 +64,7 @@ const PRICE_FEED_ABI = {
 const CONVERT_TO_ASSETS_ABI =
   'function convertToAssets(uint256 shares) external view returns (uint256)';
 
-const VAULT_APY_PERIODS_PER_YEAR = 365;
+const DEFAULT_DAYS_PER_YEAR = 365;
 const DAY_IN_SECONDS = 24 * 60 * 60;
 const HOUR_IN_SECONDS = 60 * 60;
 const MS_PER_SECOND = 1000;
@@ -70,14 +72,23 @@ const MU_BOND_APY_MAX_LOOKBACK_DAYS = 14;
 const toUnit = (decimals) => `1${'0'.repeat(decimals)}`;
 const pow10 = (decimals) => new BigNumber(10).pow(decimals);
 
+const isLeapYear = (year) =>
+  (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+
+const getDaysInYear = (timestamp) => {
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return DEFAULT_DAYS_PER_YEAR;
+  const year = new Date(timestamp * MS_PER_SECOND).getUTCFullYear();
+  return isLeapYear(year) ? 366 : 365;
+};
+
 const annualizeRatio = (ratio, periodsPerYear) => {
   const apyBN = ratio.pow(periodsPerYear).minus(1).times(100);
   return apyBN.isFinite() ? apyBN.toNumber() : 0;
 };
 
-const annualizeRatioByGapDays = (ratio, gapDays) => {
+const annualizeRatioByGapDays = (ratio, gapDays, referenceTimestamp) => {
   if (!Number.isFinite(gapDays) || gapDays <= 0) return 0;
-  const periods = VAULT_APY_PERIODS_PER_YEAR / gapDays;
+  const periods = getDaysInYear(referenceTimestamp) / gapDays;
   const ratioNum = ratio.toNumber();
   if (!Number.isFinite(ratioNum) || ratioNum <= 0) return 0;
   const apy = (Math.pow(ratioNum, periods) - 1) * 100;
@@ -322,7 +333,7 @@ const getMuBondApy = async (chain, muBond, priceFeed) => {
   if (gapDays <= 0) return 0;
 
   const ratio = priceNow.div(currentPlateauBoundary.older.price);
-  return annualizeRatioByGapDays(ratio, gapDays);
+  return annualizeRatioByGapDays(ratio, gapDays, latest.timestamp);
 };
 
 const getMuBondPool = async (
@@ -408,7 +419,7 @@ const getERC4626InfoSafe = async (vault, chain, timestamp, assetUnit) => {
       return { tvl: tvl.output, apyBase: 0 };
     }
     const ratio = priceNowBN.div(priceYesterdayBN);
-    const apy = annualizeRatio(ratio, VAULT_APY_PERIODS_PER_YEAR);
+    const apy = annualizeRatio(ratio, getDaysInYear(safeTimestamp));
     return { tvl: tvl.output, apyBase: apy };
   } catch (error) {
     return null;
