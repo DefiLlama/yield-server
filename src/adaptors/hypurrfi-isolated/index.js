@@ -1,5 +1,6 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
+
 const utils = require('../utils');
 
 // HypurrFi Isolated Lending (Fraxlend-style pairs) on Hyperliquid L1
@@ -84,13 +85,19 @@ const apy = async () => {
   // 2. Get pair data
   const [assets, names, totalAssets, totalBorrows, rateInfos, collaterals] =
     await Promise.all(
-      ['asset', 'name', 'totalAsset', 'totalBorrow', 'currentRateInfo', 'collateralContract'].map(
-        (method) =>
-          sdk.api.abi.multiCall({
-            calls: pairs.map((p) => ({ target: p })),
-            abi: pairAbi[method],
-            chain,
-          })
+      [
+        'asset',
+        'name',
+        'totalAsset',
+        'totalBorrow',
+        'currentRateInfo',
+        'collateralContract',
+      ].map((method) =>
+        sdk.api.abi.multiCall({
+          calls: pairs.map((p) => ({ target: p })),
+          abi: pairAbi[method],
+          chain,
+        })
       )
     );
 
@@ -142,24 +149,38 @@ const apy = async () => {
       if (!price) return null;
 
       const dec = assetDecimals[assetKey];
-      const totalSupplyAmount = Number(totalAssetData[i].amount) / 10 ** dec;
-      const totalBorrowAmount = Number(totalBorrowData[i].amount) / 10 ** dec;
+      const totalSupplyRaw = BigInt(totalAssetData[i].amount);
+      const totalSupplySharesRaw = BigInt(totalAssetData[i].shares);
+      const totalBorrowRaw = BigInt(totalBorrowData[i].amount);
+      const totalBorrowSharesRaw = BigInt(totalBorrowData[i].shares);
+
+      const totalSupplyAmount = Number(totalSupplyRaw) / 10 ** dec;
+      const totalBorrowAmount = Number(totalBorrowRaw) / 10 ** dec;
       const totalSupplyUsd = totalSupplyAmount * price;
       const totalBorrowUsd = totalBorrowAmount * price;
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
       // Fraxlend ratePerSec: per-second interest rate scaled by 1e18
-      const ratePerSec = Number(rateInfoData[i].ratePerSec);
-      // Supply APY: borrow rate * utilization (interest goes to suppliers minus protocol fee)
-      const utilization =
-        totalSupplyAmount > 0 ? totalBorrowAmount / totalSupplyAmount : 0;
+      const ratePerSec = Number(rateInfoData[i].ratePerSec) / 1e18;
+
+      // App uses shares-based utilization with percent output
+      const utilizationPercent =
+        totalSupplySharesRaw > 0n
+          ? Number(
+              (totalBorrowSharesRaw * 1000000n) / totalSupplySharesRaw
+            ) / 10000
+          : 0;
+
       const borrowApy =
-        ((1 + ratePerSec / 1e18) ** SECONDS_PER_YEAR - 1) * 100;
+        ratePerSec > 0
+          ? (Math.exp(ratePerSec * SECONDS_PER_YEAR) - 1) * 100
+          : 0;
 
       // Protocol fee rate (fraction of interest going to protocol, scaled by 1e5)
       const feeToProtocol = Number(rateInfoData[i].feeToProtocolRate);
       const protocolFeeShare = feeToProtocol / 1e5;
-      const apyBase = borrowApy * utilization * (1 - protocolFeeShare);
+      const apyBase =
+        borrowApy * (utilizationPercent / 100) * (1 - protocolFeeShare);
       const apyBaseBorrow = borrowApy;
 
       // Extract collateral name from pair name for poolMeta

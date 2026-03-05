@@ -1,11 +1,21 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
+
 const utils = require('../utils');
 const poolAbi = require('./poolAbi');
 
 // HypurrFi Pooled Lending (Aave V3 fork) on Hyperliquid L1
 const POOL = '0xceCcE0EB9DD2Ef7996e01e25DD70e461F918A14b';
 const chain = 'hyperliquid';
+const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
+
+// Aave reserve rates are ray-scaled annual APR values.
+// Convert APR -> APY using per-second compounding to match app display.
+const aprRayToApyPercent = (rateRay) => {
+  const apr = Number(rateRay) / 1e27;
+  if (!Number.isFinite(apr) || apr <= 0) return 0;
+  return (Math.pow(1 + apr / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1) * 100;
+};
 
 const apy = async () => {
   // 1. Get reserves list from Pool contract
@@ -69,9 +79,7 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   // 5. Prices
-  const priceKeys = reservesList
-    .map((t) => `${chain}:${t}`)
-    .join(',');
+  const priceKeys = reservesList.map((t) => `${chain}:${t}`).join(',');
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
@@ -89,11 +97,12 @@ const apy = async () => {
       const tvlUsd = available * price;
       const totalBorrowUsd = totalSupplyUsd - tvlUsd;
 
-      // Aave V3: liquidityRate is in ray (1e27), already annualized
-      // Divide by 1e25 to get percentage (e.g. 5e25 → 5.0%)
-      const apyBase = reserveDataResults[i].currentLiquidityRate / 1e25;
-      const apyBaseBorrow =
-        Number(reserveDataResults[i].currentVariableBorrowRate) / 1e25;
+      const apyBase = aprRayToApyPercent(
+        reserveDataResults[i].currentLiquidityRate
+      );
+      const apyBaseBorrow = aprRayToApyPercent(
+        reserveDataResults[i].currentVariableBorrowRate
+      );
 
       return {
         pool: `${asset}-hypurrfi-pooled`.toLowerCase(),
