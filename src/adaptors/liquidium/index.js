@@ -12,10 +12,10 @@ const RAY = 10n ** 27n
 const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER)
 
 const ASSET_META = {
-  BTC: { decimals: 8 },
-  SOL: { decimals: 9 },
-  USDC: { decimals: 6 },
-  USDT: { decimals: 6 },
+  BTC: { decimals: 8, coingeckoId: 'bitcoin' },
+  SOL: { decimals: 9, coingeckoId: 'solana' },
+  USDC: { decimals: 6, coingeckoId: 'usd-coin' },
+  USDT: { decimals: 6, coingeckoId: 'tether' },
 }
 
 const STABLES = new Set(['USDC', 'USDT'])
@@ -153,12 +153,13 @@ function rayToPercent(value, field = 'rate') {
   return fixedPointToNumber(value, 27, field) * 100
 }
 
-function getUnderlyingToken(pool, fallbackToken) {
+function getUnderlyingToken(pool, meta) {
   const assetTypeKey = getVariantKey(pool.asset_type)
   if (assetTypeKey === 'CkAsset' && pool.asset_type.CkAsset) {
     return pool.asset_type.CkAsset.toString()
   }
-  return fallbackToken
+  if (meta?.coingeckoId) return `coingecko:${meta.coingeckoId}`
+  return null
 }
 
 let sourcePromise
@@ -211,6 +212,30 @@ function buildPriceMap(prices) {
   return priceMap
 }
 
+async function getCoingeckoPriceMap() {
+  const coinIds = Array.from(
+    new Set(
+      Object.values(ASSET_META)
+        .map(({ coingeckoId }) => coingeckoId)
+        .filter(Boolean)
+        .map((id) => `coingecko:${id}`)
+    )
+  )
+  if (!coinIds.length) return {}
+
+  try {
+    const { pricesByAddress } = await utils.getPrices(coinIds)
+    const byAsset = {}
+    for (const [asset, meta] of Object.entries(ASSET_META)) {
+      const price = pricesByAddress[meta.coingeckoId?.toLowerCase()]
+      byAsset[asset] = Number.isFinite(price) && price > 0 ? price : null
+    }
+    return byAsset
+  } catch (_error) {
+    return {}
+  }
+}
+
 const apy = async () => {
   const { pools, prices } = await getSourceData()
   const allowedPools = pools.filter((pool) => {
@@ -226,14 +251,17 @@ const apy = async () => {
     }
   })
 
-  const priceMap = buildPriceMap(prices)
+  const oraclePriceMap = buildPriceMap(prices)
+  const coingeckoPriceMap = await getCoingeckoPriceMap()
 
   const data = allowedPools.map((pool) => {
     try {
       const asset = getVariantKey(pool.asset)
       const chainKey = getVariantKey(pool.chain)
-      const meta = ASSET_META[asset] || { decimals: 0 }
-      const price = STABLES.has(asset) ? 1 : priceMap[asset]
+      const meta = ASSET_META[asset] || { decimals: 0, coingeckoId: null }
+      const price =
+        coingeckoPriceMap[asset] ??
+        (STABLES.has(asset) ? 1 : oraclePriceMap[asset])
       if (price === null || !Number.isFinite(price) || price <= 0) {
         return null
       }
@@ -269,7 +297,7 @@ const apy = async () => {
       const ltv = toSafeInteger(pool.max_ltv, 'max_ltv') / 10000
 
       const poolId = `${pool.principal.toString()}-${asset}`
-      const underlyingToken = getUnderlyingToken(pool, asset)
+      const underlyingToken = getUnderlyingToken(pool, meta)
 
       return {
         pool: poolId,
@@ -280,7 +308,7 @@ const apy = async () => {
         apyBase,
         apyReward: null,
         apyBaseBorrow,
-        underlyingTokens: [underlyingToken],
+        underlyingTokens: underlyingToken ? [underlyingToken] : undefined,
         poolMeta: `Asset chain: ${chainKey}`,
         totalSupplyUsd,
         totalBorrowUsd,
