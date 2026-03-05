@@ -233,6 +233,7 @@ const excludeAdaptors = [
   'premia-v2',
   'angle',
   'basisos',
+  'vaultcraft', // API broken (500), defi-db stale stale since nov 2025
 ];
 
 const excludePools = [
