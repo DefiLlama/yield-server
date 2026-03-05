@@ -232,6 +232,7 @@ const excludeAdaptors = [
   'arbitrum-exchange-v2',
   'premia-v2',
   'angle',
+  'basisos',
 ];
 
 const excludePools = [
