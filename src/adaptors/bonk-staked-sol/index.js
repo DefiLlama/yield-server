@@ -31,7 +31,7 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apyBase,
       underlyingTokens: [SOL],
-      token: BONKSOL_MINT,
+      searchTokenOverride: BONKSOL_MINT,
       poolMeta: '5% rewards fee',
       url: 'https://app.sanctum.so/stake/bonkSOL',
     },

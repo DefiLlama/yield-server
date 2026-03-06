@@ -103,7 +103,7 @@ const getApy = async () => {
       apyBase: apyBase7d,
       apyBase7d,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      token: token,
+      searchTokenOverride: token,
     },
     {
       pool: stakeManagerContract,
@@ -114,7 +114,7 @@ const getApy = async () => {
       apyBase: apyBase7dPolygon,
       apyBase7d: apyBase7dPolygon,
       underlyingTokens: ['coingecko:polygon-ecosystem-token'],
-      token: stakeManagerContract,
+      searchTokenOverride: stakeManagerContract,
     },
   ];
 };

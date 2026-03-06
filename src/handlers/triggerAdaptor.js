@@ -381,6 +381,7 @@ const main = async (body) => {
       rewardTokens: p.rewardTokens?.filter(Boolean)?.length
         ? p.rewardTokens.filter(Boolean)
         : null,
+      searchTokenOverride: p.searchTokenOverride || null,
       token: p.token || null,
     };
   });

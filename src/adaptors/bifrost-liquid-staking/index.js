@@ -115,7 +115,7 @@ const getApy = async () => {
     apyReward: Number(vToken.vETH.apyReward),
     underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     rewardTokens: ['ETH'],
-    token: veth,
+    searchTokenOverride: veth,
   };
 
   return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC, vASTR, vMANTA];

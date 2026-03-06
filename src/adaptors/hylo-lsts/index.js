@@ -31,7 +31,7 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apyBase,
       underlyingTokens: [SOL],
-      token: HYLOSOL_MINT,
+      searchTokenOverride: HYLOSOL_MINT,
       poolMeta: '0% rewards fee',
     },
   ];

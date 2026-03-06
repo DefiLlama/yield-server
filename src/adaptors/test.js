@@ -48,6 +48,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'volumeUsd1d',
       'volumeUsd7d',
       'apyBaseInception',
+      'searchTokenOverride',
       'token',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
@@ -120,6 +121,16 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       if (pool.token) {
         test(`token field of pool with id ${pool.pool} should be a string`, () => {
           expect(typeof pool.token).toBe('string');
+        });
+      }
+    });
+  });
+
+  describe('Check searchTokenOverride data type', () => {
+    apy.forEach((pool) => {
+      if (pool.searchTokenOverride) {
+        test(`searchTokenOverride field of pool with id ${pool.pool} should be a string`, () => {
+          expect(typeof pool.searchTokenOverride).toBe('string');
         });
       }
     });

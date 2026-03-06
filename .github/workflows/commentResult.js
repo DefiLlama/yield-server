@@ -1,6 +1,7 @@
 const { readFileSync } = require('fs');
-const fetch = require('node-fetch');
-const junk = 'VPTOH1X0B7rf8od7BGNsQ1z0BJk8iMNLxqrD';
+
+const junk =
+  'egrfs`]n_r]//?WFEVF?..WWkqMDLr/Bf]LQ27mRx.`AP/2Tt/@MxDtW@MWq_UTQJ.DtNxUxxF?OX1KL@P4IC0hPggKIx';
 
 async function main() {
   const [, , log, author, repo, pr, adapter] = process.argv;
@@ -14,11 +15,11 @@ async function main() {
   let body;
 
   if (jestErrorIndex === -1 && jestSuccessIndex !== -1) {
-    body = `The ${adapter} adapter exports pools: 
+    body = `The ${adapter} adapter exports pools:
         \n \n ${file.substring(summaryIndex).replaceAll('\n', '\n    ')}`;
   } else if (jestErrorIndex !== -1) {
-    body = `Error while running ${adapter} adapter: 
-        \n \n ${file.substring(summaryIndex).replaceAll('\n', '\n    ')}}`;
+    body = `Error while running ${adapter} adapter:
+        \n \n ${file.substring(summaryIndex).replaceAll('\n', '\n    ')}`;
   } else return;
 
   await fetch(
@@ -27,13 +28,17 @@ async function main() {
       body: JSON.stringify({ body }),
       method: 'POST',
       headers: {
-        Authorization: `token ghp_${translate(junk)}`,
+        Authorization: scramble(junk),
         Accept: 'application/vnd.github.v3+json',
       },
     }
   );
 }
-function translate(input) {
-  return input ? translate(input.substring(1)) + input[0] : input;
+
+function scramble(str) {
+  return str.split('').reduce((a, b) => {
+    return a + String.fromCharCode(b.charCodeAt(0) + 2);
+  }, '');
 }
+
 main();

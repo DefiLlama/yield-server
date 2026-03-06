@@ -42,6 +42,8 @@ interface Pool {
   underlyingTokens?: Array<string>;
   poolMeta?: string;
   url?: string;
+  token?: string; // the pool's token contract address (e.g. the LP token or receipt token address)
+  searchTokenOverride?: string; // override token used for search/display matching (see below)
   // optional lending protocol specific fields:
   apyBaseBorrow?: number;
   apyRewardBorrow?: number;
@@ -50,6 +52,11 @@ interface Pool {
   ltv?: number; // btw [0, 1]
 }
 ```
+
+#### `token` and `searchTokenOverride`
+
+- **`token`** — The pool's token contract address. This is the actual token associated with the pool (e.g. the LP token, vault receipt token, or staked asset address). Currently optional but will eventually be required for all adaptors.
+- **`searchTokenOverride`** — Used for LSTs (Liquid Staking Tokens), LRTs (Liquid Restaking Tokens), and similar derivative tokens where the pool's token address differs from the underlying token. When set, this address is used instead of the underlying token for search and display matching. Only set this if the default matching produces incorrect results.
 
 ```typescript
 {

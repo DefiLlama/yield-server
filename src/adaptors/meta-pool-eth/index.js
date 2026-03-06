@@ -60,7 +60,7 @@ const apy = async () => {
       tvlUsd: (spAssets.output / 1e18) * ethPrice,
       ...calcApy(spRates),
       underlyingTokens: [WETH],
-      token: spETH,
+      searchTokenOverride: spETH,
     },
     {
       pool: mpETH,
@@ -70,7 +70,7 @@ const apy = async () => {
       tvlUsd: (mpAssets.output / 1e18) * ethPrice,
       ...calcApy(mpRates),
       underlyingTokens: [WETH],
-      token: mpETH,
+      searchTokenOverride: mpETH,
     },
   ];
 };
