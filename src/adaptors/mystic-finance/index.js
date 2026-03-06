@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
-const { formatChain, getERC4626Info, getPrices } = require('../utils');
+const { formatChain, getERC4626Info, getPrices, getData } = require('../utils');
 
-const PROJECT_NAME = 'mystic-finance';
+const PROJECT_NAME = 'mystic-finance-lending';
 const CHAIN = 'flare';
 
 const VAULTS = [
@@ -38,6 +38,15 @@ const apy = async (timestamp) => {
   );
   const { pricesByAddress } = await getPrices(priceKeys, CHAIN);
 
+  // Fetch campaignApr
+  let vaultsApiData = [];
+  try {
+    const apiData = await getData('https://api.mysticfinance.xyz/morphoCache/lite?chainId=14');
+    if (apiData && apiData.vaults) {
+      vaultsApiData = apiData.vaults;
+    }
+  } catch{}
+
   return VAULTS.map((vault, i) => {
     const { tvl, apyBase } = vaultInfos[i];
     const tokenAmount = tvl / 10 ** vault.decimals;
@@ -45,7 +54,11 @@ const apy = async (timestamp) => {
       pricesByAddress[vault.underlyingToken.toLowerCase()] || 0;
     const tvlUsd = tokenAmount * price;
 
-    return {
+    const apiVault = vaultsApiData.find(v => v.vaultAddress.toLowerCase() === vault.address.toLowerCase());
+    const apyReward = apiVault && apiVault.campaignApr ? apiVault.campaignApr : null;
+    const vaultApr = apiVault && apiVault.vaultApr ? apiVault.vaultApr : null;
+
+    const poolData = {
       pool: `${vault.address}-${CHAIN}`,
       chain: formatChain(CHAIN),
       project: PROJECT_NAME,
@@ -55,6 +68,16 @@ const apy = async (timestamp) => {
       underlyingTokens: [vault.underlyingToken],
       url: `https://app.mysticfinance.xyz/vault?vaultAddress=${vault.address}&chainId=14`,
     };
+
+    if (apyReward !== null) {
+      poolData.apyReward = apyReward;
+    }
+
+    if (vaultApr !== null) {
+      poolData.apyBase = vaultApr;
+    }
+
+    return poolData;
   });
 };
 
