@@ -183,6 +183,15 @@ functions:
       # every hour at :00
       - schedule: cron(0 * * * ? *)
 
+  # --- holder data pipeline
+  triggerHoldersDaily:
+    handler: src/handlers/triggerHoldersDaily.handler
+    description: Daily holder processing via external API
+    timeout: 300
+    memorySize: 512
+    events:
+      - schedule: cron(0 6 * * ? *)
+
 resources:
   Resources:
     # QUEUES
