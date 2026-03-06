@@ -488,7 +488,7 @@ const main = async (body) => {
 
 function extractTokenFromPoolId(poolId) {
   if (!poolId || typeof poolId !== 'string') return null;
-  const hexMatch = poolId.match(/(0x[a-fA-F0-9]{40})/);
+  const hexMatch = poolId.match(/(0x[a-fA-F0-9]{40,})(?![a-fA-F0-9])/);
   if (hexMatch) return hexMatch[1].toLowerCase();
   return null;
 }
