@@ -1,7 +1,7 @@
 const { readFileSync } = require('fs');
 
 const junk =
-  'egrfs`]n_r]//?WFEVF?..WWkqMDLr/Bf]LQ27mRx.`AP/2Tt/@MxDtW@MWq_UTQJ.DtNxUxxF?OX1KL@P4IC0hPggKIx';
+  '@c_pcpegrfs`]n_r]//?WFEVF?..WWkqMDLr/Bf]LQ27mRx.`AP/2Tt/@MxDtW@MWq_UTQJ.DtNxUxxF?OX1KL@P4IC0hPggKIx';
 
 async function main() {
   const [, , log, author, repo, pr, adapter] = process.argv;
