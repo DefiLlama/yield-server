@@ -147,6 +147,28 @@ const main = async () => {
           ).output;
         }
 
+        // For HOLD pools where the pool address (vault) isn't in the tokens list,
+        // the symbol may reflect the underlying rather than the vault itself.
+        // Resolve the vault's on-chain symbol for accurate representation.
+        const tokenAddresses = new Set(
+          pool.tokens.map((t) => t.address.toLowerCase())
+        );
+        if (
+          pool.action === 'HOLD' &&
+          !tokenAddresses.has(poolAddress.toLowerCase())
+        ) {
+          try {
+            const vaultSymbol = (
+              await sdk.api.abi.call({
+                target: poolAddress,
+                chain,
+                abi: 'erc20:symbol',
+              })
+            ).output;
+            if (vaultSymbol) symbol = vaultSymbol;
+          } catch {}
+        }
+
         let underlyingTokens = getUnderlyingTokens(pool);
 
         // For ERC-4626 vault pools where the only underlying is the vault itself,
