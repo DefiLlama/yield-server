@@ -71,6 +71,7 @@ const apy = async (timestamp) => {
 
     if (apyReward !== null) {
       poolData.apyReward = apyReward;
+      poolData.rewardTokens = ['0x12e605bc104e93B45e1aD99F9e555f659051c2BB'];
     }
 
     if (vaultApr !== null) {
