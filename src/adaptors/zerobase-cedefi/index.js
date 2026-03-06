@@ -115,7 +115,6 @@ const apy = async () => {
       ]);
       const tokenAddrs = tokenEntries.map(([, addr]) => addr);
 
-      // 4 个互不依赖的调用并行执行
       const [tvlRaw, rrRaw, decimalsRaw, { pricesByAddress }] =
         await Promise.all([
           sdk.api.abi.multiCall({
@@ -145,7 +144,7 @@ const apy = async () => {
         const [sym, token] = tokenEntries[i];
 
         const tvlOut = tvlRaw.output?.[i]?.output;
-        const rrOut = rrRaw.output?.[i]?.output; // [rate, base]
+        const rrOut = rrRaw.output?.[i]?.output; 
         const decOut = decimalsRaw.output?.[i]?.output;
 
         const fallbackDecimals =
