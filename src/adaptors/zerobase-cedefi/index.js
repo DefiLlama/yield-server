@@ -104,90 +104,98 @@ function getZkTokenAddress(cfg, sym) {
 }
 
 const apy = async () => {
-  const pools = [];
+  const chainPools = await Promise.all(
+    Object.entries(VAULTS).map(async ([chain, cfg]) => {
+      const vault = cfg.vault.toLowerCase();
+      const chainName = utils.formatChain(chain);
 
-  for (const [chain, cfg] of Object.entries(VAULTS)) {
-    const vault = cfg.vault.toLowerCase();
+      const tokenEntries = Object.entries(cfg.tokens).map(([symbol, addr]) => [
+        symbol,
+        addr.toLowerCase(),
+      ]);
+      const tokenAddrs = tokenEntries.map(([, addr]) => addr);
 
-    const tokenEntries = Object.entries(cfg.tokens).map(([symbol, addr]) => [
-      symbol,
-      addr.toLowerCase(),
-    ]);
-    const tokenAddrs = tokenEntries.map(([, addr]) => addr);
+      // 4 个互不依赖的调用并行执行
+      const [tvlRaw, rrRaw, decimalsRaw, { pricesByAddress }] =
+        await Promise.all([
+          sdk.api.abi.multiCall({
+            chain,
+            abi: vaultAbi.getTVL,
+            calls: tokenAddrs.map((token) => ({ target: vault, params: [token] })),
+            permitFailure: true,
+          }),
+          sdk.api.abi.multiCall({
+            chain,
+            abi: vaultAbi.getCurrentRewardRate,
+            calls: tokenAddrs.map((token) => ({ target: vault, params: [token] })),
+            permitFailure: true,
+          }),
+          sdk.api.abi.multiCall({
+            chain,
+            abi: 'erc20:decimals',
+            calls: tokenAddrs.map((t) => ({ target: t })),
+            permitFailure: true,
+          }),
+          utils.getPrices(tokenAddrs, chainForPrices(chain)),
+        ]);
 
-    const tvlRaw = await sdk.api.abi.multiCall({
-      chain,
-      abi: vaultAbi.getTVL,
-      calls: tokenAddrs.map((token) => ({ target: vault, params: [token] })),
-      permitFailure: true,
-    });
+      const pools = [];
 
-    const rrRaw = await sdk.api.abi.multiCall({
-      chain,
-      abi: vaultAbi.getCurrentRewardRate,
-      calls: tokenAddrs.map((token) => ({ target: vault, params: [token] })),
-      permitFailure: true,
-    });
+      for (let i = 0; i < tokenEntries.length; i++) {
+        const [sym, token] = tokenEntries[i];
 
-    const decimalsRaw = await sdk.api.abi.multiCall({
-      chain,
-      abi: 'erc20:decimals',
-      calls: tokenAddrs.map((t) => ({ target: t })),
-      permitFailure: true,
-    });
+        const tvlOut = tvlRaw.output?.[i]?.output;
+        const rrOut = rrRaw.output?.[i]?.output; // [rate, base]
+        const decOut = decimalsRaw.output?.[i]?.output;
 
-    const { pricesByAddress } = await utils.getPrices(
-      tokenAddrs,
-      chainForPrices(chain)
-    );
+        const fallbackDecimals =
+          sym === 'USDT' || sym === 'USDt' || sym === 'USDC' ? 6 : null;
+        const decimals =
+          decOut !== undefined && decOut !== null ? Number(decOut) : fallbackDecimals;
+        if (!Number.isFinite(decimals)) continue;
 
-    for (let i = 0; i < tokenEntries.length; i++) {
-      const [sym, token] = tokenEntries[i];
+        const price = pricesByAddress?.[token];
 
-      const tvlOut = tvlRaw.output?.[i]?.output;
-      const rrOut = rrRaw.output?.[i]?.output;
-      const decOut = decimalsRaw.output?.[i]?.output;
+        const tvlToken = tvlOut ? Number(tvlOut) / 10 ** decimals : 0;
+        const tvlUsd =
+          Number.isFinite(tvlToken) && Number.isFinite(price)
+            ? tvlToken * price
+            : 0;
 
-      const decimals =
-        decOut !== undefined && decOut !== null ? Number(decOut) : 18;
-
-      const price = pricesByAddress?.[token];
-
-      const tvlToken = tvlOut ? Number(tvlOut) / 10 ** decimals : 0;
-      const tvlUsd =
-        Number.isFinite(tvlToken) && Number.isFinite(price) ? tvlToken * price : 0;
-
-      let apyBase = 0;
-      if (Array.isArray(rrOut) && rrOut.length >= 2) {
-        const rate = Number(rrOut[0]);
-        const base = Number(rrOut[1]);
-        if (Number.isFinite(rate) && Number.isFinite(base) && base > 0) {
-          apyBase = (rate / base) * 100;
+        let apyBase = 0;
+        if (Array.isArray(rrOut) && rrOut.length >= 2) {
+          const rate = Number(rrOut[0]);
+          const base = Number(rrOut[1]);
+          if (Number.isFinite(rate) && Number.isFinite(base) && base > 0) {
+            apyBase = (rate / base) * 100;
+          }
         }
+
+        const zkTokenAddr = getZkTokenAddress(cfg, sym);
+        if (!zkTokenAddr) continue;
+
+        const underlyingTokens = [token];
+        const rewardTokens = Array.from(new Set([...underlyingTokens, ZBT]));
+
+        pools.push({
+          pool: `${zkTokenAddr}-${chainName}`.toLowerCase(),
+          chain: chainName,
+          project: PROJECT,
+          symbol: utils.formatSymbol(sym),
+          tvlUsd: Number(tvlUsd),
+          apyBase: Number(apyBase),
+          apyReward: 2,
+          underlyingTokens,
+          rewardTokens,
+          url: 'https://app.zerobase.pro',
+        });
       }
 
-      const zkTokenAddr = getZkTokenAddress(cfg, sym);
-      if (!zkTokenAddr) continue;
+      return pools;
+    })
+  );
 
-      const underlyingTokens = [token];
-      const rewardTokens = Array.from(new Set([...underlyingTokens, ZBT])); // ✅ underlying + ZBT
-
-      pools.push({
-        pool: `${zkTokenAddr}-${utils.formatChain(chain)}`.toLowerCase(),
-        chain: utils.formatChain(chain),
-        project: PROJECT,
-        symbol: utils.formatSymbol(sym),
-        tvlUsd: Number(tvlUsd),
-        apyBase: Number(apyBase),
-        apyReward: 2, // ✅ 每条链固定 2%
-        underlyingTokens,
-        rewardTokens,
-        url: 'https://app.zerobase.pro',
-      });
-    }
-  }
-
-  return pools.filter(utils.keepFinite);
+  return chainPools.flat().filter(utils.keepFinite);
 };
 
 module.exports = {
