@@ -46,7 +46,7 @@ async function getLpPriceAtBlock(contractAddress, block) {
 
 // Try lpPrice on nearby blocks to survive RPC/archive quirks
 async function getLpPriceAtBlockWithFallback(contractAddress, block) {
-  const tries = [0, -25, -50, -200, -1000]; // cheap & effective
+  const tries = [0, -25, 25, -50, 50, -200, 200, -1000]; // cheap & effective
   for (const d of tries) {
     const b = block + d;
     if (b <= 0) continue;
@@ -57,13 +57,21 @@ async function getLpPriceAtBlockWithFallback(contractAddress, block) {
 }
 
 async function getTVL(contractAddress, block) {
-  const tvlResponse = await sdk.api.abi.call({
-    target: contractAddress,
-    abi: abi.totalHoldings,
-    chain: CHAIN,
-    ...(block ? { block } : {}), 
-  });
-  return BigInt(tvlResponse.output);
+  try {
+    const tvlResponse = await sdk.api.abi.call({
+      target: contractAddress,
+      abi: abi.totalHoldings,
+      chain: CHAIN,
+      ...(block ? { block } : {}),
+    });
+    return BigInt(tvlResponse.output);
+  } catch (e) {
+    console.log('[DSF] Failed to fetch TVL', {
+      block: block ?? null,
+      error: e?.message ?? String(e),
+    });
+    return 0n;
+  }
 }
 
 function ratio1e18ToFloat(x1e18) {
@@ -75,19 +83,19 @@ function ratio1e18ToFloat(x1e18) {
 
 // growthScaled1e18 = (lpNow * 1e18) / lpPrev  => ratio * 1e18
 function annualizeFromRatio1e18(growthScaled1e18, dtSeconds) {
-  if (!dtSeconds || dtSeconds <= 0) return 0;
+  if (!dtSeconds || dtSeconds <= 0) return null;
 
-  const ratio = ratio1e18ToFloat(growthScaled1e18); // ~1.0000x
-  if (!Number.isFinite(ratio) || ratio <= 0) return 0;
+  const ratio = ratio1e18ToFloat(growthScaled1e18);
+  if (!Number.isFinite(ratio) || ratio <= 0) return null;
 
   const periodsPerYear = (365 * 24 * 60 * 60) / dtSeconds;
   const apy = (Math.pow(ratio, periodsPerYear) - 1) * 100;
 
-  return Number.isFinite(apy) ? apy : 0;
+  return Number.isFinite(apy) ? apy : null;
 }
 
 function clampApy(x) {
-  if (!Number.isFinite(x)) return 0;
+  if (x == null || !Number.isFinite(x)) return null;
   return Math.max(Math.min(x, 5000), -100);
 }
 
@@ -105,33 +113,82 @@ function format1e18ToNumber(x) {
   return neg ? -n : n;
 }
 
-// --------- main ---------
+function isValidPositiveApy(apy) {
+  return apy != null && Number.isFinite(apy) && apy > 0;
+}
 
-const collectPools = async (timestamp = Math.floor(Date.now()/1000)) => {
-
-  const nowTs = timestamp;
-  const DAYS = 3;
-  const prevTs = nowTs - DAYS * 24 * 60 * 60;
+async function calcApyForDays(contractAddress, nowTs, days) {
+  const prevTs = nowTs - days * 24 * 60 * 60;
 
   const [blockNow, blockPrev] = await Promise.all([
     getBlockAtTs(CHAIN, nowTs),
     getBlockAtTs(CHAIN, prevTs),
   ]);
 
-  const tvl = await getTVL(dsfPoolStables, blockNow ?? undefined);
-
-  // IMPORTANT: use fallback by blocks
-  const [lpNow, lpPrev] = await Promise.all([
-    blockNow ? getLpPriceAtBlockWithFallback(dsfPoolStables, blockNow) : null,
-    blockPrev ? getLpPriceAtBlockWithFallback(dsfPoolStables, blockPrev) : null,
-  ]);
-  
-  let apy = 0;
-  if (lpNow && lpPrev && lpPrev > 0n) {
-    const dtSeconds = DAYS * 24 * 60 * 60;
-    const growthScaled = (lpNow * SCALE) / lpPrev;
-    apy = clampApy(annualizeFromRatio1e18(growthScaled, dtSeconds));
+  if (!blockNow || !blockPrev) {
+    console.log(`[DSF] Missing block for ${days}d window`, { nowTs, prevTs, blockNow, blockPrev });
+    return null;
   }
+
+  const [lpNow, lpPrev] = await Promise.all([
+    getLpPriceAtBlockWithFallback(contractAddress, blockNow),
+    getLpPriceAtBlockWithFallback(contractAddress, blockPrev),
+  ]);
+
+  if (!lpNow || !lpPrev || lpPrev <= 0n) {
+    console.log(`[DSF] Missing lpPrice for ${days}d window`, {
+      nowTs,
+      prevTs,
+      blockNow,
+      blockPrev,
+      lpNow: lpNow?.toString() ?? null,
+      lpPrev: lpPrev?.toString() ?? null,
+    });
+    return null;
+  }
+
+  const growthScaled = (lpNow * SCALE) / lpPrev;
+  const rawApy = annualizeFromRatio1e18(growthScaled, days * 24 * 60 * 60);
+  const apy = clampApy(rawApy);
+
+  console.log(`[DSF] APY attempt ${days}d`, {
+    nowTs,
+    prevTs,
+    blockNow,
+    blockPrev,
+    lpNow: lpNow.toString(),
+    lpPrev: lpPrev.toString(),
+    growthScaled: growthScaled.toString(),
+    rawApy,
+    apy,
+  });
+
+  return apy;
+}
+
+async function getBestApy(contractAddress, nowTs) {
+  const windows = [1, 3, 7];
+
+  for (const days of windows) {
+    const apy = await calcApyForDays(contractAddress, nowTs, days);
+    if (isValidPositiveApy(apy)) {
+      console.log(`[DSF] Using ${days}d APY`, { apy });
+      return apy;
+    }
+  }
+
+  console.log('[DSF] All APY windows invalid, fallback to 0');
+  return 0;
+}
+
+// --------- main ---------
+
+const collectPools = async (timestamp = Math.floor(Date.now()/1000)) => {
+  const nowTs = timestamp;
+
+  const blockNow = await getBlockAtTs(CHAIN, nowTs);
+  const tvl = await getTVL(dsfPoolStables, blockNow ?? undefined);
+  const apy = await getBestApy(dsfPoolStables, nowTs);
 
   return [
     {
