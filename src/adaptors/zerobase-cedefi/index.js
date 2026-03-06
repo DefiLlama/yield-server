@@ -174,7 +174,7 @@ const apy = async () => {
         if (!zkTokenAddr) continue;
 
         const underlyingTokens = [token];
-        const rewardTokens = Array.from(new Set([...underlyingTokens, ZBT]));
+        const rewardTokens = [ZBT];
 
         pools.push({
           pool: `${zkTokenAddr}-${chainName}`.toLowerCase(),
