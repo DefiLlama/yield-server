@@ -84,6 +84,7 @@ const apy = async () => {
       chain: chain,
       project: 'yieldnest',
       symbol: symbol,
+      ...(symbol === 'veYND' && { token: '0x23d2923e15f5cce8a131cb37f0c7bcc5cad15639' }),
       tvlUsd: tvl,
       apy: apy,
       underlyingTokens: underlyingAssets,
