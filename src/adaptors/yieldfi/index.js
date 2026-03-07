@@ -215,8 +215,11 @@ const getUnderlying = (symbol, chain) => {
  * @param {number} apy - Annual Percentage Yield
  * @returns {Object} Pool object
  */
+const BASE_URL = 'https://yield.fi';
+
 const createPool = (tokenAddress, symbol, chain, tvl, apy) => {
   const underlying = getUnderlying(symbol, chain);
+  const vaultSlug = symbol.toLowerCase();
   return {
     pool: `${tokenAddress}-${chain}`,
     chain: chain,
@@ -224,6 +227,7 @@ const createPool = (tokenAddress, symbol, chain, tvl, apy) => {
     symbol: utils.formatSymbol(symbol),
     tvlUsd: tvl,
     apyBase: apy,
+    url: `${BASE_URL}/vault/${vaultSlug}`,
     ...(underlying && { underlyingTokens: [underlying] }),
   };
 };
@@ -315,5 +319,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://yield.fi/',
+  url: BASE_URL + '/',
 };
