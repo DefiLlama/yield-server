@@ -70,6 +70,10 @@ const YPRISM_CONTRACTS = {
   ethereum: '0xdd5eff0756db08bad0ff16b66f88f506e7318894',
   bsc: '0xdd5eff0756db08bad0ff16b66f88f506e7318894',
 };
+
+const YHLP_CONTRACTS = {
+  ethereum: '0x386e0983d0e05f5239fd029793ef3ba37b468e9c',
+};
 // Underlying token addresses per chain (USDC for yUSD/vyUSD, WETH for yETH/vyETH, WBTC for yBTC/vyBTC)
 const UNDERLYING_TOKENS = {
   ethereum: {
@@ -211,8 +215,11 @@ const getUnderlying = (symbol, chain) => {
  * @param {number} apy - Annual Percentage Yield
  * @returns {Object} Pool object
  */
+const BASE_URL = 'https://yield.fi';
+
 const createPool = (tokenAddress, symbol, chain, tvl, apy) => {
   const underlying = getUnderlying(symbol, chain);
+  const vaultSlug = symbol.toLowerCase();
   return {
     pool: `${tokenAddress}-${chain}`,
     chain: chain,
@@ -220,6 +227,7 @@ const createPool = (tokenAddress, symbol, chain, tvl, apy) => {
     symbol: utils.formatSymbol(symbol),
     tvlUsd: tvl,
     apyBase: apy,
+    url: `${BASE_URL}/vaults/${vaultSlug}`,
     ...(underlying && { underlyingTokens: [underlying] }),
   };
 };
@@ -271,7 +279,8 @@ const poolsFunction = async () => {
         processToken(VYETH_CONTRACTS[chain], 'vyETH', chain),
         processToken(YBTC_CONTRACTS[chain], 'yBTC', chain),
         processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain),
-        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain)
+        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain),
+        processToken(YHLP_CONTRACTS[chain], 'yHLP', chain)
       );
     }
     if (chain === 'arbitrum' || chain === 'base') {
@@ -310,5 +319,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://yield.fi/vaults/yprism',
+  url: BASE_URL + '/',
 };
