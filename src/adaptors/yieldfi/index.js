@@ -227,7 +227,7 @@ const createPool = (tokenAddress, symbol, chain, tvl, apy) => {
     symbol: utils.formatSymbol(symbol),
     tvlUsd: tvl,
     apyBase: apy,
-    url: `${BASE_URL}/vault/${vaultSlug}`,
+    url: `${BASE_URL}/vaults/${vaultSlug}`,
     ...(underlying && { underlyingTokens: [underlying] }),
   };
 };
