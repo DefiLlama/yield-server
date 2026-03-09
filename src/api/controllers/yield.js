@@ -3,8 +3,8 @@ const validator = require('validator');
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
 const {
-  getHolderHistory: getHolderHistoryQuery,
   getLatestHolders,
+  getHolderHistory: queryHolderHistory,
   getHolderOffset,
 } = require('../../queries/holder');
 
@@ -175,7 +175,7 @@ const getHolderHistory = async (req, res) => {
     return res.status(400).json('invalid configID!');
 
   try {
-    const response = await getHolderHistoryQuery(configID);
+    const response = await queryHolderHistory(configID, conn);
     res.status(200).json({ status: 'success', data: response });
   } catch (err) {
     console.log('getHolderHistory failed:', err.message);
@@ -185,14 +185,14 @@ const getHolderHistory = async (req, res) => {
 
 const getHolders = async (req, res) => {
   try {
-    const [holderData, holderOffset7d, holderOffset30d] = await Promise.all([
-      getLatestHolders(),
-      getHolderOffset(7),
-      getHolderOffset(30),
+    const [latest, holderOffset7d, holderOffset30d] = await Promise.all([
+      getLatestHolders(conn),
+      getHolderOffset(7, conn),
+      getHolderOffset(30, conn),
     ]);
 
     const data = {};
-    for (const [configID, h] of Object.entries(holderData)) {
+    for (const [configID, h] of Object.entries(latest)) {
       const prev7d = holderOffset7d[configID];
       const prev30d = holderOffset30d[configID];
       data[configID] = {

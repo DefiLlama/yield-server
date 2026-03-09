@@ -2,32 +2,36 @@ const { pgp, connect } = require('../utils/dbConnection');
 
 const holderTable = 'holder_daily';
 
-// Upsert a daily holder snapshot (one row per configID/day).
-// Callers must pass a midnight-UTC timestamp so the unique index
-// naturally deduplicates same-day re-runs.
-const insertHolder = async (payload) => {
-  const conn = await connect();
-
-  const columns = [
+const holderColumns = new pgp.helpers.ColumnSet(
+  [
     'configID',
     'timestamp',
     { name: 'holderCount', def: null },
     { name: 'avgPositionUsd', def: null },
     { name: 'top10Pct', def: null },
     { name: 'top10Holders', def: null },
-  ];
-  const cs = new pgp.helpers.ColumnSet(columns, { table: holderTable });
+  ],
+  { table: holderTable }
+);
+
+// Upsert daily holder snapshots. Accepts a single object or an array.
+// Callers must pass a midnight-UTC timestamp so the unique index
+// naturally deduplicates same-day re-runs.
+const insertHolder = async (payloads) => {
+  const conn = await connect();
+
+  const rows = Array.isArray(payloads) ? payloads : [payloads];
+  if (rows.length === 0) return;
+
   const query =
-    pgp.helpers.insert(payload, cs) +
-    ` ON CONFLICT ("configID", timestamp) DO UPDATE SET
-      "holderCount" = EXCLUDED."holderCount",
-      "avgPositionUsd" = EXCLUDED."avgPositionUsd",
-      "top10Pct" = EXCLUDED."top10Pct",
-      "top10Holders" = EXCLUDED."top10Holders"`;
+    pgp.helpers.insert(rows, holderColumns) +
+    ' ON CONFLICT ("configID", timestamp) DO UPDATE SET ' +
+    holderColumns.assignColumns({ from: 'EXCLUDED', skip: ['configID', 'timestamp'] });
   await conn.query(query);
 };
 
 // Get all eligible pools with TVL above threshold (for daily processing).
+// Returns token (receipt-token from PR #2447 migration) for accurate holder lookups.
 const getEligiblePools = async (tvlLB = 10000) => {
   const conn = await connect();
 
@@ -41,6 +45,7 @@ const getEligiblePools = async (tvlLB = 10000) => {
     SELECT
       c.config_id AS "configID",
       c.pool,
+      c.token,
       lt."tvlUsd"
     FROM config c
     JOIN latest_tvl lt ON lt."configID" = c.config_id
@@ -51,8 +56,8 @@ const getEligiblePools = async (tvlLB = 10000) => {
 
 // Get latest holder snapshot per pool (for enrichment pipeline).
 // Bounds scan to last 30 days — data is inserted daily so this is safe.
-const getLatestHolders = async () => {
-  const conn = await connect();
+const getLatestHolders = async (conn) => {
+  conn = conn || (await connect());
 
   const query = `
     SELECT DISTINCT ON ("configID")
@@ -72,8 +77,8 @@ const getLatestHolders = async () => {
 };
 
 // Get holder time series for a specific pool (for chart endpoint)
-const getHolderHistory = async (configID) => {
-  const conn = await connect();
+const getHolderHistory = async (configID, conn) => {
+  conn = conn || (await connect());
 
   const query = `
     SELECT timestamp, "holderCount", "avgPositionUsd", "top10Pct"
@@ -85,17 +90,19 @@ const getHolderHistory = async (configID) => {
 };
 
 // Get holderCount from N days ago per pool (for holderChange7d/30d).
-// Timestamps are always midnight UTC, so an exact match is sufficient.
-const getHolderOffset = async (days) => {
-  const conn = await connect();
+// Uses a 2-day window and picks the closest snapshot to handle missed days.
+const getHolderOffset = async (days, conn) => {
+  conn = conn || (await connect());
   const target = new Date();
   target.setUTCHours(0, 0, 0, 0);
   target.setUTCDate(target.getUTCDate() - days);
 
   const query = `
-    SELECT "configID", "holderCount"
+    SELECT DISTINCT ON ("configID") "configID", "holderCount"
     FROM holder_daily
-    WHERE timestamp = $<target>
+    WHERE timestamp >= $<target> - INTERVAL '2 days'
+      AND timestamp <= $<target>
+    ORDER BY "configID", timestamp DESC
   `;
   const rows = await conn.query(query, { target });
   const result = {};

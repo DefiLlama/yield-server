@@ -187,8 +187,8 @@ functions:
   triggerHoldersDaily:
     handler: src/handlers/triggerHoldersDaily.handler
     description: Daily holder processing via external API
-    timeout: 300
-    memorySize: 512
+    timeout: 900
+    memorySize: 1024
     events:
       - schedule: cron(0 6 * * ? *)
 

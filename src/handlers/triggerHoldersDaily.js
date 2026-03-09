@@ -8,7 +8,9 @@ const {
 } = require('../utils/holderApi');
 const { getEligiblePools, insertHolder } = require('../queries/holder');
 
-const BATCH_SIZE = 10;
+const BATCH_SIZE = 25;
+// Max chains to run totalSupply multicalls for in parallel.
+const CHAIN_CONCURRENCY = 5;
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -16,18 +18,38 @@ module.exports.handler = async (event, context) => {
 };
 
 const main = async () => {
+  const startTime = Date.now();
   console.log('START DAILY HOLDER PROCESSING');
 
-  // 1. Get all pools with TVL >= $10k
+  // 1. Get all pools with TVL >= $10k.
+  // The `token` column is the receipt-token address from PR #2447's migration
+  // (config.token). It is preferred over parsing the pool ID, which may contain
+  // non-token addresses (contract addresses, Morpho uniqueKey hashes, etc.).
   const pools = await getEligiblePools();
   console.log(`Found ${pools.length} eligible pools`);
 
-  // 2. Filter to valid EVM pools on supported chains and resolve chain IDs
+  // 2. Filter to valid EVM pools on supported chains and resolve chain IDs.
+  //    Prefer pool.token (receipt-token) when available; fall back to pool ID parsing.
   const tasks = [];
   for (const pool of pools) {
-    const { tokenAddress, chain } = parsePoolField(pool.pool);
+    let tokenAddress = null;
+    let chain = null;
+
+    if (pool.token && isValidEvmAddress(pool.token)) {
+      // Use the explicit receipt-token from config
+      tokenAddress = pool.token;
+      // Still need chain from pool ID
+      const parsed = parsePoolField(pool.pool);
+      chain = parsed.chain;
+    } else {
+      // Fallback: parse token address from pool ID
+      const parsed = parsePoolField(pool.pool);
+      tokenAddress = parsed.tokenAddress;
+      chain = parsed.chain;
+    }
+
     if (!chain) continue;
-    if (!isValidEvmAddress(tokenAddress)) continue;
+    if (!tokenAddress || !isValidEvmAddress(tokenAddress)) continue;
     const chainId = resolveChainId(chain);
     if (chainId == null) continue;
 
@@ -44,7 +66,8 @@ const main = async () => {
     `${tasks.length} valid EVM pools (${pools.length - tasks.length} filtered out)`
   );
 
-  // 3. Batch totalSupply calls per chain for top10Pct denominator
+  // 3. Batch totalSupply calls per chain for top10Pct denominator.
+  //    Run up to CHAIN_CONCURRENCY chains in parallel.
   const chainGroups = {};
   for (const t of tasks) {
     if (!chainGroups[t.chain]) chainGroups[t.chain] = [];
@@ -52,26 +75,33 @@ const main = async () => {
   }
 
   const totalSupplyMap = {};
-  for (const [chain, group] of Object.entries(chainGroups)) {
-    try {
-      const calls = group.map((t) => ({
-        target: t.tokenAddress,
-        params: [],
-      }));
-      const result = await sdk.api.abi.multiCall({
-        abi: 'erc20:totalSupply',
-        calls,
-        chain,
-      });
-      for (const item of result.output) {
-        if (item.output) {
-          totalSupplyMap[`${item.input.target.toLowerCase()}-${chain}`] =
-            BigInt(item.output);
+  const chainEntries = Object.entries(chainGroups);
+
+  for (let i = 0; i < chainEntries.length; i += CHAIN_CONCURRENCY) {
+    const chunk = chainEntries.slice(i, i + CHAIN_CONCURRENCY);
+    await Promise.allSettled(
+      chunk.map(async ([chain, group]) => {
+        try {
+          const calls = group.map((t) => ({
+            target: t.tokenAddress,
+            params: [],
+          }));
+          const result = await sdk.api.abi.multiCall({
+            abi: 'erc20:totalSupply',
+            calls,
+            chain,
+          });
+          for (const item of result.output) {
+            if (item.output) {
+              totalSupplyMap[`${item.input.target.toLowerCase()}-${chain}`] =
+                BigInt(item.output);
+            }
+          }
+        } catch (err) {
+          console.log(`totalSupply multicall failed for ${chain}: ${err.message}`);
         }
-      }
-    } catch (err) {
-      console.log(`totalSupply multicall failed for ${chain}: ${err.message}`);
-    }
+      })
+    );
   }
 
   // 4. Process pools in batches with concurrency
@@ -80,28 +110,48 @@ const main = async () => {
 
   let success = 0;
   let failed = 0;
+  let skipped = 0;
 
   for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
     const batch = tasks.slice(i, i + BATCH_SIZE);
+    const batchPayloads = [];
     const results = await Promise.allSettled(
       batch.map((t) => processPool(t, totalSupplyMap, today))
     );
 
     for (const r of results) {
       if (r.status === 'fulfilled') {
+        if (r.value) {
+          batchPayloads.push(r.value);
+        } else {
+          skipped++;
+        }
         success++;
       } else {
         failed++;
         console.log(`Pool failed: ${r.reason?.message || r.reason}`);
       }
     }
+
+    // Batch insert all successful payloads for this batch
+    if (batchPayloads.length > 0) {
+      try {
+        await insertHolder(batchPayloads);
+      } catch (err) {
+        console.log(`Batch insert failed: ${err.message}`);
+        failed += batchPayloads.length;
+        success -= batchPayloads.length;
+      }
+    }
+
   }
 
   console.log(
-    `DAILY HOLDER PROCESSING COMPLETE: ${success} success, ${failed} failed`
+    `DONE: ${success} success, ${failed} failed, ${skipped} skipped out of ${tasks.length} pools (${Date.now() - startTime}ms)`
   );
 };
 
+// Process a single pool and return the insert payload (or null if skipped).
 async function processPool(task, totalSupplyMap, today) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
 
@@ -109,7 +159,20 @@ async function processPool(task, totalSupplyMap, today) {
   const data = await fetchHolders(chainId, tokenAddress);
   const holderCount = data.total_holders;
 
-  if (holderCount == null || holderCount === 0) return;
+  if (holderCount == null) return null;
+
+  // Insert holderCount=0 with nulls for position/concentration data
+  // to keep the time series continuous
+  if (holderCount === 0) {
+    return {
+      configID,
+      timestamp: today.toISOString(),
+      holderCount: 0,
+      avgPositionUsd: null,
+      top10Pct: null,
+      top10Holders: null,
+    };
+  }
 
   const avgPositionUsd = holderCount > 0 ? tvlUsd / holderCount : null;
 
@@ -136,12 +199,12 @@ async function processPool(task, totalSupplyMap, today) {
     }));
   }
 
-  await insertHolder({
+  return {
     configID,
     timestamp: today.toISOString(),
     holderCount,
     avgPositionUsd,
     top10Pct,
     top10Holders,
-  });
+  };
 }

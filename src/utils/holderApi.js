@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const API_BASE = 'https://peluche2.llamao.fi/holders';
 
@@ -45,12 +45,25 @@ function resolveChainId(chain) {
   return CHAIN_NAME_TO_ID[key] ?? null;
 }
 
+// HTTP status codes worth retrying on.
+const RETRYABLE_CODES = new Set([429, 500, 502, 503, 504]);
+
 // Fetch holder data from the external API.
 // Returns { total_holders, deltas } where deltas is an array of top-N holder entries.
+// Retries once on transient HTTP errors (429, 5xx) after a 2s delay.
 async function fetchHolders(chainId, token, limit = 10) {
   const url = `${API_BASE}/${chainId}/${token}?limit=${limit}`;
-  const res = await superagent.get(url).timeout({ response: 30000 });
-  return res.body;
+
+  try {
+    return (await axios.get(url, { timeout: 30000 })).data;
+  } catch (err) {
+    const status = err.response?.status;
+    if (status && RETRYABLE_CODES.has(status)) {
+      await new Promise((r) => setTimeout(r, 2000));
+      return (await axios.get(url, { timeout: 30000 })).data;
+    }
+    throw err;
+  }
 }
 
 // Extract token address and chain from pool field format: `${address}-${chain}`
