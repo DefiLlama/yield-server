@@ -48,20 +48,29 @@ function resolveChainId(chain) {
 // HTTP status codes worth retrying on.
 const RETRYABLE_CODES = new Set([429, 500, 502, 503, 504]);
 
+// Build headers for the external API (includes API key if available).
+function getHeaders() {
+  return process.env.HOLDERS_API_KEY
+    ? { 'x-api-key': process.env.HOLDERS_API_KEY }
+    : {};
+}
+
 // Fetch holder data from the external API.
 // Returns { total_holders, deltas } where deltas is an array of top-N holder entries.
 // Retries once on transient HTTP errors (429, 5xx) after a 2s delay.
 async function fetchHolders(chainId, token, limit = 10, rebase = false) {
-  const params = `limit=${limit}${rebase ? '&rebase=true' : ''}`;
-  const url = `${API_BASE}/${chainId}/${token}?${params}`;
+  const params = new URLSearchParams({ chainId, token, limit });
+  if (rebase) params.set('rebase', 'true');
+  const url = `${API_BASE}?${params}`;
+  const headers = getHeaders();
 
   try {
-    return (await axios.get(url, { timeout: 30000 })).data;
+    return (await axios.get(url, { timeout: 30000, headers })).data;
   } catch (err) {
     const status = err.response?.status;
     if (status && RETRYABLE_CODES.has(status)) {
       await new Promise((r) => setTimeout(r, 2000));
-      return (await axios.get(url, { timeout: 30000 })).data;
+      return (await axios.get(url, { timeout: 30000, headers })).data;
     }
     throw err;
   }
