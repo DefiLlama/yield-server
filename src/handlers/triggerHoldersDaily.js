@@ -29,27 +29,14 @@ const main = async () => {
   console.log(`Found ${pools.length} eligible pools`);
 
   // 2. Filter to valid EVM pools on supported chains and resolve chain IDs.
-  //    Prefer pool.token (receipt-token) when available; fall back to pool ID parsing.
+  //    Token address comes from config.token (receipt-token); chain from pool ID.
   const tasks = [];
   for (const pool of pools) {
-    let tokenAddress = null;
-    let chain = null;
+    if (!pool.token || !isValidEvmAddress(pool.token)) continue;
 
-    if (pool.token && isValidEvmAddress(pool.token)) {
-      // Use the explicit receipt-token from config
-      tokenAddress = pool.token;
-      // Still need chain from pool ID
-      const parsed = parsePoolField(pool.pool);
-      chain = parsed.chain;
-    } else {
-      // Fallback: parse token address from pool ID
-      const parsed = parsePoolField(pool.pool);
-      tokenAddress = parsed.tokenAddress;
-      chain = parsed.chain;
-    }
-
+    const { chain } = parsePoolField(pool.pool);
     if (!chain) continue;
-    if (!tokenAddress || !isValidEvmAddress(tokenAddress)) continue;
+
     const chainId = resolveChainId(chain);
     if (chainId == null) continue;
 
@@ -57,7 +44,7 @@ const main = async () => {
       configID: pool.configID,
       chain,
       chainId,
-      tokenAddress,
+      tokenAddress: pool.token,
       tvlUsd: pool.tvlUsd,
     });
   }
