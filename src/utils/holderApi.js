@@ -51,8 +51,9 @@ const RETRYABLE_CODES = new Set([429, 500, 502, 503, 504]);
 // Fetch holder data from the external API.
 // Returns { total_holders, deltas } where deltas is an array of top-N holder entries.
 // Retries once on transient HTTP errors (429, 5xx) after a 2s delay.
-async function fetchHolders(chainId, token, limit = 10) {
-  const url = `${API_BASE}/${chainId}/${token}?limit=${limit}`;
+async function fetchHolders(chainId, token, limit = 10, rebase = false) {
+  const params = `limit=${limit}${rebase ? '&rebase=true' : ''}`;
+  const url = `${API_BASE}/${chainId}/${token}?${params}`;
 
   try {
     return (await axios.get(url, { timeout: 30000 })).data;
@@ -87,10 +88,21 @@ function isValidEvmAddress(address) {
   return address.startsWith('0x') && address.length === 42;
 }
 
+// Tokens where balances change without transfers (true rebasing)
+const REBASE_ADDRESSES = new Set([
+  '0xae7ab96520de3a18e5e111b5eaab095312d7fe84', // stETH
+  '0xbe9895146f7af43049ca1c1ae358b0541ea49704', // cbETH
+]);
+
+function isRebaseToken(tokenAddress) {
+  return REBASE_ADDRESSES.has(tokenAddress?.toLowerCase());
+}
+
 module.exports = {
   fetchHolders,
   parsePoolField,
   isValidEvmAddress,
   resolveChainId,
+  isRebaseToken,
   API_BASE,
 };

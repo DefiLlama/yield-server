@@ -197,12 +197,8 @@ const getHolders = async (req, res) => {
       const prev30d = holderOffset30d[configID];
       data[configID] = {
         holderCount: h.holderCount,
-        avgPositionUsd: Number.isFinite(h.avgPositionUsd)
-          ? +h.avgPositionUsd.toFixed(0)
-          : null,
-        top10Pct: Number.isFinite(h.top10Pct)
-          ? +h.top10Pct.toFixed(2)
-          : null,
+        avgPositionUsd: h.avgPositionUsd != null ? +(+h.avgPositionUsd).toFixed(0) : null,
+        top10Pct: h.top10Pct != null ? +(+h.top10Pct).toFixed(2) : null,
         holderChange7d:
           h.holderCount != null && prev7d != null
             ? h.holderCount - prev7d

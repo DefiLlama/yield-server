@@ -5,6 +5,7 @@ const {
   parsePoolField,
   isValidEvmAddress,
   resolveChainId,
+  isRebaseToken,
 } = require('../utils/holderApi');
 const { getEligiblePools, insertHolder } = require('../queries/holder');
 
@@ -46,6 +47,7 @@ const main = async () => {
       chainId,
       tokenAddress: pool.token,
       tvlUsd: pool.tvlUsd,
+      isRebase: isRebaseToken(pool.token),
     });
   }
 
@@ -110,10 +112,10 @@ const main = async () => {
       if (r.status === 'fulfilled') {
         if (r.value) {
           batchPayloads.push(r.value);
+          success++;
         } else {
           skipped++;
         }
-        success++;
       } else {
         failed++;
         console.log(`Pool failed: ${r.reason?.message || r.reason}`);
@@ -140,10 +142,10 @@ const main = async () => {
 
 // Process a single pool and return the insert payload (or null if skipped).
 async function processPool(task, totalSupplyMap, today) {
-  const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
+  const { configID, chain, chainId, tokenAddress, tvlUsd, isRebase } = task;
 
   // Fetch holder data from external API
-  const data = await fetchHolders(chainId, tokenAddress);
+  const data = await fetchHolders(chainId, tokenAddress, 10, isRebase);
   const holderCount = data.total_holders;
 
   if (holderCount == null) return null;
