@@ -116,9 +116,38 @@ const getAllPools = async (req, res) => {
   res.status(200).json(response);
 };
 
+// pro endpoint: token address for a pool
+const getTokenAddress = async (req, res) => {
+  const configID = req.query.configID;
+  if (!configID || !validator.isUUID(configID))
+    return res.status(400).json('invalid configID!');
+
+  const query = `
+    SELECT
+        c.config_id,
+        c.token
+    FROM
+        config c
+    WHERE
+        c.config_id = $<configID>
+    `;
+
+  const response = await conn.query(query, { configID });
+
+  if (!response || response.length === 0) {
+    return new AppError(`Couldn't get data`, 404);
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: { configID: response[0].config_id, token: response[0].token },
+  });
+};
+
 module.exports = {
   getUrl,
   getDistinctID,
   getConfigPool,
   getAllPools,
+  getTokenAddress,
 };
