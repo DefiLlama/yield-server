@@ -152,7 +152,7 @@ async function getZestV2Pools() {
           tvlUsd: tvlUsd,
           apyBase: apys.supplyApy,
           apyBaseBorrow: apys.borrowApy,
-          underlyingTokens: [priceResult.key],
+          underlyingTokens: [`${pool.assetAddress}.${pool.contractName}`],
           url: 'https://app.zestprotocol.com/market/main',
         });
       } catch (error) {
