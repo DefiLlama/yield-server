@@ -56,12 +56,14 @@ async function apy() {
           headers: {
             'x-client-id': 'defillama',
           },
+          timeout: 10_000,
         })
         .then((res) => res.data.flat())
     )
   ).then((res) => res.flat());
 
   const apys = mvs
+    .filter((mv) => mv.status === 'VISIBLE') // only include live MetaVaults
     .map(mvApy)
     .flat()
     .filter((i) => utils.keepFinite(i)) // skip MetaVaults with no TVL (e.g. missing price)
