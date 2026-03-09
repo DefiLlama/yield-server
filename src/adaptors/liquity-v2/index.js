@@ -441,12 +441,13 @@ const ABIS = {
       );
       const totalSpApy = spApy + liquidationApy;
 
-      const spPool = 
+      const spPool =
         {
           pool: branch.stabilityPool,
           project: 'liquity-v2',
           symbol: 'BOLD',
           chain: 'ethereum',
+          token: null,
           apy: totalSpApy,
           tvlUsd: spSupplyUsd,
           underlyingTokens: [BOLD_TOKEN],
@@ -454,12 +455,13 @@ const ABIS = {
           poolMeta: `BOLD deposited in the ${branch.symbol} Stability Pool earns continuous BOLD yield and periodic ${branch.symbol} rewards from Trove liquidations`
         }
 
-      const borrowPool = 
+      const borrowPool =
         {
           pool: branch.activePool,
           project: 'liquity-v2',
           symbol: branch.symbol,
           chain: 'ethereum',
+          token: null,
           apy: 0,
           tvlUsd: totalCollUsd,
           apyBaseBorrow: borrowApy,

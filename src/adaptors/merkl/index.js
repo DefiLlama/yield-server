@@ -228,6 +228,7 @@ const main = async () => {
           project: project,
           poolMeta: poolMeta,
           symbol: symbol,
+          token: null,
           tvlUsd: tvlUsd ?? 0,
           apyReward: apyReward ?? 0,
           rewardTokens: [...new Set(rewardTokens)],

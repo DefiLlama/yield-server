@@ -378,6 +378,7 @@ const apy = async () => {
         chain,
         project: 'morpho-v1',
         symbol: market.collateralAsset?.symbol,
+        token: null,
         apy: 0,
         tvlUsd: market.state.collateralAssetsUsd || 0,
         underlyingTokens: [market.collateralAsset.address],

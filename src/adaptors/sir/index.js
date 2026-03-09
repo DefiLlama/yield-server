@@ -37,6 +37,13 @@ const FACTORY_ABI = [
   "function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool)",
 ];
 
+// Vault/TEA contract addresses (ERC-1155, vault ID = token ID)
+const VAULT_TEA_ADDRESS = {
+  ethereum: "0x7Dad75dD36dE234C937C105e652B6E50d68b0309",
+  "hyperliquid-l1": "0x4a35e7448Dad9cAc6B3e529050B5a6Ee56A0eDF0",
+  megaeth: "0x8d694D1b369BdE5B274Ad643fEdD74f836E88543",
+};
+
 // Chains and subgraphs
 const CHAIN_CONFIGS = [
   {
@@ -393,6 +400,7 @@ async function apy() {
       chain: chainName,
       project: "sir",
       symbol,
+      token: VAULT_TEA_ADDRESS[chainKey] || null,
       tvlUsd,
       apyBase: feesApy || 0,
       apyReward: sirRewardsApy || 0,
