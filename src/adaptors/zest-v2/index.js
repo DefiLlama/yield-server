@@ -93,9 +93,7 @@ async function fetchApys(pool, network) {
     contractName: 'v0-1-data',
     functionName: 'get-asset-apys',
     network,
-    functionArgs: [
-      contractPrincipalCV(pool.assetAddress, pool.contractName),
-    ],
+    functionArgs: [contractPrincipalCV(pool.assetAddress, pool.contractName)],
     senderAddress: DEPLOYER,
   });
 
@@ -153,6 +151,7 @@ async function getZestV2Pools() {
           apyBase: apys.supplyApy,
           apyBaseBorrow: apys.borrowApy,
           underlyingTokens: [`${pool.assetAddress}.${pool.contractName}`],
+          token: `${pool.assetAddress}.${pool.contractName}`,
           url: 'https://app.zestprotocol.com/market/main',
         });
       } catch (error) {
