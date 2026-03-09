@@ -251,12 +251,11 @@ const apy = async () => {
   const prices = await utils.getPrices(Object.values(tokensMapping), 'ethereum');
   let pools = [];
 
-  await Promise.all(markets.map(async (market) => {
-    const pool = await makePool(market, tokens, prices);
-    if (pool) pools.push(pool);
-  }));
-
-  return pools.filter(utils.keepFinite);
+  const results = await Promise.allSettled(markets.map(async (market) => makePool(market, tokens, prices)));
+  return results
+    .filter(result => result.status === 'fulfilled' && result.value)
+    .map(result => result.value)
+    .filter(utils.keepFinite);
 };
 
 module.exports = {
