@@ -234,7 +234,7 @@ const makePool = async (market, tokens, prices) => {
     project: 'linx-app',
     symbol: utils.formatSymbol(symbol),
     tvlUsd,
-    underlyingTokens: [mappedTokenAddress],
+    underlyingTokens: [marketParams.loanToken],
     apyBase: Number(supplyApy) / 10 ** 16,
     apyBaseBorrow: Number(getBorrowAPY(borrowRate)) / 10 ** 16,
     totalSupplyUsd,
