@@ -1,10 +1,8 @@
 const utils = require('../utils');
 const axios = require('axios');
-const bs58 = require("bs58");
 
 const WAD = 10n ** 18n;
 
-const MARKET_CREATED_EVENT_INDEX = 4;
 const MARKET_METHOD_INDEX = 4;
 const MARKET_PARAMS_METHOD_INDEX = 5;
 
@@ -54,10 +52,30 @@ function hexToBinUnsafe(hex) {
   return new Uint8Array(bytes);
 }
 
+function base58Encode(bytes) {
+    const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    let num = 0n;
+    for (const b of bytes) num = num * 256n + BigInt(b);
+
+    let encoded = '';
+    while (num > 0n) {
+      encoded = BASE58_ALPHABET[Number(num % 58n)] + encoded;
+      num /= 58n;
+    }
+
+    // preserve leading zeros
+    for (const b of bytes) {
+      if (b !== 0) break;
+      encoded = '1' + encoded;
+    }
+
+    return encoded;
+  }
+
 function addressFromContractId(contractId) {
   const hash = hexToBinUnsafe(contractId);
   const bytes = new Uint8Array([0x03, ...hash]);
-  return bs58.encode(bytes);
+  return base58Encode(bytes);
 }
 
 async function getTokens() {
@@ -85,20 +103,6 @@ function wTaylorCompounded(x, n) {
   let thirdTerm = mulDivDown(secondTerm, firstTerm, 3n * WAD);
 
   return firstTerm + secondTerm + thirdTerm;
-}
-
-async function getEvents(contractAddress) {
-  let events = [];
-  let start = 0;
-  const limit = 100;
-
-  while (true) {
-    const response = await axios.get(`${config.nodeApiHost}/events/contract/${contractAddress}?start=${start}&limit=${limit}`);
-    events = events.concat(response.data.events);
-    if (!response.data.events.length || response.data.nextStart === undefined) break;
-    start = response.data.nextStart;
-  }
-  return events;
 }
 
 async function getMarkets() {
@@ -179,7 +183,67 @@ function getSupplyAPY(irPerSecond, marketState) {
     : 0n;
 }
 
-/********** Main APY Function **********/
+/********** Main APY Functions **********/
+
+const makePool = async (market, tokens, prices) => {
+  const marketState = await getMarketState(market.id);
+  const marketParams = await getMarketParams(market.id);
+
+  if (marketParams.interestRateModel !== config.dynamicIrmContractId) {
+    console.warn(`Skipping market ${market.id} with unsupported IRM ${marketParams.interestRateModel}`);
+    return null;
+  }
+
+  const supplyToken = tokens[marketParams.loanToken];
+  const collateralToken = tokens[marketParams.collateralToken];
+  if (!supplyToken || !collateralToken) {
+    console.warn(`Skipping market ${market.id} due to missing token data`);
+    return null;
+  }
+
+  const supplyTokenSymbol = supplyToken.symbolOnChain || supplyToken.symbol;
+  const collateralTokenSymbol = collateralToken.symbolOnChain || collateralToken.symbol;
+
+  const symbol = `${supplyTokenSymbol}-${collateralTokenSymbol}`;
+  const borrowRate = await getBorrowRate(config.dynamicIrmContractId, marketParams, marketState);
+  const supplyApy = getSupplyAPY(borrowRate, marketState);
+
+  const mappedTokenAddress = tokensMapping[marketParams.loanToken];
+  if (!mappedTokenAddress) {
+    console.warn(`Skipping market ${market.id} due to missing price mapping for token ${marketParams.loanToken}`);
+    return null;
+  }
+
+  const supplyTokenPrice = prices.pricesByAddress[mappedTokenAddress.toLowerCase()] || 0;
+  if (supplyTokenPrice === 0) {
+    console.warn(`Skipping market ${market.id} due to missing price for token ${supplyTokenSymbol}`);
+    return null;
+  }
+
+  const totalSupply = Number(BigInt(marketState.totalSupplyAssets) * 10000n / (10n ** BigInt(supplyToken.decimals))) / 10000;
+  const totalSupplyUsd = totalSupply * supplyTokenPrice;
+
+  const totalBorrow = Number(BigInt(marketState.totalBorrowAssets) * 10000n / (10n ** BigInt(supplyToken.decimals))) / 10000;
+  const totalBorrowUsd = totalBorrow * supplyTokenPrice;
+
+  const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+
+  const pool = {
+    pool: `${market.id}-${config.chain}`,
+    chain: utils.formatChain(config.chain),
+    project: 'linx-app',
+    symbol: utils.formatSymbol(symbol),
+    tvlUsd,
+    underlyingTokens: [mappedTokenAddress],
+    apyBase: Number(supplyApy) / 10 ** 16,
+    apyBaseBorrow: Number(getBorrowAPY(borrowRate)) / 10 ** 16,
+    totalSupplyUsd,
+    totalBorrowUsd,
+    ltv: Number(marketParams.loanToValue) / 10 ** 18,
+    url: `https://app.linxlabs.org/earn/${market.id}-${collateralTokenSymbol}`,
+  };
+  return pool;
+}
 
 const apy = async () => {
   const tokens = await getTokens();
@@ -187,62 +251,12 @@ const apy = async () => {
   const prices = await utils.getPrices(Object.values(tokensMapping), 'ethereum');
   let pools = [];
 
-  for (const market of markets) {
-    const marketState = await getMarketState(market.id);
-    const marketParams = await getMarketParams(market.id);
+  await Promise.all(markets.map(async (market) => {
+    const pool = await makePool(market, tokens, prices);
+    if (pool) pools.push(pool);
+  }));
 
-    if (marketParams.interestRateModel !== config.dynamicIrmContractId) {
-      console.warn(`Skipping market ${market.id} with unsupported IRM ${marketParams.interestRateModel}`);
-      continue;
-    }
-
-    const supplyToken = tokens[marketParams.loanToken];
-    const collateralToken = tokens[marketParams.collateralToken];
-    if (!supplyToken || !collateralToken) {
-      console.warn(`Skipping market ${market.id} due to missing token data`);
-      continue;
-    }
-
-    const supplyTokenSymbol = supplyToken.symbolOnChain || supplyToken.symbol;
-    const collateralTokenSymbol = collateralToken.symbolOnChain || collateralToken.symbol;
-
-    const symbol = `${supplyTokenSymbol}-${collateralTokenSymbol}`;
-    const borrowRate = await getBorrowRate(config.dynamicIrmContractId, marketParams, marketState);
-    const supplyApy = getSupplyAPY(borrowRate, marketState);
-
-    const mappedAddress = tokensMapping[marketParams.loanToken];
-    if (!mappedAddress) {
-      console.warn(`Skipping market ${market.id} due to missing price mapping for token ${marketParams.loanToken}`);
-      continue;
-    }
-
-    const supplyTokenPrice = prices.pricesByAddress[mappedAddress.toLowerCase()] || 0;
-
-    const totalSupply = Number(BigInt(marketState.totalSupplyAssets) * 10000n / (10n ** BigInt(supplyToken.decimals))) / 10000;
-    const totalSupplyUsd = totalSupply * supplyTokenPrice;
-
-    const totalBorrow = Number(BigInt(marketState.totalBorrowAssets) * 10000n / (10n ** BigInt(supplyToken.decimals))) / 10000;
-    const totalBorrowUsd = totalBorrow * supplyTokenPrice;
-
-    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
-
-    const pool = {
-      pool: `${market.id}-${config.chain}`,
-      chain: utils.formatChain(config.chain),
-      project: 'linx-app',
-      symbol: utils.formatSymbol(symbol),
-      tvlUsd,
-      apyBase: Number(supplyApy) / 10 ** 16,
-      apyBaseBorrow: Number(getBorrowAPY(borrowRate)) / 10 ** 16,
-      totalSupplyUsd,
-      totalBorrowUsd,
-      ltv: Number(marketParams.loanToValue) / 10 ** 18,
-      url: `https://app.linxlabs.org/earn/${market.id}-${collateralTokenSymbol}`,
-    };
-    pools.push(pool);
-  }
-
-  return pools;
+  return pools.filter(utils.keepFinite);
 };
 
 module.exports = {
