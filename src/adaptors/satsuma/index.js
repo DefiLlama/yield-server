@@ -59,8 +59,8 @@ const apy = async (timestamp = null) => {
       const tvlUsd = Number(pool.totalValueLockedUSD);
       const feesNow = Number(pool.feesUSD);
 
-      const fees24h = feesNow - (prior24hMap[pool.id] ?? feesNow);
-      const fees7d = feesNow - (prior7dMap[pool.id] ?? feesNow);
+      const fees24h = Math.max(0, feesNow - (prior24hMap[pool.id] ?? feesNow));
+      const fees7d = Math.max(0, feesNow - (prior7dMap[pool.id] ?? feesNow));
 
       const apyBase = tvlUsd > 0 ? (fees24h / tvlUsd) * 365 * 100 : 0;
       const apyBase7d =
