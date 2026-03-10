@@ -17,6 +17,9 @@ const assetTypeMapping = {
   eth: 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
 };
 
+const sanitizeText = (value) =>
+  typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, '').trim() : value;
+
 const THREE_CRV_ADDRESS = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490';
 
 const crv = {
@@ -385,7 +388,8 @@ const main = async () => {
 
       const overrideData = OVERRIDE_DATA?.[blockchainId]?.[address];
       const symbol =
-        overrideData?.symbol || pool.coins.map((coin) => coin.symbol).join('-');
+        sanitizeText(overrideData?.symbol) ||
+        pool.coins.map((coin) => sanitizeText(coin.symbol)).join('-');
       const url =
         overrideData?.url || `https://curve.finance/#/${blockchainId}/pools`;
 
