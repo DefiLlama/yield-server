@@ -10,9 +10,9 @@ const abi = {
   totalSupply: 'uint256:totalSupply',
 };
 
-const WINDOW_DAYS = 3;
-const WINDOW_SECONDS = WINDOW_DAYS * 24 * 60 * 60;
+const APY_WINDOW_DAYS = [1, 3, 7];
 const SCALE = 10n ** 12n;
+const BLOCK_FALLBACK_OFFSETS = [0, -1, 1, -2, 2];
 
 async function getBlockAtTs(chain, ts) {
   const url = `https://coins.llama.fi/block/${chain}/${ts}`;
@@ -26,32 +26,65 @@ async function getBlockAtTs(chain, ts) {
   return height;
 }
 
+async function callBigIntAtBlockWithFallback(contractAddress, abiFragment, block, label) {
+  const tried = [];
+
+  for (const offset of BLOCK_FALLBACK_OFFSETS) {
+    const candidateBlock = block + offset;
+    if (candidateBlock <= 0) continue;
+
+    tried.push(candidateBlock);
+
+    try {
+      const res = await sdk.api.abi.call({
+        target: contractAddress,
+        abi: abiFragment,
+        chain: CHAIN,
+        block: candidateBlock,
+      });
+
+      return {
+        value: BigInt(res.output),
+        block: candidateBlock,
+      };
+    } catch (e) {
+      // пробуем следующий соседний блок
+    }
+  }
+
+  throw new Error(
+    `DSF: failed to read ${label}; originalBlock=${block}; triedBlocks=${tried.join(',')}`,
+  );
+}
+
 async function getLpPriceAtBlock(contractAddress, block) {
-  const ts = await sdk.api.abi.call({
-    target: contractAddress,
-    abi: abi.totalSupply,
-    chain: CHAIN,
+  const totalSupplyResult = await callBigIntAtBlockWithFallback(
+    contractAddress,
+    abi.totalSupply,
     block,
-  });
+    'totalSupply',
+  );
 
-  const totalSupply = BigInt(ts.output);
-  if (totalSupply === 0n) {
-    throw new Error(`DSF: totalSupply is zero at block=${block}`);
+  if (totalSupplyResult.value === 0n) {
+    throw new Error(
+      `DSF: totalSupply is zero near block=${block}; resolvedBlock=${totalSupplyResult.block}`,
+    );
   }
 
-  const lp = await sdk.api.abi.call({
-    target: contractAddress,
-    abi: abi.lpPrice,
-    chain: CHAIN,
+  const lpPriceResult = await callBigIntAtBlockWithFallback(
+    contractAddress,
+    abi.lpPrice,
     block,
-  });
+    'lpPrice',
+  );
 
-  const lpPrice = BigInt(lp.output);
-  if (lpPrice <= 0n) {
-    throw new Error(`DSF: lpPrice is invalid at block=${block}`);
+  if (lpPriceResult.value <= 0n) {
+    throw new Error(
+      `DSF: lpPrice is invalid near block=${block}; resolvedBlock=${lpPriceResult.block}`,
+    );
   }
 
-  return lpPrice;
+  return lpPriceResult.value;
 }
 
 async function getTVL(contractAddress, block) {
@@ -105,27 +138,49 @@ function format1e18ToNumber(x) {
   return neg ? -n : n;
 }
 
+async function getBestApy(contractAddress, nowTs, blockNow) {
+  const errors = [];
+
+  for (const days of APY_WINDOW_DAYS) {
+    const dtSeconds = days * 24 * 60 * 60;
+    const prevTs = nowTs - dtSeconds;
+
+    try {
+      const blockPrev = await getBlockAtTs(CHAIN, prevTs);
+
+      const [lpNow, lpPrev] = await Promise.all([
+        getLpPriceAtBlock(contractAddress, blockNow),
+        getLpPriceAtBlock(contractAddress, blockPrev),
+      ]);
+
+      const growthScaled = (lpNow * SCALE) / lpPrev;
+      const apy = annualizeLinearFromGrowth(growthScaled, SCALE, dtSeconds);
+
+      if (Number.isFinite(apy) && apy > 0) {
+        return apy;
+      }
+
+      errors.push(`window=${days}d produced non-positive or non-finite APY`);
+    } catch (e) {
+      errors.push(`window=${days}d failed: ${e?.message ?? String(e)}`);
+    }
+  }
+
+  throw new Error(
+    `DSF: APY fallback exhausted. ${errors.join(' | ')}`
+  );
+}
+
 const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
   try {
     const nowTs = timestamp;
-    const prevTs = nowTs - WINDOW_SECONDS;
+    const blockNow = await getBlockAtTs(CHAIN, nowTs);
 
-    const [blockNow, blockPrev] = await Promise.all([
-      getBlockAtTs(CHAIN, nowTs),
-      getBlockAtTs(CHAIN, prevTs),
-    ]);
-
-    const [tvl, lpNow, lpPrev] = await Promise.all([
+    const [tvl, apy] = await Promise.all([
       getTVL(dsfPoolStables, blockNow),
-      getLpPriceAtBlock(dsfPoolStables, blockNow),
-      getLpPriceAtBlock(dsfPoolStables, blockPrev),
+      getBestApy(dsfPoolStables, nowTs, blockNow),
     ]);
 
-    const growthScaled = (lpNow * SCALE) / lpPrev;
-    let apy = annualizeLinearFromGrowth(growthScaled, SCALE, WINDOW_SECONDS);
-
-    if (apy < 0) apy = 0;
-    
     if (!Number.isFinite(apy)) {
       throw new Error('DSF: APY is not finite');
     }
