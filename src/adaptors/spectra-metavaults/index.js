@@ -37,7 +37,7 @@ const mvApy = (mv) => {
     pool: mvId(mv.address, mv.chainId),
     chain: utils.formatChain(chain.name),
     project: 'spectra-metavaults',
-    symbol: utils.formatSymbol(`${mv.metadata.title}`),
+    symbol: utils.formatSymbol(`${mv.metadata.title.replace(' ', '-')}`),
     tvlUsd: mv.tvl?.usd,
     apyBase: mv.liveApy?.details?.base,
     apyReward: rewardsApy(mv),
