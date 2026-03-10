@@ -41,7 +41,9 @@ const mvApy = (mv) => {
     tvlUsd: mv.tvl?.usd,
     apyBase: mv.liveApy?.details?.base,
     apyReward: rewardsApy(mv),
-    rewardTokens: [],
+    rewardTokens: Object.values(mv.liveApy?.details?.rewardTokens || {}).map(
+      (t) => t.address
+    ),
     underlyingTokens: [mv.underlying.address],
     url: `https://app.spectra.finance/metavaults/${chain.urlSlug}:${mv.address}?ref=defillama`,
     token: mv.vault,
