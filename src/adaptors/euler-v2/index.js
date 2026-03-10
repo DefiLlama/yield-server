@@ -68,6 +68,10 @@ const chains = {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-plasma/latest/gn`,
     urlChain: 'plasma',
   },
+  hyperliquid: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-hyperevm/latest/gn`,
+    urlChain: 'hyperliquid',
+  },
 };
 
 // Subgraph APY values are 27-decimal fixed-point; dividing by 1e25 gives percentage
