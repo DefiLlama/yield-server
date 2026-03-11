@@ -18,17 +18,33 @@ const apy = async () => {
   const response = await axios.get(API_URL);
   const vaults = response.data.data;
 
-  const priceQuery = vaults
+  // Flatten: primary vaults + their secondary vaults (with parent yield/tvl)
+  const allVaults = [];
+  for (const vault of vaults) {
+    allVaults.push(vault);
+    if (vault.secondaryVaults) {
+      for (const secondary of vault.secondaryVaults) {
+        allVaults.push({
+          ...secondary,
+          yield: vault.yield,
+          tvl: vault.tvl,
+          merklRewardYield: vault.merklRewardYield,
+        });
+      }
+    }
+  }
+
+  const priceQuery = allVaults
     .map((vault) => `${vault.chain.name}:${vault.asset.address}`)
     .join(',')
     .toLowerCase();
 
   const prices = await getPrices(
-    vaults.map((vault) => `${vault.chain.name}:${vault.asset.address}`)
+    allVaults.map((vault) => `${vault.chain.name}:${vault.asset.address}`)
   );
 
   const tvls = await Promise.all(
-    vaults.map((vault) =>
+    allVaults.map((vault) =>
       getERC4626Info(
         vault.contracts.vaultAddress.toLowerCase(),
         vault.chain.name
@@ -36,19 +52,24 @@ const apy = async () => {
     )
   );
 
-  const tvlByAddress = tvls.reduce((acc, tvl) => {
-    acc[tvl.pool.toLowerCase()] = tvl.tvl;
-    return acc;
-  }, {});
+  const tvlByKey = {};
+  tvls.forEach((tvl, i) => {
+    const vault = allVaults[i];
+    const key =
+      `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
+    tvlByKey[key] = tvl.tvl;
+  });
 
   // Fetch vault rewards
   const vaultRewardMap = await getVaultReward(MERKL_API_URL);
 
   const result = [];
-  for (const vault of vaults) {
+  for (const vault of allVaults) {
+    const key =
+      `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
+
     const normalizedTvl =
-      tvlByAddress[vault.contracts.vaultAddress.toLowerCase()] /
-      10 ** vault.asset.decimals;
+      tvlByKey[key] / 10 ** vault.asset.decimals;
 
     const tvlUsd =
       normalizedTvl *
@@ -59,7 +80,7 @@ const apy = async () => {
     );
 
     const pool = {
-      pool: vault.contracts.vaultAddress,
+      pool: key,
       chain: formatChain(vault.chain.name),
       poolMeta: vault.name,
       project: PROJECT_NAME,
