@@ -17,6 +17,8 @@ const AprTypeId = {
   CUSDX: 7,
 };
 
+const API_TIMEOUT_MS = 5000;
+
 const calculateApy = (_apr) => {
   const APR = _apr / 100;
   const n = 365;
@@ -25,25 +27,57 @@ const calculateApy = (_apr) => {
 };
 
 /**
- * Pick the source (pool or vault) with the highest total APR for this pool.
- * Pool apr = native pool APR; vaults = steer, ichi, etc. Final APR = max(pool, ...vaults).
+ * Effective total APY we would emit for a source (pool or vault), using the same
+ * normalization as emitted yields: FEE → base, RFLR at 50%, other reward types at 100%.
+ * Used so getBestAprSource compares post-haircut values.
+ */
+function getEffectiveTotalApy(source) {
+  const aprs = source.aprs || [];
+  const feeApr = aprs
+    .filter((a) => a.type === AprTypeId.FEE)
+    .reduce((s, a) => s + (a.apr || 0), 0);
+  const rflrApr = aprs
+    .filter((a) => a.type === AprTypeId.RFLR)
+    .reduce((s, a) => s + (a.apr || 0), 0);
+  const otherRewardApr = aprs
+    .filter(
+      (a) =>
+        a.type !== AprTypeId.FEE && a.type !== AprTypeId.RFLR
+    )
+    .reduce((s, a) => s + (a.apr || 0), 0);
+  const apyBase = calculateApy(feeApr);
+  const rflrApy = calculateApy(rflrApr);
+  const otherRewardApy = calculateApy(otherRewardApr);
+  const apyReward =
+    otherRewardApy + (rflrApy > 0 ? rflrApy / 2 : 0);
+  return apyBase + apyReward;
+}
+
+/**
+ * Pick the source (pool or vault) with the highest effective total APY after
+ * the same normalization we use when emitting (RFLR half, reward-type mapping).
  */
 function getBestAprSource(pool) {
-  const poolApr = typeof pool.apr === 'number' ? pool.apr : 0;
+  const poolEffective = getEffectiveTotalApy(pool);
   const vaults = pool.vaults || [];
-  const maxVaultApr =
-    vaults.length > 0
-      ? Math.max(...vaults.map((v) => (typeof v.apr === 'number' ? v.apr : 0)))
-      : 0;
-  if (poolApr >= maxVaultApr) return pool;
-  const bestVault = vaults.reduce((best, v) =>
-    (v.apr || 0) > (best.apr || 0) ? v : best
+  if (vaults.length === 0) return pool;
+  const vaultEffectives = vaults.map((v) => {
+    if (typeof v.apr !== 'number' && typeof v.apr !== 'undefined') return 0;
+    return getEffectiveTotalApy(v);
+  });
+  const maxVaultEffective = Math.max(...vaultEffectives);
+  if (poolEffective >= maxVaultEffective) return pool;
+  const bestIdx = vaultEffectives.reduce(
+    (i, val, j) => (val > vaultEffectives[i] ? j : i),
+    0
   );
-  return bestVault;
+  return vaults[bestIdx];
 }
 
 const apy = async () => {
-  const response = await axios.get(V4_POOLS_API);
+  const response = await axios.get(V4_POOLS_API, {
+    timeout: API_TIMEOUT_MS,
+  });
   // V4 API returns [{ chain: 14, data: [ pool1, pool2, ... ] }]
   const chainData = Array.isArray(response.data) ? response.data[0] : null;
   if (!chainData || !chainData.data) return [];
