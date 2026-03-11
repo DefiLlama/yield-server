@@ -298,9 +298,27 @@ const ABIS = {
     TBTC_BRANCH.price = prices[TBTC_BRANCH.collToken];
     WBTC_BRANCH.price = prices['0x2260fac5e5542a773aa44fbcfedf7c193bc2c599']; // WBTC
     
+    // Fetch TroveNFT addresses per branch: stabilityPool → troveManager() → troveNFT()
+    const troveManagers = (
+      await sdk.api.abi.multiCall({
+        calls: branches.map((b) => ({ target: b.stabilityPool })),
+        abi: 'function troveManager() view returns (address)',
+        chain: 'ethereum',
+      })
+    ).output.map((o) => o.output);
+
+    const troveNFTs = (
+      await sdk.api.abi.multiCall({
+        calls: troveManagers.map((tm) => ({ target: tm })),
+        abi: 'function troveNFT() view returns (address)',
+        chain: 'ethereum',
+      })
+    ).output.map((o) => o.output);
+
     const pools = [];
 
-    for (const branch of branches) {
+    for (let idx = 0; idx < branches.length; idx++) {
+      const branch = branches[idx];
       const collPools = [branch.activePool, branch.defaultPool];
 
       const totalColl = await getBranchColl(collPools);
@@ -308,14 +326,14 @@ const ABIS = {
 
       const ltv = await getLTV(branch.borrowerOperations);
       const borrowApy = await getNewApproxAvgInterestRateFromTroveChange(branch.activePool);
-      
+
       const totalDebt = await getBranchDebt(collPools);
       const totalDebtUsd = totalDebt * prices[BOLD_TOKEN];
 
       const [spSupply, spApy] = await getSPSupplyAndApy(branch.stabilityPool, borrowApy, totalDebt);
       const spSupplyUsd = spSupply * prices[BOLD_TOKEN];
 
-      const spPool = 
+      const spPool =
         {
           pool: branch.stabilityPool,
           project: 'asymmetry-usdaf',
@@ -328,12 +346,13 @@ const ABIS = {
           poolMeta: `${branch.symbol} Stability Pool`
         }
 
-      const borrowPool = 
+      const borrowPool =
         {
           pool: branch.activePool,
           project: 'asymmetry-usdaf',
           symbol: branch.symbol,
           chain: 'ethereum',
+          token: troveNFTs[idx],
           apy: 0,
           tvlUsd: totalCollUsd,
           apyBaseBorrow: borrowApy,
@@ -341,7 +360,7 @@ const ABIS = {
           totalBorrowUsd: totalDebtUsd,
           ltv: ltv,
           mintedCoin: 'USDaf',
-          underlyingTokens: [branch.collToken], 
+          underlyingTokens: [branch.collToken],
         }
 
       pools.push(spPool, borrowPool);

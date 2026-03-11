@@ -254,6 +254,7 @@ const main = async (pool) => {
     symbol: symbols[i],
     chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
     project: 'compound-v3',
+    token: null,
     tvlUsd: collateralTotalSupplyUsd[i],
     apy: 0,
     underlyingTokens: [t],

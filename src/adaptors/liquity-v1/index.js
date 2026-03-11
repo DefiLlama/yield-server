@@ -66,6 +66,7 @@ const main = async () => {
       project: 'liquity-v1',
       symbol: 'ETH',
       chain: 'ethereum',
+      token: null,
       apy: 0,
       tvlUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
       apyBaseBorrow: Number(troveType.borrowFee) * 100,
