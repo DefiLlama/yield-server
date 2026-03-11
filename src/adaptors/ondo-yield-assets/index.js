@@ -311,6 +311,7 @@ const getPoolsForChain = async (chain, sharedData) => {
         chain: utils.formatChain(chain),
         project: 'ondo-yield-assets',
         symbol: utils.formatSymbol(token.symbol),
+        token: token.address,
         tvlUsd,
         apyBase: Number(apyBase.toFixed(2)),
         apyBase7d: Number(apyBase7d.toFixed(2)),

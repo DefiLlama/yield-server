@@ -502,6 +502,7 @@ const topLvl = async (
       chain: utils.formatChain(chainString),
       project: 'balancer-v2',
       symbol: utils.formatSymbol(p.symbol),
+      token: p.id.slice(0, 42).toLowerCase(),
       tvlUsd: p.tvl,
       apyBase: p.aprFee,
       apyReward:

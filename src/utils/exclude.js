@@ -232,6 +232,21 @@ const excludeAdaptors = [
   'arbitrum-exchange-v2',
   'premia-v2',
   'angle',
+  'basisos',
+  'vaultcraft', // API broken (500), defi-db stale stale since nov 2025
+  'verocket',
+  'enclabs',
+  'dystopia',
+  'bolide',
+  'fenix-standard-pools',
+  'lendos',
+  'return-finance',
+  'zerolend',
+  'vector-finance',
+  'atlas-exchange',
+  'quasar-vaults',
+  'sithswap',
+  'yieldoor',
 ];
 
 const excludePools = [

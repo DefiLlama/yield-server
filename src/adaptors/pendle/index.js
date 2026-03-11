@@ -67,6 +67,12 @@ const chains = {
     PENDLE: '0xFf9c599D51C407A45D631c6e89cB047Efb88AeF6',
     ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
   },
+  9745: {
+    chainName: 'plasma',
+    chainSlug: 'plasma',
+    PENDLE: '0x17Bac5F906c9A0282aC06a59958D85796c831f24',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+  },
 };
 
 function splitId(id) {

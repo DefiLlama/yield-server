@@ -264,6 +264,7 @@ async function dsr() {
     project: 'sky-lending',
     symbol: 'DAI',
     chain: 'ethereum',
+    token: '0x83F20F44975D03b1b09e64809B757c47f942BEeA',
     poolMeta: 'DSR',
     apy,
     tvlUsd: tvlUsd.toNumber(),
@@ -391,6 +392,7 @@ const main = async () => {
         project: 'sky-lending',
         symbol: symbols[index],
         chain: 'ethereum',
+        token: null,
         poolMeta: !blackList.includes(ilkIds[index])
           ? ethers.utils.parseBytes32String(ilkIds[index])
           : '',
@@ -471,6 +473,7 @@ const susdsAPY = async () => {
         symbol: 'SUSDS',
         project: 'sky-lending',
         chain,
+        token: sUSDS,
         tvlUsd: totalSupply * price,
         apy,
         underlyingTokens: [USDS],

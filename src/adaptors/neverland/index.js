@@ -299,7 +299,7 @@ const getApy = async () => {
         borrowable: config.borrowingEnabled,
       };
     })
-    .filter((p) => utils.keepFinite(p));
+    .filter((p) => p !== null && utils.keepFinite(p));
 };
 
 const getVeDustPool = async (chain, prices, rewardTokensList) => {
