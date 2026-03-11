@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { aprToApy } = require('../utils');
 
 const V4_POOLS_API =
   'https://api.sparkdex.ai/dex/v4/pools?chainId=14&dex=SparkDEX';
@@ -17,14 +18,17 @@ const AprTypeId = {
   CUSDX: 7,
 };
 
-const API_TIMEOUT_MS = 5000;
+// Documented reward types (2–7) that contribute to apyReward; excludes FEE and RFLR
+const REWARD_TYPE_IDS = [
+  AprTypeId.DINERO,
+  AprTypeId.PICO,
+  AprTypeId.BUGO,
+  AprTypeId.SPRK,
+  AprTypeId.DELEGATION,
+  AprTypeId.CUSDX,
+];
 
-const calculateApy = (_apr) => {
-  const APR = _apr / 100;
-  const n = 365;
-  const APY = (1 + APR / n) ** n - 1;
-  return APY * 100;
-};
+const API_TIMEOUT_MS = 5000;
 
 /**
  * Effective total APY we would emit for a source (pool or vault), using the same
@@ -40,14 +44,11 @@ function getEffectiveTotalApy(source) {
     .filter((a) => a.type === AprTypeId.RFLR)
     .reduce((s, a) => s + (a.apr || 0), 0);
   const otherRewardApr = aprs
-    .filter(
-      (a) =>
-        a.type !== AprTypeId.FEE && a.type !== AprTypeId.RFLR
-    )
+    .filter((a) => REWARD_TYPE_IDS.includes(a.type))
     .reduce((s, a) => s + (a.apr || 0), 0);
-  const apyBase = calculateApy(feeApr);
-  const rflrApy = calculateApy(rflrApr);
-  const otherRewardApy = calculateApy(otherRewardApr);
+  const apyBase = aprToApy(feeApr);
+  const rflrApy = aprToApy(rflrApr);
+  const otherRewardApy = aprToApy(otherRewardApr);
   const apyReward =
     otherRewardApy + (rflrApy > 0 ? rflrApy / 2 : 0);
   return apyBase + apyReward;
@@ -61,10 +62,7 @@ function getBestAprSource(pool) {
   const poolEffective = getEffectiveTotalApy(pool);
   const vaults = pool.vaults || [];
   if (vaults.length === 0) return pool;
-  const vaultEffectives = vaults.map((v) => {
-    if (typeof v.apr !== 'number' && typeof v.apr !== 'undefined') return 0;
-    return getEffectiveTotalApy(v);
-  });
+  const vaultEffectives = vaults.map((v) => getEffectiveTotalApy(v));
   const maxVaultEffective = Math.max(...vaultEffectives);
   if (poolEffective >= maxVaultEffective) return pool;
   const bestIdx = vaultEffectives.reduce(
@@ -102,15 +100,12 @@ const apy = async () => {
         .filter((a) => a.type === AprTypeId.RFLR)
         .reduce((s, a) => s + (a.apr || 0), 0);
       const otherRewardApr = aprs
-        .filter(
-          (a) =>
-            a.type !== AprTypeId.FEE && a.type !== AprTypeId.RFLR
-        )
+        .filter((a) => REWARD_TYPE_IDS.includes(a.type))
         .reduce((s, a) => s + (a.apr || 0), 0);
 
-      const apyBase = calculateApy(feeApr);
-      const rflrApy = calculateApy(rflrApr);
-      const otherRewardApy = calculateApy(otherRewardApr);
+      const apyBase = aprToApy(feeApr);
+      const rflrApy = aprToApy(rflrApr);
+      const otherRewardApy = aprToApy(otherRewardApr);
       // RFLR (type 1): 50% penalty as in v3.1
       const apyReward =
         otherRewardApy + (rflrApy > 0 ? rflrApy / 2 : 0);
