@@ -21,7 +21,7 @@ const apy = async () => {
   // Flatten: primary vaults + their secondary vaults (with parent yield/tvl)
   const allVaults = [];
   for (const vault of vaults) {
-    allVaults.push(vault);
+    allVaults.push({ ...vault, _isPrimary: true });
     if (vault.secondaryVaults) {
       for (const secondary of vault.secondaryVaults) {
         allVaults.push({
@@ -29,6 +29,7 @@ const apy = async () => {
           yield: vault.yield,
           tvl: vault.tvl,
           merklRewardYield: vault.merklRewardYield,
+          _isPrimary: false,
         });
       }
     }
@@ -43,7 +44,7 @@ const apy = async () => {
     allVaults.map((vault) => `${vault.chain.name}:${vault.asset.address}`)
   );
 
-  const tvls = await Promise.all(
+  const tvls = await Promise.allSettled(
     allVaults.map((vault) =>
       getERC4626Info(
         vault.contracts.vaultAddress.toLowerCase(),
@@ -53,11 +54,13 @@ const apy = async () => {
   );
 
   const tvlByKey = {};
-  tvls.forEach((tvl, i) => {
-    const vault = allVaults[i];
-    const key =
-      `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
-    tvlByKey[key] = tvl.tvl;
+  tvls.forEach((result, i) => {
+    if (result.status === 'fulfilled') {
+      const vault = allVaults[i];
+      const key =
+        `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
+      tvlByKey[key] = result.value.tvl;
+    }
   });
 
   // Fetch vault rewards
@@ -67,6 +70,8 @@ const apy = async () => {
   for (const vault of allVaults) {
     const key =
       `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
+
+    if (tvlByKey[key] == null) continue;
 
     const normalizedTvl =
       tvlByKey[key] / 10 ** vault.asset.decimals;
@@ -79,8 +84,13 @@ const apy = async () => {
       vault.contracts.vaultAddress.toLowerCase()
     );
 
+    // Preserve original pool IDs for existing primary pools to avoid losing historical data
+    const poolId = vault._isPrimary
+      ? vault.contracts.vaultAddress
+      : key;
+
     const pool = {
-      pool: key,
+      pool: poolId,
       chain: formatChain(vault.chain.name),
       poolMeta: vault.name,
       project: PROJECT_NAME,
