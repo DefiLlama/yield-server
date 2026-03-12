@@ -1,4 +1,3 @@
-const sdk = require('@defillama/sdk');
 const { formatChain, getERC4626Info, getPrices, getData } = require('../utils');
 
 const PROJECT_NAME = 'mystic-finance-lending';
@@ -26,17 +25,17 @@ const VAULTS = [
 ];
 
 const apy = async (timestamp) => {
-  const vaultInfos = await Promise.all(
-    VAULTS.map((vault) =>
-      getERC4626Info(vault.address, CHAIN, timestamp)
-    )
-  );
-
   // Fetch underlying token prices
   const priceKeys = VAULTS.map(
     (vault) => vault.underlyingToken
   );
-  const { pricesByAddress } = await getPrices(priceKeys, CHAIN);
+
+  const [vaultInfoResults, { pricesByAddress }] = await Promise.all([
+    Promise.allSettled(
+      VAULTS.map((vault) => getERC4626Info(vault.address, CHAIN, timestamp))
+    ),
+    getPrices(priceKeys, CHAIN),
+  ]);
 
   // Fetch campaignApr
   let vaultsApiData = [];
@@ -47,16 +46,20 @@ const apy = async (timestamp) => {
     }
   } catch{}
 
-  return VAULTS.map((vault, i) => {
-    const { tvl, apyBase } = vaultInfos[i];
-    const tokenAmount = tvl / 10 ** vault.decimals;
+  return VAULTS.flatMap((vault, i) => {
+    const result = vaultInfoResults[i];
+    if (result.status !== 'fulfilled') return [];
+    const { tvl, apyBase } = result.value;
+    const tokenAmount = Number(tvl) / 10 ** vault.decimals;
     const price =
       pricesByAddress[vault.underlyingToken.toLowerCase()] || 0;
     const tvlUsd = tokenAmount * price;
 
-    const apiVault = vaultsApiData.find(v => v.vaultAddress.toLowerCase() === vault.address.toLowerCase());
-    const apyReward = apiVault && apiVault.campaignApr ? apiVault.campaignApr : null;
-    const vaultApr = apiVault && apiVault.vaultApr ? apiVault.vaultApr : null;
+    const apiVault = vaultsApiData.find(
+      (v) => v.vaultAddress.toLowerCase() === vault.address.toLowerCase()
+    );
+    const apyReward = apiVault?.campaignApr ?? null;
+    const vaultApr = apiVault?.vaultApr ?? null;
 
     const poolData = {
       pool: `${vault.address}-${CHAIN}`,
@@ -74,11 +77,7 @@ const apy = async (timestamp) => {
       poolData.rewardTokens = ['0x12e605bc104e93B45e1aD99F9e555f659051c2BB'];
     }
 
-    if (vaultApr !== null) {
-      poolData.apyBase = vaultApr;
-    }
-
-    return poolData;
+    return [poolData];
   });
 };
 
