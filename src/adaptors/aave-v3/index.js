@@ -5,6 +5,12 @@ const utils = require('../utils');
 const poolAbi = require('./poolAbi');
 const { aaveStakedTokenDataProviderAbi } = require('./abi');
 
+const {
+  AptosProvider,
+  UiPoolDataProviderClient,
+  DEFAULT_MAINNET_CONFIG,
+} = require('@aave/aave-v3-aptos-ts-sdk');
+
 const GHO = '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f';
 
 const protocolDataProviders = {
@@ -179,6 +185,55 @@ const getApy = async (market) => {
     .filter((i) => Boolean(i));
 };
 
+const RAY = 10n ** 27n;
+
+const getApyAptos = async () => {
+  const provider = AptosProvider.fromConfig(DEFAULT_MAINNET_CONFIG);
+  const client = new UiPoolDataProviderClient(provider);
+  const { reservesData, baseCurrencyData } = await client.getReservesData();
+
+  const marketRefDecimals = baseCurrencyData.marketReferenceCurrencyDecimals;
+  const marketRefPriceUsd =
+    Number(baseCurrencyData.marketReferenceCurrencyPriceInUsd) /
+    10 ** baseCurrencyData.networkBaseTokenPriceDecimals;
+
+  return reservesData
+    .filter((r) => !r.isFrozen && r.isActive && !r.isPaused)
+    .map((r) => {
+      const priceUsd =
+        (Number(r.priceInMarketReferenceCurrency) / marketRefDecimals) *
+        marketRefPriceUsd;
+      if (!priceUsd) return null;
+
+      const availableLiquidity =
+        Number(r.availableLiquidity) / 10 ** r.decimals;
+      const totalVariableDebt =
+        Number((r.totalScaledVariableDebt * r.variableBorrowIndex) / RAY) /
+        10 ** r.decimals;
+
+      const totalSupplyUsd = (availableLiquidity + totalVariableDebt) * priceUsd;
+      const totalBorrowUsd = totalVariableDebt * priceUsd;
+      const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+
+      return {
+        pool: `${r.underlyingAsset}-aptos`.toLowerCase(),
+        chain: 'Aptos',
+        project: 'aave-v3',
+        symbol: r.symbol,
+        tvlUsd,
+        apyBase: (Number(r.liquidityRate) / 10 ** 27) * 100,
+        underlyingTokens: [r.underlyingAsset],
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow: Number(r.variableBorrowRate) / 1e25,
+        ltv: Number(r.baseLTVasCollateral) / 10000,
+        url: `https://aptos.aave.com/reserve-overview/?underlyingAsset=${r.underlyingAsset}&marketName=aptos`,
+        borrowable: r.borrowingEnabled,
+      };
+    })
+    .filter(Boolean);
+};
+
 const stkGho = async () => {
   const convertStakedTokenApy = (rawApy) => {
     const rawApyStringified = rawApy.toString();
@@ -241,7 +296,9 @@ const stkGho = async () => {
 
 const apy = async () => {
   const pools = await Promise.allSettled(
-    Object.keys(protocolDataProviders).map(async (market) => getApy(market))
+    Object.keys(protocolDataProviders)
+      .map(async (market) => getApy(market))
+      .concat([getApyAptos()])
   );
 
   const stkghoPool = await stkGho();
