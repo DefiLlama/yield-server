@@ -17,10 +17,11 @@ const aprRayToApyPercent = (rateRay) => {
   return (Math.pow(1 + apr / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1) * 100;
 };
 
-// Extract LTV from Aave ReserveConfigurationMap.data (bits 0-15)
-const extractLtv = (configData) => {
-  const ltv = BigInt(configData) & 0xFFFFn;
-  return Number(ltv) / 100; // basis points -> percentage
+const extractConfigBits = (configData) => {
+  const data = BigInt(configData);
+  const ltv = Number(data & 0xFFFFn);
+  const borrowingEnabled = Boolean((data >> 58n) & 1n);
+  return { ltv, borrowingEnabled };
 };
 
 const apy = async () => {
@@ -112,24 +113,31 @@ const apy = async () => {
         reserveDataResults[i].currentVariableBorrowRate
       );
 
-      const ltv = extractLtv(reserveDataResults[i].configuration.data);
+      const { ltv, borrowingEnabled } = extractConfigBits(
+        reserveDataResults[i].configuration.data
+      );
 
       return {
-        pool: `${asset}-hypurrfi-pooled`.toLowerCase(),
+        pool: `${aTokenAddresses[i]}-hypurrfi-pooled`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: "hypurrfi-pooled",
         symbol: utils.formatSymbol(symbolResults[i]),
         tvlUsd,
         apyBase,
-        apyBaseBorrow,
+        underlyingTokens: [asset],
         totalSupplyUsd,
         totalBorrowUsd,
-        underlyingTokens: [asset],
-        ltv: ltv / 100,
+        debtCeilingUsd: null,
+        apyBaseBorrow,
+        ltv: ltv / 10000,
         url: `https://app.hypurr.fi/markets/pooled/999/${asset}`,
+        borrowable: borrowingEnabled,
+        mintedCoin: null,
+        poolMeta: null,
       };
     })
-    .filter((p) => p && p.tvlUsd >= 10000);
+    .filter(Boolean)
+    .filter((p) => utils.keepFinite(p));
 
   return pools;
 };
