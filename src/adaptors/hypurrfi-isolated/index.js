@@ -1,74 +1,81 @@
-const axios = require('axios');
-const sdk = require('@defillama/sdk');
+const axios = require("axios");
+const sdk = require("@defillama/sdk");
 
-const utils = require('../utils');
+const utils = require("../utils");
 
 // HypurrFi Isolated Lending (Fraxlend-style pairs) on Hyperliquid L1
-const REGISTRY = '0x5aB54F5Ca61ab60E81079c95280AF1Ee864EA3e7';
-const chain = 'hyperliquid';
+const REGISTRY = "0x5aB54F5Ca61ab60E81079c95280AF1Ee864EA3e7";
+const chain = "hyperliquid";
 const SECONDS_PER_YEAR = 365.25 * 24 * 60 * 60;
 
 const pairAbi = {
   getAllPairAddresses: {
     inputs: [],
-    name: 'getAllPairAddresses',
-    outputs: [{ internalType: 'address[]', name: '', type: 'address[]' }],
-    stateMutability: 'view',
-    type: 'function',
+    name: "getAllPairAddresses",
+    outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
+    stateMutability: "view",
+    type: "function",
   },
   asset: {
     inputs: [],
-    name: 'asset',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
+    name: "asset",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
   },
   collateralContract: {
     inputs: [],
-    name: 'collateralContract',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
+    name: "collateralContract",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
   },
   name: {
     inputs: [],
-    name: 'name',
-    outputs: [{ internalType: 'string', name: '', type: 'string' }],
-    stateMutability: 'view',
-    type: 'function',
+    name: "name",
+    outputs: [{ internalType: "string", name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
   },
   totalAsset: {
     inputs: [],
-    name: 'totalAsset',
+    name: "totalAsset",
     outputs: [
-      { internalType: 'uint128', name: 'amount', type: 'uint128' },
-      { internalType: 'uint128', name: 'shares', type: 'uint128' },
+      { internalType: "uint128", name: "amount", type: "uint128" },
+      { internalType: "uint128", name: "shares", type: "uint128" },
     ],
-    stateMutability: 'view',
-    type: 'function',
+    stateMutability: "view",
+    type: "function",
   },
   totalBorrow: {
     inputs: [],
-    name: 'totalBorrow',
+    name: "totalBorrow",
     outputs: [
-      { internalType: 'uint128', name: 'amount', type: 'uint128' },
-      { internalType: 'uint128', name: 'shares', type: 'uint128' },
+      { internalType: "uint128", name: "amount", type: "uint128" },
+      { internalType: "uint128", name: "shares", type: "uint128" },
     ],
-    stateMutability: 'view',
-    type: 'function',
+    stateMutability: "view",
+    type: "function",
   },
   currentRateInfo: {
     inputs: [],
-    name: 'currentRateInfo',
+    name: "currentRateInfo",
     outputs: [
-      { internalType: 'uint32', name: 'lastBlock', type: 'uint32' },
-      { internalType: 'uint32', name: 'feeToProtocolRate', type: 'uint32' },
-      { internalType: 'uint64', name: 'lastTimestamp', type: 'uint64' },
-      { internalType: 'uint64', name: 'ratePerSec', type: 'uint64' },
-      { internalType: 'uint64', name: 'fullUtilizationRate', type: 'uint64' },
+      { internalType: "uint32", name: "lastBlock", type: "uint32" },
+      { internalType: "uint32", name: "feeToProtocolRate", type: "uint32" },
+      { internalType: "uint64", name: "lastTimestamp", type: "uint64" },
+      { internalType: "uint64", name: "ratePerSec", type: "uint64" },
+      { internalType: "uint64", name: "fullUtilizationRate", type: "uint64" },
     ],
-    stateMutability: 'view',
-    type: 'function',
+    stateMutability: "view",
+    type: "function",
+  },
+  maxLTV: {
+    inputs: [],
+    name: "maxLTV",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
   },
 };
 
@@ -83,15 +90,16 @@ const apy = async () => {
   ).output;
 
   // 2. Get pair data
-  const [assets, names, totalAssets, totalBorrows, rateInfos, collaterals] =
+  const [assets, names, totalAssets, totalBorrows, rateInfos, collaterals, maxLTVs] =
     await Promise.all(
       [
-        'asset',
-        'name',
-        'totalAsset',
-        'totalBorrow',
-        'currentRateInfo',
-        'collateralContract',
+        "asset",
+        "name",
+        "totalAsset",
+        "totalBorrow",
+        "currentRateInfo",
+        "collateralContract",
+        "maxLTV",
       ].map((method) =>
         sdk.api.abi.multiCall({
           calls: pairs.map((p) => ({ target: p })),
@@ -106,36 +114,33 @@ const apy = async () => {
   const totalAssetData = totalAssets.output.map((o) => o.output);
   const totalBorrowData = totalBorrows.output.map((o) => o.output);
   const rateInfoData = rateInfos.output.map((o) => o.output);
-  const collateralAddresses = collaterals.output.map((o) => o.output);
+  const maxLTVData = maxLTVs.output.map((o) => o.output);
 
   // 3. Get asset metadata
   const uniqueAssets = [...new Set(assetAddresses)];
   const assetSymbols = {};
   const assetDecimals = {};
 
-  const symResults = (
-    await sdk.api.abi.multiCall({
+  const [symResults, decResults] = await Promise.all([
+    sdk.api.abi.multiCall({
       calls: uniqueAssets.map((a) => ({ target: a })),
-      abi: 'erc20:symbol',
+      abi: "erc20:symbol",
       chain,
-    })
-  ).output;
-
-  const decResults = (
-    await sdk.api.abi.multiCall({
+    }),
+    sdk.api.abi.multiCall({
       calls: uniqueAssets.map((a) => ({ target: a })),
-      abi: 'erc20:decimals',
+      abi: "erc20:decimals",
       chain,
-    })
-  ).output;
+    }),
+  ]);
 
   uniqueAssets.forEach((a, i) => {
-    assetSymbols[a.toLowerCase()] = symResults[i].output;
-    assetDecimals[a.toLowerCase()] = Number(decResults[i].output);
+    assetSymbols[a.toLowerCase()] = symResults.output[i].output;
+    assetDecimals[a.toLowerCase()] = Number(decResults.output[i].output);
   });
 
   // 4. Prices
-  const priceKeys = uniqueAssets.map((t) => `${chain}:${t}`).join(',');
+  const priceKeys = uniqueAssets.map((t) => `${chain}:${t}`).join(",");
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
@@ -148,14 +153,13 @@ const apy = async () => {
       const price = prices[`${chain}:${asset}`]?.price;
       if (!price) return null;
 
-      const dec = assetDecimals[assetKey];
-      const totalSupplyRaw = BigInt(totalAssetData[i].amount);
-      const totalSupplySharesRaw = BigInt(totalAssetData[i].shares);
-      const totalBorrowRaw = BigInt(totalBorrowData[i].amount);
-      const totalBorrowSharesRaw = BigInt(totalBorrowData[i].shares);
+      const symbol = assetSymbols[assetKey];
+      if (!symbol) return null;
 
-      const totalSupplyAmount = Number(totalSupplyRaw) / 10 ** dec;
-      const totalBorrowAmount = Number(totalBorrowRaw) / 10 ** dec;
+      const dec = assetDecimals[assetKey];
+      const totalSupplyAmount = Number(BigInt(totalAssetData[i].amount)) / 10 ** dec;
+      const totalBorrowAmount = Number(BigInt(totalBorrowData[i].amount)) / 10 ** dec;
+
       const totalSupplyUsd = totalSupplyAmount * price;
       const totalBorrowUsd = totalBorrowAmount * price;
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
@@ -163,12 +167,10 @@ const apy = async () => {
       // Fraxlend ratePerSec: per-second interest rate scaled by 1e18
       const ratePerSec = Number(rateInfoData[i].ratePerSec) / 1e18;
 
-      // App uses shares-based utilization with percent output
+      // Use amounts (not shares) for utilization — amounts include accrued interest
       const utilizationPercent =
-        totalSupplySharesRaw > 0n
-          ? Number(
-              (totalBorrowSharesRaw * 1000000n) / totalSupplySharesRaw
-            ) / 10000
+        totalSupplyAmount > 0
+          ? (totalBorrowAmount / totalSupplyAmount) * 100
           : 0;
 
       const borrowApy =
@@ -183,31 +185,34 @@ const apy = async () => {
         borrowApy * (utilizationPercent / 100) * (1 - protocolFeeShare);
       const apyBaseBorrow = borrowApy;
 
+      // maxLTV is scaled by 1e5 (e.g. 75000 = 75%)
+      const ltv = Number(maxLTVData[i]) / 1e5;
+
       // Extract collateral name from pair name for poolMeta
       // Format: "hyASSET (Collateral) - N"
       const collName = pairNames[i]
-        .replace(/^hy\w+\s*/, '')
-        .replace(/\s*-\s*\d+$/, '')
-        .replace(/[()]/g, '')
+        .replace(/^hy\w+\s*/, "")
+        .replace(/\s*-\s*\d+$/, "")
+        .replace(/[()]/g, "")
         .trim();
 
       return {
         pool: `${pairAddr}-hypurrfi-isolated`.toLowerCase(),
         chain: utils.formatChain(chain),
-        project: 'hypurrfi-isolated',
-        symbol: utils.formatSymbol(assetSymbols[assetKey]),
+        project: "hypurrfi-isolated",
+        symbol: utils.formatSymbol(symbol),
         tvlUsd,
         apyBase,
         apyBaseBorrow,
         totalSupplyUsd,
         totalBorrowUsd,
         underlyingTokens: [asset],
+        ltv,
         poolMeta: `Isolated - ${collName}`,
-        url: 'https://app.hypurr.fi/lend',
+        url: `https://app.hypurr.fi/markets/isolated/999/${pairAddr}`,
       };
     })
-    .filter((p) => p && p.tvlUsd >= 10000)
-    .filter((p) => utils.keepFinite(p));
+    .filter((p) => p && p.tvlUsd >= 10000);
 
   return pools;
 };
@@ -215,5 +220,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.hypurr.fi/lend',
+  url: "https://app.hypurr.fi/lend",
 };
