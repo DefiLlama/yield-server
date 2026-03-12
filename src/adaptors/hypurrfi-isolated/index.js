@@ -23,13 +23,6 @@ const pairAbi = {
     stateMutability: "view",
     type: "function",
   },
-  collateralContract: {
-    inputs: [],
-    name: "collateralContract",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
   name: {
     inputs: [],
     name: "name",
@@ -90,7 +83,7 @@ const apy = async () => {
   ).output;
 
   // 2. Get pair data
-  const [assets, names, totalAssets, totalBorrows, rateInfos, collaterals, maxLTVs] =
+  const [assets, names, totalAssets, totalBorrows, rateInfos, maxLTVs] =
     await Promise.all(
       [
         "asset",
@@ -98,7 +91,6 @@ const apy = async () => {
         "totalAsset",
         "totalBorrow",
         "currentRateInfo",
-        "collateralContract",
         "maxLTV",
       ].map((method) =>
         sdk.api.abi.multiCall({
@@ -203,16 +195,18 @@ const apy = async () => {
         symbol: utils.formatSymbol(symbol),
         tvlUsd,
         apyBase,
-        apyBaseBorrow,
+        underlyingTokens: [asset],
         totalSupplyUsd,
         totalBorrowUsd,
-        underlyingTokens: [asset],
+        debtCeilingUsd: null,
+        apyBaseBorrow,
         ltv,
-        poolMeta: `Isolated - ${collName}`,
         url: `https://app.hypurr.fi/markets/isolated/999/${pairAddr}`,
+        poolMeta: `Isolated - ${collName}`,
       };
     })
-    .filter((p) => p && p.tvlUsd >= 10000);
+    .filter(Boolean)
+    .filter((p) => utils.keepFinite(p));
 
   return pools;
 };
