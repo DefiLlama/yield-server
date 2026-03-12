@@ -79,14 +79,14 @@ const apy = async () => {
     const key =
       `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
 
-    if (tvlByKey[key] == null) continue;
+    const price =
+      pricesByKey[`${vault.chain.name}:${vault.asset.address}`.toLowerCase()];
+    if (tvlByKey[key] == null || price == null) continue;
 
     const normalizedTvl =
       tvlByKey[key] / 10 ** vault.asset.decimals;
 
-    const tvlUsd =
-      normalizedTvl *
-      Number(pricesByKey[`${vault.chain.name}:${vault.asset.address}`.toLowerCase()]);
+    const tvlUsd = normalizedTvl * Number(price);
 
     const vaultReward = vaultRewardMap.get(
       vault.contracts.vaultAddress.toLowerCase()
