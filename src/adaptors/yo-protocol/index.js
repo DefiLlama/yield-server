@@ -35,13 +35,21 @@ const apy = async () => {
     }
   }
 
-  const priceQuery = allVaults
-    .map((vault) => `${vault.chain.name}:${vault.asset.address}`)
-    .join(',')
-    .toLowerCase();
+  // Fetch prices per chain to avoid address collisions across chains
+  const chainGroups = {};
+  for (const vault of allVaults) {
+    if (!chainGroups[vault.chain.name]) chainGroups[vault.chain.name] = new Set();
+    chainGroups[vault.chain.name].add(vault.asset.address);
+  }
 
-  const prices = await getPrices(
-    allVaults.map((vault) => `${vault.chain.name}:${vault.asset.address}`)
+  const pricesByKey = {};
+  await Promise.all(
+    Object.entries(chainGroups).map(async ([chain, addresses]) => {
+      const { pricesByAddress } = await getPrices([...addresses], chain);
+      for (const [address, price] of Object.entries(pricesByAddress)) {
+        pricesByKey[`${chain}:${address}`.toLowerCase()] = price;
+      }
+    })
   );
 
   const tvls = await Promise.allSettled(
@@ -78,7 +86,7 @@ const apy = async () => {
 
     const tvlUsd =
       normalizedTvl *
-      Number(prices.pricesByAddress[vault.asset.address.toLowerCase()]);
+      Number(pricesByKey[`${vault.chain.name}:${vault.asset.address}`.toLowerCase()]);
 
     const vaultReward = vaultRewardMap.get(
       vault.contracts.vaultAddress.toLowerCase()
