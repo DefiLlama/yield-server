@@ -17,8 +17,8 @@ const { getEligiblePools, insertHolder } = require('../queries/holder');
 const BATCH_SIZE = 25;
 const FLAGGED_BATCH_SIZE = 5;
 const CHAIN_CONCURRENCY = 5;
-const MAX_SEED_PER_RUN = 50;
-const CLASSIFY_BATCH_SIZE = 200;
+const MAX_SEED_PER_RUN = 75;
+const CLASSIFY_BATCH_SIZE = 500;
 const TOP_N_RECHECK = 100;
 
 module.exports.handler = async (event, context) => {
@@ -146,16 +146,27 @@ const main = async () => {
     }
 
     // Remaining unknowns that weren't comparison-checked default to standard
+    // but are NOT cached — they'll be re-checked on future runs
+    const uncheckedDefaults = new Set();
     for (const t of unknownTasks) {
-      if (t.tokenType === 'unknown') t.tokenType = 'standard';
+      if (t.tokenType === 'unknown') {
+        t.tokenType = 'standard';
+        uncheckedDefaults.add(`${t.tokenAddress.toLowerCase()}-${t.chain}`);
+      }
     }
 
-    // Cache all newly classified tokens (skip those already cached by ANKR step)
-    console.log(`Caching classification for ${unclassifiedTasks.length} tokens`);
+    if (uncheckedDefaults.size > 0) {
+      console.log(`${uncheckedDefaults.size} tokens defaulted to standard without ANKR check (will retry next run)`);
+    }
+
+    // Cache only tokens that were actually classified (skip ANKR-cached and unchecked defaults)
+    const toCache = unclassifiedTasks.filter((task) => {
+      const key = `${task.tokenAddress.toLowerCase()}-${task.chain}`;
+      return !ankrCached.has(key) && !uncheckedDefaults.has(key);
+    });
+    console.log(`Caching classification for ${toCache.length} tokens`);
     await Promise.allSettled(
-      unclassifiedTasks.map(async (task) => {
-        const key = `${task.tokenAddress.toLowerCase()}-${task.chain}`;
-        if (ankrCached.has(key)) return;
+      toCache.map(async (task) => {
         await saveHolderCache(task.tokenAddress, task.chain, {
           token: task.tokenAddress,
           chain: task.chain,
@@ -249,9 +260,10 @@ const main = async () => {
       seedCount += toSeed.length;
     }
 
-    const overflow = uncached.slice(toSeed.length);
-    if (overflow.length > 0) {
-      await processBatch(overflow, processShareBasedPool);
+    const overflowCount = uncached.length - toSeed.length;
+    if (overflowCount > 0) {
+      skipped += overflowCount;
+      console.log(`Skipping ${overflowCount} unseeded flagged pools (seed cap reached)`);
     }
   }
 
