@@ -24,12 +24,8 @@ const chains = {
 const mvId = (address, chainId) =>
   `${address}-${chains[chainId].slug}`.toLowerCase();
 
-const rewardsApy = (mv) => {
-  const details = mv.liveApy?.details || {};
-  const rewards = Object.values(details.rewards || {});
-  const mvRewards = Object.values(details.mvRewards || {});
-  return [...rewards, ...mvRewards].reduce((sum, v) => sum + (v || 0), 0);
-};
+const rewardsApy = (mv) =>
+  (mv.liveApy?.details?.total || 0) - (mv.liveApy?.details?.base || 0); // remove native APY
 
 const mvApy = (mv) => {
   const chain = chains[mv.chainId];
@@ -37,7 +33,7 @@ const mvApy = (mv) => {
     pool: mvId(mv.address, mv.chainId),
     chain: utils.formatChain(chain.name),
     project: 'spectra-metavaults',
-    symbol: utils.formatSymbol(`${mv.metadata.title.replace(' ', '-')}`),
+    symbol: mv.underlying.symbol,
     tvlUsd: mv.tvl?.usd,
     apyBase: mv.liveApy?.details?.base,
     apyReward: rewardsApy(mv),
@@ -47,6 +43,7 @@ const mvApy = (mv) => {
     underlyingTokens: [mv.underlying.address],
     url: `https://app.spectra.finance/metavaults/${chain.urlSlug}:${mv.address}?ref=defillama`,
     token: mv.vault,
+    poolMeta: mv.metadata.title,
   };
 };
 
@@ -77,4 +74,5 @@ async function apy() {
 module.exports = {
   timetravel: false,
   apy,
+  url: 'https://app.spectra.finance',
 };
