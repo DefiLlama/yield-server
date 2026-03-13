@@ -321,12 +321,12 @@ async function fetchHolders(
   const headers = getHeaders();
 
   try {
-    return (await axios.get(url, { timeout: 30000, headers })).data;
+    return (await axios.get(url, { timeout: 60000, headers })).data;
   } catch (err) {
     const status = err.response?.status;
     if (status && RETRYABLE_CODES.has(status)) {
       await new Promise((r) => setTimeout(r, 2000));
-      return (await axios.get(url, { timeout: 30000, headers })).data;
+      return (await axios.get(url, { timeout: 60000, headers })).data;
     }
     throw err;
   }
