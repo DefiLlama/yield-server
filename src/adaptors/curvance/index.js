@@ -52,7 +52,7 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
     abi: 'address[]:marketManagers',
     permitFailure: true,
   });
-  const managers = managersRes.output;
+  const managers = managersRes.success ? managersRes.output : null;
   if (!managers || !managers.length) {
     return [];
   }
