@@ -196,7 +196,8 @@ async function classifyByComparison(chainId, tokenAddress, chain) {
 
     const diff = Math.abs(pelucheCount - ankrCount) / Math.max(ankrCount, 1);
     return diff > 0.1 ? 'needs_rebase' : 'standard';
-  } catch {
+  } catch (err) {
+    console.log(`ANKR comparison failed for ${tokenAddress} on ${chain}: ${err.message}`);
     return 'standard';
   }
 }
@@ -209,6 +210,9 @@ async function getCurrentBlock(chain) {
   const { data } = await axios.get(
     `https://coins.llama.fi/block/${chainKey}/${timestamp}`
   );
+  if (!data.height || typeof data.height !== 'number') {
+    throw new Error(`Invalid block height for ${chain}: ${JSON.stringify(data)}`);
+  }
   return data.height;
 }
 

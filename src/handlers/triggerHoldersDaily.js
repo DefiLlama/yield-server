@@ -121,6 +121,7 @@ const main = async () => {
     // For unknowns, try ANKR comparison
     const unknownTasks = unclassifiedTasks.filter((t) => t.tokenType === 'unknown');
     const toCompare = unknownTasks.slice(0, CLASSIFY_BATCH_SIZE);
+    const ankrCached = new Set();
     if (toCompare.length > 0) {
       console.log(`Running ANKR comparison for ${toCompare.length} unknown tokens`);
       await Promise.allSettled(
@@ -138,6 +139,7 @@ const main = async () => {
             holders: [],
             updatedAt: new Date().toISOString(),
           });
+          ankrCached.add(`${task.tokenAddress.toLowerCase()}-${task.chain}`);
         })
       );
     }
@@ -147,12 +149,12 @@ const main = async () => {
       if (t.tokenType === 'unknown') t.tokenType = 'standard';
     }
 
-    // Cache all newly classified tokens
+    // Cache all newly classified tokens (skip those already cached by ANKR step)
     console.log(`Caching classification for ${unclassifiedTasks.length} tokens`);
     await Promise.allSettled(
       unclassifiedTasks.map(async (task) => {
-        const existing = await loadHolderCache(task.tokenAddress, task.chain);
-        if (existing && existing.tokenType) return;
+        const key = `${task.tokenAddress.toLowerCase()}-${task.chain}`;
+        if (ankrCached.has(key)) return;
         await saveHolderCache(task.tokenAddress, task.chain, {
           token: task.tokenAddress,
           chain: task.chain,
@@ -368,7 +370,11 @@ async function seedFlaggedPool(task, totalSupplyMap, today) {
       .filter((h) => h.balance > 0n)
       .sort((a, b) => (b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0));
 
-    const holderCount = data.total_holders || holders.length;
+    if (holders.length === 0) {
+      return processPool(task, totalSupplyMap, today);
+    }
+
+    const holderCount = holders.length;
 
     const [currentBlock, tokenType] = await Promise.all([
       getCurrentBlock(chain),
