@@ -25,7 +25,7 @@ const mvId = (address, chainId) =>
   `${address}-${chains[chainId].slug}`.toLowerCase();
 
 const rewardsApy = (mv) =>
-  (mv.liveApy?.details?.total || 0) - (mv.liveApy?.details?.base || 0); // remove native APY
+  (mv.liveApy?.total || 0) - (mv.liveApy?.details?.base || 0); // remove native APY
 
 const mvApy = (mv) => {
   const chain = chains[mv.chainId];
