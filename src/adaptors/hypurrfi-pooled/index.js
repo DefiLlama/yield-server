@@ -20,8 +20,11 @@ const aprRayToApyPercent = (rateRay) => {
 const extractConfigBits = (configData) => {
   const data = BigInt(configData);
   const ltv = Number(data & 0xFFFFn);
+  const active = Boolean((data >> 56n) & 1n);
+  const frozen = Boolean((data >> 57n) & 1n);
   const borrowingEnabled = Boolean((data >> 58n) & 1n);
-  return { ltv, borrowingEnabled };
+  const paused = Boolean((data >> 60n) & 1n);
+  return { ltv, borrowable: active && !frozen && borrowingEnabled && !paused };
 };
 
 const apy = async () => {
@@ -90,7 +93,9 @@ const apy = async () => {
   // 5. Prices
   const priceKeys = reservesList.map((t) => `${chain}:${t}`).join(",");
   const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`, {
+      timeout: 30_000,
+    })
   ).data.coins;
 
   // 6. Build pool objects
@@ -113,7 +118,7 @@ const apy = async () => {
         reserveDataResults[i].currentVariableBorrowRate
       );
 
-      const { ltv, borrowingEnabled } = extractConfigBits(
+      const { ltv, borrowable } = extractConfigBits(
         reserveDataResults[i].configuration.data
       );
 
@@ -131,7 +136,7 @@ const apy = async () => {
         apyBaseBorrow,
         ltv: ltv / 10000,
         url: `https://app.hypurr.fi/markets/pooled/999/${asset}`,
-        borrowable: borrowingEnabled,
+        borrowable,
         mintedCoin: null,
         poolMeta: null,
       };
