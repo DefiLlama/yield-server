@@ -1,4 +1,5 @@
 const { request, gql } = require('graphql-request');
+const sdk = require('@defillama/sdk');
 
 const GRAPH_URL = 'https://api.morpho.org/graphql';
 const CHAINS = {
@@ -174,23 +175,56 @@ const isNegligible = (part, total, threshold = 0.01) => {
   return Math.abs(part) / denom < threshold;
 };
 
-// Dynamic filter for future expired PT tokens
-const MONTH_MAP = {
-  JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5,
-  JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11,
+// Look up on-chain expiry for PT collateral tokens to filter expired ones.
+// Tries both expiry() (Pendle) and maturity() (other protocols).
+// Returns a Set of lowercase collateral addresses that are expired.
+const EXPIRY_ABI = {
+  inputs: [],
+  name: 'expiry',
+  outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function',
 };
-const PT_DATE_RE = /(\d{1,2})([A-Z]{3})(\d{4})/;
+const MATURITY_ABI = { ...EXPIRY_ABI, name: 'maturity' };
 
-const isExpiredPT = (symbol) => {
-  if (!symbol?.startsWith('PT-')) return false;
-  const match = symbol.match(PT_DATE_RE);
-  if (!match) return false;
-  const maturity = new Date(
-    parseInt(match[3]),
-    MONTH_MAP[match[2]],
-    parseInt(match[1])
-  );
-  return maturity < new Date();
+const getExpiredPTAddresses = async (ptMarkets, chain) => {
+  if (ptMarkets.length === 0) return new Set();
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const expired = new Set();
+  const calls = ptMarkets.map((m) => ({
+    target: m.collateralAsset.address,
+  }));
+
+  // Try expiry() first, then maturity() for tokens that failed
+  for (const abi of [EXPIRY_ABI, MATURITY_ABI]) {
+    const remaining = calls.filter(
+      (c) => !expired.has(c.target.toLowerCase())
+    );
+    if (remaining.length === 0) break;
+
+    try {
+      const { output } = await sdk.api.abi.multiCall({
+        chain,
+        abi,
+        calls: remaining,
+        permitFailure: true,
+      });
+
+      for (const result of output) {
+        if (result.success && result.output) {
+          const ts = Number(result.output);
+          if (ts > 0 && ts < nowSec) {
+            expired.add(result.input.target.toLowerCase());
+          }
+        }
+      }
+    } catch {
+      // If multicall fails entirely, continue to next ABI
+    }
+  }
+
+  return expired;
 };
 
 // Allowed adapter types for Vault V2
@@ -335,6 +369,12 @@ const apy = async () => {
     const earnV2 = allVaultV2s;
     const borrow = allMarkets;
 
+    // Look up on-chain expiry for PT collateral tokens
+    const ptMarkets = borrow.filter(
+      (m) => m.collateralAsset?.symbol?.startsWith('PT-')
+    );
+    const expiredPTAddresses = await getExpiredPTAddresses(ptMarkets, chain);
+
     // Transform Vault V1 (MetaMorpho) pools
     const earnV1Pools = earnV1.map((vault) => {
       // fetch reward token addresses from allocation data
@@ -390,6 +430,12 @@ const apy = async () => {
 
     const borrowPools = borrow.map((market) => {
       if (!market.collateralAsset?.symbol) return null;
+      // Skip expired PT collateral markets
+      if (
+        expiredPTAddresses.has(market.collateralAsset.address.toLowerCase())
+      ) {
+        return null;
+      }
       const rewardTokens = market.state.rewards
         .filter((reward) => reward.borrowApr > 0)
         .map((reward) => reward.asset.address);
@@ -438,9 +484,7 @@ const apy = async () => {
       .values()
   );
 
-  return uniquePools.filter(
-    (pool) => pool && !isExpiredPT(pool.symbol)
-  );
+  return uniquePools.filter(Boolean);
 };
 
 module.exports = {
