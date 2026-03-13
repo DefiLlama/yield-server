@@ -69,10 +69,14 @@ const main = async () => {
     await Promise.allSettled(
       chunk.map(async ([chain, group]) => {
         try {
-          const calls = group.map((t) => ({
-            target: t.tokenAddress,
-            params: [],
-          }));
+          const seen = new Set();
+          const calls = [];
+          for (const t of group) {
+            const key = t.tokenAddress.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            calls.push({ target: t.tokenAddress, params: [] });
+          }
           const result = await sdk.api.abi.multiCall({
             abi: 'erc20:totalSupply',
             calls,
