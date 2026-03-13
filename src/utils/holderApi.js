@@ -38,13 +38,13 @@ const TRUE_REBASE_TOKENS = new Set([
 
 const SHARE_BASED_ABIS = [
   'address:UNDERLYING_ASSET_ADDRESS', // aTokens
-  'address:baseToken',                // Compound comets
-  'address:asset',                    // ERC4626 vaults
+  'address:baseToken', // Compound comets
+  'address:asset', // ERC4626 vaults
 ];
 
 const REBASE_ABIS = [
-  'uint256:rebasingCreditsPerToken',  // Origin pattern
-  'uint256:getTotalPooledEther',      // Lido pattern
+  'uint256:rebasingCreditsPerToken', // Origin pattern
+  'uint256:getTotalPooledEther', // Lido pattern
 ];
 
 async function classifyToken(tokenAddress, chain) {
@@ -55,14 +55,24 @@ async function classifyToken(tokenAddress, chain) {
 
   for (const abi of SHARE_BASED_ABIS) {
     try {
-      const { output } = await sdk.api.abi.multiCall({ abi, calls: call, chain, permitFailure: true });
+      const { output } = await sdk.api.abi.multiCall({
+        abi,
+        calls: call,
+        chain,
+        permitFailure: true,
+      });
       if (output[0]?.output && output[0].output !== ZERO) return 'share_based';
     } catch {}
   }
 
   for (const abi of REBASE_ABIS) {
     try {
-      const { output } = await sdk.api.abi.multiCall({ abi, calls: call, chain, permitFailure: true });
+      const { output } = await sdk.api.abi.multiCall({
+        abi,
+        calls: call,
+        chain,
+        permitFailure: true,
+      });
       if (output[0]?.output) return 'true_rebase';
     } catch {}
   }
@@ -92,7 +102,7 @@ async function classifyTokensBatch(tasks) {
 
   const interfaces = [
     ...SHARE_BASED_ABIS.map((abi) => ({ abi, type: 'share_based' })),
-    { abi: 'uint256:rebasingCreditsPerToken', type: 'true_rebase' },
+    ...REBASE_ABIS.map((abi) => ({ abi, type: 'true_rebase' })),
   ];
 
   for (const [chain, group] of Object.entries(byChain)) {
@@ -110,8 +120,15 @@ async function classifyTokensBatch(tasks) {
           permitFailure: true,
         });
         for (let i = 0; i < output.length; i++) {
-          if (output[i]?.output && output[i].output !== ZERO && output[i].output !== '0') {
-            results.set(`${toCheck[i].tokenAddress.toLowerCase()}-${chain}`, iface.type);
+          if (
+            output[i]?.output &&
+            output[i].output !== ZERO &&
+            output[i].output !== '0'
+          ) {
+            results.set(
+              `${toCheck[i].tokenAddress.toLowerCase()}-${chain}`,
+              iface.type
+            );
           }
         }
       } catch {}
@@ -129,9 +146,17 @@ async function classifyTokensBatch(tasks) {
 // ANKR comparison — fallback for tokens that can't be classified by interface
 
 const ANKR_CHAIN_MAP = {
-  ethereum: 'eth', arbitrum: 'arbitrum', avax: 'avalanche', base: 'base',
-  bsc: 'bsc', fantom: 'fantom', xdai: 'gnosis', linea: 'linea',
-  optimism: 'optimism', polygon: 'polygon', polygon_zkevm: 'polygon_zkevm',
+  ethereum: 'eth',
+  arbitrum: 'arbitrum',
+  avax: 'avalanche',
+  base: 'base',
+  bsc: 'bsc',
+  fantom: 'fantom',
+  xdai: 'gnosis',
+  linea: 'linea',
+  optimism: 'optimism',
+  polygon: 'polygon',
+  polygon_zkevm: 'polygon_zkevm',
   scroll: 'scroll',
 };
 
@@ -139,10 +164,16 @@ async function getAnkrHolderCount(tokenAddress, chain) {
   const ankrChain = ANKR_CHAIN_MAP[chain];
   if (!ankrChain) return null;
 
+  const ankrKey = process.env.ANKR_API_KEY;
+  const ankrUrl = ankrKey
+    ? `https://rpc.ankr.com/multichain/${ankrKey}`
+    : 'https://rpc.ankr.com/multichain';
   const { data } = await axios.post(
-    'https://rpc.ankr.com/multichain',
+    ankrUrl,
     {
-      jsonrpc: '2.0', id: 1, method: 'ankr_getTokenHoldersCount',
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'ankr_getTokenHoldersCount',
       params: { blockchain: ankrChain, contractAddress: tokenAddress },
     },
     { timeout: 15000 }
@@ -164,7 +195,7 @@ async function classifyByComparison(chainId, tokenAddress, chain) {
     if (pelucheCount === 0) return 'needs_rebase';
 
     const diff = Math.abs(pelucheCount - ankrCount) / Math.max(ankrCount, 1);
-    return diff > 0.10 ? 'needs_rebase' : 'standard';
+    return diff > 0.1 ? 'needs_rebase' : 'standard';
   } catch {
     return 'standard';
   }
@@ -197,7 +228,10 @@ async function refineHoldersOnChain(tokenAddress, addresses, chain) {
       batch.map(async (chunk) => {
         const { output } = await sdk.api.abi.multiCall({
           abi: 'erc20:balanceOf',
-          calls: chunk.map((addr) => ({ target: tokenAddress, params: [addr] })),
+          calls: chunk.map((addr) => ({
+            target: tokenAddress,
+            params: [addr],
+          })),
           chain,
           permitFailure: true,
         });
@@ -216,7 +250,9 @@ async function refineHoldersOnChain(tokenAddress, addresses, chain) {
     }
   }
 
-  results.sort((a, b) => (b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0));
+  results.sort((a, b) =>
+    b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0
+  );
   return results;
 }
 
@@ -225,12 +261,30 @@ async function refineHoldersOnChain(tokenAddress, addresses, chain) {
 const { getChainKeyFromLabel } = sdk.chainUtils;
 
 const CHAIN_NAME_TO_ID = {
-  ethereum: 1, optimism: 10, bsc: 56, xdai: 100, unichain: 130,
-  polygon: 137, sonic: 146, monad: 143, fantom: 250, era: 324,
-  hyperliquid: 999, polygon_zkevm: 1101, soneium: 1868, megaeth: 4326,
-  base: 8453, mode: 34443, arbitrum_nova: 42170, arbitrum: 42161,
-  avax: 43114, linea: 59144, blast: 81457, berachain: 80094,
-  op_bnb: 204, scroll: 534352,
+  ethereum: 1,
+  optimism: 10,
+  bsc: 56,
+  xdai: 100,
+  unichain: 130,
+  polygon: 137,
+  sonic: 146,
+  monad: 143,
+  fantom: 250,
+  era: 324,
+  hyperliquid: 999,
+  polygon_zkevm: 1101,
+  soneium: 1868,
+  megaeth: 4326,
+  base: 8453,
+  mode: 34443,
+  arbitrum_nova: 42170,
+  arbitrum: 42161,
+  avax: 43114,
+  linea: 59144,
+  blast: 81457,
+  berachain: 80094,
+  op_bnb: 204,
+  scroll: 534352,
 };
 
 const CHAIN_ALIASES = { hyperevm: 'hyperliquid' };
@@ -248,8 +302,15 @@ function getHeaders() {
     : {};
 }
 
-async function fetchHolders(chainId, token, limit = 100000000000, rebase = false, fromBlock = null) {
-  const params = new URLSearchParams({ chainId, token, limit });
+async function fetchHolders(
+  chainId,
+  token,
+  limit = 10,
+  rebase = false,
+  fromBlock = null
+) {
+  const params = new URLSearchParams({ chainId, token });
+  if (limit != null) params.set('limit', limit);
   if (rebase) params.set('rebase', 'true');
   if (fromBlock) params.set('from_block', fromBlock);
   const url = `${API_BASE}?${params}`;

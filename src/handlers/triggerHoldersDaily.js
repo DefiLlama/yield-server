@@ -31,11 +31,9 @@ const main = async () => {
   const startTime = Date.now();
   console.log('START DAILY HOLDER PROCESSING');
 
-  // 1. Get all pools with TVL >= $10k.
   const pools = await getEligiblePools();
   console.log(`Found ${pools.length} eligible pools`);
 
-  // 2. Filter to valid EVM pools on supported chains and resolve chain IDs.
   const tasks = [];
   for (const pool of pools) {
     if (!pool.token || !isValidEvmAddress(pool.token)) continue;
@@ -59,7 +57,7 @@ const main = async () => {
     `${tasks.length} valid EVM pools (${pools.length - tasks.length} filtered out)`
   );
 
-  // 3. Batch totalSupply calls per chain for top10Pct denominator.
+  // Batch totalSupply per chain for top10Pct
   const chainGroups = {};
   for (const t of tasks) {
     if (!chainGroups[t.chain]) chainGroups[t.chain] = [];
@@ -96,8 +94,7 @@ const main = async () => {
     );
   }
 
-  // 4. Load caches and classify tokens
-  //    Check S3 cache for each task to determine token type
+  // Load cached classifications from S3
   const cacheResults = await Promise.allSettled(
     tasks.map(async (task) => {
       const cache = await loadHolderCache(task.tokenAddress, task.chain);
@@ -106,14 +103,11 @@ const main = async () => {
   );
 
   for (const r of cacheResults) {
-    if (r.status === 'fulfilled' && r.value.cache) {
-      r.value.task.tokenType = r.value.cache.tokenType;
-    } else {
-      r.value.task.tokenType = null; // not yet classified
-    }
+    if (r.status !== 'fulfilled' || !r.value) continue;
+    r.value.task.tokenType = r.value.cache?.tokenType ?? null;
   }
 
-  // 5. Classify unclassified tokens via on-chain interface probing
+  // Classify unclassified tokens via on-chain interface probing
   const unclassifiedTasks = tasks.filter((t) => t.tokenType == null);
   if (unclassifiedTasks.length > 0) {
     console.log(`Classifying ${unclassifiedTasks.length} unclassified tokens`);
@@ -124,7 +118,7 @@ const main = async () => {
       t.tokenType = classMap.get(key) || 'unknown';
     }
 
-    // For 'unknown' tokens, try ANKR comparison (rate-limited)
+    // For unknowns, try ANKR comparison
     const unknownTasks = unclassifiedTasks.filter((t) => t.tokenType === 'unknown');
     const toCompare = unknownTasks.slice(0, CLASSIFY_BATCH_SIZE);
     if (toCompare.length > 0) {
@@ -135,7 +129,6 @@ const main = async () => {
             task.chainId, task.tokenAddress, task.chain
           );
           task.tokenType = result;
-          // Save classification-only cache (no holder data yet)
           await saveHolderCache(task.tokenAddress, task.chain, {
             token: task.tokenAddress,
             chain: task.chain,
@@ -154,12 +147,12 @@ const main = async () => {
       if (t.tokenType === 'unknown') t.tokenType = 'standard';
     }
 
-    // Cache classification for ALL newly classified tokens so we skip multicalls next run
+    // Cache all newly classified tokens
     console.log(`Caching classification for ${unclassifiedTasks.length} tokens`);
     await Promise.allSettled(
       unclassifiedTasks.map(async (task) => {
         const existing = await loadHolderCache(task.tokenAddress, task.chain);
-        if (existing && existing.tokenType) return; // already cached (e.g. ANKR step above)
+        if (existing && existing.tokenType) return;
         await saveHolderCache(task.tokenAddress, task.chain, {
           token: task.tokenAddress,
           chain: task.chain,
@@ -173,7 +166,7 @@ const main = async () => {
     );
   }
 
-  // 6. Split tasks into standard and flagged groups
+  // Split into standard vs flagged
   const needsRebase = (type) =>
     ['share_based', 'true_rebase', 'needs_rebase'].includes(type);
 
@@ -191,7 +184,6 @@ const main = async () => {
   let failed = 0;
   let skipped = 0;
 
-  // Helper to process a batch and insert results
   async function processBatch(batch, processFn) {
     const batchPayloads = [];
     const results = await Promise.allSettled(
@@ -223,18 +215,17 @@ const main = async () => {
     }
   }
 
-  // 7a. Process standard pools
+  // Process standard pools
   for (let i = 0; i < standardTasks.length; i += BATCH_SIZE) {
     await processBatch(standardTasks.slice(i, i + BATCH_SIZE), processPool);
   }
 
-  // 7b. Process flagged pools — incremental if cached, seed if not
+  // Process flagged pools
   let seedCount = 0;
 
   for (let i = 0; i < flaggedTasks.length; i += FLAGGED_BATCH_SIZE) {
     const batch = flaggedTasks.slice(i, i + FLAGGED_BATCH_SIZE);
 
-    // Check which have holder data cached (not just classification)
     const batchInfo = await Promise.all(
       batch.map(async (task) => {
         const cache = await loadHolderCache(task.tokenAddress, task.chain);
@@ -243,13 +234,11 @@ const main = async () => {
       })
     );
 
-    // Cached → incremental (cheap)
     const cached = batchInfo.filter((b) => b.hasHolderData).map((b) => b.task);
     if (cached.length > 0) {
       await processBatch(cached, processFlaggedPoolIncremental);
     }
 
-    // Uncached → seed (expensive, rate-limited)
     const uncached = batchInfo.filter((b) => !b.hasHolderData).map((b) => b.task);
     const toSeed = uncached.slice(0, Math.max(0, MAX_SEED_PER_RUN - seedCount));
     if (toSeed.length > 0) {
@@ -257,7 +246,6 @@ const main = async () => {
       seedCount += toSeed.length;
     }
 
-    // Overflow → existing processShareBasedPool fallback
     const overflow = uncached.slice(toSeed.length);
     if (overflow.length > 0) {
       await processBatch(overflow, processShareBasedPool);
@@ -271,9 +259,6 @@ const main = async () => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// Shared result builder
-// ---------------------------------------------------------------------------
 function buildResult(holders, holderCount, configID, tvlUsd, totalSupplyMap, chain, tokenAddress, today) {
   if (holderCount === 0) {
     return {
@@ -313,9 +298,7 @@ function buildResult(holders, holderCount, configID, tvlUsd, totalSupplyMap, cha
   };
 }
 
-// ---------------------------------------------------------------------------
-// Standard pool processing (no rebase needed)
-// ---------------------------------------------------------------------------
+// Standard pool — no rebase needed
 async function processPool(task, totalSupplyMap, today) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
 
@@ -369,20 +352,16 @@ async function processPool(task, totalSupplyMap, today) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Flagged pool: seed (one-time, expensive — full rebase=true fetch)
-// ---------------------------------------------------------------------------
+// Flagged pool seed — one-time full rebase=true fetch
 async function seedFlaggedPool(task, totalSupplyMap, today) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
 
   try {
-    // Full rebase=true fetch (expensive, one-time)
     const data = await fetchHolders(chainId, tokenAddress, 100000000000, true);
     if (!data.deltas || data.deltas.length === 0) {
       return processPool(task, totalSupplyMap, today);
     }
 
-    // With rebase=true, delta values ARE the current balances
     const holders = data.deltas
       .filter((d) => d.holder)
       .map((d) => ({ address: d.holder.toLowerCase(), balance: BigInt(d.delta || 0) }))
@@ -413,9 +392,7 @@ async function seedFlaggedPool(task, totalSupplyMap, today) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Flagged pool: incremental (daily, cheap — rebase=true + from_block)
-// ---------------------------------------------------------------------------
+// Flagged pool incremental — daily rebase=true + from_block
 async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
 
@@ -427,30 +404,26 @@ async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
 
     const currentBlock = await getCurrentBlock(chain);
 
-    // Fetch with rebase=true + from_block — scoped rebase computation
     const data = await fetchHolders(
       chainId, tokenAddress, 100000000000, true, cache.lastBlock
     );
 
-    // Parse active holders from delta response
     const activeHolders = (data.deltas || [])
       .filter((d) => d.holder && BigInt(d.delta || 0) > 0n)
       .map((d) => ({ address: d.holder.toLowerCase(), balance: BigInt(d.delta) }));
 
-    // Build merged holder map from cache
     const holderMap = new Map();
     for (const h of cache.holders) {
       holderMap.set(h.address.toLowerCase(), BigInt(h.balance));
     }
 
-    // Update with active holders from delta
     const activeSet = new Set();
     for (const h of activeHolders) {
       holderMap.set(h.address, h.balance);
       activeSet.add(h.address);
     }
 
-    // Addresses in delta with zero/negative balance = exited
+    // Remove exited holders (in delta but not active)
     const allDeltaAddresses = new Set(
       (data.deltas || []).map((d) => (d.holder || '').toLowerCase()).filter(Boolean)
     );
@@ -460,7 +433,7 @@ async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
       }
     }
 
-    // For true rebase tokens: re-verify top N cached holders via balanceOf
+    // True rebase: re-verify top N cached holders via balanceOf
     if (cache.tokenType === 'true_rebase') {
       const topCached = cache.holders
         .slice(0, TOP_N_RECHECK)
@@ -473,14 +446,12 @@ async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
       }
     }
 
-    // Build sorted list
     const holders = Array.from(holderMap.entries())
       .map(([address, balance]) => ({ address, balance }))
       .sort((a, b) => (b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0));
 
     const holderCount = holders.length;
 
-    // Save updated cache
     await saveHolderCache(tokenAddress, chain, {
       token: tokenAddress,
       chain,
@@ -500,9 +471,7 @@ async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Fallback: on-chain balanceOf refinement (legacy path)
-// ---------------------------------------------------------------------------
+// Fallback — on-chain balanceOf refinement
 async function processShareBasedPool(task, totalSupplyMap, today) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
 

@@ -193,6 +193,7 @@ functions:
       - schedule: cron(0 6 * * ? *)
     environment:
       HOLDERS_API_KEY: ${file(./env.js):HOLDERS_API_KEY}
+      ANKR_API_KEY: ${file(./env.js):ANKR_API_KEY}
 
 resources:
   Resources:
