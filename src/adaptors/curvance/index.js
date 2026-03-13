@@ -24,11 +24,15 @@ const getPrices = async (addresses) => {
   const prices = {};
   for (let i = 0; i < addresses.length; i += chunkSize) {
     const chunk = addresses.slice(i, i + chunkSize);
-    const { data } = await axios.get(
-      `https://coins.llama.fi/prices/current/${chunk.join(',')}`
-    );
-    for (const [key, val] of Object.entries(data.coins)) {
-      prices[key.split(':')[1].toLowerCase()] = val.price;
+    try {
+      const { data } = await axios.get(
+        `https://coins.llama.fi/prices/current/${chunk.join(',')}`
+      );
+      for (const [key, val] of Object.entries(data.coins || {})) {
+        prices[key.split(':')[1].toLowerCase()] = val.price;
+      }
+    } catch (e) {
+      console.error(`Failed to fetch prices for chunk: ${e.message}`);
     }
   }
   return prices;
