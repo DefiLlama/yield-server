@@ -81,7 +81,9 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
     calls: markets.map((addr) => ({ target: addr })),
     permitFailure: true,
   });
-  const underlyings = underlyingRes.output.map(({ output }) => output);
+  const underlyings = underlyingRes.output.map((res) =>  
+    res.success ? res.output : null  
+  ); 
 
   // Fetch dynamic market data (rates, debt, liquidity) + token metadata
   const [dynamicDataRes, symbolRes, decimalsRes] = await Promise.all([
@@ -118,8 +120,12 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
     }
   }
 
-  const symbols = symbolRes.output.map(({ output }) => output);
-  const allDecimals = decimalsRes.output.map(({ output }) => output);
+  const symbols = symbolRes.output.map((res) =>  
+    res.success ? res.output : null  
+  );  
+  const allDecimals = decimalsRes.output.map((res) =>  
+    res.success ? res.output : null  
+  );
 
   // Build manager -> symbols map for poolMeta disambiguation
   const managerSymbols = {};
@@ -167,7 +173,7 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
       const apyBaseBorrow = isBorrowable ? calcApy(marketData.borrowRate) : null;
 
       const manager = marketToManager[market.toLowerCase()];
-      const poolMeta = managerSymbols[manager].join("/")
+      const poolMeta = managerSymbols[manager].join("/");
 
       return {
         pool: `${market.toLowerCase()}-${chain}`,
@@ -186,7 +192,8 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
         underlyingTokens: [underlying],
         url: 'https://app.curvance.com',
       };
-    });
+    })
+    .filter(Boolean);
 };
 
 const main = async () => {
