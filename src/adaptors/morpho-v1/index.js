@@ -13,6 +13,14 @@ const CHAINS = {
   monad: 143,
 };
 
+// Maps chain keys to URL slugs used by app.morpho.org
+// Only entries that differ from the chain key need to be listed
+const CHAIN_URL_SLUG = {
+  hyperliquid: 'hyperevm',
+};
+
+const getChainSlug = (chain) => CHAIN_URL_SLUG[chain] || chain;
+
 /**
  * IMPORTANT: This adapter handles the morpho-v1 related protocol which includes:
  * - Morpho Market V1 (formerly Morpho Blue markets) → borrow pools
@@ -166,6 +174,25 @@ const isNegligible = (part, total, threshold = 0.01) => {
   return Math.abs(part) / denom < threshold;
 };
 
+// Dynamic filter for future expired PT tokens
+const MONTH_MAP = {
+  JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5,
+  JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11,
+};
+const PT_DATE_RE = /(\d{1,2})([A-Z]{3})(\d{4})/;
+
+const isExpiredPT = (symbol) => {
+  if (!symbol?.startsWith('PT-')) return false;
+  const match = symbol.match(PT_DATE_RE);
+  if (!match) return false;
+  const maturity = new Date(
+    parseInt(match[3]),
+    MONTH_MAP[match[2]],
+    parseInt(match[1])
+  );
+  return maturity < new Date();
+};
+
 // Allowed adapter types for Vault V2
 // Vault V2 only allocates to Vault V1 (MetaMorpho) and Market V1
 const ALLOWED_ADAPTER_TYPES = ['MetaMorpho', 'MorphoMarketV1'];
@@ -233,7 +260,7 @@ const buildVaultV2Pools = (earnV2, chain) =>
         apyBase,
         tvlUsd: vault.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
-        url: `https://app.morpho.org/${chain}/vault/${vault.address}`,
+        url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
 
         // Reward APY: sum of reward APRs from rewards.supplyApr,
         //             hidden when negligible vs avgNetApy.
@@ -347,7 +374,7 @@ const apy = async () => {
         apyBase: vault.state.apy * 100,
         tvlUsd: vault.state.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
-        url: `https://app.morpho.org/${chain}/vault/${vault.address}`,
+        url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
         apyReward,
         rewardTokens,
       };
@@ -389,7 +416,7 @@ const apy = async () => {
           market.state.supplyAssetsUsd - market.state.borrowAssetsUsd,
         ltv: market.lltv / 1e18,
         mintedCoin: market.loanAsset?.symbol,
-        url: `https://app.morpho.org/market?id=${market.uniqueKey}&network=${chain}`,
+        url: `https://app.morpho.org/${getChainSlug(chain)}/market/${market.uniqueKey}`,
         apyRewardBorrow,
         rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],
       };
@@ -411,7 +438,9 @@ const apy = async () => {
       .values()
   );
 
-  return uniquePools.filter(Boolean);
+  return uniquePools.filter(
+    (pool) => pool && !isExpiredPT(pool.symbol)
+  );
 };
 
 module.exports = {
