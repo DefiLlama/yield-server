@@ -84,6 +84,9 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
   const underlyings = underlyingRes.output.map((res) =>  
     res.success ? res.output : null  
   ); 
+  const validUnderlyingIndexes = underlyings
+    .map((addr, i) => (addr ? i : -1))
+    .filter((i) => i !== -1);
 
   // Fetch dynamic market data (rates, debt, liquidity) + token metadata
   const [dynamicDataRes, symbolRes, decimalsRes] = await Promise.all([
@@ -96,16 +99,16 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
     sdk.api.abi.multiCall({
       chain,
       abi: 'string:symbol',
-      calls: underlyings.map((addr) => ({
-        target: addr,
+      calls: validUnderlyingIndexes.map((i) => ({
+        target: underlyings[i],
       })),
       permitFailure: true,
     }),
     sdk.api.abi.multiCall({
       chain,
       abi: 'uint8:decimals',
-      calls: underlyings.map((addr) => ({
-        target: addr,
+      calls: validUnderlyingIndexes.map((i) => ({
+        target: underlyings[i],
       })),
       permitFailure: true,
     }),
@@ -120,12 +123,14 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
     }
   }
 
-  const symbols = symbolRes.output.map((res) =>  
-    res.success ? res.output : null  
-  );  
-  const allDecimals = decimalsRes.output.map((res) =>  
-    res.success ? res.output : null  
-  );
+  const symbols = Array(markets.length).fill(null);
+  const allDecimals = Array(markets.length).fill(null);
+  validUnderlyingIndexes.forEach((marketIdx, j) => {
+    const symbol = symbolRes.output[j];
+    const decimals = decimalsRes.output[j];
+    symbols[marketIdx] = symbol?.success ? symbol.output : null;
+    allDecimals[marketIdx] = decimals?.success ? decimals.output : null;
+  });
 
   // Build manager -> symbols map for poolMeta disambiguation
   const managerSymbols = {};
