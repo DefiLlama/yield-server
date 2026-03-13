@@ -1886,6 +1886,15 @@ const excludePools = [
   '0x3dd21d776db9cbdac1c5f1077a0046be2baed6b08b30f46aea3c5f81133757b7',
   '0x3047c57b06074d55a3fe804ec5e8b9325d445462e9946dd89f755cfb5741b338',
   '0xe4ed597cd290ff2c855659ff0bc8206146c1a9bd48ba2e90253bd81c60bfd919',
+  // euler-v2 frozen vaults (governance set supplyCap/borrowCap to dust, wind-down mode)
+  'ab6d490b-0970-49e6-8859-545df298e1f5', // avax | EVK Vault eUSDt-3
+  '1230754d-3438-487d-aa02-eacc1f2f6fc3', // avax | K3 USDT Earn Vault
+  '3ee971fb-78cc-4016-90e3-ff48520da8a3', // bob | EVK Vault esatUSD-2
+  '5b6ba2f8-53a5-406c-89ab-a52ffab0b46a', // ethereum | EVK Vault eYU-1
+  'c1424055-1eb4-4c25-a30a-ebb0340dfd56', // ethereum | Earn USDC
+  '71b4f445-d105-4625-9412-9969af520ec7', // ethereum | TID Capital USDC
+  '05ac03dd-2f60-483c-81e8-eb77e45dc1a4', // plasma | Hyperithm Euler USDT
+  '9bb721af-1ab2-4655-a183-b5832ff764b8', // plasma | TelosC Earn USDT0
 ];
 
 const boundaries = {
