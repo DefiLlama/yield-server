@@ -2,7 +2,6 @@ const sdk = require('@defillama/sdk');
 
 const {
   fetchHolders,
-  parsePoolField,
   isValidEvmAddress,
   resolveChainId,
   refineHoldersOnChain,
@@ -37,16 +36,14 @@ const main = async () => {
   const tasks = [];
   for (const pool of pools) {
     if (!pool.token || !isValidEvmAddress(pool.token)) continue;
+    if (!pool.chain) continue;
 
-    const { chain } = parsePoolField(pool.pool);
-    if (!chain) continue;
-
-    const chainId = resolveChainId(chain);
+    const chainId = resolveChainId(pool.chain);
     if (chainId == null) continue;
 
     tasks.push({
       configID: pool.configID,
-      chain,
+      chain: pool.chain,
       chainId,
       tokenAddress: pool.token,
       tvlUsd: pool.tvlUsd,

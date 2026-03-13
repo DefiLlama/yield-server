@@ -45,6 +45,7 @@ const getEligiblePools = async (tvlLB = 10000) => {
     SELECT
       c.config_id AS "configID",
       c.pool,
+      c.chain,
       c.token,
       lt."tvlUsd"
     FROM config c
