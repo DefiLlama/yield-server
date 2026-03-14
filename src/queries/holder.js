@@ -62,7 +62,7 @@ const getLatestHolders = async (conn) => {
 
   const query = `
     SELECT DISTINCT ON ("configID")
-      "configID", "holderCount", "avgPositionUsd", "top10Pct"
+      "configID", "holderCount", "avgPositionUsd", "top10Pct", "top10Holders"
     FROM holder_daily
     WHERE timestamp >= NOW() - INTERVAL '30 days'
     ORDER BY "configID", timestamp DESC
@@ -82,7 +82,7 @@ const getHolderHistory = async (configID, conn) => {
   conn = conn || (await connect());
 
   const query = `
-    SELECT timestamp, "holderCount", "avgPositionUsd", "top10Pct"
+    SELECT timestamp, "holderCount", "avgPositionUsd", "top10Pct", "top10Holders"
     FROM holder_daily
     WHERE "configID" = $<configID>
     ORDER BY timestamp ASC

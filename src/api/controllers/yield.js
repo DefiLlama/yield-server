@@ -199,6 +199,7 @@ const getHolders = async (req, res) => {
         holderCount: h.holderCount,
         avgPositionUsd: h.avgPositionUsd != null ? +(+h.avgPositionUsd).toFixed(0) : null,
         top10Pct: h.top10Pct != null ? +(+h.top10Pct).toFixed(2) : null,
+        top10Holders: h.top10Holders ?? null,
         holderChange7d:
           h.holderCount != null && prev7d != null
             ? h.holderCount - prev7d
