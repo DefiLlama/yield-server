@@ -24,6 +24,8 @@ module.exports = {
   VENDOR_FINANCE: process.env.VENDOR_FINANCE,
   TRADERJOE: process.env.TRADERJOE,
   GRAPH_API_KEY: process.env.GRAPH_API_KEY,
+  HOLDERS_API_KEY: process.env.HOLDERS_API_KEY,
+  ANKR_API_KEY: process.env.ANKR_API_KEY,
   // DB
   DATABASE_URL: process.env.DATABASE_URL,
   OSMOSIS_API_KEY: process.env.OSMOSIS_API_KEY,
