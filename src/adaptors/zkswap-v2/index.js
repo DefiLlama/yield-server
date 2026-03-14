@@ -1,19 +1,14 @@
-const { Web3 } = require('web3');
 const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
-const { request, gql, batchRequests } = require('graphql-request');
-const { chunk } = require('lodash');
 
 const {
   zfFarmABI,
   zfTokenABI,
-  erc20ABI,
   zfFactory,
   zfGOVAbi,
   zfLpABI,
 } = require('./abis');
 const utils = require('../utils');
-const { SECONDS_PER_YEAR } = require('../across/constants');
 
 const ZFFarm = '0x9f9d043fb77a194b4216784eb5985c471b979d67';
 const ZFToken = '0x31c2c031fdc9d33e974f327ab0d9883eae06ca4a';
@@ -21,36 +16,53 @@ const ZFFactory = '0x3a76e377ed58c8731f9df3a36155942438744ce3';
 const ZF_GOV = '0x4ca2ac3513739cebf053b66a1d59c88d925f1987';
 const DAO_START_TIME = 1697716800;
 
-const RPC_URL = 'https://mainnet.era.zksync.io';
-const API_URL = 'https://api.studio.thegraph.com/query/49271/zkswap/0.0.9';
-const DAO_API_URL =
-  'https://api.studio.thegraph.com/query/49271/zfgovernancestaking/0.1.2';
-
 const SECOND_PER_DAY = 60 * 60 * 24;
 const DAY_PER_YEAR = 365;
 const SECOND_PER_YEAR = SECOND_PER_DAY * DAY_PER_YEAR;
-const WEEKS_PER_YEAR = 52;
 const CHAIN = 'era';
 
-const web3 = new Web3(RPC_URL);
+const SWAP_EVENT_ABI =
+  'event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)';
 
 const apy = async () => {
   const nonLpPools = [0];
-  const zfFarm = new web3.eth.Contract(zfFarmABI, ZFFarm);
 
-  const zfGOV = new web3.eth.Contract(zfGOVAbi, ZF_GOV);
+  const poolsCount = (
+    await sdk.api.abi.call({
+      abi: zfFarmABI.find(({ name }) => name === 'poolLength'),
+      target: ZFFarm,
+      chain: CHAIN,
+    })
+  ).output;
 
-  const poolsCount = await zfFarm.methods.poolLength().call();
-  const totalAllocPoint = Number(await zfFarm.methods.totalAllocPoint().call());
-  const zfPerSecond = Number(await zfFarm.methods.zfPerSecond().call()) / 1e18;
+  const totalAllocPoint = Number(
+    (
+      await sdk.api.abi.call({
+        abi: zfFarmABI.find(({ name }) => name === 'totalAllocPoint'),
+        target: ZFFarm,
+        chain: CHAIN,
+      })
+    ).output
+  );
 
-  const protocolFeeRes = await sdk.api.abi.call({
-    abi: zfFactory.find((abi) => abi.name === 'protocolFeeFactor'),
-    target: ZFFactory,
-    chain: CHAIN,
-  });
+  const zfPerSecond =
+    Number(
+      (
+        await sdk.api.abi.call({
+          abi: zfFarmABI.find(({ name }) => name === 'zfPerSecond'),
+          target: ZFFarm,
+          chain: CHAIN,
+        })
+      ).output
+    ) / 1e18;
 
-  const protocolFee = protocolFeeRes.output;
+  const protocolFee = (
+    await sdk.api.abi.call({
+      abi: zfFactory.find(({ name }) => name === 'protocolFeeFactor'),
+      target: ZFFactory,
+      chain: CHAIN,
+    })
+  ).output;
 
   const poolsRes = await sdk.api.abi.multiCall({
     abi: zfFarmABI.filter(({ name }) => name === 'poolInfo')[0],
@@ -111,79 +123,112 @@ const apy = async () => {
     )
   );
 
+  const allTokens = [...new Set([...tokens0, ...tokens1].filter(Boolean))];
+
   const { pricesByAddress: tokensPrices } = await utils.getPrices(
-    [...new Set([...tokens0, ...tokens1])],
+    allTokens,
     CHAIN
   );
 
-  const pairsInfo = await utils.uniswap.getPairsInfo(lpTokens, API_URL);
-  const lpChunks = chunk(lpTokens, 10);
+  // Build pair info from on-chain data
+  const [tokenDecimals, tokenSymbols] = await Promise.all([
+    sdk.api.abi.multiCall({
+      abi: 'erc20:decimals',
+      calls: allTokens.map((t) => ({ target: t })),
+      chain: CHAIN,
+      permitFailure: true,
+    }),
+    sdk.api.abi.multiCall({
+      abi: 'erc20:symbol',
+      calls: allTokens.map((t) => ({ target: t })),
+      chain: CHAIN,
+      permitFailure: true,
+    }),
+  ]);
+
+  const tokenInfo = {};
+  allTokens.forEach((t, i) => {
+    tokenInfo[t.toLowerCase()] = {
+      id: t.toLowerCase(),
+      decimals: tokenDecimals.output[i]?.output || '18',
+      symbol: tokenSymbols.output[i]?.output || 'UNKNOWN',
+    };
+  });
+
+  const pairsInfo = {};
+  lpTokens.forEach((lp, i) => {
+    const t0 = tokens0[i]?.toLowerCase();
+    const t1 = tokens1[i]?.toLowerCase();
+    if (t0 && t1 && tokenInfo[t0] && tokenInfo[t1]) {
+      pairsInfo[lp.toLowerCase()] = {
+        token0: tokenInfo[t0],
+        token1: tokenInfo[t1],
+        name: `${tokenInfo[t0].symbol}-${tokenInfo[t1].symbol}`,
+      };
+    }
+  });
 
   const currentTime = Math.round(new Date().getTime() / 1000);
 
-  const daoQuery = gql`
-   query daoQuery {
-    transfers(
-    where: {blockTimestamp_gt: ${
-      currentTime - SECOND_PER_DAY * 3
-    }, blockTimestamp_lte: ${currentTime}}
-    first: 1000
-  ) {
-    value
-  }}
-  `;
-
-  let unstakedZFReward = 0;
+  // Get 24h volume from on-chain Swap event logs
+  let volumeMap = {};
   try {
-    const { transfers } = await request(DAO_API_URL, daoQuery);
-    unstakedZFReward =
-      transfers.reduce((volume, transf) => {
-        return volume + Number(transf.value) / 1e18;
-      }, 0) / 90;
-  } catch (e) {
-    // DAO subgraph may be unavailable, default to 0
-    console.log(
-      'DAO subgraph unavailable, skipping unstaked ZF reward calculation'
+    const latestBlock = await sdk.api.util.getLatestBlock(CHAIN);
+    const fromBlock = (
+      await sdk.api.util.lookupBlock(latestBlock.timestamp - SECOND_PER_DAY, {
+        chain: CHAIN,
+      })
+    ).block;
+
+    const volumes = await Promise.all(
+      lpTokens.map(async (lp, idx) => {
+        try {
+          const logs = await sdk.getEventLogs({
+            chain: CHAIN,
+            target: lp,
+            eventAbi: SWAP_EVENT_ABI,
+            fromBlock,
+            toBlock: latestBlock.number,
+          });
+
+          const t0 = tokens0[idx]?.toLowerCase();
+          const t1 = tokens1[idx]?.toLowerCase();
+          const dec0 = Number(tokenInfo[t0]?.decimals || 18);
+          const dec1 = Number(tokenInfo[t1]?.decimals || 18);
+          const price0 = tokensPrices[t0] || 0;
+          const price1 = tokensPrices[t1] || 0;
+
+          let vol = 0;
+          for (const log of logs) {
+            try {
+              const amount0In = new BigNumber(log.args.amount0In.toString());
+              const amount1In = new BigNumber(log.args.amount1In.toString());
+              vol += amount0In
+                .div(new BigNumber(10).pow(dec0))
+                .times(price0)
+                .plus(
+                  amount1In.div(new BigNumber(10).pow(dec1)).times(price1)
+                )
+                .toNumber();
+            } catch (e) {
+              // Skip malformed log entries
+            }
+          }
+
+          return { lp: lp.toLowerCase(), volume: vol };
+        } catch (e) {
+          return { lp: lp.toLowerCase(), volume: 0 };
+        }
+      })
     );
+
+    volumeMap = volumes.reduce((acc, { lp, volume }) => {
+      acc[lp] = volume;
+      return acc;
+    }, {});
+  } catch (e) {
+    console.log('Failed to fetch on-chain volume data:', e.message);
   }
-
-  const pairVolumes = await Promise.all(
-    lpChunks.map((lpsChunk) =>
-      request(
-        API_URL,
-        gql`
-    query volumesQuery {
-      ${lpsChunk
-        .slice(0, 10)
-        .map(
-          (token, i) =>
-            `token_${token.toLowerCase()}:pairHourDatas(
-                    orderBy: hourStartUnix
-                    orderDirection: desc
-                    first: 24
-                    where: {pair_: {id: "${token.toLowerCase()}"}}) 
-                    {
-                        hourlyVolumeUSD
-                    }`
-        )
-        .join('\n')}}`
-      )
-    )
-  );
-
-  const volumesMap = pairVolumes.flat().reduce(
-    (acc, curChunk) => ({
-      ...acc,
-      ...Object.entries(curChunk).reduce(
-        (innerAcc, [key, val]) => ({
-          ...innerAcc,
-          [key.split('_')[1]]: val,
-        }),
-        {}
-      ),
-    }),
-    {}
-  );
 
   const [tvl] = await makeMulticall(
     zfTokenABI.filter(({ name }) => name === 'balanceOf')[0],
@@ -214,52 +259,57 @@ const apy = async () => {
         url: 'https://zkswap.finance/earn',
       };
     })
-    .filter((pool) => pool.apyReward > 0);
+    .filter((pool) => utils.keepFinite(pool));
 
-  const unstakedZFReward3Day =
-    (unstakedZFReward / 3) * DAY_PER_YEAR * tokensPrices[ZFToken];
+  let govPool = null;
+  try {
+    const [zfDAOPerSecondRes, pendingZfRes, currentGovTvlRes] =
+      await Promise.all([
+        sdk.api.abi.call({
+          abi: zfGOVAbi.filter(({ name }) => name === 'zfPerSecond')[0],
+          target: ZF_GOV,
+          chain: CHAIN,
+        }),
+        sdk.api.abi.call({
+          abi: zfGOVAbi.filter(({ name }) => name === 'pendingZF')[0],
+          target: ZF_GOV,
+          chain: CHAIN,
+        }),
+        sdk.api.abi.call({
+          abi: zfGOVAbi.filter(({ name }) => name === 'balance')[0],
+          target: ZF_GOV,
+          chain: CHAIN,
+        }),
+      ]);
 
-  const { output: zfDAOPerSecondRes } = await sdk.api.abi.call({
-    abi: zfGOVAbi.filter(({ name }) => name === 'zfPerSecond')[0],
-    target: ZF_GOV,
-    chain: CHAIN,
-  });
-  const zfDAOPerSecond = Number(zfDAOPerSecondRes) / 1e18;
+    const zfDAOPerSecond = Number(zfDAOPerSecondRes.output) / 1e18;
+    const pendingZf = Number(pendingZfRes.output) / 1e18;
+    const currentGovTvl = Number(currentGovTvlRes.output) / 1e18;
 
-  const { output: pendingZfRes } = await sdk.api.abi.call({
-    abi: zfGOVAbi.filter(({ name }) => name === 'pendingZF')[0],
-    target: ZF_GOV,
-    chain: CHAIN,
-  });
-  const pendingZf = Number(pendingZfRes) / 1e18;
+    const zfRewardDAOUntilNow =
+      (currentTime - DAO_START_TIME) * zfDAOPerSecond;
+    const govTvl =
+      (currentGovTvl + pendingZf - zfRewardDAOUntilNow) *
+      tokensPrices[ZFToken];
+    const govFarmAPY =
+      ((zfDAOPerSecond * SECOND_PER_YEAR * tokensPrices[ZFToken]) / govTvl) *
+      100;
 
-  const { output: currentGovTvlRes } = await sdk.api.abi.call({
-    abi: zfGOVAbi.filter(({ name }) => name === 'balance')[0],
-    target: ZF_GOV,
-    chain: CHAIN,
-  });
-  const currentGovTvl = Number(currentGovTvlRes) / 1e18;
-
-  const zfRewardDAOUntilNow = (currentTime - DAO_START_TIME) * zfDAOPerSecond;
-  const govTvl =
-    (currentGovTvl + pendingZf - zfRewardDAOUntilNow) * tokensPrices[ZFToken];
-  const unstakedAPY = (unstakedZFReward3Day / govTvl) * 100;
-  const govFarmAPY =
-    ((zfDAOPerSecond * SECONDS_PER_YEAR * tokensPrices[ZFToken]) / govTvl) *
-    100;
-
-  const govPool = {
-    pool: ZF_GOV,
-    chain: CHAIN,
-    project: 'zkswap-v2',
-    symbol: 'ZF',
-    tvlUsd: govTvl,
-    apyBase: unstakedAPY,
-    apyReward: govFarmAPY,
-    underlyingTokens: [ZFToken],
-    rewardTokens: [ZFToken],
-    url: 'https://zkswap.finance/earn',
-  };
+    govPool = {
+      pool: ZF_GOV,
+      chain: CHAIN,
+      project: 'zkswap-v2',
+      symbol: 'ZF',
+      tvlUsd: govTvl,
+      apyBase: 0,
+      apyReward: govFarmAPY,
+      underlyingTokens: [ZFToken],
+      rewardTokens: [ZFToken],
+      url: 'https://zkswap.finance/earn',
+    };
+  } catch (e) {
+    console.log('Gov pool data unavailable:', e.message);
+  }
 
   const res = pools.map((pool, i) => {
     const poolInfo = pool;
@@ -270,16 +320,6 @@ const apy = async () => {
 
     const supply = supplyData[i];
     const zfFarmBalance = zfFarmBalData[i];
-
-    const zfFarmReservesUsd = utils.uniswap
-      .calculateReservesUSD(
-        reserves,
-        zfFarmBalance / supply,
-        pairInfo?.token0,
-        pairInfo?.token1,
-        tokensPrices
-      )
-      .toString();
 
     const lpReservesUsd = utils.uniswap
       .calculateReservesUSD(
@@ -295,19 +335,20 @@ const apy = async () => {
     const feeRate = (fee * (1 - 1 / protocolFee)) / 10000;
 
     const lpFees24h =
-      (volumesMap[pool.lpToken.toLowerCase()] || []).reduce(
-        (acc, { hourlyVolumeUSD }) => acc + Number(hourlyVolumeUSD),
-        0
-      ) * feeRate;
+      (volumeMap[pool.lpToken.toLowerCase()] || 0) * feeRate;
 
     const apyBase = ((lpFees24h * DAY_PER_YEAR) / lpReservesUsd) * 100;
+
+    const farmRatio =
+      supply && zfFarmBalance ? zfFarmBalance / supply : 0;
+    const zfFarmReservesUsd = Number(lpReservesUsd) * farmRatio;
 
     const apyReward = utils.uniswap.calculateApy(
       poolInfo,
       totalAllocPoint,
       zfPerSecond,
       tokensPrices[ZFToken],
-      zfFarmReservesUsd,
+      zfFarmReservesUsd || 1,
       SECOND_PER_YEAR
     );
 
@@ -316,7 +357,7 @@ const apy = async () => {
       chain: CHAIN,
       project: 'zkswap-v2',
       symbol: pairInfo.name,
-      tvlUsd: Number(zfFarmReservesUsd),
+      tvlUsd: Number(lpReservesUsd),
       apyBase,
       apyReward,
       underlyingTokens:
@@ -327,7 +368,9 @@ const apy = async () => {
       url: 'https://zkswap.finance/earn',
     };
   });
-  return [...nonLpRes, ...res, govPool].filter((i) => utils.keepFinite(i));
+  return [...nonLpRes, ...res, ...(govPool ? [govPool] : [])].filter((i) =>
+    utils.keepFinite(i)
+  );
 };
 
 const makeMulticall = async (abi, addresses, chain, params = null) => {
@@ -343,10 +386,26 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
 
   const res = data.output.map(({ output }) => output);
 
+  // Retry failed calls individually
+  const retries = [];
+  for (let i = 0; i < res.length; i++) {
+    if (res[i] === null) {
+      retries.push(
+        sdk.api.abi
+          .call({ abi, target: addresses[i], chain, params })
+          .then(({ output }) => {
+            res[i] = output;
+          })
+          .catch(() => {})
+      );
+    }
+  }
+  if (retries.length > 0) await Promise.all(retries);
+
   return res;
 };
 
 module.exports = {
   timetravel: false,
-  apy: apy,
+  apy,
 };
