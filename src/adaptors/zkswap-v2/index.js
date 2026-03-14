@@ -206,9 +206,7 @@ const apy = async () => {
               vol += amount0In
                 .div(new BigNumber(10).pow(dec0))
                 .times(price0)
-                .plus(
-                  amount1In.div(new BigNumber(10).pow(dec1)).times(price1)
-                )
+                .plus(amount1In.div(new BigNumber(10).pow(dec1)).times(price1))
                 .toNumber();
             } catch (e) {
               // Skip malformed log entries
@@ -286,11 +284,9 @@ const apy = async () => {
     const pendingZf = Number(pendingZfRes.output) / 1e18;
     const currentGovTvl = Number(currentGovTvlRes.output) / 1e18;
 
-    const zfRewardDAOUntilNow =
-      (currentTime - DAO_START_TIME) * zfDAOPerSecond;
+    const zfRewardDAOUntilNow = (currentTime - DAO_START_TIME) * zfDAOPerSecond;
     const govTvl =
-      (currentGovTvl + pendingZf - zfRewardDAOUntilNow) *
-      tokensPrices[ZFToken];
+      (currentGovTvl + pendingZf - zfRewardDAOUntilNow) * tokensPrices[ZFToken];
     const govFarmAPY =
       ((zfDAOPerSecond * SECOND_PER_YEAR * tokensPrices[ZFToken]) / govTvl) *
       100;
@@ -334,13 +330,11 @@ const apy = async () => {
     const fee = lpTokensSwapFee[pool.lpToken.toLowerCase()];
     const feeRate = (fee * (1 - 1 / protocolFee)) / 10000;
 
-    const lpFees24h =
-      (volumeMap[pool.lpToken.toLowerCase()] || 0) * feeRate;
+    const lpFees24h = (volumeMap[pool.lpToken.toLowerCase()] || 0) * feeRate;
 
     const apyBase = ((lpFees24h * DAY_PER_YEAR) / lpReservesUsd) * 100;
 
-    const farmRatio =
-      supply && zfFarmBalance ? zfFarmBalance / supply : 0;
+    const farmRatio = supply && zfFarmBalance ? zfFarmBalance / supply : 0;
     const zfFarmReservesUsd = Number(lpReservesUsd) * farmRatio;
 
     const apyReward = utils.uniswap.calculateApy(
@@ -348,7 +342,7 @@ const apy = async () => {
       totalAllocPoint,
       zfPerSecond,
       tokensPrices[ZFToken],
-      zfFarmReservesUsd || 1,
+      zfFarmReservesUsd,
       SECOND_PER_YEAR
     );
 
