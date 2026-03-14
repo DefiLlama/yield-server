@@ -1,19 +1,6 @@
 const { gql, request } = require('graphql-request');
+const sdk = require('@defillama/sdk');
 const config = require('./config.js');
-
-const prevBlockQuery = gql`
-  query Blocks($timestamp_lte: BigInt = "") {
-    blocks(
-      first: 1
-      orderBy: timestamp
-      orderDirection: desc
-      where: { timestamp_lte: $timestamp_lte }
-    ) {
-      number
-      timestamp
-    }
-  }
-`;
 
 const volumesQuery = gql`
   query Volumes($block: Int = 0) {
@@ -52,58 +39,58 @@ const aprQuery = gql`
 const oneDay = 86400;
 
 const apy = async () => {
-  apy_export = [];
-  for (chain in config) {
-    const timestampPrior = +(new Date() / 1000).toFixed(0) - oneDay;
+  const apy_export = [];
+  for (const chain in config) {
+    try {
+      const timestampPrior = +(new Date() / 1000).toFixed(0) - oneDay;
 
-    const blockPrior = (
-      await request(config[chain]['BLOCK_ENDPOINT'], prevBlockQuery, {
-        timestamp_lte: timestampPrior,
-      })
-    ).blocks[0].number;
+      const { chainBlocks } = await sdk.blocks.getBlocks(timestampPrior, [chain]);
+      const blockPrior = chainBlocks[chain];
 
-    const { assetsNow, assets24hAgo } = await request(
-      config[chain]['APR_ENDPOINT'],
-      volumesQuery,
-      {
-        block: +blockPrior,
-      }
-    );
+      const { assetsNow, assets24hAgo } = await request(
+        config[chain]['APR_ENDPOINT'],
+        volumesQuery,
+        {
+          block: +blockPrior,
+        }
+      );
 
-    const { assets: aprs } = await request(
-      config[chain]['APR_ENDPOINT'],
-      aprQuery
-    );
+      const { assets: aprs } = await request(
+        config[chain]['APR_ENDPOINT'],
+        aprQuery
+      );
 
-    const assets = aprs.map((pool) => {
-      const aprData = aprs.find((apr) => apr.id === pool.id) || {};
-      const feeNow = assetsNow.find((apr) => apr.id === pool.id) || {};
-      const fee24hAgo = assets24hAgo.find((apr) => apr.id === pool.id) || {};
+      aprs.map((pool) => {
+        const aprData = aprs.find((apr) => apr.id === pool.id) || {};
+        const feeNow = assetsNow.find((apr) => apr.id === pool.id) || {};
+        const fee24hAgo = assets24hAgo.find((apr) => apr.id === pool.id) || {};
 
-      // Projected baseApy estimated by feeUSD collected in 24h
-      let apyBase =
-        (((Number(feeNow.totalSharedFeeUSD) -
-          Number(fee24hAgo.totalSharedFeeUSD)) /
-          2) *
-          365 *
-          100) /
-          Number(pool.liabilityUSD) || 0;
+        let apyBase =
+          (((Number(feeNow.totalSharedFeeUSD) -
+            Number(fee24hAgo.totalSharedFeeUSD)) /
+            2) *
+            365 *
+            100) /
+            Number(pool.liabilityUSD) || 0;
 
-      let apyReward =
-        (Number(aprData.womBaseApr) + Number(aprData.totalBonusTokenApr)) * 100;
+        let apyReward =
+          (Number(aprData.womBaseApr) + Number(aprData.totalBonusTokenApr)) * 100;
 
-      apy_export.push({
-        pool: aprData.id,
-        project: 'wombat-exchange',
-        chain: chain,
-        tvlUsd: Number(pool.liabilityUSD) || 0,
-        symbol: pool.symbol,
-        apyReward,
-        apyBase,
-        underlyingTokens: [pool.underlyingToken.id],
-        rewardTokens: [config[chain]['WOM_ADDRESS']],
+        apy_export.push({
+          pool: aprData.id,
+          project: 'wombat-exchange',
+          chain: chain,
+          tvlUsd: Number(pool.liabilityUSD) || 0,
+          symbol: pool.symbol,
+          apyReward,
+          apyBase,
+          underlyingTokens: [pool.underlyingToken.id],
+          rewardTokens: [config[chain]['WOM_ADDRESS']],
+        });
       });
-    });
+    } catch (e) {
+      console.log(`wombat-exchange ${chain} failed: ${e.message}`);
+    }
   }
 
   // remove dupes on lptoken

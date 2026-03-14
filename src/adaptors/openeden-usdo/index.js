@@ -147,6 +147,7 @@ const apy = async () => {
         chain: chainNames[chain],
         project,
         symbol: chain === 'solana' ? 'cUSDO' : 'USDO',
+        token: tokenAddress,
         tvlUsd,
         apyBase,
         apyBase7d,

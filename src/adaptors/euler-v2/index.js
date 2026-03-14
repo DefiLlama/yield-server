@@ -68,6 +68,10 @@ const chains = {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-plasma/latest/gn`,
     urlChain: 'plasma',
   },
+  hyperliquid: {
+    subgraph: `${SUBGRAPH_BASE}/euler-v2-hyperevm/latest/gn`,
+    urlChain: 'hyperliquid',
+  },
 };
 
 // Subgraph APY values are 27-decimal fixed-point; dividing by 1e25 gives percentage
@@ -77,6 +81,12 @@ const APY_DIVISOR = 1e25;
 const parseAssetSymbol = (vaultSymbol) =>
   vaultSymbol.replace(/^e/, '').replace(/-\d+$/, '');
 
+// Euler v2 caps use AmountCap encoding (uint16). A value of 0 means "no cap" (unlimited).
+// Values 1-63 decode to at most 64 smallest units (effectively dust/zero).
+// Governance sets caps to these tiny values to freeze a vault for wind-down.
+const CAP_FROZEN_THRESHOLD = 64;
+const isCapFrozen = (cap) => cap > 0 && cap < CAP_FROZEN_THRESHOLD;
+
 const EVK_QUERY = `{
   eulerVaults(first: 1000) {
     id
@@ -84,6 +94,8 @@ const EVK_QUERY = `{
     symbol
     asset
     decimals
+    supplyCap
+    borrowCap
     state {
       cash
       totalBorrows
@@ -129,10 +141,14 @@ const getApys = async () => {
         const earnVaults = earnData.eulerEarnVaults || [];
 
         // Build maps from ALL EVK vaults (active or not) for Earn vault lookups
+        // Exclude vaults where governance has frozen caps (wind-down mode)
         const evkApyMap = {};
         const assetInfoMap = {};
         for (const v of evkVaults) {
-          if (v.state && Number(v.state.supplyApy) > 0) {
+          const frozen =
+            isCapFrozen(Number(v.supplyCap)) ||
+            isCapFrozen(Number(v.borrowCap));
+          if (v.state && Number(v.state.supplyApy) > 0 && !frozen) {
             evkApyMap[v.id] = Number(v.state.supplyApy) / APY_DIVISOR;
           }
           if (!assetInfoMap[v.asset]) {
@@ -143,9 +159,13 @@ const getApys = async () => {
           }
         }
 
-        // Filter to active vaults for pool output
+        // Filter to active vaults for pool output (exclude frozen caps)
         const activeEvkVaults = evkVaults.filter(
-          (v) => v.state && Number(v.state.supplyApy) > 0
+          (v) =>
+            v.state &&
+            Number(v.state.supplyApy) > 0 &&
+            !isCapFrozen(Number(v.supplyCap)) &&
+            !isCapFrozen(Number(v.borrowCap))
         );
 
         // Collect unique asset addresses and fetch prices
@@ -187,7 +207,9 @@ const getApys = async () => {
               apyBase: Number(v.state.supplyApy) / APY_DIVISOR,
               apyBaseBorrow: Number(v.state.borrowApy) / APY_DIVISOR,
               underlyingTokens: [assetAddr],
-              url: `https://app.euler.finance/vault/${vaultAddr}?network=${config.urlChain}`,
+              url: chain === 'hyperliquid'
+                ? `https://app.hypurr.fi/markets/elend/999/${vaultAddr}`
+                : `https://app.euler.finance/vault/${vaultAddr}?network=${config.urlChain}`,
             };
           })
           .filter(Boolean);
@@ -236,7 +258,9 @@ const getApys = async () => {
               tvlUsd,
               apyBase,
               underlyingTokens: [earnAssetAddr],
-              url: `https://app.euler.finance/vault/${earnAddr}?network=${config.urlChain}`,
+              url: chain === 'hyperliquid'
+                ? `https://app.hypurr.fi/markets/elend/999/${earnAddr}`
+                : `https://app.euler.finance/vault/${earnAddr}?network=${config.urlChain}`,
             };
           })
           .filter((p) => p && p.tvlUsd > 100);

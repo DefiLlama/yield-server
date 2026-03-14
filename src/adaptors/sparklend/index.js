@@ -188,6 +188,7 @@ const spkFarm = async () => {
       chain: 'Ethereum',
       project: 'sparklend',
       symbol: 'USDS',
+      token: stakingRewards,
       poolMeta: 'SPK Farming Pool',
       tvlUsd,
       apyReward,

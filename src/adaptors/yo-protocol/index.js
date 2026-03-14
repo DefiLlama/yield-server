@@ -18,17 +18,42 @@ const apy = async () => {
   const response = await axios.get(API_URL);
   const vaults = response.data.data;
 
-  const priceQuery = vaults
-    .map((vault) => `${vault.chain.name}:${vault.asset.address}`)
-    .join(',')
-    .toLowerCase();
+  // Flatten: primary vaults + their secondary vaults (with parent yield/tvl)
+  const allVaults = [];
+  for (const vault of vaults) {
+    allVaults.push({ ...vault, _isPrimary: true });
+    if (vault.secondaryVaults) {
+      for (const secondary of vault.secondaryVaults) {
+        allVaults.push({
+          ...secondary,
+          yield: vault.yield,
+          tvl: vault.tvl,
+          merklRewardYield: vault.merklRewardYield,
+          _isPrimary: false,
+        });
+      }
+    }
+  }
 
-  const prices = await getPrices(
-    vaults.map((vault) => `${vault.chain.name}:${vault.asset.address}`)
+  // Fetch prices per chain to avoid address collisions across chains
+  const chainGroups = {};
+  for (const vault of allVaults) {
+    if (!chainGroups[vault.chain.name]) chainGroups[vault.chain.name] = new Set();
+    chainGroups[vault.chain.name].add(vault.asset.address);
+  }
+
+  const pricesByKey = {};
+  await Promise.all(
+    Object.entries(chainGroups).map(async ([chain, addresses]) => {
+      const { pricesByAddress } = await getPrices([...addresses], chain);
+      for (const [address, price] of Object.entries(pricesByAddress)) {
+        pricesByKey[`${chain}:${address}`.toLowerCase()] = price;
+      }
+    })
   );
 
-  const tvls = await Promise.all(
-    vaults.map((vault) =>
+  const tvls = await Promise.allSettled(
+    allVaults.map((vault) =>
       getERC4626Info(
         vault.contracts.vaultAddress.toLowerCase(),
         vault.chain.name
@@ -36,30 +61,44 @@ const apy = async () => {
     )
   );
 
-  const tvlByAddress = tvls.reduce((acc, tvl) => {
-    acc[tvl.pool.toLowerCase()] = tvl.tvl;
-    return acc;
-  }, {});
+  const tvlByKey = {};
+  tvls.forEach((result, i) => {
+    if (result.status === 'fulfilled') {
+      const vault = allVaults[i];
+      const key =
+        `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
+      tvlByKey[key] = result.value.tvl;
+    }
+  });
 
   // Fetch vault rewards
   const vaultRewardMap = await getVaultReward(MERKL_API_URL);
 
   const result = [];
-  for (const vault of vaults) {
-    const normalizedTvl =
-      tvlByAddress[vault.contracts.vaultAddress.toLowerCase()] /
-      10 ** vault.asset.decimals;
+  for (const vault of allVaults) {
+    const key =
+      `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
 
-    const tvlUsd =
-      normalizedTvl *
-      Number(prices.pricesByAddress[vault.asset.address.toLowerCase()]);
+    const price =
+      pricesByKey[`${vault.chain.name}:${vault.asset.address}`.toLowerCase()];
+    if (tvlByKey[key] == null || price == null) continue;
+
+    const normalizedTvl =
+      tvlByKey[key] / 10 ** vault.asset.decimals;
+
+    const tvlUsd = normalizedTvl * Number(price);
 
     const vaultReward = vaultRewardMap.get(
       vault.contracts.vaultAddress.toLowerCase()
     );
 
+    // Preserve original pool IDs for existing primary pools to avoid losing historical data
+    const poolId = vault._isPrimary
+      ? vault.contracts.vaultAddress
+      : key;
+
     const pool = {
-      pool: vault.contracts.vaultAddress,
+      pool: poolId,
       chain: formatChain(vault.chain.name),
       poolMeta: vault.name,
       project: PROJECT_NAME,

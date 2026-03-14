@@ -1,4 +1,5 @@
 const { request, gql } = require('graphql-request');
+const sdk = require('@defillama/sdk');
 
 const GRAPH_URL = 'https://api.morpho.org/graphql';
 const CHAINS = {
@@ -12,6 +13,14 @@ const CHAINS = {
   polygon: 137,
   monad: 143,
 };
+
+// Maps chain keys to URL slugs used by app.morpho.org
+// Only entries that differ from the chain key need to be listed
+const CHAIN_URL_SLUG = {
+  hyperliquid: 'hyperevm',
+};
+
+const getChainSlug = (chain) => CHAIN_URL_SLUG[chain] || chain;
 
 /**
  * IMPORTANT: This adapter handles the morpho-v1 related protocol which includes:
@@ -166,6 +175,58 @@ const isNegligible = (part, total, threshold = 0.01) => {
   return Math.abs(part) / denom < threshold;
 };
 
+// Look up on-chain expiry for PT collateral tokens to filter expired ones.
+// Tries both expiry() (Pendle) and maturity() (other protocols).
+// Returns a Set of lowercase collateral addresses that are expired.
+const EXPIRY_ABI = {
+  inputs: [],
+  name: 'expiry',
+  outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function',
+};
+const MATURITY_ABI = { ...EXPIRY_ABI, name: 'maturity' };
+
+const getExpiredPTAddresses = async (ptMarkets, chain) => {
+  if (ptMarkets.length === 0) return new Set();
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const expired = new Set();
+  const calls = ptMarkets.map((m) => ({
+    target: m.collateralAsset.address,
+  }));
+
+  // Try expiry() first, then maturity() for tokens that failed
+  for (const abi of [EXPIRY_ABI, MATURITY_ABI]) {
+    const remaining = calls.filter(
+      (c) => !expired.has(c.target.toLowerCase())
+    );
+    if (remaining.length === 0) break;
+
+    try {
+      const { output } = await sdk.api.abi.multiCall({
+        chain,
+        abi,
+        calls: remaining,
+        permitFailure: true,
+      });
+
+      for (const result of output) {
+        if (result.success && result.output) {
+          const ts = Number(result.output);
+          if (ts > 0 && ts < nowSec) {
+            expired.add(result.input.target.toLowerCase());
+          }
+        }
+      }
+    } catch {
+      // If multicall fails entirely, continue to next ABI
+    }
+  }
+
+  return expired;
+};
+
 // Allowed adapter types for Vault V2
 // Vault V2 only allocates to Vault V1 (MetaMorpho) and Market V1
 const ALLOWED_ADAPTER_TYPES = ['MetaMorpho', 'MorphoMarketV1'];
@@ -233,7 +294,7 @@ const buildVaultV2Pools = (earnV2, chain) =>
         apyBase,
         tvlUsd: vault.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
-        url: `https://app.morpho.org/${chain}/vault/${vault.address}`,
+        url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
 
         // Reward APY: sum of reward APRs from rewards.supplyApr,
         //             hidden when negligible vs avgNetApy.
@@ -308,6 +369,12 @@ const apy = async () => {
     const earnV2 = allVaultV2s;
     const borrow = allMarkets;
 
+    // Look up on-chain expiry for PT collateral tokens
+    const ptMarkets = borrow.filter(
+      (m) => m.collateralAsset?.symbol?.startsWith('PT-')
+    );
+    const expiredPTAddresses = await getExpiredPTAddresses(ptMarkets, chain);
+
     // Transform Vault V1 (MetaMorpho) pools
     const earnV1Pools = earnV1.map((vault) => {
       // fetch reward token addresses from allocation data
@@ -347,7 +414,7 @@ const apy = async () => {
         apyBase: vault.state.apy * 100,
         tvlUsd: vault.state.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
-        url: `https://app.morpho.org/${chain}/vault/${vault.address}`,
+        url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
         apyReward,
         rewardTokens,
       };
@@ -363,6 +430,12 @@ const apy = async () => {
 
     const borrowPools = borrow.map((market) => {
       if (!market.collateralAsset?.symbol) return null;
+      // Skip expired PT collateral markets
+      if (
+        expiredPTAddresses.has(market.collateralAsset.address.toLowerCase())
+      ) {
+        return null;
+      }
       const rewardTokens = market.state.rewards
         .filter((reward) => reward.borrowApr > 0)
         .map((reward) => reward.asset.address);
@@ -378,6 +451,7 @@ const apy = async () => {
         chain,
         project: 'morpho-v1',
         symbol: market.collateralAsset?.symbol,
+        token: null,
         apy: 0,
         tvlUsd: market.state.collateralAssetsUsd || 0,
         underlyingTokens: [market.collateralAsset.address],
@@ -388,7 +462,7 @@ const apy = async () => {
           market.state.supplyAssetsUsd - market.state.borrowAssetsUsd,
         ltv: market.lltv / 1e18,
         mintedCoin: market.loanAsset?.symbol,
-        url: `https://app.morpho.org/market?id=${market.uniqueKey}&network=${chain}`,
+        url: `https://app.morpho.org/${getChainSlug(chain)}/market/${market.uniqueKey}`,
         apyRewardBorrow,
         rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],
       };
