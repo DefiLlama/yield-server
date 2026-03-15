@@ -1,12 +1,7 @@
 const axios = require('axios');
 const utils = require('../utils');
 
-// yldfi strategy vault addresses (excluding wrapper vaults to avoid double counting)
-const VAULT_ADDRESSES = [
-  '0xCa960E6DF1150100586c51382f619efCCcF72706', // yscvxCRV
-  '0x8ED5AB1BA2b2E434361858cBD3CA9f374e8b0359', // yscvgCVX
-];
-
+const VAULTS_API = 'https://yldfi.co/api/vaults';
 const KONG_API = 'https://kong.yearn.farm/api/gql';
 
 const query = `
@@ -30,9 +25,17 @@ const query = `
 `;
 
 const getApy = async () => {
+  // Fetch vault addresses dynamically, only strategy vaults (ys-prefix)
+  const { data: vaultData } = await axios.get(VAULTS_API);
+  const strategyAddresses = Object.entries(vaultData)
+    .filter(([key, v]) => key.startsWith('ys') && v && typeof v === 'object' && v.address)
+    .map(([, v]) => v.address);
+
+  if (strategyAddresses.length === 0) return [];
+
   const response = await axios.post(KONG_API, {
     query,
-    variables: { addresses: VAULT_ADDRESSES },
+    variables: { addresses: strategyAddresses },
   });
 
   const vaults = response.data?.data?.vaults || [];
@@ -40,10 +43,10 @@ const getApy = async () => {
   return vaults.map((vault) => ({
     pool: `${vault.address}-ethereum`.toLowerCase(),
     chain: 'Ethereum',
-    project: 'yldfi',
+    project: 'yld',
     symbol: vault.asset.symbol,
     tvlUsd: vault.tvl.close,
-    apyBase: vault.apy.net * 100, // Convert to percentage
+    apyBase: vault.apy.net * 100,
     underlyingTokens: [vault.asset.address],
     url: `https://yldfi.co/vaults/${vault.symbol.toLowerCase()}`,
   }));
