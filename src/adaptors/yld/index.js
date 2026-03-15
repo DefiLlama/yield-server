@@ -43,7 +43,7 @@ const getApy = async () => {
     pool: `${vault.address}-ethereum`.toLowerCase(),
     chain: 'Ethereum',
     project: 'yld',
-    symbol: vault.asset.symbol,
+    symbol: vault.symbol,
     tvlUsd: vault.tvl.close,
     apyBase: vault.apy.weeklyNet * 100,
     underlyingTokens: [vault.asset.address],
