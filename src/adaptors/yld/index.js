@@ -25,17 +25,17 @@ const query = `
 `;
 
 const getApy = async () => {
-  // Fetch vault addresses dynamically, only strategy vaults (ys-prefix)
+  // Fetch all vault addresses dynamically
   const { data: vaultData } = await axios.get(VAULTS_API);
-  const strategyAddresses = Object.entries(vaultData)
-    .filter(([key, v]) => key.startsWith('ys') && v && typeof v === 'object' && v.address)
+  const vaultAddresses = Object.entries(vaultData)
+    .filter(([key, v]) => (key.startsWith('ys') || key.startsWith('y')) && v && typeof v === 'object' && v.address)
     .map(([, v]) => v.address);
 
-  if (strategyAddresses.length === 0) return [];
+  if (vaultAddresses.length === 0) return [];
 
   const response = await axios.post(KONG_API, {
     query,
-    variables: { addresses: strategyAddresses },
+    variables: { addresses: vaultAddresses },
   });
 
   const vaults = response.data?.data?.vaults || [];
