@@ -18,7 +18,7 @@ const query = `
         close
       }
       apy {
-        net
+        weeklyNet
       }
     }
   }
@@ -46,7 +46,7 @@ const getApy = async () => {
     project: 'yld',
     symbol: vault.asset.symbol,
     tvlUsd: vault.tvl.close,
-    apyBase: vault.apy.net * 100,
+    apyBase: vault.apy.weeklyNet * 100,
     underlyingTokens: [vault.asset.address],
     url: `https://yldfi.co/vaults/${vault.symbol.toLowerCase()}`,
   }));
