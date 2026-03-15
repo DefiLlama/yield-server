@@ -1,5 +1,4 @@
 const axios = require('axios');
-const utils = require('../utils');
 
 const VAULTS_API = 'https://yldfi.co/api/vaults';
 const KONG_API = 'https://kong.yearn.farm/api/gql';
@@ -25,7 +24,7 @@ const query = `
 `;
 
 const getApy = async () => {
-  // Fetch all vault addresses dynamically
+  // Fetch all vault addresses dynamically (wrapper + strategy vaults)
   const { data: vaultData } = await axios.get(VAULTS_API);
   const vaultAddresses = Object.entries(vaultData)
     .filter(([key, v]) => (key.startsWith('ys') || key.startsWith('y')) && v && typeof v === 'object' && v.address)
