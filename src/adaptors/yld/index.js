@@ -2,7 +2,8 @@ const axios = require('axios');
 
 const VAULTS_API = 'https://yldfi.co/api/vaults';
 const KONG_API = 'https://kong.yearn.farm/api/gql';
-const VAULT_PREFIXES = ['yscvxcrv', 'yscvgcvx', 'ycvxcrv', 'ycvgcvx'];
+// Vault keys use 'ys' prefix (strategy) or 'y' prefix (wrapper)
+const VAULT_PREFIXES = ['ys', 'y'];
 
 const query = `
   query GetVaults($addresses: [String!]!) {
