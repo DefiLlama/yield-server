@@ -77,7 +77,7 @@ const apy = async (timestamp = null) => {
         apyBase,
         apyBase7d,
         underlyingTokens: [pool.token0.id, pool.token1.id],
-        url: `https://www.satsuma.exchange/liquidity/${pool.id}`,
+        url: `https://www.satsuma.exchange/pool/${pool.id}`,
       };
     })
     .filter((p) => utils.keepFinite(p));
