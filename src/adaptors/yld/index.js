@@ -1,73 +1,47 @@
-const axios = require('axios');
 const utils = require('../utils');
 
-const VAULTS_API = 'https://yldfi.co/api/vaults';
-const KONG_API = 'https://kong.yearn.farm/api/gql';
-// Vault keys use 'ys' prefix (strategy) or 'y' prefix (wrapper)
-const VAULT_PREFIXES = ['ys', 'y'];
-
-const query = `
-  query GetVaults($addresses: [String!]!) {
-    vaults(chainId: 1, addresses: $addresses) {
-      address
-      name
-      symbol
-      asset {
-        address
-        symbol
-      }
-      tvl {
-        close
-      }
-      apy {
-        net
-      }
-    }
-  }
-`;
+const VAULTS = {
+  ycvxcrv: {
+    address: '0x95f19B19aff698169a1A0BBC28a2e47B14CB9a86',
+    symbol: 'cvxCRV',
+    underlying: '0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7',
+  },
+  yscvxcrv: {
+    address: '0xCa960E6DF1150100586c51382f619efCCcF72706',
+    symbol: 'cvxCRV',
+    underlying: '0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7',
+  },
+  yscvgcvx: {
+    address: '0x8ED5AB1BA2b2E434361858cBD3CA9f374e8b0359',
+    symbol: 'cvgCVX',
+    underlying: '0x2191DF768ad71140F9F3E96c1e4407A4aA31d082',
+  },
+};
 
 const getApy = async () => {
-  // Fetch vault addresses dynamically (wrapper + strategy vaults)
-  const { data: vaultData } = await axios.get(VAULTS_API, { timeout: 10000 });
-  const vaultAddresses = Object.entries(vaultData)
-    .filter(
-      ([key, v]) =>
-        VAULT_PREFIXES.some((p) => key.startsWith(p)) &&
-        v &&
-        typeof v === 'object' &&
-        v.address
-    )
-    .map(([, v]) => v.address);
-
-  if (vaultAddresses.length === 0) return [];
-
-  const response = await axios.post(
-    KONG_API,
-    { query, variables: { addresses: vaultAddresses } },
-    { timeout: 10000 }
+  const pools = await Promise.all(
+    Object.entries(VAULTS).map(async ([key, vault]) => {
+      try {
+        const info = await utils.getERC4626Info(vault.address, 'ethereum');
+        return {
+          pool: `${vault.address}-ethereum`.toLowerCase(),
+          chain: utils.formatChain('ethereum'),
+          project: 'yld',
+          symbol: utils.formatSymbol(vault.symbol),
+          tvlUsd: info.tvl / 1e18,
+          apyBase: info.apyBase,
+          underlyingTokens: [vault.underlying],
+          poolMeta: key,
+          url: `https://yldfi.co/vaults/${key}`,
+        };
+      } catch (e) {
+        console.error(`yld: failed to fetch ${key}:`, e.message);
+        return null;
+      }
+    })
   );
 
-  const vaults = (response.data?.data?.vaults || []).filter(
-    (vault) =>
-      vault?.address &&
-      vault?.symbol &&
-      vault?.asset?.address &&
-      vault?.asset?.symbol &&
-      Number.isFinite(Number(vault?.tvl?.close)) &&
-      Number.isFinite(Number(vault?.apy?.net))
-  );
-
-  return vaults.map((vault) => ({
-    pool: `${vault.address}-ethereum`.toLowerCase(),
-    chain: utils.formatChain('ethereum'),
-    project: 'yld',
-    symbol: utils.formatSymbol(vault.asset.symbol),
-    tvlUsd: Number(vault.tvl.close),
-    apyBase: Number(vault.apy.net) * 100,
-    underlyingTokens: [vault.asset.address],
-    poolMeta: vault.symbol,
-    url: `https://yldfi.co/vaults/${vault.symbol.toLowerCase()}`,
-  }));
+  return pools.filter(Boolean);
 };
 
 module.exports = {
