@@ -1,4 +1,5 @@
 const axios = require('axios');
+const utils = require('../utils');
 
 const VAULTS_API = 'https://yldfi.co/api/vaults';
 const KONG_API = 'https://kong.yearn.farm/api/gql';
@@ -58,12 +59,13 @@ const getApy = async () => {
 
   return vaults.map((vault) => ({
     pool: `${vault.address}-ethereum`.toLowerCase(),
-    chain: 'Ethereum',
+    chain: utils.formatChain('ethereum'),
     project: 'yld',
-    symbol: vault.symbol,
+    symbol: utils.formatSymbol(vault.asset.symbol),
     tvlUsd: Number(vault.tvl.close),
     apyBase: Number(vault.apy.net) * 100,
     underlyingTokens: [vault.asset.address],
+    poolMeta: vault.symbol,
     url: `https://yldfi.co/vaults/${vault.symbol.toLowerCase()}`,
   }));
 };
