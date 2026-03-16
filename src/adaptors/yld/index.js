@@ -3,17 +3,17 @@ const utils = require('../utils');
 const VAULTS = {
   ycvxcrv: {
     address: '0x95f19B19aff698169a1A0BBC28a2e47B14CB9a86',
-    symbol: 'cvxCRV',
+    symbol: 'ycvxCRV',
     underlying: '0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7',
   },
   yscvxcrv: {
     address: '0xCa960E6DF1150100586c51382f619efCCcF72706',
-    symbol: 'cvxCRV',
+    symbol: 'yscvxCRV',
     underlying: '0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7',
   },
   yscvgcvx: {
     address: '0x8ED5AB1BA2b2E434361858cBD3CA9f374e8b0359',
-    symbol: 'cvgCVX',
+    symbol: 'yscvgCVX',
     underlying: '0x2191DF768ad71140F9F3E96c1e4407A4aA31d082',
   },
 };
@@ -31,7 +31,6 @@ const getApy = async () => {
           tvlUsd: info.tvl / 1e18,
           apyBase: info.apyBase,
           underlyingTokens: [vault.underlying],
-          poolMeta: key,
           url: `https://yldfi.co/vaults/${key}`,
         };
       } catch (e) {
