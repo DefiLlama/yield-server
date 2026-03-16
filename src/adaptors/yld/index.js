@@ -19,16 +19,22 @@ const VAULTS = {
 };
 
 const getApy = async () => {
+  // Fetch underlying token prices
+  const underlyingAddresses = [...new Set(Object.values(VAULTS).map((v) => v.underlying))];
+  const priceData = await utils.getPrices(underlyingAddresses, 'ethereum');
+  const prices = priceData.pricesByAddress;
+
   const pools = await Promise.all(
     Object.entries(VAULTS).map(async ([key, vault]) => {
       try {
         const info = await utils.getERC4626Info(vault.address, 'ethereum');
+        const tokenPrice = prices[vault.underlying.toLowerCase()] || 0;
         return {
           pool: `${vault.address}-ethereum`.toLowerCase(),
           chain: utils.formatChain('ethereum'),
           project: 'yld',
           symbol: utils.formatSymbol(vault.symbol),
-          tvlUsd: info.tvl / 1e18,
+          tvlUsd: (info.tvl / 1e18) * tokenPrice,
           apyBase: info.apyBase,
           underlyingTokens: [vault.underlying],
           url: `https://yldfi.co/vaults/${key}`,
