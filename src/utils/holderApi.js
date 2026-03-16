@@ -6,6 +6,22 @@ const API_BASE = 'https://peluche2.llamao.fi/holders';
 const RETRYABLE_CODES = new Set([429, 500, 502, 503, 504]);
 const BALANCE_CHUNK_SIZE = 2000;
 const CHUNK_CONCURRENCY = 10;
+const HIGH_HOLDER_THRESHOLD = 100000;
+
+const ANKR_CHAIN_MAP = {
+  ethereum: 'eth',
+  arbitrum: 'arbitrum',
+  avax: 'avalanche',
+  base: 'base',
+  bsc: 'bsc',
+  fantom: 'fantom',
+  xdai: 'gnosis',
+  linea: 'linea',
+  optimism: 'optimism',
+  polygon: 'polygon',
+  polygon_zkevm: 'polygon_zkevm',
+  scroll: 'scroll',
+};
 
 // S3 cache
 
@@ -143,62 +159,70 @@ async function classifyTokensBatch(tasks) {
   return results;
 }
 
-// ANKR comparison — fallback for tokens that can't be classified by interface
-
-const ANKR_CHAIN_MAP = {
-  ethereum: 'eth',
-  arbitrum: 'arbitrum',
-  avax: 'avalanche',
-  base: 'base',
-  bsc: 'bsc',
-  fantom: 'fantom',
-  xdai: 'gnosis',
-  linea: 'linea',
-  optimism: 'optimism',
-  polygon: 'polygon',
-  polygon_zkevm: 'polygon_zkevm',
-  scroll: 'scroll',
-};
-
-async function getAnkrHolderCount(tokenAddress, chain) {
+async function getAnkrTopHolders(tokenAddress, chain, count = 15) {
   const ankrChain = ANKR_CHAIN_MAP[chain];
   if (!ankrChain) return null;
 
   const ankrKey = process.env.ANKR_API_KEY;
-  const ankrUrl = ankrKey
-    ? `https://rpc.ankr.com/multichain/${ankrKey}`
-    : 'https://rpc.ankr.com/multichain';
+  if (!ankrKey) return null;
+  const ankrUrl = `https://rpc.ankr.com/multichain/${ankrKey}`;
+
   const { data } = await axios.post(
     ankrUrl,
     {
       jsonrpc: '2.0',
       id: 1,
-      method: 'ankr_getTokenHoldersCount',
-      params: { blockchain: ankrChain, contractAddress: tokenAddress },
+      method: 'ankr_getTokenHolders',
+      params: {
+        blockchain: ankrChain,
+        contractAddress: tokenAddress,
+        pageSize: count,
+      },
     },
     { timeout: 15000 }
   );
-  return data?.result?.holderCount ?? data?.result?.holdersCount ?? null;
+
+  if (!data?.result?.holders) return null;
+
+  return {
+    holdersCount: data.result.holdersCount,
+    holders: data.result.holders.map((h) => ({
+      address: h.holderAddress,
+      balance: BigInt(h.balanceRawInteger || 0),
+    })),
+  };
 }
 
-// Compares Peluche (no rebase) vs ANKR — >10% diff means token needs rebase
+// Peluche comparison — fallback for tokens that can't be classified by interface
+// Compares rebase=false vs rebase=true counts; different counts means token is rebasing
+// High-holder tokens (>100k) skip Peluche rebase=true (times out) and return standard
 async function classifyByComparison(chainId, tokenAddress, chain) {
   try {
-    const [pelucheData, ankrCount] = await Promise.all([
-      fetchHolders(chainId, tokenAddress, 1, false),
-      getAnkrHolderCount(tokenAddress, chain),
-    ]);
+    // Fast pre-check: get rebase=false count to detect high-holder tokens
+    const noRebaseData = await fetchHolders(chainId, tokenAddress, 1, false);
+    const noRebaseCount = noRebaseData.total_holders || 0;
 
-    const pelucheCount = pelucheData.total_holders || 0;
+    // High-holder tokens: skip Peluche rebase=true (times out at >100k holders).
+    // Already failed all ABI probes — standard ERC-20.
+    if (noRebaseCount > HIGH_HOLDER_THRESHOLD) {
+      return 'standard';
+    }
 
-    if (ankrCount == null || ankrCount === 0) return 'needs_rebase';
-    if (pelucheCount === 0) return 'needs_rebase';
+    // Normal path: Peluche rebase=false vs rebase=true
+    const rebaseData = await fetchHolders(chainId, tokenAddress, 1, true);
+    const rebaseCount = rebaseData.total_holders || 0;
 
-    const diff = Math.abs(pelucheCount - ankrCount) / Math.max(ankrCount, 1);
+    if (noRebaseCount === 0 && rebaseCount === 0) return 'standard';
+    if (noRebaseCount === rebaseCount) return 'standard';
+
+    const max = Math.max(noRebaseCount, rebaseCount);
+    const diff = Math.abs(noRebaseCount - rebaseCount) / max;
     return diff > 0.1 ? 'needs_rebase' : 'standard';
   } catch (err) {
-    console.log(`ANKR comparison failed for ${tokenAddress} on ${chain}: ${err.message}`);
-    return 'standard';
+    console.log(
+      `Classification failed for ${tokenAddress} on ${chain}: ${err.message}`
+    );
+    return null;
   }
 }
 
@@ -211,7 +235,9 @@ async function getCurrentBlock(chain) {
     `https://coins.llama.fi/block/${chainKey}/${timestamp}`
   );
   if (!data.height || typeof data.height !== 'number') {
-    throw new Error(`Invalid block height for ${chain}: ${JSON.stringify(data)}`);
+    throw new Error(
+      `Invalid block height for ${chain}: ${JSON.stringify(data)}`
+    );
   }
   return data.height;
 }
@@ -320,13 +346,15 @@ async function fetchHolders(
   const url = `${API_BASE}?${params}`;
   const headers = getHeaders();
 
+  const opts = { headers, timeout: 300000 };
   try {
-    return (await axios.get(url, { timeout: 60000, headers })).data;
+    return (await axios.get(url, opts)).data;
   } catch (err) {
     const status = err.response?.status;
-    if (status && RETRYABLE_CODES.has(status)) {
+    const isTimeout = err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT';
+    if ((status && RETRYABLE_CODES.has(status)) || isTimeout) {
       await new Promise((r) => setTimeout(r, 2000));
-      return (await axios.get(url, { timeout: 60000, headers })).data;
+      return (await axios.get(url, opts)).data;
     }
     throw err;
   }
@@ -364,4 +392,7 @@ module.exports = {
   classifyTokensBatch,
   classifyByComparison,
   getCurrentBlock,
+  getAnkrTopHolders,
+  HIGH_HOLDER_THRESHOLD,
+  ANKR_CHAIN_MAP,
 };
