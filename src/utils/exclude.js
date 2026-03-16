@@ -247,6 +247,7 @@ const excludeAdaptors = [
   'quasar-vaults',
   'sithswap',
   'yieldoor',
+  'cove-protocol',
 ];
 
 const excludePools = [
