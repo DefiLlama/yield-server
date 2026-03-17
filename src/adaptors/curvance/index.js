@@ -26,7 +26,8 @@ const getPrices = async (addresses) => {
     const chunk = addresses.slice(i, i + chunkSize);
     try {
       const { data } = await axios.get(
-        `https://coins.llama.fi/prices/current/${chunk.join(',')}`
+        `https://coins.llama.fi/prices/current/${chunk.join(',')}`,
+        { timeout: 10_000 }
       );
       for (const [key, val] of Object.entries(data.coins || {})) {
         prices[key.split(':')[1].toLowerCase()] = val.price;
