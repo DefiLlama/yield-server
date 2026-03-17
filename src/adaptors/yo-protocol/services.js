@@ -16,7 +16,8 @@ exports.getVaultReward = async (url) => {
       (opportunity) =>
         opportunity.status === 'LIVE' &&
         typeof opportunity.apr === 'number' &&
-        opportunity.type !== 'INVALID'
+        opportunity.type !== 'INVALID' &&
+        typeof opportunity.identifier === 'string'
     )
     .forEach((opportunity) => {
       const key = opportunity.identifier.toLowerCase();
