@@ -3,41 +3,17 @@ const { formatChain, getPrices, getERC4626Info } = require('../utils');
 const { getVaultReward } = require('./services');
 
 const PROJECT_NAME = 'yo-protocol';
-const API_URL = 'https://api.yo.xyz/api/v1/vault/stats';
+const API_URL = 'https://api.yo.xyz/api/v1/vault/stats?secondary=true';
 const MERKL_API_URL =
   'https://api.merkl.xyz/v4/opportunities/?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE';
-const symboToNameMap = {
-  yoETH: 'Yield Optimizer ETH',
-  yoBTC: 'Yield Optimizer BTC',
-  yoUSD: 'Yield Optimizer USD',
-  yoEUR: 'Yield Optimizer EUR',
-  yoGOLD: 'Yield Optimizer GOLD',
-};
 
 const apy = async () => {
   const response = await axios.get(API_URL);
   const vaults = response.data.data;
 
-  // Flatten: primary vaults + their secondary vaults (with parent yield/tvl)
-  const allVaults = [];
-  for (const vault of vaults) {
-    allVaults.push({ ...vault, _isPrimary: true });
-    if (vault.secondaryVaults) {
-      for (const secondary of vault.secondaryVaults) {
-        allVaults.push({
-          ...secondary,
-          yield: vault.yield,
-          tvl: vault.tvl,
-          merklRewardYield: vault.merklRewardYield,
-          _isPrimary: false,
-        });
-      }
-    }
-  }
-
   // Fetch prices per chain to avoid address collisions across chains
   const chainGroups = {};
-  for (const vault of allVaults) {
+  for (const vault of vaults) {
     if (!chainGroups[vault.chain.name]) chainGroups[vault.chain.name] = new Set();
     chainGroups[vault.chain.name].add(vault.asset.address);
   }
@@ -53,7 +29,7 @@ const apy = async () => {
   );
 
   const tvls = await Promise.allSettled(
-    allVaults.map((vault) =>
+    vaults.map((vault) =>
       getERC4626Info(
         vault.contracts.vaultAddress.toLowerCase(),
         vault.chain.name
@@ -64,18 +40,19 @@ const apy = async () => {
   const tvlByKey = {};
   tvls.forEach((result, i) => {
     if (result.status === 'fulfilled') {
-      const vault = allVaults[i];
+      const vault = vaults[i];
       const key =
         `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
       tvlByKey[key] = result.value.tvl;
     }
   });
 
-  // Fetch vault rewards
+  // Fetch vault rewards from Merkl — keyed by vault address (not chain)
+  // so all chains for the same vault share the reward APY
   const vaultRewardMap = await getVaultReward(MERKL_API_URL);
 
   const result = [];
-  for (const vault of allVaults) {
+  for (const vault of vaults) {
     const key =
       `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
 
@@ -93,7 +70,7 @@ const apy = async () => {
     );
 
     // Preserve original pool IDs for existing primary pools to avoid losing historical data
-    const poolId = vault._isPrimary
+    const poolId = vault.type === 'Deposit'
       ? vault.contracts.vaultAddress
       : key;
 

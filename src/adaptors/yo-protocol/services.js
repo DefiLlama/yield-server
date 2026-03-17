@@ -1,16 +1,14 @@
 const axios = require('axios');
 
-const YOGOLD_ADDRESS = '0x586675a3a46b008d8408933cf42d8ff6c9cc61a1';
-
 exports.getVaultReward = async (url) => {
   const response = (await axios.get(url)).data;
 
-  // Check if data exists and is an array
   if (!response || !Array.isArray(response)) {
     return new Map();
   }
 
-  // Filter only live opportunities with valid APR and create a Map
+  // Match by vault address only (not chain) so all chains share the reward APY.
+  // When multiple campaigns exist for the same vault, keep the one with the highest APR.
   const vaultRewardMap = new Map();
 
   response
@@ -18,12 +16,14 @@ exports.getVaultReward = async (url) => {
       (opportunity) =>
         opportunity.status === 'LIVE' &&
         typeof opportunity.apr === 'number' &&
-        opportunity.type !== 'INVALID' &&
-        (opportunity.chainId !== 1 ||
-          opportunity.identifier.toLowerCase() === YOGOLD_ADDRESS)
+        opportunity.type !== 'INVALID'
     )
     .forEach((opportunity) => {
-      vaultRewardMap.set(opportunity.identifier.toLowerCase(), opportunity);
+      const key = opportunity.identifier.toLowerCase();
+      const existing = vaultRewardMap.get(key);
+      if (!existing || opportunity.apr > existing.apr) {
+        vaultRewardMap.set(key, opportunity);
+      }
     });
 
   return vaultRewardMap;
