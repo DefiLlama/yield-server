@@ -10,7 +10,7 @@ exports.getVaultReward = async (url) => {
   while (page < MAX_PAGES) {
     const separator = url.includes('?') ? '&' : '?';
     const paginatedUrl = `${url}${separator}items=${PAGE_SIZE}${page > 0 ? `&page=${page}` : ''}`;
-    const response = (await axios.get(paginatedUrl)).data;
+    const response = (await axios.get(paginatedUrl, { timeout: 10_000 })).data;
 
     if (!response || !Array.isArray(response) || response.length === 0) break;
 
