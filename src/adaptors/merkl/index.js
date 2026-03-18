@@ -135,7 +135,11 @@ const main = async () => {
         const poolAddress = pool.identifier;
 
         const tokenSymbols = pool.tokens.map((x) => x.symbol);
-        let symbol = cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
+        // LP positions: join all token symbols (user is exposed to both)
+        // Lending/holding: use last token only (user deposits one asset)
+        let symbol = ['POOL', 'STAKE'].includes(pool.action)
+          ? tokenSymbols.map(cleanSymbol).filter(Boolean).join('-')
+          : cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
 
         if (!symbol.length) {
           symbol = (
@@ -213,8 +217,10 @@ const main = async () => {
         const apyReward = pool.apr;
 
         const action = pool.action || null;
+        // For POOL/STAKE, tokens are already in the symbol — no need to repeat in poolMeta
         const firstToken = tokenSymbols[0] || null;
-        const vaultName = (tokenSymbols.length > 1 && firstToken !== symbol) ? firstToken : null;
+        const vaultName = !['POOL', 'STAKE'].includes(pool.action) &&
+          tokenSymbols.length > 1 && firstToken !== symbol ? firstToken : null;
         const poolMetaParts = [action, vaultName].filter(Boolean);
         const poolMeta = poolMetaParts.length > 0 ? poolMetaParts.join(' - ') : null;
 
