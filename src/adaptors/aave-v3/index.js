@@ -201,7 +201,7 @@ const getApyAptos = async () => {
     .filter((r) => !r.isFrozen && r.isActive && !r.isPaused)
     .map((r) => {
       const priceUsd =
-        (Number(r.priceInMarketReferenceCurrency) / 10 ** marketRefDecimals) *
+        (Number(r.priceInMarketReferenceCurrency) / marketRefDecimals) *
         marketRefPriceUsd;
       if (!priceUsd) return null;
 
@@ -216,7 +216,7 @@ const getApyAptos = async () => {
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
       return {
-        pool: `${r.underlyingAsset}-aptos`.toLowerCase(),
+        pool: `${r.aTokenAddress}-aptos`.toLowerCase(),
         chain: 'Aptos',
         project: 'aave-v3',
         symbol: r.symbol,
