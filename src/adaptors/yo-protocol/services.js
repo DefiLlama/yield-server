@@ -1,17 +1,27 @@
 const axios = require('axios');
 
 exports.getVaultReward = async (url) => {
-  const response = (await axios.get(url)).data;
+  // Paginate through all Merkl opportunities
+  const allOpportunities = [];
+  let page = 0;
 
-  if (!response || !Array.isArray(response)) {
-    return new Map();
+  while (true) {
+    const separator = url.includes('?') ? '&' : '?';
+    const paginatedUrl = `${url}${separator}items=100${page > 0 ? `&page=${page}` : ''}`;
+    const response = (await axios.get(paginatedUrl)).data;
+
+    if (!response || !Array.isArray(response) || response.length === 0) break;
+
+    allOpportunities.push(...response);
+    if (response.length < 100) break;
+    page++;
   }
 
   // Match by vault address only (not chain) so all chains share the reward APY.
   // When multiple campaigns exist for the same vault, keep the one with the highest APR.
   const vaultRewardMap = new Map();
 
-  response
+  allOpportunities
     .filter(
       (opportunity) =>
         opportunity.status === 'LIVE' &&
