@@ -19,14 +19,19 @@ const apy = async () => {
   }
 
   const pricesByKey = {};
-  await Promise.all(
+  const priceResults = await Promise.allSettled(
     Object.entries(chainGroups).map(async ([chain, addresses]) => {
       const { pricesByAddress } = await getPrices([...addresses], chain);
-      for (const [address, price] of Object.entries(pricesByAddress)) {
-        pricesByKey[`${chain}:${address}`.toLowerCase()] = price;
-      }
+      return { chain, pricesByAddress };
     })
   );
+  for (const result of priceResults) {
+    if (result.status !== 'fulfilled') continue;
+    const { chain, pricesByAddress } = result.value;
+    for (const [address, price] of Object.entries(pricesByAddress)) {
+      pricesByKey[`${chain}:${address}`.toLowerCase()] = price;
+    }
+  }
 
   const tvls = await Promise.allSettled(
     vaults.map((vault) =>
