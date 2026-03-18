@@ -10,6 +10,8 @@ const DECIMALS = {
   vyETH: 18,
   yBTC: 18,
   vyBTC: 18,
+  yPYNM: 18,
+  yValos: 18
 };
 
 // Contract addresses - Multi-chain configuration
