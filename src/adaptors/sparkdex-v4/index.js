@@ -1,9 +1,8 @@
 const axios = require('axios');
-const { aprToApy } = require('../utils');
+const { aprToApy, keepFinite } = require('../utils');
 
 const V4_POOLS_API =
   'https://api.sparkdex.ai/dex/v4/pools?chainId=14&dex=SparkDEX';
-const rFLR = '0x26d460c3Cf931Fb2014FA436a49e3Af08619810e'; // Reward FLR
 const CHAIN = 'flare';
 
 // aprs[].type from API
@@ -28,49 +27,23 @@ const REWARD_TYPE_IDS = [
   AprTypeId.CUSDX,
 ];
 
+// rFLR can be swapped with 50% penalty instantly to wFLR or linear 12 months 
+// So we count APY with ratio: month 1 at 100%, months 2–12 at 50%
+// Effective ratio = (1*1 + 11*0.5) / 12 = 13/24
+const RFLR_APY_RATIO = (1 * 1 + 11 * 0.5) / 12;
+
+// Reward token address by AprTypeId (RFLR and types 2–7)
+const REWARD_TYPE_TO_TOKEN = {
+  [AprTypeId.RFLR]: '0x26d460c3Cf931Fb2014FA436a49e3Af08619810e',
+  [AprTypeId.SPRK]: '0x657097cC15fdEc9e383dB8628B57eA4a763F2ba0',
+  [AprTypeId.CUSDX]: '0xFE2907DFa8DB6e320cDbF45f0aa888F6135ec4f8',
+  [AprTypeId.DINERO]: '0xBE6D2BE4e01D4304a28eDD13038311e112313ec8',
+  [AprTypeId.PICO]: '0x5Ef135F575d215AE5A09E7B30885E866db138aF6',
+  [AprTypeId.BUGO]: '0x6c1490729ce19E809Cf9F7e3e223c0490833DE02',
+  [AprTypeId.DELEGATION]: '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d', // WFLR
+};
+
 const API_TIMEOUT_MS = 5000;
-
-/**
- * Effective total APY we would emit for a source (pool or vault), using the same
- * normalization as emitted yields: FEE → base, RFLR at 50%, other reward types at 100%.
- * Used so getBestAprSource compares post-haircut values.
- */
-function getEffectiveTotalApy(source) {
-  const aprs = source.aprs || [];
-  const feeApr = aprs
-    .filter((a) => a.type === AprTypeId.FEE)
-    .reduce((s, a) => s + (a.apr || 0), 0);
-  const rflrApr = aprs
-    .filter((a) => a.type === AprTypeId.RFLR)
-    .reduce((s, a) => s + (a.apr || 0), 0);
-  const otherRewardApr = aprs
-    .filter((a) => REWARD_TYPE_IDS.includes(a.type))
-    .reduce((s, a) => s + (a.apr || 0), 0);
-  const apyBase = aprToApy(feeApr);
-  const rflrApy = aprToApy(rflrApr);
-  const otherRewardApy = aprToApy(otherRewardApr);
-  const apyReward =
-    otherRewardApy + (rflrApy > 0 ? rflrApy / 2 : 0);
-  return apyBase + apyReward;
-}
-
-/**
- * Pick the source (pool or vault) with the highest effective total APY after
- * the same normalization we use when emitting (RFLR half, reward-type mapping).
- */
-function getBestAprSource(pool) {
-  const poolEffective = getEffectiveTotalApy(pool);
-  const vaults = pool.vaults || [];
-  if (vaults.length === 0) return pool;
-  const vaultEffectives = vaults.map((v) => getEffectiveTotalApy(v));
-  const maxVaultEffective = Math.max(...vaultEffectives);
-  if (poolEffective >= maxVaultEffective) return pool;
-  const bestIdx = vaultEffectives.reduce(
-    (i, val, j) => (val > vaultEffectives[i] ? j : i),
-    0
-  );
-  return vaults[bestIdx];
-}
 
 const apy = async () => {
   const response = await axios.get(V4_POOLS_API, {
@@ -89,9 +62,8 @@ const apy = async () => {
       const tvlUsd = lp.tvlUSD;
       if (!tvlUsd || tvlUsd <= 0) return null;
 
-      // Final APR = highest among native pool APR and all vault APRs
-      const best = getBestAprSource(lp);
-      const aprs = best.aprs || [];
+      // Native pool only (no steer/ichi vault comparison)
+      const aprs = lp.aprs || [];
 
       const feeApr = aprs
         .filter((a) => a.type === AprTypeId.FEE)
@@ -104,11 +76,12 @@ const apy = async () => {
         .reduce((s, a) => s + (a.apr || 0), 0);
 
       const apyBase = aprToApy(feeApr);
-      const rflrApy = aprToApy(rflrApr);
+      // rFLR can be swapped with 50% penalty instantly to wFLR or linear 12 months 
+      // So we count APY with ratio: month 1 at 100%, months 2–12 at 50%
+      // Effective ratio = (1*1 + 11*0.5) / 12 = 13/24
+      const rflrApy = aprToApy(rflrApr * RFLR_APY_RATIO);
       const otherRewardApy = aprToApy(otherRewardApr);
-      // RFLR (type 1): 50% penalty as in v3.1
-      const apyReward =
-        otherRewardApy + (rflrApy > 0 ? rflrApy / 2 : 0);
+      const apyReward = otherRewardApy + rflrApy;
 
       const poolMeta = {
         pool: `${lp.id}-${CHAIN}`.toLowerCase(),
@@ -121,11 +94,21 @@ const apy = async () => {
       };
       if (apyReward > 0) {
         poolMeta.apyReward = apyReward;
-        poolMeta.rewardTokens = [rFLR];
+        // Reward tokens from apr types that have non-zero APR
+        const rewardTypesWithApr = aprs.filter(
+          (a) =>
+            a.type in REWARD_TYPE_TO_TOKEN && (a.apr || 0) > 0
+        );
+        poolMeta.rewardTokens = [
+          ...new Set(
+            rewardTypesWithApr.map((a) => REWARD_TYPE_TO_TOKEN[a.type])
+          ),
+        ];
       }
       return poolMeta;
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((p) => keepFinite(p));
 
   return result;
 };
