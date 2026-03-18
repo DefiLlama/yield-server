@@ -27,9 +27,8 @@ const REWARD_TYPE_IDS = [
   AprTypeId.CUSDX,
 ];
 
-// rFLR can be swapped with 50% penalty instantly to wFLR or linear 12 months 
-// So we count APY with ratio: month 1 at 100%, months 2–12 at 50%
-// Effective ratio = (1*1 + 11*0.5) / 12 = 13/24
+// rFLR: 12-month linear vesting — 1 month at 100%, 11 months at 50%.
+// Effective ratio = (1×100% + 11×50%) / 12 = 13/24 (single source of truth for RFLR APY scaling).
 const RFLR_APY_RATIO = (1 * 1 + 11 * 0.5) / 12;
 
 // Reward token address by AprTypeId (RFLR and types 2–7)
@@ -76,9 +75,6 @@ const apy = async () => {
         .reduce((s, a) => s + (a.apr || 0), 0);
 
       const apyBase = aprToApy(feeApr);
-      // rFLR can be swapped with 50% penalty instantly to wFLR or linear 12 months 
-      // So we count APY with ratio: month 1 at 100%, months 2–12 at 50%
-      // Effective ratio = (1*1 + 11*0.5) / 12 = 13/24
       const rflrApy = aprToApy(rflrApr * RFLR_APY_RATIO);
       const otherRewardApy = aprToApy(otherRewardApr);
       const apyReward = otherRewardApy + rflrApy;
