@@ -4,10 +4,11 @@ const { getVaultReward } = require('./services');
 
 const PROJECT_NAME = 'yo-protocol';
 const API_URL = 'https://api.yo.xyz/api/v1/vault/stats?secondary=true';
+const SOLANA_API_URL = 'https://api.yo.xyz/api/v1/solana/vault/stats';
 const MERKL_API_URL =
   'https://api.merkl.xyz/v4/opportunities/?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE';
 
-const apy = async () => {
+const getEvmPools = async () => {
   const response = await axios.get(API_URL);
   const vaults = response.data.data;
 
@@ -56,7 +57,7 @@ const apy = async () => {
   // so all chains for the same vault share the reward APY
   const vaultRewardMap = await getVaultReward(MERKL_API_URL);
 
-  const result = [];
+  const pools = [];
   for (const vault of vaults) {
     const key =
       `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
@@ -95,10 +96,64 @@ const apy = async () => {
       }),
     };
 
-    result.push(pool);
+    pools.push(pool);
   }
 
-  return result;
+  return pools;
+};
+
+const getSolanaPools = async () => {
+  const response = await axios.get(SOLANA_API_URL);
+  const vaults = response.data.data;
+
+  if (!vaults || !vaults.length) return [];
+
+  // Fetch prices for Solana assets via DefiLlama
+  const assetAddresses = [...new Set(vaults.map((v) => v.asset.address))];
+  const { pricesByAddress } = await getPrices(assetAddresses, 'solana');
+
+  const pools = [];
+  for (const vault of vaults) {
+    const price = pricesByAddress[vault.asset.address.toLowerCase()];
+    if (price == null) continue;
+
+    const tvlRaw = vault.tvl?.raw;
+    if (tvlRaw == null) continue;
+
+    const normalizedTvl = Number(tvlRaw) / 10 ** vault.asset.decimals;
+    const tvlUsd = normalizedTvl * Number(price);
+
+    const apyBase = vault.yield?.['1d'] != null ? Number(vault.yield['1d']) : null;
+    const rewardYield = vault.rewardYield != null ? Number(vault.rewardYield) : null;
+
+    const pool = {
+      pool: vault.contracts.vaultAddress,
+      chain: formatChain('Solana'),
+      poolMeta: vault.name,
+      project: PROJECT_NAME,
+      symbol: vault.asset.symbol,
+      tvlUsd,
+      apyBase,
+      underlyingTokens: [vault.asset.address],
+      url: `https://app.yo.xyz/vault/Solana/${vault.id.toLowerCase()}`,
+      ...(rewardYield && rewardYield > 0 && {
+        apyReward: rewardYield,
+      }),
+    };
+
+    pools.push(pool);
+  }
+
+  return pools;
+};
+
+const apy = async () => {
+  const [evmPools, solanaPools] = await Promise.all([
+    getEvmPools(),
+    getSolanaPools().catch(() => []),
+  ]);
+
+  return [...evmPools, ...solanaPools];
 };
 
 module.exports = { apy };
