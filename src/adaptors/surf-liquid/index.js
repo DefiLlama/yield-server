@@ -1,10 +1,8 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
 const CHAIN = 'base';
-const CHAIN_ID = 8453;
 
 const V2_FACTORY = '0x1D283b668F947E03E8ac8ce8DA5505020434ea0E';
 const V3_FACTORY = '0xf1d64dee9f8e109362309a4bfbb523c8e54fa1aa';
@@ -20,38 +18,14 @@ const ASSET_SYMBOLS = {
   [WETH]: 'WETH',
   [CBBTC]: 'cbBTC',
 };
+const ASSET_DECIMALS = {
+  [USDC]: 6,
+  [WETH]: 18,
+  [CBBTC]: 8,
+};
 const ZERO_ADDR = '0x0000000000000000000000000000000000000000';
 
 const PERFORMANCE_FEE = 0.1; // 10% on earned yield
-const STAKING_APY = 14; // conservative: 14% (6M), up to 18% (12M)
-
-const MORPHO_API = 'https://api.morpho.org/graphql';
-
-const morphoVaultsQuery = gql`
-  query GetVaults($addresses: [String!]!, $chainId: Int!) {
-    vaults(
-      where: { address_in: $addresses, chainId_in: [$chainId] }
-      first: 100
-    ) {
-      items {
-        address
-        state {
-          netApy
-          apy
-          totalAssetsUsd
-          totalAssets
-          totalSupply
-        }
-        asset {
-          address
-          symbol
-          decimals
-          priceUsd
-        }
-      }
-    }
-  }
-`;
 
 const apy = async () => {
   // --- Step 1: Discover Surf Liquid vault addresses ---
@@ -94,12 +68,10 @@ const apy = async () => {
     chain: CHAIN,
   });
 
-  // Track: morphoVault -> [surfVault, ...] and asset -> [morphoVault, ...]
-  const morphoToSurfVaults = {}; // morphoAddr -> Set<surfVaultAddr>
-  const assetToMorphoVaults = {}; // assetAddr -> Set<morphoAddr>
+  const morphoToSurfVaults = {};
+  const assetToMorphoVaults = {};
   for (const asset of ASSETS) assetToMorphoVaults[asset] = new Set();
 
-  // Add V2 results (all USDC)
   for (let i = 0; i < v2Vaults.length; i++) {
     const morpho = v2MorphoResults[i].output;
     if (morpho && morpho !== ZERO_ADDR) {
@@ -110,7 +82,6 @@ const apy = async () => {
     }
   }
 
-  // V3 vaults -> assetToVault(asset) for each asset
   for (const asset of ASSETS) {
     if (v3Vaults.length === 0) continue;
     const { output: morphoResults } = await sdk.api.abi.multiCall({
@@ -130,10 +101,10 @@ const apy = async () => {
     }
   }
 
-  // --- Step 3: Get balances (TVL per asset) ---
+  // --- Step 3: Get balances (shares held in Morpho vaults) ---
 
   const balanceCalls = [];
-  const balanceCallMeta = []; // track which call belongs to which morpho vault
+  const balanceCallMeta = [];
 
   for (const [morphoVault, surfVaults] of Object.entries(morphoToSurfVaults)) {
     for (const surfVault of surfVaults) {
@@ -148,8 +119,7 @@ const apy = async () => {
     chain: CHAIN,
   });
 
-  // Sum shares per Morpho vault
-  const sharesPerMorpho = {}; // morphoAddr -> totalShares (BigInt-like string math)
+  const sharesPerMorpho = {};
   for (let i = 0; i < balanceResults.length; i++) {
     const { morphoVault } = balanceCallMeta[i];
     const shares = BigInt(balanceResults[i].output || '0');
@@ -157,36 +127,80 @@ const apy = async () => {
       (sharesPerMorpho[morphoVault] || BigInt(0)) + shares;
   }
 
-  // --- Step 4: Query Morpho API for APY + conversion data ---
+  // --- Step 4: On-chain APY from Morpho vault share price changes ---
 
   const allMorphoAddresses = Object.keys(morphoToSurfVaults);
 
-  let morphoData = {};
-  if (allMorphoAddresses.length > 0) {
-    const { vaults: morphoVaultsResp } = await request(
-      MORPHO_API,
-      morphoVaultsQuery,
-      {
-        addresses: allMorphoAddresses,
-        chainId: CHAIN_ID,
-      }
-    );
+  const now = Math.floor(Date.now() / 1000);
+  const dayAgo = now - 86400;
+  const [blockNow, blockPast] = await utils.getBlocksByTime(
+    [now, dayAgo],
+    CHAIN
+  );
 
-    for (const vault of morphoVaultsResp.items) {
-      if (vault.state) {
-        morphoData[vault.address.toLowerCase()] = {
-          netApy: vault.state.netApy || 0,
-          totalAssets: BigInt(vault.state.totalAssets || '0'),
-          totalSupply: BigInt(vault.state.totalSupply || '1'),
-          priceUsd: vault.asset?.priceUsd || 0,
-          decimals: vault.asset?.decimals || 18,
-          symbol: vault.asset?.symbol || '',
-        };
-      }
-    }
+  const [assetsNowRes, supplyNowRes] = await Promise.all([
+    sdk.api.abi.multiCall({
+      abi: 'uint256:totalAssets',
+      calls: allMorphoAddresses.map((target) => ({ target })),
+      chain: CHAIN,
+      block: blockNow,
+    }),
+    sdk.api.abi.multiCall({
+      abi: 'uint256:totalSupply',
+      calls: allMorphoAddresses.map((target) => ({ target })),
+      chain: CHAIN,
+      block: blockNow,
+    }),
+  ]);
+
+  const [assetsPastRes, supplyPastRes] = await Promise.all([
+    sdk.api.abi.multiCall({
+      abi: 'uint256:totalAssets',
+      calls: allMorphoAddresses.map((target) => ({ target })),
+      chain: CHAIN,
+      block: blockPast,
+    }),
+    sdk.api.abi.multiCall({
+      abi: 'uint256:totalSupply',
+      calls: allMorphoAddresses.map((target) => ({ target })),
+      chain: CHAIN,
+      block: blockPast,
+    }),
+  ]);
+
+  const morphoData = {};
+  for (let i = 0; i < allMorphoAddresses.length; i++) {
+    const addr = allMorphoAddresses[i];
+    const aNow = Number(assetsNowRes.output[i].output || '0');
+    const sNow = Number(supplyNowRes.output[i].output || '1');
+    const aPast = Number(assetsPastRes.output[i].output || '0');
+    const sPast = Number(supplyPastRes.output[i].output || '1');
+
+    const priceNow = sNow > 0 ? aNow / sNow : 1;
+    const pricePast = sPast > 0 ? aPast / sPast : 1;
+    const apyVal =
+      pricePast > 0 ? Math.pow(priceNow / pricePast, 365) - 1 : 0;
+
+    morphoData[addr] = {
+      apy: Math.max(apyVal, 0),
+      totalAssets: BigInt(assetsNowRes.output[i].output || '0'),
+      totalSupply: BigInt(supplyNowRes.output[i].output || '1'),
+    };
   }
 
-  // --- Step 5: Build yield pools per asset ---
+  // --- Step 5: Get asset prices ---
+
+  const priceKeys = ASSETS.map((a) => `${CHAIN}:${a}`).join(',');
+  const priceResp = await axios.get(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
+  );
+  const prices = {};
+  for (const asset of ASSETS) {
+    const key = `${CHAIN}:${asset}`;
+    prices[asset] = priceResp.data?.coins?.[key]?.price || 0;
+  }
+
+  // --- Step 6: Build yield pools per asset ---
 
   const pools = [];
 
@@ -196,6 +210,7 @@ const apy = async () => {
 
     let totalTvlUsd = 0;
     let weightedApy = 0;
+    const decimals = ASSET_DECIMALS[asset];
 
     for (const morphoAddr of morphoVaults) {
       const data = morphoData[morphoAddr];
@@ -204,26 +219,24 @@ const apy = async () => {
       const shares = sharesPerMorpho[morphoAddr] || BigInt(0);
       if (shares === BigInt(0)) continue;
 
-      // Convert shares to underlying assets
       const assets =
         data.totalSupply > BigInt(0)
           ? (shares * data.totalAssets) / data.totalSupply
           : BigInt(0);
 
-      const tvlUsd =
-        (Number(assets) / 10 ** data.decimals) * data.priceUsd;
+      const tvlUsd = (Number(assets) / 10 ** decimals) * prices[asset];
 
       totalTvlUsd += tvlUsd;
-      weightedApy += data.netApy * tvlUsd;
+      weightedApy += data.apy * tvlUsd;
     }
 
-    if (totalTvlUsd < 100) continue; // skip negligible pools
+    if (totalTvlUsd < 100) continue;
 
     const avgMorphoApy = totalTvlUsd > 0 ? weightedApy / totalTvlUsd : 0;
     const userApy = avgMorphoApy * (1 - PERFORMANCE_FEE);
 
     pools.push({
-      pool: `surf-liquid-${ASSET_SYMBOLS[asset].toLowerCase()}-${CHAIN}`,
+      pool: `${V3_FACTORY.toLowerCase()}-${ASSET_SYMBOLS[asset].toLowerCase()}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
       project: 'surf-liquid',
       symbol: ASSET_SYMBOLS[asset],
@@ -233,19 +246,44 @@ const apy = async () => {
     });
   }
 
-  // --- Step 6: SURF Staking pool ---
+  // --- Step 7: SURF Staking pool (APR from on-chain) ---
 
-  const { output: totalStaked } = await sdk.api.abi.call({
-    target: SURF_STAKING,
-    abi: 'uint256:totalStaked',
-    chain: CHAIN,
-  });
+  const [
+    { output: totalStaked },
+    { output: apr6M },
+    { output: apr12M },
+    { output: basisPoints },
+  ] = await Promise.all([
+    sdk.api.abi.call({
+      target: SURF_STAKING,
+      abi: 'uint256:totalStaked',
+      chain: CHAIN,
+    }),
+    sdk.api.abi.call({
+      target: SURF_STAKING,
+      abi: 'uint256:apr6Months',
+      chain: CHAIN,
+    }),
+    sdk.api.abi.call({
+      target: SURF_STAKING,
+      abi: 'uint256:apr12Months',
+      chain: CHAIN,
+    }),
+    sdk.api.abi.call({
+      target: SURF_STAKING,
+      abi: 'uint256:BASIS_POINTS',
+      chain: CHAIN,
+    }),
+  ]);
 
-  const priceKey = `${CHAIN}:${SURF_TOKEN}`;
-  const priceResp = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}?searchWidth=24h`
+  const stakingApr6M = (Number(apr6M) / Number(basisPoints)) * 100;
+  const stakingApr12M = (Number(apr12M) / Number(basisPoints)) * 100;
+
+  const surfPriceKey = `${CHAIN}:${SURF_TOKEN}`;
+  const surfPriceResp = await axios.get(
+    `https://coins.llama.fi/prices/current/${surfPriceKey}?searchWidth=24h`
   );
-  const surfPrice = priceResp.data?.coins?.[priceKey]?.price || 0;
+  const surfPrice = surfPriceResp.data?.coins?.[surfPriceKey]?.price || 0;
   const stakingTvl = (Number(totalStaked) / 1e18) * surfPrice;
 
   // CreatorBid subscriptions (SURF locked in token contract)
@@ -259,16 +297,16 @@ const apy = async () => {
 
   if (stakingTvl > 100) {
     pools.push({
-      pool: `surf-liquid-staking-${CHAIN}`,
+      pool: `${SURF_STAKING.toLowerCase()}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
       project: 'surf-liquid',
       symbol: 'SURF',
       tvlUsd: stakingTvl + subscriptionTvl,
       apyBase: 0,
-      apyReward: STAKING_APY,
+      apyReward: stakingApr6M,
       rewardTokens: [SURF_TOKEN],
       underlyingTokens: [SURF_TOKEN],
-      poolMeta: '14% APY (6M lock) / 18% APY (12M lock)',
+      poolMeta: `${stakingApr6M}% APR (6M lock) / ${stakingApr12M}% APR (12M lock)`,
     });
   }
 
