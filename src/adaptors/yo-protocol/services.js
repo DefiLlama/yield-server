@@ -2,18 +2,20 @@ const axios = require('axios');
 
 exports.getVaultReward = async (url) => {
   // Paginate through all Merkl opportunities
+  const PAGE_SIZE = 100;
+  const MAX_PAGES = 200;
   const allOpportunities = [];
   let page = 0;
 
-  while (true) {
+  while (page < MAX_PAGES) {
     const separator = url.includes('?') ? '&' : '?';
-    const paginatedUrl = `${url}${separator}items=100${page > 0 ? `&page=${page}` : ''}`;
+    const paginatedUrl = `${url}${separator}items=${PAGE_SIZE}${page > 0 ? `&page=${page}` : ''}`;
     const response = (await axios.get(paginatedUrl)).data;
 
     if (!response || !Array.isArray(response) || response.length === 0) break;
 
     allOpportunities.push(...response);
-    if (response.length < 100) break;
+    if (response.length < PAGE_SIZE) break;
     page++;
   }
 
