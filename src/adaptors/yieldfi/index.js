@@ -79,7 +79,7 @@ const YVALOS_CONTRACTS = {
   ethereum: "0xd04ae722b3fe56812e13bb212a79cea7c1b08ff0",
 }
 
-const YPYTHAGORAS_CONTRACTS = {
+const YPYMN_CONTRACTS = {
   ethereum: "0x06c2c73f30135c831d010ec7b82d0f32321c4f27",
 }
 // Underlying token addresses per chain (USDC for yUSD/vyUSD, WETH for yETH/vyETH, WBTC for yBTC/vyBTC)
@@ -290,7 +290,7 @@ const poolsFunction = async () => {
         processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain),
         processToken(YHLP_CONTRACTS[chain], 'yHLP', chain),
         processToken(YVALOS_CONTRACTS[chain], 'yValos', chain),
-        processToken(YPYTHAGORAS_CONTRACTS[chain], 'yPythagoras', chain)
+        processToken(YPYMN_CONTRACTS[chain], 'yPYMN', chain)
       );
     }
     if (chain === 'arbitrum' || chain === 'base') {
