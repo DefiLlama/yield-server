@@ -135,11 +135,21 @@ const main = async () => {
         const poolAddress = pool.identifier;
 
         const tokenSymbols = pool.tokens.map((x) => x.symbol);
-        // LP positions: join all token symbols (user is exposed to both)
-        // Lending/holding: use last token only (user deposits one asset)
-        let symbol = ['POOL', 'STAKE'].includes(pool.action)
-          ? tokenSymbols.map(cleanSymbol).filter(Boolean).join('-')
-          : cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
+        // For POOL/STAKE, filter out the LP/vault token (address = pool identifier)
+        // so symbol shows the underlying pair (e.g. "cbBTC-tBTC" not "STEERAV267-cbBTC-tBTC")
+        const underlyingSymbols = ['POOL', 'STAKE'].includes(pool.action)
+          ? pool.tokens
+              .filter(
+                (t) =>
+                  t.address.toLowerCase() !== poolAddress.toLowerCase()
+              )
+              .map((t) => cleanSymbol(t.symbol))
+              .filter(Boolean)
+          : [];
+        let symbol =
+          underlyingSymbols.length > 0
+            ? underlyingSymbols.join('-')
+            : cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
 
         if (!symbol.length) {
           symbol = (
