@@ -9,7 +9,7 @@ const holderColumns = new pgp.helpers.ColumnSet(
     { name: 'holderCount', def: null },
     { name: 'avgPositionUsd', def: null },
     { name: 'top10Pct', def: null },
-    { name: 'top10Holders', def: null },
+    { name: 'top10Holders', def: null, mod: ':json' },
   ],
   { table: holderTable }
 );
