@@ -110,7 +110,7 @@ const main = async () => {
       let data;
       try {
         data = await utils.getData(
-          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
+          `https://api.merkl.fr/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
         );
       } catch (err) {
         console.log('failed to fetch Merkl data on chain ' + chain);
@@ -236,7 +236,7 @@ const main = async () => {
 
         const poolType = pool.type || 'UNKNOWN';
         const merklChain = chain === 'avax' ? 'avalanche' : chain;
-        const poolUrl = `https://app.merkl.xyz/opportunities/${merklChain}/${poolType}/${poolAddress}`;
+        const poolUrl = `https://app.merkl.fr/opportunities/${merklChain}/${poolType}/${poolAddress}`;
 
         const poolData = {
           pool: `${poolAddress}-merkl`,
@@ -261,5 +261,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.merkl.xyz/',
+  url: 'https://app.merkl.fr/',
 };
