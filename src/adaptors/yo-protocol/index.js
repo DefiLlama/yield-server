@@ -6,7 +6,11 @@ const PROJECT_NAME = 'yo-protocol';
 const API_URL = 'https://api.yo.xyz/api/v1/vault/stats?secondary=true';
 const SOLANA_API_URL = 'https://api.yo.xyz/api/v1/solana/vault/stats';
 const MERKL_API_URL =
-  'https://api.merkl.xyz/v4/opportunities/?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE';
+  'https://api.merkl.fr/v4/opportunities/?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE';
+
+// Fallback reward APY when Merkl is down or no matching campaign
+const FALLBACK_REWARD_APY = { yoUSD: 12 };
+const FALLBACK_REWARD_APY_DEFAULT = 10;
 
 const getEvmPools = async () => {
   const response = await axios.get(API_URL);
@@ -55,7 +59,12 @@ const getEvmPools = async () => {
 
   // Fetch vault rewards from Merkl — keyed by vault address (not chain)
   // so all chains for the same vault share the reward APY
-  const vaultRewardMap = await getVaultReward(MERKL_API_URL);
+  let vaultRewardMap;
+  try {
+    vaultRewardMap = await getVaultReward(MERKL_API_URL);
+  } catch {
+    vaultRewardMap = new Map();
+  }
 
   const pools = [];
   for (const vault of vaults) {
@@ -75,6 +84,10 @@ const getEvmPools = async () => {
       vault.contracts.vaultAddress.toLowerCase()
     );
 
+    const apyReward = vaultReward
+      ? Number(vaultReward.apr)
+      : (FALLBACK_REWARD_APY[vault.name] ?? FALLBACK_REWARD_APY_DEFAULT);
+
     // Preserve original pool IDs for existing primary pools to avoid losing historical data
     const poolId = vault.type === 'Deposit'
       ? vault.contracts.vaultAddress
@@ -90,10 +103,8 @@ const getEvmPools = async () => {
       apyBase: Number(vault.yield['1d']),
       underlyingTokens: [vault.asset.address],
       url: `https://app.yo.xyz/vault/${vault.chain.name}/${vault.contracts.vaultAddress}`,
-      ...(vaultReward && {
-        apyReward: Number(vaultReward.apr),
-        rewardTokens: ['0x1925450f5e5fb974b0aae1f3408cf5286fbd1a72'],
-      }),
+      apyReward,
+      rewardTokens: ['0x1925450f5e5fb974b0aae1f3408cf5286fbd1a72'],
     };
 
     pools.push(pool);
