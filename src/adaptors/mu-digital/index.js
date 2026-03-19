@@ -67,6 +67,7 @@ const CONVERT_TO_ASSETS_ABI =
 const DEFAULT_DAYS_PER_YEAR = 365;
 const DAY_IN_SECONDS = 24 * 60 * 60;
 const HOUR_IN_SECONDS = 60 * 60;
+const MIN_GAP_THRESHOLD_DAYS = 2;
 const MS_PER_SECOND = 1000;
 const MU_BOND_APY_MAX_LOOKBACK_DAYS = 14;
 const toUnit = (decimals) => `1${'0'.repeat(decimals)}`;
@@ -150,7 +151,7 @@ const getPriceWithFallback = async (priceFeed, asset, chain) => {
   try {
     const priceFromFeed = await getPriceFromFeed(priceFeed, asset, chain);
     if (priceFromFeed) return priceFromFeed;
-  } catch (error) {}
+  } catch (error) { }
   return new BigNumber(await getTokenPrice(asset, chain));
 };
 
@@ -328,9 +329,12 @@ const getMuBondApy = async (chain, muBond, priceFeed) => {
 
   if (!currentPlateauStart || !previousPlateauStart) return 0;
 
-  const gapDays =
+  let gapDays =
     (currentPlateauStart - previousPlateauStart) / DAY_IN_SECONDS;
   if (gapDays <= 0) return 0;
+  if (gapDays < MIN_GAP_THRESHOLD_DAYS) {
+    gapDays = 1;
+  }
 
   const ratio = priceNow.div(currentPlateauBoundary.older.price);
   return annualizeRatioByGapDays(ratio, gapDays, latest.timestamp);
