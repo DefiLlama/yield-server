@@ -161,33 +161,49 @@ async function classifyTokensBatch(tasks) {
 
 async function getAnkrTopHolders(tokenAddress, chain, count = 15) {
   const ankrChain = ANKR_CHAIN_MAP[chain];
-  if (!ankrChain) return null;
+  if (!ankrChain) {
+    console.log(`ANKR: unsupported chain ${chain}`);
+    return null;
+  }
 
   const ankrKey = process.env.ANKR_API_KEY;
-  if (!ankrKey) return null;
+  if (!ankrKey) {
+    console.log('ANKR: no ANKR_API_KEY set');
+    return null;
+  }
   const ankrUrl = `https://rpc.ankr.com/multichain/${ankrKey}`;
 
-  const { data } = await axios.post(
-    ankrUrl,
-    {
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'ankr_getTokenHolders',
-      params: {
-        blockchain: ankrChain,
-        contractAddress: tokenAddress,
-        pageSize: count,
+  let data;
+  try {
+    const resp = await axios.post(
+      ankrUrl,
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'ankr_getTokenHolders',
+        params: {
+          blockchain: ankrChain,
+          contractAddress: tokenAddress,
+          pageSize: count,
+        },
       },
-    },
-    { timeout: 15000 }
-  );
+      { timeout: 15000 }
+    );
+    data = resp.data;
+  } catch (err) {
+    console.log(`ANKR request failed for ${tokenAddress} on ${chain}: ${err.message}`);
+    return null;
+  }
 
-  if (!data?.result?.holders) return null;
+  if (!data?.result?.holders) {
+    if (data?.error) console.log(`ANKR error for ${tokenAddress} on ${chain}: ${JSON.stringify(data.error)}`);
+    return null;
+  }
 
   return {
     holdersCount: data.result.holdersCount,
     holders: data.result.holders.map((h) => ({
-      address: h.holderAddress,
+      address: h.holderAddress.toLowerCase(),
       balance: BigInt(h.balanceRawInteger || 0),
     })),
   };

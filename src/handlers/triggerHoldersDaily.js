@@ -352,7 +352,31 @@ function buildResult(
 async function processPool(task, totalSupplyMap, today) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
 
-  const data = await fetchHolders(chainId, tokenAddress, 10, false);
+  let data;
+  try {
+    data = await fetchHolders(chainId, tokenAddress, 10, false);
+  } catch (err) {
+    // Peluche error — try ANKR fallback
+    try {
+      const ankrData = await getAnkrTopHolders(tokenAddress, chain, 15);
+      if (ankrData && ankrData.holdersCount > 0) {
+        return buildResult(
+          ankrData.holders,
+          ankrData.holdersCount,
+          configID,
+          tvlUsd,
+          totalSupplyMap,
+          chain,
+          tokenAddress,
+          today
+        );
+      }
+    } catch (ankrErr) {
+      console.log(`ANKR fallback failed for ${tokenAddress} on ${chain}: ${ankrErr.message}`);
+    }
+    return null;
+  }
+
   const holderCount = data.total_holders;
 
   if (holderCount == null) {
@@ -401,18 +425,19 @@ async function processPool(task, totalSupplyMap, today) {
     totalSupply > 0n
   ) {
     const top10Balance = data.deltas.reduce(
-      (sum, d) => sum + BigInt(d.balance || d.amount || 0),
+      (sum, d) => sum + BigInt(d.delta || d.balance || d.amount || 0),
       0n
     );
     top10Pct = Number((top10Balance * 10000n) / totalSupply) / 100;
 
     top10Holders = data.deltas.map((d) => ({
-      address: d.address || d.owner,
-      balance: String(d.balance || d.amount || 0),
+      address: d.holder || d.address || d.owner,
+      balance: String(d.delta || d.balance || d.amount || 0),
       balancePct:
         totalSupply > 0n
           ? Number(
-              (BigInt(d.balance || d.amount || 0) * 10000n) / totalSupply
+              (BigInt(d.delta || d.balance || d.amount || 0) * 10000n) /
+                totalSupply
             ) / 100
           : 0,
     }));
