@@ -1,5 +1,7 @@
 const axios = require('axios');
-const { aprToApy, keepFinite } = require('../utils');
+const BigNumber = require('bignumber.js');
+const sdk = require('@defillama/sdk');
+const { aprToApy, keepFinite, getBlocksByTime, getPrices } = require('../utils');
 
 const V4_POOLS_API =
   'https://api.sparkdex.ai/dex/v4/pools?chainId=14&dex=SparkDEX';
@@ -45,36 +47,71 @@ const REWARD_TYPE_TO_TOKEN = {
 const API_TIMEOUT_MS = 5000;
 
 const apy = async () => {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const [block] = await getBlocksByTime([timestamp], CHAIN);
+
   const response = await axios.get(V4_POOLS_API, {
     timeout: API_TIMEOUT_MS,
   });
-  // V4 API returns [{ chain: 14, data: [ pool1, pool2, ... ] }]
   const chainData = Array.isArray(response.data) ? response.data[0] : null;
   if (!chainData || !chainData.data) return [];
 
   const pools = chainData.data.filter(
     (item) => item.token0 && item.token1
   );
+  if (pools.length === 0) return [];
+
+  const tokenAddresses = [
+    ...new Set(
+      pools.flatMap((p) => [p.token0.id, p.token1.id])
+    ),
+  ];
+  const { pricesByAddress } = await getPrices(
+    tokenAddresses.map((a) => a.toLowerCase()),
+    CHAIN
+  );
+
+  // Single batched multiCall for all pool balances (TVL from chain).
+  const balanceCalls = pools.flatMap((p) => [
+    { target: p.token0.id, params: [p.id] },
+    { target: p.token1.id, params: [p.id] },
+  ]);
+  const balanceRes = await sdk.api.abi.multiCall({
+    abi: 'erc20:balanceOf',
+    calls: balanceCalls,
+    chain: CHAIN,
+    block,
+    permitFailure: true,
+  });
 
   const result = pools
-    .map((lp) => {
-      const tvlUsd = lp.tvlUSD;
+    .map((lp, i) => {
+      const out = balanceRes.output;
+      const balance0 = BigNumber(out[2 * i].output || 0);
+      const balance1 = BigNumber(out[2 * i + 1].output || 0);
+      const token0 = lp.token0.id;
+      const token1 = lp.token1.id;
+      const price0 = pricesByAddress[token0.toLowerCase()] || 0;
+      const price1 = pricesByAddress[token1.toLowerCase()] || 0;
+      if (!price0 || !price1) return null;
+      const decimals0 = Number(lp.token0.decimals ?? 18);
+      const decimals1 = Number(lp.token1.decimals ?? 18);
+      const tvl0 = balance0.times(10 ** (18 - decimals0)).times(price0).div(1e18);
+      const tvl1 = balance1.times(10 ** (18 - decimals1)).times(price1).div(1e18);
+      const tvlUsd = tvl0.plus(tvl1).toNumber();
       if (!tvlUsd || tvlUsd <= 0) return null;
 
-      // Native pool only (no steer/ichi vault comparison)
       const aprs = lp.aprs || [];
-
       const feeApr = aprs
         .filter((a) => a.type === AprTypeId.FEE)
         .reduce((s, a) => s + (a.apr || 0), 0);
+      const apyBase = feeApr > 0 ? aprToApy(feeApr * 100) : 0;
       const rflrApr = aprs
         .filter((a) => a.type === AprTypeId.RFLR)
         .reduce((s, a) => s + (a.apr || 0), 0);
       const otherRewardApr = aprs
         .filter((a) => REWARD_TYPE_IDS.includes(a.type))
         .reduce((s, a) => s + (a.apr || 0), 0);
-
-      const apyBase = aprToApy(feeApr);
       const rflrApy = aprToApy(rflrApr * RFLR_APY_RATIO);
       const otherRewardApy = aprToApy(otherRewardApr);
       const apyReward = otherRewardApy + rflrApy;
@@ -90,7 +127,6 @@ const apy = async () => {
       };
       if (apyReward > 0) {
         poolMeta.apyReward = apyReward;
-        // Reward tokens from apr types that have non-zero APR
         const rewardTypesWithApr = aprs.filter(
           (a) =>
             a.type in REWARD_TYPE_TO_TOKEN && (a.apr || 0) > 0
