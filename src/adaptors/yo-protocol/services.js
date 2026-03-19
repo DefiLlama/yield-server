@@ -1,10 +1,10 @@
 const axios = require('axios');
 
 exports.getVaultReward = async (url) => {
-  // Paginate through all Merkl opportunities
+  // Paginate through all Merkl campaigns
   const PAGE_SIZE = 100;
   const MAX_PAGES = 200;
-  const allOpportunities = [];
+  const allCampaigns = [];
   let page = 0;
 
   while (page < MAX_PAGES) {
@@ -14,29 +14,27 @@ exports.getVaultReward = async (url) => {
 
     if (!response || !Array.isArray(response) || response.length === 0) break;
 
-    allOpportunities.push(...response);
+    allCampaigns.push(...response);
     if (response.length < PAGE_SIZE) break;
     page++;
   }
 
-  // Match by vault address only (not chain) so all chains share the reward APY.
-  // When multiple campaigns exist for the same vault, keep the one with the highest APR.
+  // Match by vault address (via Opportunity.identifier).
+  // When multiple campaigns exist for the same vault, keep the one with the latest endTimestamp.
   const vaultRewardMap = new Map();
 
-  allOpportunities
+  allCampaigns
     .filter(
-      (opportunity) =>
-        opportunity.status === 'LIVE' &&
-        typeof opportunity.apr === 'number' &&
-        opportunity.type !== 'INVALID' &&
-        typeof opportunity.identifier === 'string' &&
-        opportunity.identifier.trim() !== ''
+      (campaign) =>
+        typeof campaign.apr === 'number' &&
+        campaign.Opportunity?.identifier &&
+        campaign.Opportunity.identifier.trim() !== ''
     )
-    .forEach((opportunity) => {
-      const key = opportunity.identifier.toLowerCase();
+    .forEach((campaign) => {
+      const key = campaign.Opportunity.identifier.toLowerCase();
       const existing = vaultRewardMap.get(key);
-      if (!existing || opportunity.apr > existing.apr) {
-        vaultRewardMap.set(key, opportunity);
+      if (!existing || (campaign.endTimestamp ?? 0) > (existing.endTimestamp ?? 0)) {
+        vaultRewardMap.set(key, campaign);
       }
     });
 

@@ -6,7 +6,7 @@ const PROJECT_NAME = 'yo-protocol';
 const API_URL = 'https://api.yo.xyz/api/v1/vault/stats?secondary=true';
 const SOLANA_API_URL = 'https://api.yo.xyz/api/v1/solana/vault/stats';
 const MERKL_API_URL =
-  'https://api.merkl.fr/v4/opportunities/?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE';
+  'https://api.merkl.fr/v4/campaigns?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE&withOpportunity=true';
 
 // Fallback reward APY when Merkl is down or no matching campaign
 const FALLBACK_REWARD_APY = { yoUSD: 12 };
