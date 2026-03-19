@@ -248,6 +248,7 @@ const excludeAdaptors = [
   'sithswap',
   'yieldoor',
   'cove-protocol',
+  'lendle-earn',
 ];
 
 const excludePools = [
