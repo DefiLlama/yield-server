@@ -1977,6 +1977,14 @@ const excludePools = [
   '71b4f445-d105-4625-9412-9969af520ec7', // ethereum | TID Capital USDC
   '05ac03dd-2f60-483c-81e8-eb77e45dc1a4', // plasma | Hyperithm Euler USDT
   '9bb721af-1ab2-4655-a183-b5832ff764b8', // plasma | TelosC Earn USDT0
+
+  // temp merkl
+  '0x3d87F776226D0697A7a775688C9c420f832C1dB4-merkl',
+  '0x84757B45F6581fB01E6344994776c2F1a8Ee1a90-merkl',
+  '0xaA554B31dC787B24be07FF20376C50bC590598c2-merkl',
+  '0x434355f7eafcf3a5b8a6ef755505b845682f906b-merkl',
+  '0x3a2020D5Fd4739B667A38158D58F1A52BA0E280b-merkl',
+  '0xAE6Ee608b297305AbF3EB609B81FEBbb8F6A0bb3-merkl',
 ];
 
 const boundaries = {
