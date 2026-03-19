@@ -35,12 +35,12 @@ function cleanSymbol(symbol) {
   // Horizon market: variableDebtHorRwa, aHorRwa
   // Other prefixes: steak, gt, vbgt
   const prefixPatterns = [
-    /^variableDebt[A-Z][a-z]*(?:Rwa)?/i,  // variableDebtEth, variableDebtHorRwa, etc.
-    /^stableDebt[A-Z][a-z]*(?:Rwa)?/i,    // stableDebtEth, stableDebtHorRwa, etc.
-    /^a[A-Z][a-z]+(?:Rwa)?(?=[A-Z])/,     // aEth, aArb, aBsc, aHorRwa (followed by uppercase = token name)
-//    /^steak(?=[A-Z])/i,                    // steakUSDC -> USDC
-//    /^gt(?=[A-Z])/i,                       // gtWETH -> WETH
-//    /^vbgt(?=[A-Z])/i,                     // vbgtWETH -> WETH
+    /^variableDebt[A-Z][a-z]*(?:Rwa)?/i, // variableDebtEth, variableDebtHorRwa, etc.
+    /^stableDebt[A-Z][a-z]*(?:Rwa)?/i, // stableDebtEth, stableDebtHorRwa, etc.
+    /^a[A-Z][a-z]+(?:Rwa)?(?=[A-Z])/, // aEth, aArb, aBsc, aHorRwa (followed by uppercase = token name)
+    //    /^steak(?=[A-Z])/i,                    // steakUSDC -> USDC
+    //    /^gt(?=[A-Z])/i,                       // gtWETH -> WETH
+    //    /^vbgt(?=[A-Z])/i,                     // vbgtWETH -> WETH
   ];
 
   for (const pattern of prefixPatterns) {
@@ -137,19 +137,21 @@ const main = async () => {
         const tokenSymbols = pool.tokens.map((x) => x.symbol);
         // For POOL/STAKE, filter out the LP/vault token (address = pool identifier)
         // so symbol shows the underlying pair (e.g. "cbBTC-tBTC" not "STEERAV267-cbBTC-tBTC")
-        const underlyingSymbols = ['POOL', 'STAKE'].includes(pool.action)
+        // Only treat as multi-token if 2+ underlying tokens remain after filtering;
+        // single-token POOL/STAKE (vaults, gauges) are effectively single-asset deposits
+        const isPoolStake = ['POOL', 'STAKE'].includes(pool.action);
+        const underlyingSymbols = isPoolStake
           ? pool.tokens
               .filter(
-                (t) =>
-                  t.address.toLowerCase() !== poolAddress.toLowerCase()
+                (t) => t.address.toLowerCase() !== poolAddress.toLowerCase()
               )
               .map((t) => cleanSymbol(t.symbol))
               .filter(Boolean)
           : [];
-        let symbol =
-          underlyingSymbols.length > 0
-            ? underlyingSymbols.join('-')
-            : cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
+        const isMultiAsset = underlyingSymbols.length >= 2;
+        let symbol = isMultiAsset
+          ? underlyingSymbols.join('-')
+          : cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
 
         if (!symbol.length) {
           symbol = (
@@ -187,7 +189,10 @@ const main = async () => {
 
         // For ERC-4626 vault pools where the only underlying is the vault itself,
         // resolve to the actual asset via on-chain asset()
-        if (underlyingTokens.length === 1 && underlyingTokens[0].toLowerCase() === poolAddress.toLowerCase()) {
+        if (
+          underlyingTokens.length === 1 &&
+          underlyingTokens[0].toLowerCase() === poolAddress.toLowerCase()
+        ) {
           try {
             const result = await sdk.api.abi.call({
               target: poolAddress,
@@ -227,16 +232,20 @@ const main = async () => {
         const apyReward = pool.apr;
 
         const action = pool.action || null;
-        // For POOL/STAKE, tokens are already in the symbol — no need to repeat in poolMeta
+        // For multi-asset POOL/STAKE, tokens are in the symbol — no vault name needed
+        // For single-asset POOL/STAKE (vaults/gauges), show vault name like LEND/HOLD
         const firstToken = tokenSymbols[0] || null;
-        const vaultName = !['POOL', 'STAKE'].includes(pool.action) &&
-          tokenSymbols.length > 1 && firstToken !== symbol ? firstToken : null;
+        const vaultName =
+          !isMultiAsset && tokenSymbols.length > 1 && firstToken !== symbol
+            ? firstToken
+            : null;
         const poolMetaParts = [action, vaultName].filter(Boolean);
-        const poolMeta = poolMetaParts.length > 0 ? poolMetaParts.join(' - ') : null;
+        const poolMeta =
+          poolMetaParts.length > 0 ? poolMetaParts.join(' - ') : null;
 
         const poolType = pool.type || 'UNKNOWN';
         const merklChain = chain === 'avax' ? 'avalanche' : chain;
-        const poolUrl = `https://app.merkl.fr/opportunities/${merklChain}/${poolType}/${poolAddress}`;
+        const poolUrl = `https://app.merkl.xyz/opportunities/${merklChain}/${poolType}/${poolAddress}`;
 
         const poolData = {
           pool: `${poolAddress}-merkl`,
@@ -261,5 +270,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.merkl.fr/',
+  url: 'https://app.merkl.xyz/',
 };
