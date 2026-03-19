@@ -110,7 +110,7 @@ const main = async () => {
       let data;
       try {
         data = await utils.getData(
-          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
+          `https://api.merkl.fr/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
         );
       } catch (err) {
         console.log('failed to fetch Merkl data on chain ' + chain);
@@ -135,11 +135,21 @@ const main = async () => {
         const poolAddress = pool.identifier;
 
         const tokenSymbols = pool.tokens.map((x) => x.symbol);
-        // LP positions: join all token symbols (user is exposed to both)
-        // Lending/holding: use last token only (user deposits one asset)
-        let symbol = ['POOL', 'STAKE'].includes(pool.action)
-          ? tokenSymbols.map(cleanSymbol).filter(Boolean).join('-')
-          : cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
+        // For POOL/STAKE, filter out the LP/vault token (address = pool identifier)
+        // so symbol shows the underlying pair (e.g. "cbBTC-tBTC" not "STEERAV267-cbBTC-tBTC")
+        const underlyingSymbols = ['POOL', 'STAKE'].includes(pool.action)
+          ? pool.tokens
+              .filter(
+                (t) =>
+                  t.address.toLowerCase() !== poolAddress.toLowerCase()
+              )
+              .map((t) => cleanSymbol(t.symbol))
+              .filter(Boolean)
+          : [];
+        let symbol =
+          underlyingSymbols.length > 0
+            ? underlyingSymbols.join('-')
+            : cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
 
         if (!symbol.length) {
           symbol = (
@@ -226,7 +236,7 @@ const main = async () => {
 
         const poolType = pool.type || 'UNKNOWN';
         const merklChain = chain === 'avax' ? 'avalanche' : chain;
-        const poolUrl = `https://app.merkl.xyz/opportunities/${merklChain}/${poolType}/${poolAddress}`;
+        const poolUrl = `https://app.merkl.fr/opportunities/${merklChain}/${poolType}/${poolAddress}`;
 
         const poolData = {
           pool: `${poolAddress}-merkl`,
@@ -251,5 +261,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.merkl.xyz/',
+  url: 'https://app.merkl.fr/',
 };
