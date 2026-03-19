@@ -249,6 +249,7 @@ const excludeAdaptors = [
   'yieldoor',
   'cove-protocol',
   'lendle-earn',
+  'polynomial-liquidity',
 ];
 
 const excludePools = [
