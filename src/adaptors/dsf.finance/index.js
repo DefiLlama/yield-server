@@ -10,7 +10,8 @@ const abi = {
   totalSupply: 'uint256:totalSupply',
 };
 
-const APY_WINDOW_DAYS = [1, 3, 7];
+const APY_BASE_DAYS = 1;
+const APY_BASE_7D_DAYS = 7;
 const SCALE = 10n ** 12n;
 const BLOCK_FALLBACK_OFFSETS = [0, -1, 1, -2, 2];
 
@@ -48,7 +49,7 @@ async function callBigIntAtBlockWithFallback(contractAddress, abiFragment, block
         block: candidateBlock,
       };
     } catch (e) {
-      // пробуем следующий соседний блок
+      // try next nearby block
     }
   }
 
@@ -88,19 +89,14 @@ async function getLpPriceAtBlock(contractAddress, block) {
 }
 
 async function getTVL(contractAddress, block) {
-  const tvlResponse = await sdk.api.abi.call({
-    target: contractAddress,
-    abi: abi.totalHoldings,
-    chain: CHAIN,
+  const tvlResult = await callBigIntAtBlockWithFallback(
+    contractAddress,
+    abi.totalHoldings,
     block,
-  });
+    'totalHoldings',
+  );
 
-  const tvl = BigInt(tvlResponse.output);
-  if (tvl < 0n) {
-    throw new Error(`DSF: negative TVL at block=${block}`);
-  }
-
-  return tvl;
+  return tvlResult.value;
 }
 
 function annualizeLinearFromGrowth(growthNum, growthDen, dtSeconds) {
@@ -138,37 +134,20 @@ function format1e18ToNumber(x) {
   return neg ? -n : n;
 }
 
-async function getBestApy(contractAddress, nowTs, blockNow) {
-  const errors = [];
+async function getApyForDaysFromLpNow(contractAddress, nowTs, lpNow, days) {
+  const dtSeconds = days * 24 * 60 * 60;
+  const prevTs = nowTs - dtSeconds;
+  const blockPrev = await getBlockAtTs(CHAIN, prevTs);
+  const lpPrev = await getLpPriceAtBlock(contractAddress, blockPrev);
 
-  for (const days of APY_WINDOW_DAYS) {
-    const dtSeconds = days * 24 * 60 * 60;
-    const prevTs = nowTs - dtSeconds;
+  const growthScaled = (lpNow * SCALE) / lpPrev;
+  const apy = annualizeLinearFromGrowth(growthScaled, SCALE, dtSeconds);
 
-    try {
-      const blockPrev = await getBlockAtTs(CHAIN, prevTs);
-
-      const [lpNow, lpPrev] = await Promise.all([
-        getLpPriceAtBlock(contractAddress, blockNow),
-        getLpPriceAtBlock(contractAddress, blockPrev),
-      ]);
-
-      const growthScaled = (lpNow * SCALE) / lpPrev;
-      const apy = annualizeLinearFromGrowth(growthScaled, SCALE, dtSeconds);
-
-      if (Number.isFinite(apy) && apy > 0) {
-        return apy;
-      }
-
-      errors.push(`window=${days}d produced non-positive or non-finite APY`);
-    } catch (e) {
-      errors.push(`window=${days}d failed: ${e?.message ?? String(e)}`);
-    }
+  if (!Number.isFinite(apy)) {
+    throw new Error(`DSF: APY ${days}d is not finite`);
   }
 
-  throw new Error(
-    `DSF: APY fallback exhausted. ${errors.join(' | ')}`
-  );
+  return apy;
 }
 
 const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
@@ -176,13 +155,18 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
     const nowTs = timestamp;
     const blockNow = await getBlockAtTs(CHAIN, nowTs);
 
-    const [tvl, apy] = await Promise.all([
+    const [tvl, lpNow] = await Promise.all([
       getTVL(dsfPoolStables, blockNow),
-      getBestApy(dsfPoolStables, nowTs, blockNow),
+      getLpPriceAtBlock(dsfPoolStables, blockNow),
     ]);
 
-    if (!Number.isFinite(apy)) {
-      throw new Error('DSF: APY is not finite');
+    const [apyBase, apyBase7d] = await Promise.all([
+      getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_BASE_DAYS),
+      getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_BASE_7D_DAYS),
+    ]);
+
+    if (!Number.isFinite(apyBase) || !Number.isFinite(apyBase7d)) {
+      throw new Error('DSF: APY fields are not finite');
     }
 
     return [
@@ -192,7 +176,9 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
         project: 'dsf.finance',
         symbol: 'USDT-USDC-DAI',
         tvlUsd: format1e18ToNumber(tvl),
-        apy,
+        apy: apyBase,
+        apyBase,
+        apyBase7d,
         rewardTokens: null,
         underlyingTokens: [
           '0xdAC17F958D2ee523a2206206994597C13D831ec7',
@@ -204,7 +190,7 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
       },
     ];
   } catch (e) {
-    console.log('[DSF] Adapter failed:', e?.message ?? String(e));
+    console.log(`[DSF] Adapter failed at ts=${timestamp}:`, e?.message ?? String(e));
     return [];
   }
 };
