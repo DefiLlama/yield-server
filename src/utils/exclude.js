@@ -1969,14 +1969,14 @@ const excludePools = [
   'morpho-blue-0xfdece686f16877984325c7a1c192e0f18862bae3829d000a1a62b5bc2b31d4ef-hyperliquid',
   'morpho-blue-0xff608e5881ccba3859006b3c01e377314384c3d661d684c3e8b6354146e62155-arbitrum',
   // euler-v2 frozen vaults (governance set supplyCap/borrowCap to dust, wind-down mode)
-  'ab6d490b-0970-49e6-8859-545df298e1f5', // avax | EVK Vault eUSDt-3
-  '1230754d-3438-487d-aa02-eacc1f2f6fc3', // avax | K3 USDT Earn Vault
-  '3ee971fb-78cc-4016-90e3-ff48520da8a3', // bob | EVK Vault esatUSD-2
-  '5b6ba2f8-53a5-406c-89ab-a52ffab0b46a', // ethereum | EVK Vault eYU-1
-  'c1424055-1eb4-4c25-a30a-ebb0340dfd56', // ethereum | Earn USDC
-  '71b4f445-d105-4625-9412-9969af520ec7', // ethereum | TID Capital USDC
-  '05ac03dd-2f60-483c-81e8-eb77e45dc1a4', // plasma | Hyperithm Euler USDT
-  '9bb721af-1ab2-4655-a183-b5832ff764b8', // plasma | TelosC Earn USDT0
+  'euler-earn-0x66bE42a0BdA425A8C3b3c2cF4F4Cb9EDfcAEd21d-plasma',
+  'euler-earn-0xE1A62FDcC6666847d5EA752634E45e134B2F824B-avax',
+  '0xF004756AedD7375E4039E942BAB6CccFd1E165bB',
+  '0x1F46186AF85A967416b17380800c69860B7C516F',
+  'euler-earn-0x9B5aac9c6C70d5a583f44DDd13DF25AcC431fca4-ethereum',
+  'euler-earn-0xa9C251F8304b1B3Fc2b9e8fcae78D94Eff82Ac66-plasma',
+  '0xa446938b0204Aa4055cdFEd68Ddf0E0d1BAB3E9E',
+  'euler-earn-0x49C5733d71511A78a3E12925ea832f49031c97e9-ethereum',
 
   // temp merkl
   '0x3d87F776226D0697A7a775688C9c420f832C1dB4-merkl',
