@@ -249,7 +249,13 @@ const excludeAdaptors = [
   'yieldoor',
   'cove-protocol',
   'lendle-earn',
+<<<<<<< Updated upstream
   'polynomial-liquidity',
+=======
+  'supervaults',
+  'prismalst',
+  'chronos-v1',
+>>>>>>> Stashed changes
 ];
 
 const excludePools = [
