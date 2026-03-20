@@ -8,10 +8,6 @@ const SOLANA_API_URL = 'https://api.yo.xyz/api/v1/solana/vault/stats';
 const MERKL_API_URL =
   'https://api.merkl.fr/v4/campaigns?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE&withOpportunity=true';
 
-// Fallback reward APY when Merkl is down or no matching campaign
-const FALLBACK_REWARD_APY = { yoUSD: 12 };
-const FALLBACK_REWARD_APY_DEFAULT = 10;
-
 const getEvmPools = async () => {
   const response = await axios.get(API_URL);
   const vaults = response.data.data;
@@ -84,10 +80,6 @@ const getEvmPools = async () => {
       vault.contracts.vaultAddress.toLowerCase()
     );
 
-    const apyReward = vaultReward
-      ? Number(vaultReward.apr)
-      : (FALLBACK_REWARD_APY[vault.name] ?? FALLBACK_REWARD_APY_DEFAULT);
-
     // Preserve original pool IDs for existing primary pools to avoid losing historical data
     const poolId = vault.type === 'Deposit'
       ? vault.contracts.vaultAddress
@@ -103,8 +95,10 @@ const getEvmPools = async () => {
       apyBase: Number(vault.yield['1d']),
       underlyingTokens: [vault.asset.address],
       url: `https://app.yo.xyz/vault/${vault.chain.name}/${vault.contracts.vaultAddress}`,
-      apyReward,
-      rewardTokens: ['0x1925450f5e5fb974b0aae1f3408cf5286fbd1a72'],
+      ...(vaultReward && {
+        apyReward: Number(vaultReward.apr),
+        rewardTokens: ['0x1925450f5e5fb974b0aae1f3408cf5286fbd1a72'],
+      }),
     };
 
     pools.push(pool);
