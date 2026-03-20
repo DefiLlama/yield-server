@@ -45,6 +45,10 @@ const REWARD_TYPE_TO_TOKEN = {
 };
 
 const API_TIMEOUT_MS = 5000;
+// SparkDEX UI has no per-pool deep link; V4 liquidity lives under this shared entry.
+const POOL_V4_URL = 'https://sparkdex.ai/pool/v4';
+
+// API `aprs[].apr` values are already in percent form (×100 vs decimal), matching `aprToApy` input.
 
 const apy = async () => {
   const timestamp = Math.floor(Date.now() / 1000);
@@ -105,7 +109,7 @@ const apy = async () => {
       const feeApr = aprs
         .filter((a) => a.type === AprTypeId.FEE)
         .reduce((s, a) => s + (a.apr || 0), 0);
-      const apyBase = feeApr > 0 ? aprToApy(feeApr * 100) : 0;
+      const apyBase = feeApr > 0 ? aprToApy(feeApr) : 0;
       const rflrApr = aprs
         .filter((a) => a.type === AprTypeId.RFLR)
         .reduce((s, a) => s + (a.apr || 0), 0);
@@ -124,6 +128,7 @@ const apy = async () => {
         tvlUsd,
         apyBase,
         underlyingTokens: [lp.token0.id, lp.token1.id],
+        url: POOL_V4_URL,
       };
       if (apyReward > 0) {
         poolMeta.apyReward = apyReward;
@@ -148,5 +153,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://sparkdex.ai/pool',
+  url: POOL_V4_URL,
 };
