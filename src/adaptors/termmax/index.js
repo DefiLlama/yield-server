@@ -95,6 +95,24 @@ const VAULTS = {
   },
 };
 
+// Venus/Fluid static vault-pool mapping (BSC only)
+const VENUS_VAULT_POOLS = [
+  {
+    vault: '0xb5a2224bc5a4f42f319242ac089cdce97ff8a004',
+    pool: '0x2d531ed5ef85991efb68d0582a4a3a854037da85',
+  },
+  {
+    vault: '0xe0188f026c90f7b6d410149d21046d33f144de26',
+    pool: '0x10ebea27a57bac0ededaf7bf9638e4f331fbcdc9',
+  },
+  {
+    vault: '0x2fb88c622a408699781f140616ca0ea806d0fd96',
+    pool: '0xa2640c5901feea8ffe9196c0582e42ead1a3d22b',
+  },
+];
+
+const VENUS_VAULTS = new Set(VENUS_VAULT_POOLS.map((v) => v.vault));
+
 const VAULT_BLACKLIST = {
   arbitrum: [
     '0x8531dC1606818A3bc3D26207a63641ac2F1f6Dc8', // misconfigured asset
@@ -146,7 +164,6 @@ async function getVaultV1Addresses(chain, blockNumber) {
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
         chain,
-        onlyIndexer: true,
       });
       for (const log of logs) {
         addresses.push(log.args.vault);
@@ -272,7 +289,6 @@ async function getVaultV1PlusAddresses(chain, blockNumber) {
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
         chain,
-        onlyIndexer: true,
       });
       for (const log of logs) {
         addresses.push(log.args.vault);
@@ -405,7 +421,6 @@ async function getVaultV2Addresses(chain, blockNumber) {
         fromBlock: factory.fromBlock,
         toBlock: blockNumber,
         chain,
-        onlyIndexer: true,
       });
       for (const log of logs) {
         addresses.push(log.args.vault);
@@ -507,10 +522,146 @@ async function getAaveVaultEffectiveApy({
     })
     .then((r) => r.output.currentLiquidityRate);
 
-  const passiveApy = new BigNumber(currentLiquidityRate).div(
-    new BigNumber(10).pow(27)
-  );
+  // currentLiquidityRate is in RAY (1e27), convert to percentage form
+  const passiveApy = new BigNumber(currentLiquidityRate)
+    .div(new BigNumber(10).pow(27))
+    .times(100);
   return new BigNumber(apy).plus(passiveApy.times(passiveRatio)).toNumber();
+}
+
+// Fetch Morpho vault APY from GraphQL API
+async function getMorphoVaultApy(chainId, vaultAddress) {
+  const query = `
+    query VaultByAddress($address: String!, $chainId: Int!) {
+      vaultByAddress(address: $address, chainId: $chainId) {
+        state {
+          apy
+          netApy
+          avgNetApy
+        }
+      }
+    }
+  `;
+  const res = await axios.post('https://blue-api.morpho.org/graphql', {
+    query,
+    variables: { address: vaultAddress, chainId },
+  });
+  const vault = res.data?.data?.vaultByAddress;
+  if (!vault) return null;
+  return vault.state?.avgNetApy || vault.state?.netApy || vault.state?.apy || 0;
+}
+
+async function getMorphoVaultEffectiveApy({
+  apy,
+  assetAddress,
+  chain,
+  chainId,
+  poolAddress,
+}) {
+  // Pool contract exposes thirdPool() for Morpho vault address
+  const morphoVaultAddress = await sdk.api.abi
+    .call({
+      target: poolAddress,
+      abi: 'address:thirdPool',
+      chain,
+    })
+    .then((r) => r.output)
+    .catch(() => NULL_ADDRESS);
+  if (morphoVaultAddress === NULL_ADDRESS) return apy;
+
+  const morphoApy = await getMorphoVaultApy(chainId, morphoVaultAddress);
+  if (morphoApy === null || morphoApy === 0) return apy;
+
+  // Get Morpho shares held by the pool, then convert to underlying assets
+  const morphoShares = await sdk.api.abi
+    .call({
+      target: morphoVaultAddress,
+      abi: {
+        inputs: [{ type: 'address' }],
+        name: 'balanceOf',
+        outputs: [{ type: 'uint256' }],
+      },
+      params: [poolAddress],
+      chain,
+    })
+    .then((r) => r.output);
+
+  const [assetsInThirdPool, idle] = await Promise.all([
+    sdk.api.abi
+      .call({
+        target: morphoVaultAddress,
+        abi: {
+          inputs: [{ type: 'uint256' }],
+          name: 'convertToAssets',
+          outputs: [{ type: 'uint256' }],
+        },
+        params: [morphoShares],
+        chain,
+      })
+      .then((r) => r.output),
+    sdk.api.abi
+      .call({
+        target: assetAddress,
+        abi: {
+          inputs: [{ type: 'address' }],
+          name: 'balanceOf',
+          outputs: [{ type: 'uint256' }],
+        },
+        params: [poolAddress],
+        chain,
+      })
+      .then((r) => r.output),
+  ]);
+
+  const idleFund = new BigNumber(assetsInThirdPool).plus(idle);
+  if (idleFund.isZero()) return apy;
+
+  const passiveRatio = new BigNumber(assetsInThirdPool).div(idleFund);
+  // Morpho API returns APY in decimal form (0.05 = 5%), convert to percentage
+  return new BigNumber(apy)
+    .plus(new BigNumber(morphoApy).times(100).times(passiveRatio))
+    .toNumber();
+}
+
+// Fetch Fluid lending tokens for Venus/Fluid APY (BSC only)
+async function getFluidLendingTokens() {
+  const res = await axios.get(
+    'https://api.fluid.instadapp.io/v2/lending/56/tokens'
+  );
+  return res.data.data;
+}
+
+async function getVenusVaultEffectiveApy({
+  apy,
+  chain,
+  poolAddress,
+  vaultAddress,
+}) {
+  const venusMapping = VENUS_VAULT_POOLS.find(
+    (v) => v.vault === vaultAddress.toLowerCase()
+  );
+  if (!venusMapping) return null;
+
+  // Get thirdPool address (Fluid lending token) from pool contract
+  const thirdPoolAddress = await sdk.api.abi
+    .call({
+      target: poolAddress,
+      abi: 'address:thirdPool',
+      chain,
+    })
+    .then((r) => r.output.toLowerCase())
+    .catch(() => null);
+  if (!thirdPoolAddress) return apy;
+
+  const tokens = await getFluidLendingTokens();
+  const token = tokens.find(
+    (t) => t.address.toLowerCase() === thirdPoolAddress
+  );
+  if (!token) return apy;
+
+  // Venus/Fluid APY: totalRate / 100 gives percentage form (e.g. 512 -> 5.12%)
+  const venusApy = Number(token.totalRate) / 100;
+  return new BigNumber(apy).plus(venusApy).toNumber();
 }
 
 async function getVaultEffectiveApy({
@@ -521,6 +672,18 @@ async function getVaultEffectiveApy({
   poolAddress,
   vaultAddress,
 }) {
+  // 1. Check Venus/Fluid (static list, BSC only)
+  if (VENUS_VAULTS.has(vaultAddress.toLowerCase())) {
+    const venusResult = await getVenusVaultEffectiveApy({
+      apy,
+      chain,
+      poolAddress,
+      vaultAddress,
+    }).catch(() => null);
+    if (venusResult !== null) return venusResult;
+  }
+
+  // 2. Try Aave
   const aavePool = await sdk.api.abi
     .call({
       target: poolAddress,
@@ -539,7 +702,14 @@ async function getVaultEffectiveApy({
       aavePool,
     });
 
-  return apy;
+  // 3. Try Morpho
+  return await getMorphoVaultEffectiveApy({
+    apy,
+    assetAddress,
+    chain,
+    chainId,
+    poolAddress,
+  }).catch(() => apy);
 }
 
 async function getVaultsV2({ alias, chain, chainId, number, opportunities }) {
