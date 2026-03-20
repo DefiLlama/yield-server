@@ -20,20 +20,21 @@ exports.getVaultReward = async (url) => {
   }
 
   // Match by vault address (via Opportunity.identifier).
-  // When multiple campaigns exist for the same vault, keep the one with the latest endTimestamp.
+  // When multiple campaigns exist for the same vault, keep the one with the highest APR.
   const vaultRewardMap = new Map();
 
   allCampaigns
     .filter(
       (campaign) =>
         typeof campaign.apr === 'number' &&
+        campaign.apr > 0 &&
         campaign.Opportunity?.identifier &&
         campaign.Opportunity.identifier.trim() !== ''
     )
     .forEach((campaign) => {
       const key = campaign.Opportunity.identifier.toLowerCase();
       const existing = vaultRewardMap.get(key);
-      if (!existing || (campaign.endTimestamp ?? 0) > (existing.endTimestamp ?? 0)) {
+      if (!existing || campaign.apr > existing.apr) {
         vaultRewardMap.set(key, campaign);
       }
     });
