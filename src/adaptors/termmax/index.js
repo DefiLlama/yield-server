@@ -525,9 +525,10 @@ async function getAaveVaultEffectiveApy({
     })
     .then((r) => r.output.currentLiquidityRate);
 
-  const passiveApy = new BigNumber(currentLiquidityRate).div(
-    new BigNumber(10).pow(27)
-  );
+  // currentLiquidityRate is in RAY (1e27), convert to percentage form
+  const passiveApy = new BigNumber(currentLiquidityRate)
+    .div(new BigNumber(10).pow(27))
+    .times(100);
   return new BigNumber(apy).plus(passiveApy.times(passiveRatio)).toNumber();
 }
 
@@ -619,8 +620,9 @@ async function getMorphoVaultEffectiveApy({
   if (idleFund.isZero()) return apy;
 
   const passiveRatio = new BigNumber(assetsInThirdPool).div(idleFund);
+  // Morpho API returns APY in decimal form (0.05 = 5%), convert to percentage
   return new BigNumber(apy)
-    .plus(new BigNumber(morphoApy).times(passiveRatio))
+    .plus(new BigNumber(morphoApy).times(100).times(passiveRatio))
     .toNumber();
 }
 
@@ -660,8 +662,8 @@ async function getVenusVaultEffectiveApy({
   );
   if (!token) return apy;
 
-  // Venus/Fluid APY: totalRate is in basis points (1/10000)
-  const venusApy = Number(token.totalRate) / 10000;
+  // Venus/Fluid APY: totalRate / 100 gives percentage form (e.g. 512 -> 5.12%)
+  const venusApy = Number(token.totalRate) / 100;
   return new BigNumber(apy).plus(venusApy).toNumber();
 }
 
