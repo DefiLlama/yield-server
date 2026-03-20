@@ -10,7 +10,7 @@ const DECIMALS = {
   vyETH: 18,
   yBTC: 18,
   vyBTC: 18,
-  yPYNM: 18,
+  yPYMN: 18,
   yValos: 18
 };
 
