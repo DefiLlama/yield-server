@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const utils = require('../utils');
-const { getDynamicMarketDataAbi } = require('./abi');
+const { getDynamicMarketDataAbi, getStaticMarketDataAbi } = require('./abi');
 
 const SECONDS_PER_YEAR = 365 * 24 * 3600; // 31_536_000
 
@@ -19,7 +19,7 @@ const getPrices = async (addresses) => {
   if (!addresses.length) {
     return {};
   }
-  
+
   const chunkSize = 50;
   const prices = {};
   for (let i = 0; i < addresses.length; i += chunkSize) {
@@ -86,19 +86,25 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
     calls: markets.map((addr) => ({ target: addr })),
     permitFailure: true,
   });
-  const underlyings = underlyingRes.output.map((res) =>  
-    res.success ? res.output : null  
-  ); 
+  const underlyings = underlyingRes.output.map((res) =>
+    res.success ? res.output : null
+  );
   const validUnderlyingIndexes = underlyings
     .map((addr, i) => (addr ? i : -1))
     .filter((i) => i !== -1);
 
-  // Fetch dynamic market data (rates, debt, liquidity) + token metadata
-  const [dynamicDataRes, symbolRes, decimalsRes] = await Promise.all([
+  // Fetch dynamic + static market data + token metadata
+  const [dynamicDataRes, staticDataRes, symbolRes, decimalsRes] = await Promise.all([
     sdk.api.abi.call({
       target: protocolReader,
       chain,
       abi: getDynamicMarketDataAbi,
+      permitFailure: true,
+    }),
+    sdk.api.abi.call({
+      target: protocolReader,
+      chain,
+      abi: getStaticMarketDataAbi,
       permitFailure: true,
     }),
     sdk.api.abi.multiCall({
@@ -125,6 +131,15 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
   for (const manager of dynamicData) {
     for (const token of (manager.tokens || [])) {
       dynamicByMarket[token._address.toLowerCase()] = token;
+    }
+  }
+
+  // Index static data by market token address for O(1) lookup
+  const staticData = staticDataRes.output || [];
+  const staticByMarket = {};
+  for (const manager of staticData) {
+    for (const token of (manager.tokens || [])) {
+      staticByMarket[token._address.toLowerCase()] = token;
     }
   }
 
@@ -185,6 +200,9 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
       const manager = marketToManager[market.toLowerCase()];
       const poolMeta = managerSymbols[manager].join("/");
 
+      const staticToken = staticByMarket[market.toLowerCase()];
+      const ltv = staticToken ? Number(staticToken.collRatio) / 10000 : undefined;
+
       return {
         pool: `${market.toLowerCase()}-${chain}`,
         chain: utils.formatChain(chain),
@@ -193,6 +211,7 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
         tvlUsd,
         apyBase,
         poolMeta,
+        ltv,
         ...(isBorrowable && {
           apyBaseBorrow,
           totalSupplyUsd,
@@ -200,7 +219,6 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
           borrowable: true,
         }),
         underlyingTokens: [underlying],
-        url: 'https://app.curvance.com',
       };
     })
     .filter(Boolean);
