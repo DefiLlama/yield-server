@@ -38,7 +38,7 @@ const main = async () => {
 };
 
 module.exports = {
-  timetravel: false,
+  timetravel: true,
   apy: main,
   // url: 'https://example.com/pools', // Link to page with pools (Only required if you do not provide url's for each pool),
 };
