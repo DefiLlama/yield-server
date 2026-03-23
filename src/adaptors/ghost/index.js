@@ -78,7 +78,11 @@ const getApy = async () => {
       }
     })
   );
-  return results.filter(Boolean);
+  const pools = results.filter(Boolean);
+  if (pools.length === 0) {
+    throw new Error('Ghost: all vault queries failed');
+  }
+  return pools;
 };
 
 module.exports = {
