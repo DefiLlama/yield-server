@@ -25,7 +25,7 @@ const ANKR_CHAIN_MAP = {
 
 // S3 cache
 
-const CACHE_BUCKET = process.env.BUCKET_DATA;
+const CACHE_BUCKET = process.env.BUCKET_HOLDERS_DATA;
 const CACHE_PREFIX = 'holders/cache';
 
 async function loadHolderCache(tokenAddress, chain) {

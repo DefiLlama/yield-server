@@ -10,6 +10,7 @@ const {
   isValidEvmAddress,
   resolveChainId,
   refineHoldersOnChain,
+  loadHolderCache,
   saveHolderCache,
   classifyToken,
   classifyTokensBatch,
@@ -39,6 +40,8 @@ function parseArgs() {
     skipExisting: false,
     standardOnly: false,
     flaggedOnly: false,
+    cache: false,
+    limit: 0,
     chain: null,
     token: null,
     pool: null,
@@ -81,6 +84,12 @@ function parseArgs() {
       case '--flagged-only':
         opts.flaggedOnly = true;
         break;
+      case '--cache':
+        opts.cache = true;
+        break;
+      case '--limit':
+        opts.limit = Number(args[++i]);
+        break;
       case '--chain':
         opts.chain = args[++i];
         break;
@@ -97,6 +106,12 @@ function parseArgs() {
         console.error(`Unknown option: ${arg}`);
         process.exit(1);
     }
+  }
+
+  // --cache implies --flagged-only and --skip-existing
+  if (opts.cache) {
+    opts.flaggedOnly = true;
+    opts.skipExisting = true;
   }
 
   // Parse/validate date
@@ -132,6 +147,7 @@ Options:
   --skip-existing          Skip pools already seeded for target date
   --standard-only          Only process standard (rebase=false) tokens
   --flagged-only           Only process flagged (rebase) tokens
+  --cache                  Read from S3 cache only (skip API calls)
   --chain NAME             Only process pools on this chain
   --token ADDRESS          Only process a single token address
   --pool POOL_ID           Only process a single pool by pool ID
@@ -541,11 +557,13 @@ async function seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats) 
         }
       }
       // ANKR unavailable or failed — fall through to on-chain
+      log('FALLBACK', `${tokenAddress} on ${chain}: high holders, on-chain fallback (no S3 cache)`);
       return processShareBasedPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
 
     const data = await fetchHolders(chainId, tokenAddress, 100000000000, true);
     if (!data.deltas || data.deltas.length === 0) {
+      log('FALLBACK', `${tokenAddress} on ${chain}: empty rebase=true response, standard fallback (no S3 cache)`);
       return processPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
 
@@ -561,39 +579,13 @@ async function seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats) 
       );
 
     if (holders.length === 0) {
+      log('FALLBACK', `${tokenAddress} on ${chain}: no valid holders after filter, standard fallback (no S3 cache)`);
       return processPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
 
     const holderCount = holders.length;
 
-    // Save to S3 if BUCKET_HOLDERS_DATA is set
-    if (process.env.BUCKET_HOLDERS_DATA) {
-      try {
-        const [currentBlock, tokenType] = await Promise.all([
-          getCurrentBlock(chain),
-          classifyToken(tokenAddress, chain),
-        ]);
-
-        await saveHolderCache(tokenAddress, chain, {
-          token: tokenAddress,
-          chain,
-          lastBlock: currentBlock,
-          tokenType,
-          holderCount,
-          holders: holders.map((h) => ({
-            address: h.address,
-            balance: String(h.balance),
-          })),
-          updatedAt: new Date().toISOString(),
-        });
-        stats.s3.holderListSaves++;
-      } catch (err) {
-        stats.s3.saveErrors++;
-        log('S3-WARN', `Cache save failed for ${tokenAddress} on ${chain}: ${err.message}`);
-      }
-    }
-
-    return buildResult(
+    const result = buildResult(
       holders,
       holderCount,
       configID,
@@ -604,8 +596,15 @@ async function seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats) 
       tokenAddress,
       today
     );
+
+    // Attach holder cache data — S3 save happens in the batch loop
+    if (process.env.BUCKET_HOLDERS_DATA) {
+      result._holderCache = { tokenAddress, chain, holders, holderCount, tokenType: task.tokenType };
+    }
+
+    return result;
   } catch (err) {
-    log('FLAGGED', `Seed failed for ${tokenAddress} on ${chain}: ${err.message}`);
+    log('FALLBACK', `${tokenAddress} on ${chain}: seed failed (${err.message}), on-chain fallback (no S3 cache)`);
     return processShareBasedPool(task, totalSupplyMap, decimalsMap, today, stats);
   }
 }
@@ -634,6 +633,7 @@ async function main() {
   log('CONFIG', `Skip existing:  ${opts.skipExisting}`);
   log('CONFIG', `Standard only:  ${opts.standardOnly}`);
   log('CONFIG', `Flagged only:   ${opts.flaggedOnly}`);
+  log('CONFIG', `Cache mode:     ${opts.cache}`);
   if (opts.chain) log('CONFIG', `Chain filter:   ${opts.chain}`);
   if (opts.token) log('CONFIG', `Token filter:   ${opts.token}`);
   if (opts.pool) log('CONFIG', `Pool filter:    ${opts.pool}`);
@@ -726,6 +726,11 @@ async function main() {
     );
   }
 
+  if (opts.limit > 0 && tasks.length > opts.limit) {
+    tasks.length = opts.limit;
+    log('DISCOVERY', `Limited to ${opts.limit} pools`);
+  }
+
   log('DISCOVERY', `Done (${discoveryTimer.stop()})`);
 
   if (tasks.length === 0) {
@@ -734,6 +739,327 @@ async function main() {
   }
 
   if (shuttingDown) return printSummary(stats, globalTimer);
+
+  // ── Cache Mode ────────────────────────────────────────────────────────
+  // Skips classification and API calls. Reads S3 cache → totalSupply → DB per batch.
+
+  if (opts.cache) {
+    // Quick ABI classification to filter to flagged tokens only
+    log('CLASSIFY', 'Running ABI classification to find flagged tokens...');
+    const classifyTimer = createTimer();
+    const classMap = await classifyTokensBatch(tasks);
+    const needsRebase = (type) =>
+      ['share_based', 'true_rebase', 'needs_rebase'].includes(type);
+
+    const flaggedTasks = tasks.filter((t) => {
+      const key = `${t.tokenAddress.toLowerCase()}-${t.chain}`;
+      return needsRebase(classMap.get(key));
+    });
+    log('CLASSIFY', `${formatNumber(flaggedTasks.length)} flagged out of ${formatNumber(tasks.length)} (${classifyTimer.stop()})`);
+
+    if (flaggedTasks.length === 0) {
+      log('CACHE', 'No flagged pools to process.');
+      return printSummary(stats, globalTimer);
+    }
+
+    log('CACHE', `Processing ${formatNumber(flaggedTasks.length)} pools from S3 cache...`);
+    const cacheTimer = createTimer();
+    let cacheHits = 0;
+    let cacheMisses = 0;
+    const totalBatches = Math.ceil(flaggedTasks.length / opts.batchSize);
+
+    for (let i = 0; i < flaggedTasks.length; i += opts.batchSize) {
+      if (shuttingDown) break;
+      const batchNum = Math.floor(i / opts.batchSize) + 1;
+      const batch = flaggedTasks.slice(i, i + opts.batchSize);
+
+      // 1. Load S3 cache
+      const cached = [];
+      await Promise.all(
+        batch.map(async (task) => {
+          const cache = await loadHolderCache(task.tokenAddress, task.chain);
+          if (!cache || !cache.holders || cache.holders.length === 0) {
+            cacheMisses++;
+            return;
+          }
+          cacheHits++;
+          cached.push({ task, cache });
+        })
+      );
+
+      if (cached.length === 0) {
+        log('CACHE', `Batch ${batchNum}/${totalBatches}: 0 cache hits, skipping`);
+        if (i + opts.batchSize < flaggedTasks.length) await new Promise((r) => setTimeout(r, opts.batchDelay));
+        continue;
+      }
+
+      // 2. Fetch totalSupply for this batch
+      const batchChainGroups = {};
+      for (const { task } of cached) {
+        if (!batchChainGroups[task.chain]) batchChainGroups[task.chain] = [];
+        batchChainGroups[task.chain].push(task);
+      }
+
+      const totalSupplyMap = {};
+      await Promise.allSettled(
+        Object.entries(batchChainGroups).map(async ([chain, group]) => {
+          const seen = new Set();
+          const calls = [];
+          for (const t of group) {
+            const key = t.tokenAddress.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            calls.push({ target: t.tokenAddress, params: [] });
+          }
+          try {
+            const result = await sdk.api.abi.multiCall({
+              abi: 'erc20:totalSupply',
+              calls,
+              chain,
+              permitFailure: true,
+            });
+            for (const item of result.output) {
+              if (item.output) {
+                totalSupplyMap[`${item.input.target.toLowerCase()}-${chain}`] = BigInt(item.output);
+              }
+            }
+          } catch (err) {
+            log('CACHE', `totalSupply failed for ${chain}: ${err.message}`);
+          }
+        })
+      );
+
+      // 3. Build payloads
+      const payloads = cached.map(({ task, cache }) => {
+        const holderCount = cache.holderCount || cache.holders.length;
+        const avgPositionUsd = holderCount > 0 ? task.tvlUsd / holderCount : null;
+
+        const supplyKey = `${task.tokenAddress.toLowerCase()}-${task.chain}`;
+        const totalSupply = totalSupplyMap[supplyKey];
+        let top10Pct = null;
+        let top10Holders = null;
+
+        if (totalSupply && totalSupply > 0n) {
+          const top10 = cache.holders.slice(0, 10);
+          const top10Balance = top10.reduce((sum, h) => sum + BigInt(h.balance), 0n);
+          top10Pct = Number((top10Balance * 10000n) / totalSupply) / 100;
+          top10Holders = top10.map((h) => ({
+            address: h.address,
+            balance: h.balance,
+            balancePct: Number((BigInt(h.balance) * 10000n) / totalSupply) / 100,
+          }));
+        }
+
+        return {
+          configID: task.configID,
+          timestamp: opts.targetDate.toISOString(),
+          holderCount,
+          avgPositionUsd,
+          top10Pct,
+          top10Holders,
+        };
+      });
+
+      // 4. DB write
+      if (payloads.length > 0 && !opts.dryRun) {
+        try {
+          await insertHolder(payloads);
+          stats.db.inserts += payloads.length;
+        } catch (err) {
+          log('DB-ERROR', `Batch insert failed: ${err.message}`);
+        }
+      } else if (opts.dryRun) {
+        stats.db.inserts += payloads.length;
+      }
+
+      const pct = ((Math.min(i + opts.batchSize, flaggedTasks.length) / flaggedTasks.length) * 100).toFixed(1);
+      log('CACHE', `Batch ${batchNum}/${totalBatches}: ${payloads.length} inserted (${pct}%)`);
+
+      if (i + opts.batchSize < flaggedTasks.length && opts.batchDelay > 0 && !shuttingDown) {
+        await new Promise((r) => setTimeout(r, opts.batchDelay));
+      }
+    }
+
+    log('CACHE', `Done: ${cacheHits} cache hits, ${cacheMisses} misses (${cacheTimer.stop()})`);
+    log('CACHE', `DB inserts: ${formatNumber(stats.db.inserts)}`);
+    return printSummary(stats, globalTimer);
+  }
+
+  // ── Flagged-Only Mode ──────────────────────────────────────────────────
+  // Classification upfront, then per-batch: totalSupply → fetch → S3 → DB
+
+  if (opts.flaggedOnly) {
+    log('CLASSIFY', 'Running ABI classification to find flagged tokens...');
+    const classifyTimer = createTimer();
+    const classMap = await classifyTokensBatch(tasks);
+    const needsRebase = (type) =>
+      ['share_based', 'true_rebase', 'needs_rebase'].includes(type);
+
+    const flaggedTasks = tasks.filter((t) => {
+      const key = `${t.tokenAddress.toLowerCase()}-${t.chain}`;
+      return needsRebase(classMap.get(key));
+    });
+    log('CLASSIFY', `${formatNumber(flaggedTasks.length)} flagged out of ${formatNumber(tasks.length)} (${classifyTimer.stop()})`);
+
+    if (flaggedTasks.length === 0) {
+      log('FLAGGED', 'No flagged pools to process.');
+      return printSummary(stats, globalTimer);
+    }
+
+    stats.flagged.total = flaggedTasks.length;
+    log('FLAGGED', `Processing ${formatNumber(flaggedTasks.length)} pools iteratively...`);
+    const flaggedTimer = createTimer();
+    const totalBatches = Math.ceil(flaggedTasks.length / opts.flaggedBatch);
+
+    for (let i = 0; i < flaggedTasks.length; i += opts.flaggedBatch) {
+      if (shuttingDown) break;
+      const batchNum = Math.floor(i / opts.flaggedBatch) + 1;
+      const batch = flaggedTasks.slice(i, i + opts.flaggedBatch);
+      const batchTimer = createTimer();
+
+      // 1. Fetch totalSupply + decimals for this batch
+      const batchChainGroups = {};
+      for (const t of batch) {
+        if (!batchChainGroups[t.chain]) batchChainGroups[t.chain] = [];
+        batchChainGroups[t.chain].push(t);
+      }
+
+      const totalSupplyMap = {};
+      const decimalsMap = {};
+      await Promise.allSettled(
+        Object.entries(batchChainGroups).map(async ([chain, group]) => {
+          const seen = new Set();
+          const calls = [];
+          for (const t of group) {
+            const key = t.tokenAddress.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            calls.push({ target: t.tokenAddress, params: [] });
+          }
+          try {
+            const [supplyResult, decimalsResult] = await Promise.all([
+              sdk.api.abi.multiCall({
+                abi: 'erc20:totalSupply',
+                calls,
+                chain,
+                permitFailure: true,
+              }),
+              sdk.api.abi.multiCall({
+                abi: 'erc20:decimals',
+                calls,
+                chain,
+                permitFailure: true,
+              }),
+            ]);
+            for (const item of supplyResult.output) {
+              if (item.output) {
+                totalSupplyMap[`${item.input.target.toLowerCase()}-${chain}`] = BigInt(item.output);
+              }
+            }
+            for (const item of decimalsResult.output) {
+              if (item.output != null) {
+                decimalsMap[`${item.input.target.toLowerCase()}-${chain}`] = Number(item.output);
+              }
+            }
+          } catch (err) {
+            log('SUPPLY', `totalSupply failed for ${chain}: ${err.message}`);
+          }
+        })
+      );
+
+      // 2. Fetch holders
+      const batchPayloads = [];
+      const results = await Promise.allSettled(
+        batch.map((t) =>
+          seedFlaggedPool(t, totalSupplyMap, decimalsMap, opts.targetDate, stats)
+        )
+      );
+
+      for (let j = 0; j < results.length; j++) {
+        const r = results[j];
+        const t = batch[j];
+        if (r.status === 'fulfilled') {
+          if (r.value) {
+            batchPayloads.push(r.value);
+            stats.flagged.success++;
+            trackChain(stats, t.chain, 'success');
+          } else {
+            stats.flagged.skipped++;
+          }
+        } else {
+          stats.flagged.failed++;
+          trackChain(stats, t.chain, 'failed');
+        }
+      }
+
+      // 3. S3 saves
+      const s3Payloads = batchPayloads.filter((p) => p._holderCache);
+      if (s3Payloads.length > 0) {
+        await Promise.allSettled(
+          s3Payloads.map(async (p) => {
+            const { tokenAddress, chain, holders, holderCount } = p._holderCache;
+            try {
+              const [currentBlock, tokenType] = await Promise.all([
+                getCurrentBlock(chain),
+                classifyToken(tokenAddress, chain),
+              ]);
+              await saveHolderCache(tokenAddress, chain, {
+                token: tokenAddress,
+                chain,
+                lastBlock: currentBlock,
+                tokenType,
+                holderCount,
+                holders: holders.map((h) => ({
+                  address: h.address,
+                  balance: String(h.balance),
+                })),
+                updatedAt: new Date().toISOString(),
+              });
+              stats.s3.holderListSaves++;
+            } catch (err) {
+              stats.s3.saveErrors++;
+              log('S3-WARN', `Cache save failed for ${tokenAddress} on ${chain}: ${err.message}`);
+            }
+          })
+        );
+      }
+      for (const p of batchPayloads) delete p._holderCache;
+
+      // 4. DB write
+      if (batchPayloads.length > 0 && !opts.dryRun) {
+        const dbTimer = createTimer();
+        try {
+          await insertHolder(batchPayloads);
+          stats.db.inserts += batchPayloads.length;
+          stats.db.timeMs += dbTimer.elapsed();
+        } catch (err) {
+          log('DB-ERROR', `Batch insert failed: ${err.message}`);
+          stats.flagged.failed += batchPayloads.length;
+          stats.flagged.success -= batchPayloads.length;
+        }
+      } else if (opts.dryRun) {
+        stats.db.inserts += batchPayloads.length;
+      }
+
+      const pct = ((Math.min(i + opts.flaggedBatch, flaggedTasks.length) / flaggedTasks.length) * 100).toFixed(1);
+      log(
+        'FLAGGED',
+        `Batch ${batchNum}/${totalBatches}: ${batchPayloads.length}/${batch.length} success (${pct}%) [${batchTimer.stop()}]`
+      );
+
+      if (i + opts.flaggedBatch < flaggedTasks.length && opts.batchDelay > 0 && !shuttingDown) {
+        await new Promise((r) => setTimeout(r, opts.batchDelay));
+      }
+    }
+
+    stats.flagged.timeMs = flaggedTimer.elapsed();
+    log(
+      'FLAGGED',
+      `Done: ${stats.flagged.success} success, ${stats.flagged.failed} failed, ` +
+        `${stats.flagged.skipped} skipped (${flaggedTimer.stop()})`
+    );
+    return printSummary(stats, globalTimer);
+  }
 
   // ── Phase 2: Total Supply ──────────────────────────────────────────────
 
@@ -1152,6 +1478,40 @@ async function main() {
         }
       }
 
+      // S3 saves (before DB write)
+      const s3Payloads = batchPayloads.filter((p) => p._holderCache);
+      if (s3Payloads.length > 0) {
+        await Promise.allSettled(
+          s3Payloads.map(async (p) => {
+            const { tokenAddress, chain, holders, holderCount } = p._holderCache;
+            try {
+              const [currentBlock, tokenType] = await Promise.all([
+                getCurrentBlock(chain),
+                classifyToken(tokenAddress, chain),
+              ]);
+              await saveHolderCache(tokenAddress, chain, {
+                token: tokenAddress,
+                chain,
+                lastBlock: currentBlock,
+                tokenType,
+                holderCount,
+                holders: holders.map((h) => ({
+                  address: h.address,
+                  balance: String(h.balance),
+                })),
+                updatedAt: new Date().toISOString(),
+              });
+              stats.s3.holderListSaves++;
+            } catch (err) {
+              stats.s3.saveErrors++;
+              log('S3-WARN', `Cache save failed for ${tokenAddress} on ${chain}: ${err.message}`);
+            }
+          })
+        );
+      }
+      for (const p of batchPayloads) delete p._holderCache;
+
+      // DB write
       if (batchPayloads.length > 0 && !opts.dryRun) {
         const dbTimer = createTimer();
         try {

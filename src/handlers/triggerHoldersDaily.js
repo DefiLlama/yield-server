@@ -18,6 +18,7 @@ const { getEligiblePools, insertHolder } = require('../queries/holder');
 
 const BATCH_SIZE = 25;
 const FLAGGED_BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 1000;
 const CHAIN_CONCURRENCY = 5;
 const MAX_SEED_PER_RUN = 75;
 const CLASSIFY_BATCH_SIZE = 500;
@@ -239,6 +240,34 @@ const main = async () => {
       }
     }
 
+    const s3Payloads = batchPayloads.filter((p) => p._holderCache);
+    if (s3Payloads.length > 0) {
+      await Promise.allSettled(
+        s3Payloads.map(async (p) => {
+          const c = p._holderCache;
+          try {
+            await saveHolderCache(c.tokenAddress, c.chain, {
+              token: c.tokenAddress,
+              chain: c.chain,
+              lastBlock: c.currentBlock,
+              tokenType: c.tokenType,
+              holderCount: c.holderCount,
+              holders: c.holders.map((h) => ({
+                address: h.address,
+                balance: String(h.balance),
+              })),
+              updatedAt: new Date().toISOString(),
+            });
+          } catch (err) {
+            console.log(
+              `S3 cache save failed for ${c.tokenAddress} on ${c.chain}: ${err.message}`
+            );
+          }
+        })
+      );
+    }
+    for (const p of batchPayloads) delete p._holderCache;
+
     if (batchPayloads.length > 0) {
       try {
         await insertHolder(batchPayloads);
@@ -253,6 +282,9 @@ const main = async () => {
   // Process standard pools
   for (let i = 0; i < standardTasks.length; i += BATCH_SIZE) {
     await processBatch(standardTasks.slice(i, i + BATCH_SIZE), processPool);
+    if (i + BATCH_SIZE < standardTasks.length) {
+      await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+    }
   }
 
   // Process flagged pools
@@ -290,6 +322,10 @@ const main = async () => {
       console.log(
         `Skipping ${overflowCount} unseeded flagged pools (seed cap reached)`
       );
+    }
+
+    if (i + FLAGGED_BATCH_SIZE < flaggedTasks.length) {
+      await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
     }
   }
 
@@ -372,7 +408,9 @@ async function processPool(task, totalSupplyMap, today) {
         );
       }
     } catch (ankrErr) {
-      console.log(`ANKR fallback failed for ${tokenAddress} on ${chain}: ${ankrErr.message}`);
+      console.log(
+        `ANKR fallback failed for ${tokenAddress} on ${chain}: ${ankrErr.message}`
+      );
     }
     return null;
   }
@@ -395,7 +433,9 @@ async function processPool(task, totalSupplyMap, today) {
         );
       }
     } catch (err) {
-      console.log(`ANKR fallback failed for ${tokenAddress} on ${chain}: ${err.message}`);
+      console.log(
+        `ANKR fallback failed for ${tokenAddress} on ${chain}: ${err.message}`
+      );
     }
     return null;
   }
@@ -508,20 +548,7 @@ async function seedFlaggedPool(task, totalSupplyMap, today) {
       classifyToken(tokenAddress, chain),
     ]);
 
-    await saveHolderCache(tokenAddress, chain, {
-      token: tokenAddress,
-      chain,
-      lastBlock: currentBlock,
-      tokenType,
-      holderCount,
-      holders: holders.map((h) => ({
-        address: h.address,
-        balance: String(h.balance),
-      })),
-      updatedAt: new Date().toISOString(),
-    });
-
-    return buildResult(
+    const result = buildResult(
       holders,
       holderCount,
       configID,
@@ -531,6 +558,18 @@ async function seedFlaggedPool(task, totalSupplyMap, today) {
       tokenAddress,
       today
     );
+
+    // Attach holder cache data — S3 save happens in processBatch
+    result._holderCache = {
+      tokenAddress,
+      chain,
+      holders,
+      holderCount,
+      tokenType,
+      currentBlock,
+    };
+
+    return result;
   } catch (err) {
     console.log(`Seed failed for ${tokenAddress} on ${chain}: ${err.message}`);
     return processShareBasedPool(task, totalSupplyMap, today);
@@ -613,20 +652,7 @@ async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
 
     const holderCount = holders.length;
 
-    await saveHolderCache(tokenAddress, chain, {
-      token: tokenAddress,
-      chain,
-      lastBlock: currentBlock,
-      tokenType: cache.tokenType,
-      holderCount,
-      holders: holders.map((h) => ({
-        address: h.address,
-        balance: String(h.balance),
-      })),
-      updatedAt: new Date().toISOString(),
-    });
-
-    return buildResult(
+    const result = buildResult(
       holders,
       holderCount,
       configID,
@@ -636,6 +662,18 @@ async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
       tokenAddress,
       today
     );
+
+    // Attach holder cache data — S3 save happens in processBatch
+    result._holderCache = {
+      tokenAddress,
+      chain,
+      holders,
+      holderCount,
+      tokenType: cache.tokenType,
+      currentBlock,
+    };
+
+    return result;
   } catch (err) {
     console.log(
       `Incremental failed for ${tokenAddress} on ${chain}, falling back: ${err.message}`
