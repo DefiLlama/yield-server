@@ -18,61 +18,67 @@ const getApy = async () => {
   );
   const contracts = await res.json();
   const vaultContracts = contracts['kaiyo-1'].ghostVault;
-  return await Promise.all(
+  const results = await Promise.all(
     vaultContracts.map(async (contract) => {
-      const { data } = await utils.getData(
-        `${KUJIRA_REST_URL}/cosmwasm/wasm/v1/contract/${contract.address}/smart/eyJzdGF0dXMiOnt9fQ==`
-      );
-      const { deposited, borrowed, rate } = data;
-      const borrowApy = parseFloat(rate) * 100;
-      const utilization = Number(borrowed) / Number(deposited);
-      const available = Number(deposited) - Number(borrowed);
-      const lendApy = utilization ? utilization * borrowApy : borrowApy;
-
-      if ('live' in contract.config.oracle) {
-        const { exchange_rate } = await utils.getData(
-          `${KUJIRA_REST_URL}/oracle/denoms/${contract.config.oracle.live}/exchange_rate`
+      try {
+        const { data } = await utils.getData(
+          `${KUJIRA_REST_URL}/cosmwasm/wasm/v1/contract/${contract.address}/smart/eyJzdGF0dXMiOnt9fQ==`
         );
-        const totalSupplyUsd =
-          (Number(deposited) * exchange_rate) / 10 ** contract.config.decimals;
-        const totalBorrowUsd =
-          (Number(borrowed) * exchange_rate) / 10 ** contract.config.decimals;
+        const { deposited, borrowed, rate } = data;
+        const borrowApy = parseFloat(rate) * 100;
+        const utilization = Number(borrowed) / Number(deposited);
+        const available = Number(deposited) - Number(borrowed);
+        const lendApy = utilization ? utilization * borrowApy : borrowApy;
 
-        return {
-          pool: contract.address,
-          chain: utils.formatChain('kujira'),
-          project,
-          symbol: utils.formatSymbol(contract.config.oracle.live),
-          tvlUsd: (available * exchange_rate) / 10 ** contract.config.decimals,
-          apy: lendApy,
-          apyBaseBorrow: borrowApy,
-          apyRewardBorrow: 0,
-          totalSupplyUsd,
-          totalBorrowUsd,
-          underlyingTokens: contract.config.denom ? [KUJIRA_IBC_COINGECKO[contract.config.denom] || contract.config.denom] : undefined,
-        };
-      } else {
-        const totalSupplyUsd =
-          Number(deposited) / 10 ** contract.config.decimals;
-        const totalBorrowUsd =
-          Number(borrowed) / 10 ** contract.config.decimals;
+        if ('live' in contract.config.oracle) {
+          const { exchange_rate } = await utils.getData(
+            `${KUJIRA_REST_URL}/oracle/denoms/${contract.config.oracle.live}/exchange_rate`
+          );
+          const totalSupplyUsd =
+            (Number(deposited) * exchange_rate) / 10 ** contract.config.decimals;
+          const totalBorrowUsd =
+            (Number(borrowed) * exchange_rate) / 10 ** contract.config.decimals;
 
-        return {
-          pool: contract.address,
-          chain: utils.formatChain('kujira'),
-          project,
-          symbol: utils.formatSymbol('USK'),
-          tvlUsd: available / 10 ** contract.config.decimals,
-          apy: lendApy,
-          apyBaseBorrow: borrowApy,
-          apyRewardBorrow: 0,
-          totalSupplyUsd,
-          totalBorrowUsd,
-          underlyingTokens: contract.config.denom ? [KUJIRA_IBC_COINGECKO[contract.config.denom] || contract.config.denom] : undefined,
-        };
+          return {
+            pool: contract.address,
+            chain: utils.formatChain('kujira'),
+            project,
+            symbol: utils.formatSymbol(contract.config.oracle.live),
+            tvlUsd: (available * exchange_rate) / 10 ** contract.config.decimals,
+            apy: lendApy,
+            apyBaseBorrow: borrowApy,
+            apyRewardBorrow: 0,
+            totalSupplyUsd,
+            totalBorrowUsd,
+            underlyingTokens: contract.config.denom ? [KUJIRA_IBC_COINGECKO[contract.config.denom] || contract.config.denom] : undefined,
+          };
+        } else {
+          const totalSupplyUsd =
+            Number(deposited) / 10 ** contract.config.decimals;
+          const totalBorrowUsd =
+            Number(borrowed) / 10 ** contract.config.decimals;
+
+          return {
+            pool: contract.address,
+            chain: utils.formatChain('kujira'),
+            project,
+            symbol: utils.formatSymbol('USK'),
+            tvlUsd: available / 10 ** contract.config.decimals,
+            apy: lendApy,
+            apyBaseBorrow: borrowApy,
+            apyRewardBorrow: 0,
+            totalSupplyUsd,
+            totalBorrowUsd,
+            underlyingTokens: contract.config.denom ? [KUJIRA_IBC_COINGECKO[contract.config.denom] || contract.config.denom] : undefined,
+          };
+        }
+      } catch (e) {
+        console.log(`Failed to fetch data for vault ${contract.address}: ${e.message}`);
+        return null;
       }
     })
   );
+  return results.filter(Boolean);
 };
 
 module.exports = {
