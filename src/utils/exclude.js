@@ -253,6 +253,7 @@ const excludeAdaptors = [
   'supervaults',
   'prismalst',
   'chronos-v1',
+  'betswirl',
 ];
 
 const excludePools = [
