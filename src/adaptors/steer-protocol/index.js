@@ -23,6 +23,11 @@ const supportedChains = [
       'GgW1EwNARL3dyo3acQ3VhraQQ66MHT7QnYuGcQc5geDG'
     ),
   },
+  {
+    name: 'Ethereum',
+    subgraphEndpoint:
+      'https://api.subgraph.ormilabs.com/api/public/803c8c8c-be12-4188-8523-b9853e23051d/subgraphs/steer-protocol-mainnet/prod/gn',
+  },
 ];
 
 // Fetch active vaults and associated data @todo limited to 1000 per chain
