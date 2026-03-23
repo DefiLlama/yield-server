@@ -157,6 +157,7 @@ const apy = async () => {
         symbol: utils.formatSymbol(`${sym0}-${sym1}`),
         tvlUsd,
         apyBase,
+        poolMeta: `${pool.fee / 1e4}%`,
         underlyingTokens: [t0, t1],
         url: `https://juiceswap.com/#/explore/pools/citrea_mainnet/${pool.address}`,
       };
