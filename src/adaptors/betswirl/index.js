@@ -1,8 +1,4 @@
-const sdk = require('@defillama/sdk');
-const fetch = require('node-fetch');
 const utils = require('../utils');
-const ABI = require('./abi');
-const { default: BigNumber } = require('bignumber.js');
 
 const gammaMerklesOpportunities = [
   {
@@ -17,43 +13,28 @@ const getApy = async () => {
         .map(async (gammaMerkleOpportunity) => {
           try {
             const merkleData = await utils.getData(`https://api.merkl.xyz/v4/opportunities/${gammaMerkleOpportunity.id}`);
-            const chainId = merkleData.chain.id;
             const chainName = merkleData.chain.name.toLowerCase();
             const tvlUsd = merkleData.tvl;
             const apr = merkleData.apr;
-            const rewardTokenAddress =
-              merkleData.rewardsRecord.breakdowns[0].token.address;
             const identifier = merkleData.identifier;
-            const stakedTokenSymbol = merkleData.tokens[0].symbol;
+            const tokens = merkleData.tokens || [];
+            const symbol = tokens.map((t) => t.symbol).join('-');
             const url = merkleData.depositUrl;
 
-            const token0Address = (
-              await sdk.api.abi.call({
-                target: identifier,
-                abi: 'address:token0',
-                chain: chainName,
-              })
-            ).output;
-
-            const token1Address = (
-              await sdk.api.abi.call({
-                target: identifier,
-                abi: 'address:token1',
-                chain: chainName,
-              })
-            ).output;
-
+            const rewardTokens =
+              merkleData.rewardsRecord?.breakdowns?.map((x) => x.token.address) || [];
+            const underlyingTokens = tokens.map((t) => t.address);
 
             return {
               pool: `${identifier}-${chainName}`.toLowerCase(),
               chain: utils.formatChain(chainName),
               project: 'betswirl',
-              symbol: utils.formatSymbol(stakedTokenSymbol),
+              symbol: utils.formatSymbol(symbol),
               tvlUsd: tvlUsd,
               apy: apr,
-              rewardTokens: [rewardTokenAddress],
-              underlyingTokens: [token0Address, token1Address],
-              poolMeta: `Gamma vault ${stakedTokenSymbol}`,
+              rewardTokens,
+              underlyingTokens,
+              poolMeta: `Gamma vault ${symbol}`,
               url: url
             };
           } catch (error) {
