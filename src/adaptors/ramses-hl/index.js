@@ -2,10 +2,12 @@ const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
-const RAM = '0x13A466998Ce03Db73aBc2d4DF3bBD845Ed1f28E7';
+const RAM = '0x555570a286f15ebdfe42b66ede2f724aa1ab5555';
 const PROJECT = 'ramses-hl';
 const CHAIN = 'hyperliquid';
-const SUBGRAPH = 'https://hyperevm.kingdomsubgraph.com/subgraphs/name/ramses-v3-pruned/';
+const SUBGRAPH =
+  'https://hyperevm.kingdomsubgraph.com/subgraphs/name/ramses-v3-pruned/';
+const GATEWAY_API = 'https://gateway.ramses.xyz/v3/hyperevm/pools';
 
 const poolsQuery = gql`
   query getPools($first: Int!, $skip: Int!) {
@@ -60,88 +62,82 @@ async function fetchAllPools() {
 }
 
 async function apy() {
+  const pools = await fetchAllPools();
+
+  // Fetch APR data from gateway API
+  let gatewayPools = [];
   try {
-    const pools = await fetchAllPools();
-
-    let ramsesPools = [];
-    try {
-      const ramsesApiData = await axios.get('https://api2.ramses.xyz/all-pools');
-      if (ramsesApiData.data && Array.isArray(ramsesApiData.data.pools)) {
-        ramsesPools = ramsesApiData.data.pools;
-      }
-    } catch (error) {
-      console.error('Failed to fetch Ramses API data:', error.message);
+    const res = await axios.get(GATEWAY_API);
+    if (res.data && Array.isArray(res.data.pools)) {
+      gatewayPools = res.data.pools;
     }
-
-    const aprMap = {};
-    for (const pool of ramsesPools) {
-      if (pool.id) {
-        aprMap[pool.id.toLowerCase()] = {
-          lpApr: Number(pool.lpApr) || 0
-        };
-      }
-    }
-
-    const results = [];
-
-    for (const pool of pools) {
-      const tvlUsd = Number(pool.totalValueLockedUSD) || 0;
-
-      if (!pool.gauge?.id) continue;
-
-      const poolAddress = pool.id.toLowerCase();
-      const apiData = aprMap[poolAddress];
-
-      if (!apiData) continue;
-
-      const apyBase = 0;
-      let apyReward = 0;
-      const tickSpacing = parseInt(pool.tickSpacing);
-
-      const apiPool = ramsesPools.find(p => p.id.toLowerCase() === poolAddress);
-      if (apiPool && apiPool.recommendedRanges) {
-        if (tickSpacing === 1 || tickSpacing === 5) {
-          const wideRange = apiPool.recommendedRanges.find(range => range.name === 'Wide');
-          apyReward = wideRange ? wideRange.lpApr : apiData.lpApr || 0;
-        } else {
-          const narrowRange = apiPool.recommendedRanges.find(range => range.name === 'Narrow');
-          apyReward = narrowRange ? narrowRange.lpApr : apiData.lpApr || 0;
-        }
-      } else {
-        apyReward = apiData.lpApr || 0;
-      }
-
-      results.push({
-        pool: `${poolAddress}-${utils.formatChain(CHAIN)}`.toLowerCase(),
-        chain: utils.formatChain(CHAIN),
-        project: PROJECT,
-        poolMeta: `CL ${(Number(pool.feeTier) / 10000).toFixed(2)}%`,
-        symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
-        tvlUsd,
-        apyBase,
-        apyBase7d: 0,
-        apyReward,
-        rewardTokens: apyReward > 0 ? [RAM] : [],
-        underlyingTokens: [
-          pool.token0.id.toLowerCase(),
-          pool.token1.id.toLowerCase()
-        ],
-        url: `https://www.ramses.xyz/liquidity/${poolAddress}`,
-        volumeUsd1d: pool.poolDayData?.[0]?.volumeUSD
-          ? Number(pool.poolDayData[0].volumeUSD)
-          : 0,
-        volumeUsd7d: pool.poolDayData
-          ? pool.poolDayData.reduce((sum, day) => sum + Number(day.volumeUSD || 0), 0)
-          : 0,
-      });
-    }
-
-    return results.filter((p) => utils.keepFinite(p));
-    
-  } catch (error) {
-    console.error('Error fetching Ramses CL data:', error);
-    return [];
+  } catch (e) {
+    console.error('Failed to fetch gateway API data:', e.message);
   }
+
+  const aprMap = {};
+  for (const p of gatewayPools) {
+    if (p.id) {
+      aprMap[p.id.toLowerCase()] = p;
+    }
+  }
+
+  const results = [];
+
+  for (const pool of pools) {
+    const tvlUsd = Number(pool.totalValueLockedUSD) || 0;
+    if (!pool.gauge?.id) continue;
+
+    const poolAddress = pool.id.toLowerCase();
+    const apiData = aprMap[poolAddress];
+    const dayData = pool.poolDayData || [];
+
+    let apyBase = 0;
+    let apyReward = 0;
+
+    if (apiData && apiData.recommendedRanges?.length) {
+      const tickSpacing = parseInt(pool.tickSpacing);
+      // Stable pairs (tight tick spacing) use Wide, volatile use Narrow
+      const rangeName =
+        tickSpacing === 1 || tickSpacing === 5 ? 'Wide' : 'Narrow';
+      const range = apiData.recommendedRanges.find((r) => r.name === rangeName);
+
+      if (range) {
+        apyBase = Number(range.feeApr) || 0;
+        apyReward = Number(range.rewardApr) || 0;
+      } else {
+        apyBase = Number(apiData.feeApr) || 0;
+        apyReward = Number(apiData.rewardApr) || 0;
+      }
+    } else if (apiData) {
+      apyBase = Number(apiData.feeApr) || 0;
+      apyReward = Number(apiData.rewardApr) || 0;
+    }
+
+    results.push({
+      pool: `${poolAddress}-${utils.formatChain(CHAIN)}`.toLowerCase(),
+      chain: utils.formatChain(CHAIN),
+      project: PROJECT,
+      poolMeta: `CL ${(Number(pool.feeTier) / 10000).toFixed(2)}%`,
+      symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
+      tvlUsd,
+      apyBase,
+      apyReward,
+      rewardTokens: apyReward > 0 ? [RAM] : [],
+      underlyingTokens: [
+        pool.token0.id.toLowerCase(),
+        pool.token1.id.toLowerCase(),
+      ],
+      url: `https://www.ramses.xyz/liquidity/${poolAddress}?chainId=999`,
+      volumeUsd1d: dayData?.[0] ? Number(dayData?.[0]?.volumeUSD) : 0,
+      volumeUsd7d: dayData?.reduce(
+        (sum, day) => sum + Number(day?.volumeUSD || 0),
+        0
+      ),
+    });
+  }
+
+  return results.filter((p) => utils.keepFinite(p));
 }
 
 module.exports = {
