@@ -14,7 +14,7 @@ const poolsQuery = gql`
       skip: $skip
       orderBy: totalValueLockedUSD
       orderDirection: desc
-      where: { gauge_not: null }
+      where: { or: [{ gauge_not: null }, { gaugeV2_not: null }] }
     ) {
       id
       token0 {
@@ -29,6 +29,9 @@ const poolsQuery = gql`
       tickSpacing
       totalValueLockedUSD
       gauge {
+        id
+      }
+      gaugeV2 {
         id
       }
       poolDayData(first: 7, orderBy: startOfDay, orderDirection: desc) {
@@ -73,12 +76,10 @@ async function apy() {
       console.error('Failed to fetch Shadow API data:', error.message);
     }
 
-    const aprMap = {};
+    const apiPoolMap = {};
     for (const pool of shadowPools) {
       if (pool.id) {
-        aprMap[pool.id.toLowerCase()] = {
-          lpApr: Number(pool.lpApr) || 0
-        };
+        apiPoolMap[pool.id.toLowerCase()] = pool;
       }
     }
 
@@ -87,28 +88,25 @@ async function apy() {
     for (const pool of pools) {
       const tvlUsd = Number(pool.totalValueLockedUSD) || 0;
 
-      if (!pool.gauge?.id) continue;
+      if (!pool.gauge?.id && !pool.gaugeV2?.id) continue;
 
       const poolAddress = pool.id.toLowerCase();
-      const apiData = aprMap[poolAddress];
-
-      if (!apiData) continue;
+      const apiPool = apiPoolMap[poolAddress];
 
       const apyBase = 0;
       let apyReward = 0;
       const tickSpacing = parseInt(pool.tickSpacing);
 
-      const apiPool = shadowPools.find(p => p.id.toLowerCase() === poolAddress);
       if (apiPool && apiPool.recommendedRangesNew) {
         if (tickSpacing === 1 || tickSpacing === 5) {
           const wideRange = apiPool.recommendedRangesNew.find(range => range.name === 'Wide');
-          apyReward = wideRange ? wideRange.lpApr : apiData.lpApr || 0;
+          apyReward = wideRange ? wideRange.lpApr : Number(apiPool.lpApr) || 0;
         } else {
           const narrowRange = apiPool.recommendedRangesNew.find(range => range.name === 'Narrow');
-          apyReward = narrowRange ? narrowRange.lpApr : apiData.lpApr || 0;
+          apyReward = narrowRange ? narrowRange.lpApr : Number(apiPool.lpApr) || 0;
         }
       } else {
-        apyReward = apiData.lpApr || 0;
+        apyReward = Number(apiPool?.lpApr) || 0;
       }
 
       results.push({
