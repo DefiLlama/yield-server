@@ -19,7 +19,6 @@ const { getEligiblePools, insertHolder } = require('../queries/holder');
 const BATCH_SIZE = 25;
 const FLAGGED_BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 1000;
-const CHAIN_CONCURRENCY = 5;
 const MAX_SEED_PER_RUN = 75;
 const CLASSIFY_BATCH_SIZE = 500;
 const TOP_N_RECHECK = 100;
@@ -58,49 +57,6 @@ const main = async () => {
       pools.length - tasks.length
     } filtered out)`
   );
-
-  // Batch totalSupply per chain for top10Pct
-  const chainGroups = {};
-  for (const t of tasks) {
-    if (!chainGroups[t.chain]) chainGroups[t.chain] = [];
-    chainGroups[t.chain].push(t);
-  }
-
-  const totalSupplyMap = {};
-  const chainEntries = Object.entries(chainGroups);
-
-  for (let i = 0; i < chainEntries.length; i += CHAIN_CONCURRENCY) {
-    const chunk = chainEntries.slice(i, i + CHAIN_CONCURRENCY);
-    await Promise.allSettled(
-      chunk.map(async ([chain, group]) => {
-        try {
-          const seen = new Set();
-          const calls = [];
-          for (const t of group) {
-            const key = t.tokenAddress.toLowerCase();
-            if (seen.has(key)) continue;
-            seen.add(key);
-            calls.push({ target: t.tokenAddress, params: [] });
-          }
-          const result = await sdk.api.abi.multiCall({
-            abi: 'erc20:totalSupply',
-            calls,
-            chain,
-          });
-          for (const item of result.output) {
-            if (item.output) {
-              totalSupplyMap[`${item.input.target.toLowerCase()}-${chain}`] =
-                BigInt(item.output);
-            }
-          }
-        } catch (err) {
-          console.log(
-            `totalSupply multicall failed for ${chain}: ${err.message}`
-          );
-        }
-      })
-    );
-  }
 
   // Load cached classifications from S3
   const cacheResults = await Promise.allSettled(
@@ -220,7 +176,47 @@ const main = async () => {
   let failed = 0;
   let skipped = 0;
 
+  async function fetchTotalSupplyForBatch(batch) {
+    const chainGroups = {};
+    for (const t of batch) {
+      if (!chainGroups[t.chain]) chainGroups[t.chain] = [];
+      chainGroups[t.chain].push(t);
+    }
+    const totalSupplyMap = {};
+    await Promise.allSettled(
+      Object.entries(chainGroups).map(async ([chain, group]) => {
+        const seen = new Set();
+        const calls = [];
+        for (const t of group) {
+          const key = t.tokenAddress.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          calls.push({ target: t.tokenAddress, params: [] });
+        }
+        try {
+          const result = await sdk.api.abi.multiCall({
+            abi: 'erc20:totalSupply',
+            calls,
+            chain,
+            permitFailure: true,
+          });
+          for (const item of result.output) {
+            if (item.output) {
+              totalSupplyMap[`${item.input.target.toLowerCase()}-${chain}`] =
+                BigInt(item.output);
+            }
+          }
+        } catch (err) {
+          console.log(`totalSupply failed for ${chain}: ${err.message}`);
+        }
+      })
+    );
+    return totalSupplyMap;
+  }
+
   async function processBatch(batch, processFn) {
+    const totalSupplyMap = await fetchTotalSupplyForBatch(batch);
+
     const batchPayloads = [];
     const results = await Promise.allSettled(
       batch.map((t) => processFn(t, totalSupplyMap, today))
