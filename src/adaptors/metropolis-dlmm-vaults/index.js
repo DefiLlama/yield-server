@@ -28,6 +28,8 @@ async function apy() {
       const pairRewardTokens = rewardTokenMap[vault.pairAddress?.toLowerCase()];
       const hasRewardTokens = pairRewardTokens?.length > 0;
 
+      const hasRewards = hasRewardTokens && apyRewardRaw > 0;
+
       return {
         pool: `${vault.vaultAddress}-${CHAIN}`.toLowerCase(),
         chain: utils.formatChain(CHAIN),
@@ -36,14 +38,14 @@ async function apy() {
         tvlUsd: vault.liquidityUSD || 0,
         apyBase:
           (vault.feeApr24 || 0) +
-          (!hasRewardTokens && apyRewardRaw > 0 ? apyRewardRaw : 0),
+          (!hasRewards && apyRewardRaw > 0 ? apyRewardRaw : 0),
         apyBase7d: vault.feeApr7d || 0,
-        apyReward:
-          hasRewardTokens && apyRewardRaw > 0 ? apyRewardRaw : undefined,
-        rewardTokens:
-          hasRewardTokens && apyRewardRaw > 0 ? pairRewardTokens : undefined,
+        ...(hasRewards && {
+          apyReward: apyRewardRaw,
+          rewardTokens: pairRewardTokens,
+        }),
         underlyingTokens: [vault.tokenX.id, vault.tokenY.id],
-        poolMeta: vault.name || undefined,
+        poolMeta: `Vault - ${(vault.aumAnnualFee / 100).toFixed(1)}% fee`,
         url: `https://app.metropolis.exchange/liquidity/vault/:146/add/${vault.vaultAddress}`,
       };
     })
