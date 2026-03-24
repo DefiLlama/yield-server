@@ -15,13 +15,13 @@ async function apy() {
       chain: utils.formatChain(CHAIN),
       project: PROJECT,
       symbol: `${pool.tokenX.symbol}-${pool.tokenY.symbol}`,
-      tvlUsd: pool.liquidityUSD || 0,
-      apyBase: pool.feeApr24 || 0,
-      apyBase7d: pool.feeApr7d || 0,
+      tvlUsd: pool.liquidityUSD,
+      apyBase: pool.feeApr24,
+      apyBase7d: pool.feeApr7d,
       underlyingTokens: [pool.tokenX.address, pool.tokenY.address],
       poolMeta: `${pool.binStep} binStep`,
-      volumeUsd1d: pool.volumeUSD || 0,
-      volumeUsd7d: pool.volumeUSDWeek || 0,
+      volumeUsd1d: pool.volumeUSD,
+      volumeUsd7d: pool.volumeUSDWeek,
     }))
     .filter((p) => utils.keepFinite(p));
 }
