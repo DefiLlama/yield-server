@@ -172,19 +172,21 @@ const apy = async () => {
   for (let i = 0; i < allMorphoAddresses.length; i++) {
     const addr = allMorphoAddresses[i];
     const aNow = Number(assetsNowRes.output[i].output || '0');
-    const sNow = Number(supplyNowRes.output[i].output || '1');
+    const sNow = Number(supplyNowRes.output[i].output || '0');
     const aPast = Number(assetsPastRes.output[i].output || '0');
-    const sPast = Number(supplyPastRes.output[i].output || '1');
+    const sPast = Number(supplyPastRes.output[i].output || '0');
 
-    const priceNow = sNow > 0 ? aNow / sNow : 1;
-    const pricePast = sPast > 0 ? aPast / sPast : 1;
+    if (sNow <= 0 || sPast <= 0) continue;
+
+    const priceNow = aNow / sNow;
+    const pricePast = aPast / sPast;
     const apyVal =
       pricePast > 0 ? Math.pow(priceNow / pricePast, 365) - 1 : 0;
 
     morphoData[addr] = {
       apy: Math.max(apyVal, 0),
       totalAssets: BigInt(assetsNowRes.output[i].output || '0'),
-      totalSupply: BigInt(supplyNowRes.output[i].output || '1'),
+      totalSupply: BigInt(supplyNowRes.output[i].output || '0'),
     };
   }
 
@@ -216,13 +218,13 @@ const apy = async () => {
       const data = morphoData[morphoAddr];
       if (!data) continue;
 
-      const shares = sharesPerMorpho[morphoAddr] || BigInt(0);
-      if (shares === BigInt(0)) continue;
+      const shares = sharesPerMorpho[morphoAddr] || 0n;
+      if (shares === 0n) continue;
 
       const assets =
-        data.totalSupply > BigInt(0)
+        data.totalSupply > 0n
           ? (shares * data.totalAssets) / data.totalSupply
-          : BigInt(0);
+          : 0n;
 
       const tvlUsd = (Number(assets) / 10 ** decimals) * prices[asset];
 
@@ -276,8 +278,9 @@ const apy = async () => {
     }),
   ]);
 
-  const stakingApr6M = (Number(apr6M) / Number(basisPoints)) * 100;
-  const stakingApr12M = (Number(apr12M) / Number(basisPoints)) * 100;
+  const bp = Number(basisPoints);
+  const stakingApr6M = bp > 0 ? (Number(apr6M) / bp) * 100 : null;
+  const stakingApr12M = bp > 0 ? (Number(apr12M) / bp) * 100 : null;
 
   const surfPriceKey = `${CHAIN}:${SURF_TOKEN}`;
   const surfPriceResp = await axios.get(
@@ -295,19 +298,28 @@ const apy = async () => {
   });
   const subscriptionTvl = (Number(subscribedBalance) / 1e18) * surfPrice;
 
-  if (stakingTvl > 100) {
-    pools.push({
+  const totalSurfTvl = stakingTvl + subscriptionTvl;
+  if (totalSurfTvl > 100) {
+    const stakingPool = {
       pool: `${SURF_STAKING.toLowerCase()}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
       project: 'surf-liquid',
       symbol: 'SURF',
-      tvlUsd: stakingTvl + subscriptionTvl,
+      tvlUsd: totalSurfTvl,
       apyBase: 0,
-      apyReward: stakingApr6M,
-      rewardTokens: [SURF_TOKEN],
       underlyingTokens: [SURF_TOKEN],
-      poolMeta: `${stakingApr6M}% APR (6M lock) / ${stakingApr12M}% APR (12M lock)`,
-    });
+    };
+
+    if (stakingApr6M != null && stakingApr6M > 0) {
+      stakingPool.apyReward = stakingApr6M;
+      stakingPool.rewardTokens = [SURF_TOKEN];
+      stakingPool.poolMeta =
+        stakingApr12M != null
+          ? `${stakingApr6M}% APR (6M lock) / ${stakingApr12M}% APR (12M lock)`
+          : `${stakingApr6M}% APR (6M lock)`;
+    }
+
+    pools.push(stakingPool);
   }
 
   return pools;
