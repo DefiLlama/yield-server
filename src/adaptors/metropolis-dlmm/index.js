@@ -22,6 +22,7 @@ async function apy() {
       poolMeta: `${pool.binStep} binStep`,
       volumeUsd1d: pool.volumeUSD,
       volumeUsd7d: pool.volumeUSDWeek,
+      url: `https://app.metropolis.exchange/liquidity/manual/:146/add/v21/${pool.address}/${pool.binStep}?showTop=true`,
     }))
     .filter((p) => utils.keepFinite(p));
 }
@@ -29,5 +30,4 @@ async function apy() {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.metropolis.exchange/liquidityv3',
 };
