@@ -64,16 +64,12 @@ async function fetchAllPools() {
 async function apy() {
   const pools = await fetchAllPools();
 
-  // Fetch APR data from gateway API
-  let gatewayPools = [];
-  try {
-    const res = await axios.get(GATEWAY_API);
-    if (res.data && Array.isArray(res.data.pools)) {
-      gatewayPools = res.data.pools;
-    }
-  } catch (e) {
-    console.error('Failed to fetch gateway API data:', e.message);
+  // Fetch APR data from gateway API (let errors propagate for retry logic)
+  const res = await axios.get(GATEWAY_API);
+  if (!res.data || !Array.isArray(res.data.pools)) {
+    throw new Error('Invalid gateway API response');
   }
+  const gatewayPools = res.data.pools;
 
   const aprMap = {};
   for (const p of gatewayPools) {
