@@ -93,6 +93,17 @@ const VAULTS = {
       },
     ],
   },
+  base: {
+    alias: 'base',
+    chain: 'base',
+    chainId: 8453,
+    vaultFactoryV2: [
+      {
+        address: '0xDA4aAF85Bb924B53DCc2DFFa9e1A9C2Ef97aCFDF',
+        fromBlock: 43289755,
+      },
+    ],
+  },
 };
 
 // Venus/Fluid static vault-pool mapping (BSC only)
@@ -121,6 +132,7 @@ const VAULT_BLACKLIST = {
   bsc: [
     '0xe5E01B82904a49Ce5a670c1B7488C3f29433088a', // misconfigured asset
   ],
+  base: [],
 };
 
 async function getMerklOpportunities() {
@@ -152,6 +164,7 @@ async function getPrices(chain, addresses) {
 
 async function getVaultV1Addresses(chain, blockNumber) {
   const { vaultFactory } = VAULTS[chain];
+  if (!vaultFactory) return [];
 
   const addresses = [];
 
@@ -409,6 +422,7 @@ async function getVaultsV1Plus({
 
 async function getVaultV2Addresses(chain, blockNumber) {
   const { vaultFactoryV2 } = VAULTS[chain];
+  if (!vaultFactoryV2) return [];
 
   const addresses = [];
 
