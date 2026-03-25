@@ -41,6 +41,7 @@ function parseArgs() {
     standardOnly: false,
     flaggedOnly: false,
     cache: false,
+    daily: false,
     limit: 0,
     chain: null,
     token: null,
@@ -87,6 +88,9 @@ function parseArgs() {
       case '--cache':
         opts.cache = true;
         break;
+      case '--daily':
+        opts.daily = true;
+        break;
       case '--limit':
         opts.limit = Number(args[++i]);
         break;
@@ -111,6 +115,11 @@ function parseArgs() {
   // --cache implies --flagged-only and --skip-existing
   if (opts.cache) {
     opts.flaggedOnly = true;
+    opts.skipExisting = true;
+  }
+
+  // --daily implies --skip-existing
+  if (opts.daily) {
     opts.skipExisting = true;
   }
 
@@ -148,6 +157,7 @@ Options:
   --standard-only          Only process standard (rebase=false) tokens
   --flagged-only           Only process flagged (rebase) tokens
   --cache                  Read from S3 cache only (skip API calls)
+  --daily                  Full daily run: standard + flagged (incremental)
   --chain NAME             Only process pools on this chain
   --token ADDRESS          Only process a single token address
   --pool POOL_ID           Only process a single pool by pool ID
@@ -609,6 +619,122 @@ async function seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats) 
   }
 }
 
+const TOP_N_RECHECK = 100;
+
+// Flagged pool incremental — daily rebase=true + from_block
+async function processFlaggedIncremental(task, totalSupplyMap, decimalsMap, today, stats) {
+  const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
+
+  try {
+    const cache = await loadHolderCache(tokenAddress, chain);
+    if (!cache || !cache.holders || cache.holders.length === 0) {
+      log('INCREMENTAL', `${tokenAddress} on ${chain}: no cache → full seed`);
+      return seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats);
+    }
+
+    const currentBlock = await getCurrentBlock(chain);
+
+    const data = await fetchHolders(
+      chainId,
+      tokenAddress,
+      100000000000,
+      true,
+      cache.lastBlock
+    );
+
+    const activeHolders = (data.deltas || [])
+      .filter((d) => d.holder && BigInt(d.delta || 0) > 0n)
+      .map((d) => ({
+        address: d.holder.toLowerCase(),
+        balance: BigInt(d.delta),
+      }));
+
+    const holderMap = new Map();
+    for (const h of cache.holders) {
+      holderMap.set(h.address.toLowerCase(), BigInt(h.balance));
+    }
+
+    const activeSet = new Set();
+    for (const h of activeHolders) {
+      holderMap.set(h.address, h.balance);
+      activeSet.add(h.address);
+    }
+
+    // Remove exited holders (in delta but not active)
+    const allDeltaAddresses = new Set(
+      (data.deltas || [])
+        .map((d) => (d.holder || '').toLowerCase())
+        .filter(Boolean)
+    );
+    for (const addr of allDeltaAddresses) {
+      if (!activeSet.has(addr)) {
+        holderMap.delete(addr);
+      }
+    }
+
+    // True rebase: re-verify top N cached holders via balanceOf
+    if (cache.tokenType === 'true_rebase') {
+      const topCached = cache.holders
+        .slice(0, TOP_N_RECHECK)
+        .map((h) => h.address.toLowerCase());
+      const toRecheck = topCached.filter((addr) => !activeSet.has(addr));
+      if (toRecheck.length > 0) {
+        const refined = await refineHoldersOnChain(
+          tokenAddress,
+          toRecheck,
+          chain
+        );
+        for (const addr of toRecheck) holderMap.delete(addr);
+        for (const h of refined)
+          holderMap.set(h.address.toLowerCase(), h.balance);
+      }
+    }
+
+    const holders = Array.from(holderMap.entries())
+      .map(([address, balance]) => ({ address, balance }))
+      .sort((a, b) =>
+        b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0
+      );
+
+    const holderCount = holders.length;
+    const prevCount = cache.holderCount || cache.holders.length;
+    const delta = holderCount - prevCount;
+    log(
+      'INCREMENTAL',
+      `${tokenAddress} on ${chain}: ${formatNumber(holderCount)} holders (${delta >= 0 ? '+' : ''}${delta} since last)`
+    );
+
+    const result = buildResult(
+      holders,
+      holderCount,
+      configID,
+      tvlUsd,
+      totalSupplyMap,
+      decimalsMap,
+      chain,
+      tokenAddress,
+      today
+    );
+
+    // Attach holder cache data for S3 save
+    if (process.env.BUCKET_HOLDERS_DATA) {
+      result._holderCache = {
+        tokenAddress,
+        chain,
+        holders,
+        holderCount,
+        tokenType: cache.tokenType,
+        currentBlock,
+      };
+    }
+
+    return result;
+  } catch (err) {
+    log('FALLBACK', `${tokenAddress} on ${chain}: incremental failed (${err.message}) → on-chain fallback`);
+    return processShareBasedPool(task, totalSupplyMap, decimalsMap, today, stats);
+  }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -634,6 +760,7 @@ async function main() {
   log('CONFIG', `Standard only:  ${opts.standardOnly}`);
   log('CONFIG', `Flagged only:   ${opts.flaggedOnly}`);
   log('CONFIG', `Cache mode:     ${opts.cache}`);
+  log('CONFIG', `Daily mode:     ${opts.daily}`);
   if (opts.chain) log('CONFIG', `Chain filter:   ${opts.chain}`);
   if (opts.token) log('CONFIG', `Token filter:   ${opts.token}`);
   if (opts.pool) log('CONFIG', `Pool filter:    ${opts.pool}`);
@@ -910,6 +1037,8 @@ async function main() {
     log('FLAGGED', `Processing ${formatNumber(flaggedTasks.length)} pools iteratively...`);
     const flaggedTimer = createTimer();
     const totalBatches = Math.ceil(flaggedTasks.length / opts.flaggedBatch);
+    let incrementalCount = 0;
+    let seedCount = 0;
 
     for (let i = 0; i < flaggedTasks.length; i += opts.flaggedBatch) {
       if (shuttingDown) break;
@@ -917,7 +1046,19 @@ async function main() {
       const batch = flaggedTasks.slice(i, i + opts.flaggedBatch);
       const batchTimer = createTimer();
 
-      // 1. Fetch totalSupply + decimals for this batch
+      // 1. Check S3 cache to split incremental vs seed
+      const batchInfo = await Promise.all(
+        batch.map(async (task) => {
+          const cache = await loadHolderCache(task.tokenAddress, task.chain);
+          const hasHolderData = cache && cache.holders && cache.holders.length > 0;
+          return { task, hasHolderData };
+        })
+      );
+
+      const cachedTasks = batchInfo.filter((b) => b.hasHolderData).map((b) => b.task);
+      const uncachedTasks = batchInfo.filter((b) => !b.hasHolderData).map((b) => b.task);
+
+      // 2. Fetch totalSupply + decimals for this batch
       const batchChainGroups = {};
       for (const t of batch) {
         if (!batchChainGroups[t.chain]) batchChainGroups[t.chain] = [];
@@ -967,49 +1108,76 @@ async function main() {
         })
       );
 
-      // 2. Fetch holders
+      // 3. Process: incremental for cached, seed for uncached
       const batchPayloads = [];
-      const results = await Promise.allSettled(
-        batch.map((t) =>
-          seedFlaggedPool(t, totalSupplyMap, decimalsMap, opts.targetDate, stats)
-        )
-      );
 
-      for (let j = 0; j < results.length; j++) {
-        const r = results[j];
-        const t = batch[j];
-        if (r.status === 'fulfilled') {
-          if (r.value) {
+      if (cachedTasks.length > 0) {
+        const results = await Promise.allSettled(
+          cachedTasks.map((t) =>
+            processFlaggedIncremental(t, totalSupplyMap, decimalsMap, opts.targetDate, stats)
+          )
+        );
+        for (let j = 0; j < results.length; j++) {
+          const r = results[j];
+          const t = cachedTasks[j];
+          if (r.status === 'fulfilled' && r.value) {
             batchPayloads.push(r.value);
             stats.flagged.success++;
             trackChain(stats, t.chain, 'success');
-          } else {
+            incrementalCount++;
+          } else if (r.status === 'fulfilled') {
             stats.flagged.skipped++;
+            log('SKIP', `${t.tokenAddress} on ${t.chain}: null result`);
+          } else {
+            stats.flagged.failed++;
+            trackChain(stats, t.chain, 'failed');
+            log('ERROR', `${t.tokenAddress} on ${t.chain}: ${r.reason?.message || r.reason}`);
           }
-        } else {
-          stats.flagged.failed++;
-          trackChain(stats, t.chain, 'failed');
         }
       }
 
-      // 3. S3 saves
+      if (uncachedTasks.length > 0) {
+        const results = await Promise.allSettled(
+          uncachedTasks.map((t) =>
+            seedFlaggedPool(t, totalSupplyMap, decimalsMap, opts.targetDate, stats)
+          )
+        );
+        for (let j = 0; j < results.length; j++) {
+          const r = results[j];
+          const t = uncachedTasks[j];
+          if (r.status === 'fulfilled' && r.value) {
+            batchPayloads.push(r.value);
+            stats.flagged.success++;
+            trackChain(stats, t.chain, 'success');
+            seedCount++;
+          } else if (r.status === 'fulfilled') {
+            stats.flagged.skipped++;
+            log('SKIP', `${t.tokenAddress} on ${t.chain}: null result`);
+          } else {
+            stats.flagged.failed++;
+            trackChain(stats, t.chain, 'failed');
+            log('ERROR', `${t.tokenAddress} on ${t.chain}: ${r.reason?.message || r.reason}`);
+          }
+        }
+      }
+
+      // 4. S3 saves
       const s3Payloads = batchPayloads.filter((p) => p._holderCache);
       if (s3Payloads.length > 0) {
         await Promise.allSettled(
           s3Payloads.map(async (p) => {
-            const { tokenAddress, chain, holders, holderCount } = p._holderCache;
+            const c = p._holderCache;
             try {
-              const [currentBlock, tokenType] = await Promise.all([
-                getCurrentBlock(chain),
-                classifyToken(tokenAddress, chain),
-              ]);
-              await saveHolderCache(tokenAddress, chain, {
-                token: tokenAddress,
-                chain,
+              // Use cached tokenType/currentBlock if available, otherwise fetch
+              const currentBlock = c.currentBlock || await getCurrentBlock(c.chain);
+              const tokenType = c.tokenType || await classifyToken(c.tokenAddress, c.chain);
+              await saveHolderCache(c.tokenAddress, c.chain, {
+                token: c.tokenAddress,
+                chain: c.chain,
                 lastBlock: currentBlock,
                 tokenType,
-                holderCount,
-                holders: holders.map((h) => ({
+                holderCount: c.holderCount,
+                holders: c.holders.map((h) => ({
                   address: h.address,
                   balance: String(h.balance),
                 })),
@@ -1018,14 +1186,14 @@ async function main() {
               stats.s3.holderListSaves++;
             } catch (err) {
               stats.s3.saveErrors++;
-              log('S3-WARN', `Cache save failed for ${tokenAddress} on ${chain}: ${err.message}`);
+              log('S3-WARN', `Cache save failed for ${c.tokenAddress} on ${c.chain}: ${err.message}`);
             }
           })
         );
       }
       for (const p of batchPayloads) delete p._holderCache;
 
-      // 4. DB write
+      // 5. DB write
       if (batchPayloads.length > 0 && !opts.dryRun) {
         const dbTimer = createTimer();
         try {
@@ -1044,7 +1212,7 @@ async function main() {
       const pct = ((Math.min(i + opts.flaggedBatch, flaggedTasks.length) / flaggedTasks.length) * 100).toFixed(1);
       log(
         'FLAGGED',
-        `Batch ${batchNum}/${totalBatches}: ${batchPayloads.length}/${batch.length} success (${pct}%) [${batchTimer.stop()}]`
+        `Batch ${batchNum}/${totalBatches}: ${cachedTasks.length} incremental, ${uncachedTasks.length} seed — ${batchPayloads.length}/${batch.length} success (${pct}%) [${batchTimer.stop()}]`
       );
 
       if (i + opts.flaggedBatch < flaggedTasks.length && opts.batchDelay > 0 && !shuttingDown) {
@@ -1056,8 +1224,350 @@ async function main() {
     log(
       'FLAGGED',
       `Done: ${stats.flagged.success} success, ${stats.flagged.failed} failed, ` +
-        `${stats.flagged.skipped} skipped (${flaggedTimer.stop()})`
+        `${stats.flagged.skipped} skipped (${incrementalCount} incremental, ${seedCount} seeded) (${flaggedTimer.stop()})`
     );
+    return printSummary(stats, globalTimer);
+  }
+
+  // ── Daily Mode ─────────────────────────────────────────────────────────
+  // Optimized: upfront totalSupply + classification with S3 cache reuse, larger batches, reduced delays
+
+  if (opts.daily) {
+    const STANDARD_BATCH = 50;
+    const FLAGGED_BATCH = 15;
+    const STANDARD_DELAY = 200;
+    const FLAGGED_DELAY = 500;
+
+    // ── Classification (reuse S3 cache data for flagged) ──
+    log('CLASSIFY', 'Loading cached classifications from S3...');
+    const classifyTimer = createTimer();
+
+    // Load S3 caches — store full cache for flagged reuse later
+    const holderCacheMap = new Map();
+    const cacheResults = await Promise.allSettled(
+      tasks.map(async (task) => {
+        const cache = await loadHolderCache(task.tokenAddress, task.chain);
+        return { task, cache };
+      })
+    );
+
+    let cachedClassifications = 0;
+    for (const r of cacheResults) {
+      if (r.status !== 'fulfilled' || !r.value) continue;
+      const { task, cache } = r.value;
+      task.tokenType = cache?.tokenType ?? null;
+      if (task.tokenType != null) cachedClassifications++;
+      // Store cache for flagged reuse (avoid second S3 load)
+      if (cache && cache.holders && cache.holders.length > 0) {
+        holderCacheMap.set(`${task.tokenAddress.toLowerCase()}-${task.chain}`, cache);
+      }
+    }
+    log('CLASSIFY', `${formatNumber(cachedClassifications)} loaded from S3 cache (${formatNumber(holderCacheMap.size)} with holder data)`);
+
+    const unclassified = tasks.filter((t) => t.tokenType == null);
+    if (unclassified.length > 0) {
+      log('CLASSIFY', `Probing ${formatNumber(unclassified.length)} unclassified tokens...`);
+      const classMap = await classifyTokensBatch(unclassified);
+      for (const t of unclassified) {
+        const key = `${t.tokenAddress.toLowerCase()}-${t.chain}`;
+        t.tokenType = classMap.get(key) || 'standard';
+      }
+    }
+
+    const needsRebase = (type) =>
+      ['share_based', 'true_rebase', 'needs_rebase'].includes(type);
+
+    const standardTasks = tasks.filter((t) => !needsRebase(t.tokenType));
+    const flaggedTasks = tasks.filter((t) => needsRebase(t.tokenType));
+
+    log(
+      'CLASSIFY',
+      `${formatNumber(standardTasks.length)} standard, ${formatNumber(flaggedTasks.length)} flagged (${classifyTimer.stop()})`
+    );
+
+    stats.standard.total = standardTasks.length;
+    stats.flagged.total = flaggedTasks.length;
+
+    // ── Upfront totalSupply for standard pools ──
+    let standardSupplyMap = {};
+    let standardDecimalsMap = {};
+    if (standardTasks.length > 0 && !shuttingDown) {
+      log('SUPPLY', 'Fetching totalSupply for standard pools...');
+      const supplyTimer = createTimer();
+      const chainGroups = {};
+      for (const t of standardTasks) {
+        if (!chainGroups[t.chain]) chainGroups[t.chain] = [];
+        chainGroups[t.chain].push(t);
+      }
+      await Promise.allSettled(
+        Object.entries(chainGroups).map(async ([chain, group]) => {
+          const seen = new Set();
+          const calls = [];
+          for (const t of group) {
+            const key = t.tokenAddress.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            calls.push({ target: t.tokenAddress, params: [] });
+          }
+          try {
+            const [supplyResult, decimalsResult] = await Promise.all([
+              sdk.api.abi.multiCall({ abi: 'erc20:totalSupply', calls, chain, permitFailure: true }),
+              sdk.api.abi.multiCall({ abi: 'erc20:decimals', calls, chain, permitFailure: true }),
+            ]);
+            for (const item of supplyResult.output) {
+              if (item.output) standardSupplyMap[`${item.input.target.toLowerCase()}-${chain}`] = BigInt(item.output);
+            }
+            for (const item of decimalsResult.output) {
+              if (item.output != null) standardDecimalsMap[`${item.input.target.toLowerCase()}-${chain}`] = Number(item.output);
+            }
+          } catch (err) {
+            log('SUPPLY', `Failed for ${chain}: ${err.message}`);
+          }
+        })
+      );
+      log('SUPPLY', `Done: ${Object.keys(standardSupplyMap).length} tokens (${supplyTimer.stop()})`);
+    }
+
+    // Helper: fetch totalSupply for a flagged batch
+    async function fetchSupplyForBatch(batch) {
+      const chainGroups = {};
+      for (const t of batch) {
+        if (!chainGroups[t.chain]) chainGroups[t.chain] = [];
+        chainGroups[t.chain].push(t);
+      }
+      const tsMap = {};
+      const decMap = {};
+      await Promise.allSettled(
+        Object.entries(chainGroups).map(async ([chain, group]) => {
+          const seen = new Set();
+          const calls = [];
+          for (const t of group) {
+            const key = t.tokenAddress.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            calls.push({ target: t.tokenAddress, params: [] });
+          }
+          try {
+            const [supplyResult, decimalsResult] = await Promise.all([
+              sdk.api.abi.multiCall({ abi: 'erc20:totalSupply', calls, chain, permitFailure: true }),
+              sdk.api.abi.multiCall({ abi: 'erc20:decimals', calls, chain, permitFailure: true }),
+            ]);
+            for (const item of supplyResult.output) {
+              if (item.output) tsMap[`${item.input.target.toLowerCase()}-${chain}`] = BigInt(item.output);
+            }
+            for (const item of decimalsResult.output) {
+              if (item.output != null) decMap[`${item.input.target.toLowerCase()}-${chain}`] = Number(item.output);
+            }
+          } catch (err) {
+            log('SUPPLY', `Failed for ${chain}: ${err.message}`);
+          }
+        })
+      );
+      return { tsMap, decMap };
+    }
+
+    // ── Standard Processing (upfront supply, larger batches, reduced delay) ──
+    if (standardTasks.length > 0 && !shuttingDown) {
+      const standardTimer = createTimer();
+      const totalBatches = Math.ceil(standardTasks.length / STANDARD_BATCH);
+      log('STANDARD', `Processing ${formatNumber(standardTasks.length)} pools in ${totalBatches} batches of ${STANDARD_BATCH}...`);
+
+      for (let i = 0; i < standardTasks.length; i += STANDARD_BATCH) {
+        if (shuttingDown) break;
+        const batchNum = Math.floor(i / STANDARD_BATCH) + 1;
+        const batch = standardTasks.slice(i, i + STANDARD_BATCH);
+        const batchTimer = createTimer();
+
+        const batchPayloads = [];
+        const results = await Promise.allSettled(
+          batch.map((t) => processPool(t, standardSupplyMap, standardDecimalsMap, opts.targetDate, stats))
+        );
+
+        for (let j = 0; j < results.length; j++) {
+          const r = results[j];
+          const t = batch[j];
+          if (r.status === 'fulfilled' && r.value) {
+            batchPayloads.push(r.value);
+            stats.standard.success++;
+            trackChain(stats, t.chain, 'success');
+          } else if (r.status === 'fulfilled') {
+            stats.standard.skipped++;
+          } else {
+            stats.standard.failed++;
+            trackChain(stats, t.chain, 'failed');
+            log('STANDARD', `  ✗ ${t.tokenAddress} on ${t.chain} — ${r.reason?.message || r.reason}`);
+          }
+        }
+
+        // DB write (no S3 for standard)
+        if (batchPayloads.length > 0 && !opts.dryRun) {
+          const dbTimer = createTimer();
+          try {
+            await insertHolder(batchPayloads);
+            stats.db.inserts += batchPayloads.length;
+            stats.db.timeMs += dbTimer.elapsed();
+          } catch (err) {
+            log('DB-ERROR', `Batch insert failed: ${err.message}`);
+          }
+        } else if (opts.dryRun) {
+          stats.db.inserts += batchPayloads.length;
+        }
+
+        const pct = ((Math.min(i + STANDARD_BATCH, standardTasks.length) / standardTasks.length) * 100).toFixed(1);
+        log('STANDARD', `Batch ${batchNum}/${totalBatches}: ${batchPayloads.length}/${batch.length} success (${pct}%) [${batchTimer.stop()}]`);
+
+        if (i + STANDARD_BATCH < standardTasks.length && !shuttingDown) {
+          await new Promise((r) => setTimeout(r, STANDARD_DELAY));
+        }
+      }
+
+      stats.standard.timeMs = standardTimer.elapsed();
+      log('STANDARD', `Done: ${stats.standard.success} success, ${stats.standard.failed} failed, ${stats.standard.skipped} skipped (${standardTimer.stop()})`);
+    }
+
+    // Free standard supply maps
+    standardSupplyMap = null;
+    standardDecimalsMap = null;
+
+    // ── Flagged Processing (reuse cached S3 data, larger batches) ──
+    if (flaggedTasks.length > 0 && !shuttingDown) {
+      const flaggedTimer = createTimer();
+      const totalBatches = Math.ceil(flaggedTasks.length / FLAGGED_BATCH);
+      let incrementalCount = 0;
+      let seedCount = 0;
+      log('FLAGGED', `Processing ${formatNumber(flaggedTasks.length)} pools in ${totalBatches} batches of ${FLAGGED_BATCH}...`);
+
+      for (let i = 0; i < flaggedTasks.length; i += FLAGGED_BATCH) {
+        if (shuttingDown) break;
+        const batchNum = Math.floor(i / FLAGGED_BATCH) + 1;
+        const batch = flaggedTasks.slice(i, i + FLAGGED_BATCH);
+        const batchTimer = createTimer();
+
+        // Split cached vs uncached using pre-loaded S3 data (no second S3 fetch)
+        const cachedTasks = [];
+        const uncachedTasks = [];
+        for (const task of batch) {
+          const key = `${task.tokenAddress.toLowerCase()}-${task.chain}`;
+          if (holderCacheMap.has(key)) {
+            cachedTasks.push(task);
+          } else {
+            uncachedTasks.push(task);
+          }
+        }
+
+        // Fetch totalSupply for this batch
+        const { tsMap, decMap } = await fetchSupplyForBatch(batch);
+
+        const batchPayloads = [];
+
+        // Incremental for cached
+        if (cachedTasks.length > 0) {
+          const results = await Promise.allSettled(
+            cachedTasks.map((t) => processFlaggedIncremental(t, tsMap, decMap, opts.targetDate, stats))
+          );
+          for (let j = 0; j < results.length; j++) {
+            const r = results[j];
+            const t = cachedTasks[j];
+            if (r.status === 'fulfilled' && r.value) {
+              batchPayloads.push(r.value);
+              stats.flagged.success++;
+              trackChain(stats, t.chain, 'success');
+              incrementalCount++;
+            } else if (r.status === 'fulfilled') {
+              stats.flagged.skipped++;
+            } else {
+              stats.flagged.failed++;
+              trackChain(stats, t.chain, 'failed');
+              log('FLAGGED', `  ✗ ${t.tokenAddress} on ${t.chain} — ${r.reason?.message || r.reason}`);
+            }
+          }
+        }
+
+        // Seed for uncached
+        if (uncachedTasks.length > 0) {
+          const results = await Promise.allSettled(
+            uncachedTasks.map((t) => seedFlaggedPool(t, tsMap, decMap, opts.targetDate, stats))
+          );
+          for (let j = 0; j < results.length; j++) {
+            const r = results[j];
+            const t = uncachedTasks[j];
+            if (r.status === 'fulfilled' && r.value) {
+              batchPayloads.push(r.value);
+              stats.flagged.success++;
+              trackChain(stats, t.chain, 'success');
+              seedCount++;
+            } else if (r.status === 'fulfilled') {
+              stats.flagged.skipped++;
+            } else {
+              stats.flagged.failed++;
+              trackChain(stats, t.chain, 'failed');
+              log('FLAGGED', `  ✗ ${t.tokenAddress} on ${t.chain} — ${r.reason?.message || r.reason}`);
+            }
+          }
+        }
+
+        // S3 saves
+        const s3Payloads = batchPayloads.filter((p) => p._holderCache);
+        if (s3Payloads.length > 0) {
+          await Promise.allSettled(
+            s3Payloads.map(async (p) => {
+              const c = p._holderCache;
+              try {
+                const currentBlock = c.currentBlock || await getCurrentBlock(c.chain);
+                const tokenType = c.tokenType || await classifyToken(c.tokenAddress, c.chain);
+                await saveHolderCache(c.tokenAddress, c.chain, {
+                  token: c.tokenAddress,
+                  chain: c.chain,
+                  lastBlock: currentBlock,
+                  tokenType,
+                  holderCount: c.holderCount,
+                  holders: c.holders.map((h) => ({ address: h.address, balance: String(h.balance) })),
+                  updatedAt: new Date().toISOString(),
+                });
+                stats.s3.holderListSaves++;
+              } catch (err) {
+                stats.s3.saveErrors++;
+                log('S3-WARN', `${c.tokenAddress} on ${c.chain}: ${err.message}`);
+              }
+            })
+          );
+        }
+        for (const p of batchPayloads) delete p._holderCache;
+
+        // DB write
+        if (batchPayloads.length > 0 && !opts.dryRun) {
+          const dbTimer = createTimer();
+          try {
+            await insertHolder(batchPayloads);
+            stats.db.inserts += batchPayloads.length;
+            stats.db.timeMs += dbTimer.elapsed();
+          } catch (err) {
+            log('DB-ERROR', `Batch insert failed: ${err.message}`);
+          }
+        } else if (opts.dryRun) {
+          stats.db.inserts += batchPayloads.length;
+        }
+
+        const pct = ((Math.min(i + FLAGGED_BATCH, flaggedTasks.length) / flaggedTasks.length) * 100).toFixed(1);
+        log(
+          'FLAGGED',
+          `Batch ${batchNum}/${totalBatches}: ${cachedTasks.length} incremental, ${uncachedTasks.length} seed — ` +
+            `${batchPayloads.length}/${batch.length} success (${pct}%) [${batchTimer.stop()}]`
+        );
+
+        if (i + FLAGGED_BATCH < flaggedTasks.length && !shuttingDown) {
+          await new Promise((r) => setTimeout(r, FLAGGED_DELAY));
+        }
+      }
+
+      stats.flagged.timeMs = flaggedTimer.elapsed();
+      log(
+        'FLAGGED',
+        `Done: ${stats.flagged.success} success, ${stats.flagged.failed} failed, ` +
+          `${stats.flagged.skipped} skipped (${incrementalCount} incremental, ${seedCount} seeded) (${flaggedTimer.stop()})`
+      );
+    }
+
     return printSummary(stats, globalTimer);
   }
 
