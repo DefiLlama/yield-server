@@ -13,7 +13,7 @@ const chainMapping = {
     avax: { chainId: '43114', secondsPerBlock: 2 },
     base: { chainId: '8453', secondsPerBlock: 2 },
     hyperliquid: { chainId: '999', secondsPerBlock: 2 },
-    monad: { chainId: '143', secondsPerBlock: 1 },
+    monad: { chainId: '143', secondsPerBlock: 0.4 },
 };
 
 const projectName = 'upshift';
@@ -25,6 +25,7 @@ const extraPools = {
     ],
     monad: [
         '0x36eDbF0C834591BFdfCaC0Ef9605528c75c406aA', // earnAUSD
+        '0x5E7568bf8DF8792aE467eCf5638d7c4D18A1881C', // earnMON
     ],
 };
 
@@ -38,6 +39,15 @@ const customVaults = {
         totalAssetsAbi: { inputs: [], name: 'getTotalAssets', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
         sharePriceAbi: { inputs: [], name: 'getSharePrice', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
         merklIdentifier: '0x103222f020e98Bba0AD9809A011FDF8e6F067496', // lpTokenAddress used by Merkl
+    },
+    '0x5E7568bf8DF8792aE467eCf5638d7c4D18A1881C': {
+        symbol: 'earnMON',
+        decimals: 18,
+        underlying: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', // WMON
+        underlyingDecimals: 18,
+        totalAssetsAbi: { inputs: [], name: 'getTotalAssets', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
+        sharePriceAbi: { inputs: [], name: 'getSharePrice', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
+        merklIdentifier: '0x8FA1365f6E39B7404737721a356B1d4a7b11cA7D', // lpTokenAddress used by Merkl
     },
 };
 
