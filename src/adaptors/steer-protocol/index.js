@@ -7,24 +7,28 @@ const axios = require('axios');
 const supportedChains = [
   {
     name: 'Polygon',
+    chainId: 137,
     subgraphEndpoint: sdk.graph.modifyEndpoint(
       'uQxLz6EarmJcr2ymRRmTnrRPi8cCqas4XcPQb71HBvw'
     ),
   },
   {
     name: 'Arbitrum',
+    chainId: 42161,
     subgraphEndpoint: sdk.graph.modifyEndpoint(
       'HVC4Br5yprs3iK6wF8YVJXy4QZWBNXTCFp8LPe3UpcD4'
     ),
   },
   {
     name: 'Optimism',
+    chainId: 10,
     subgraphEndpoint: sdk.graph.modifyEndpoint(
       'GgW1EwNARL3dyo3acQ3VhraQQ66MHT7QnYuGcQc5geDG'
     ),
   },
   {
     name: 'Ethereum',
+    chainId: 1,
     subgraphEndpoint:
       'https://api.subgraph.ormilabs.com/api/public/803c8c8c-be12-4188-8523-b9853e23051d/subgraphs/steer-protocol-mainnet/prod/gn',
   },
@@ -96,9 +100,9 @@ const getPools = async () => {
           underlyingTokens: [vault.token0, vault.token1], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
           poolMeta: vault.beaconName.replace('MultiPosition', ''),
           url:
-            'https://app.steer.finance/app/' +
-            vault.strategyToken.id +
-            '/vault/' +
+            'https://app.steer.finance/vault/' +
+            chainInfo.chainId +
+            '/' +
             vault.id,
         };
       });
