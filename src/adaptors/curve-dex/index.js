@@ -46,7 +46,7 @@ const getPools = async (blockchainId) => {
       continue;
     }
 
-    if (blockchainId === "monad" && (!response?.success || !response?.data?.poolData?.length)) {
+    if (["monad", "plasma"].includes(blockchainId) && (!response?.success || !response?.data?.poolData?.length)) {
       try {
         response = await utils.getData(API_CORE_BASE_URL + uri);
       } catch {
