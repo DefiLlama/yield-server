@@ -1,7 +1,9 @@
 const axios = require('axios');
+const sdk = require('@defillama/sdk');
 const { utils: ethersUtils } = require('ethers');
 
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+const lensAbi = require('./lens.abi.json');
 
 // ---------------------------------------------------------------------------
 // Subgraph-based architecture (replaces event log scanning + lens multicalls)
@@ -18,55 +20,68 @@ const chains = {
   ethereum: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-mainnet/latest/gn`,
     urlChain: 'ethereum',
+    vaultLens: '0x83801C7BbeEFa54B91F8A07E36D81515a0Fc5b60',
   },
   bob: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-bob/latest/gn`,
     urlChain: 'bob',
+    vaultLens: '0xC6B56a52e5823659d90F3020164b92D1c2de03CE',
   },
   sonic: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-sonic/latest/gn`,
     urlChain: 'sonic',
+    vaultLens: '0x4c7BA548032FE3eA11b7D6BeaF736B3B74F69248',
   },
   avax: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-avalanche/latest/gn`,
     urlChain: 'avalanche',
+    vaultLens: '0xcC5F7593a4D5974F84A30B28Bd3fdb374319a254',
   },
   berachain: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-berachain/latest/gn`,
     urlChain: 'berachain',
+    vaultLens: '0x2ffd260BAd257C08516B649c93Ea3eb6b63a5639',
   },
   bsc: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-bsc/latest/gn`,
     urlChain: 'bnbsmartchain',
+    vaultLens: '0x84641751808f85F54344369036594E1a7301a414',
   },
   base: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-base/latest/gn`,
     urlChain: 'base',
+    vaultLens: '0x3530dA02ceC2818477888FdC77e777b566B6db4C',
   },
   swellchain: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-swell/latest/gn`,
     urlChain: 'swellchain',
+    vaultLens: '0x94Dd6A076838D6Fc5031e32138b95d810793DB1c',
   },
   unichain: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-unichain/latest/gn`,
     urlChain: 'unichain',
+    vaultLens: '0xd40DD19eD88a949436f784877A1BB59660ee8DE3',
   },
   arbitrum: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-arbitrum/latest/gn`,
     urlChain: 'arbitrumone',
+    vaultLens: '0x59d28aF1fC4A52EE402C9099BeCEf333366184Df',
   },
   linea: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-linea/latest/gn`,
     urlChain: 'lineamainnet',
+    vaultLens: '0xd20E9D6cfa0431aC306cC9906896a7BC0BE0Db64',
   },
   // TAC subgraph lacks the vault state entity (no supplyApy/borrowApy) -- excluded until updated
   monad: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-monad/latest/gn`,
     urlChain: 'monad',
+    vaultLens: '0x15d1Cc54fB3f7C0498fc991a23d8Dc00DF3c32A0',
   },
   plasma: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-plasma/latest/gn`,
     urlChain: 'plasma',
+    vaultLens: '0x62FF27a1fBE6024D2933A88D39E0FF877dB4FE0B',
   },
   hyperliquid: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-hyperevm/latest/gn`,
@@ -168,6 +183,45 @@ const getApys = async () => {
             !isCapFrozen(Number(v.borrowCap))
         );
 
+        // Fetch real LTV from lens contract so vaults appear in lendBorrow API
+        const ltvMap = {};
+        if (config.vaultLens && activeEvkVaults.length > 0) {
+          try {
+            const ltvAbi = lensAbi.find(
+              (m) => m.name === 'getRecognizedCollateralsLTVInfo'
+            );
+            const ltvResults = await sdk.api.abi
+              .multiCall({
+                calls: activeEvkVaults.map((v) => ({
+                  target: config.vaultLens,
+                  params: [v.id],
+                })),
+                abi: ltvAbi,
+                chain,
+                permitFailure: true,
+              })
+              .then((r) => r.output.map((o) => o.output));
+
+            for (let i = 0; i < activeEvkVaults.length; i++) {
+              const ltvInfo = ltvResults[i];
+              if (!ltvInfo || ltvInfo.length === 0) continue;
+              // Take max borrowLTV across all recognized collaterals
+              // EVK stores LTV in basis points (10000 = 100%), convert to [0, 1]
+              const maxBorrowLTV = Math.max(
+                ...ltvInfo.map((l) => Number(l.borrowLTV))
+              );
+              if (maxBorrowLTV > 0) {
+                ltvMap[activeEvkVaults[i].id] = maxBorrowLTV / 10000;
+              }
+            }
+          } catch (err) {
+            console.error(
+              `Error fetching LTV for ${chain}:`,
+              err.message || err
+            );
+          }
+        }
+
         // Collect unique asset addresses and fetch prices
         const assets = new Set([
           ...activeEvkVaults.map((v) => v.asset),
@@ -195,6 +249,7 @@ const getApys = async () => {
 
             const vaultAddr = ethersUtils.getAddress(v.id);
             const assetAddr = ethersUtils.getAddress(v.asset);
+            const ltv = ltvMap[v.id];
             return {
               pool: vaultAddr,
               chain,
@@ -207,6 +262,7 @@ const getApys = async () => {
               apyBase: Number(v.state.supplyApy) / APY_DIVISOR,
               apyBaseBorrow: Number(v.state.borrowApy) / APY_DIVISOR,
               underlyingTokens: [assetAddr],
+              ltv: ltv !== undefined ? ltv : undefined,
               url: chain === 'hyperliquid'
                 ? `https://app.hypurr.fi/markets/elend/999/${vaultAddr}`
                 : `https://app.euler.finance/vault/${vaultAddr}?network=${config.urlChain}`,
