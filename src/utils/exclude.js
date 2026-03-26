@@ -1981,6 +1981,32 @@ const excludePools = [
   'euler-earn-0xa9C251F8304b1B3Fc2b9e8fcae78D94Eff82Ac66-plasma',
   '0xa446938b0204Aa4055cdFEd68Ddf0E0d1BAB3E9E',
   'euler-earn-0x49C5733d71511A78a3E12925ea832f49031c97e9-ethereum',
+  // wildcat-protocol closed/terminated markets
+  '0x5850afc80561932b0abb63dd13cdc129395323a3', // WMTWBTC
+  '0x25083923f2174c5ff00d26cd6bc497221713c5b9', // wmtWBTC
+  '0x50ebdf73a0df61b782cea489e8102b3bfde0bda6', // wmtUSDC
+  '0x605309f21c1864bb0522781a2f97b91fe3a48601', // wmtWETH
+  '0x90d0ff1a7b1abef69eaf3952641058673439e2e3', // wmtUSDT
+  '0x0b6c6d557109f9e793297d54ee3fbde2e315b070', // wldUSDC
+  '0xe922db9bf086f1bff409bdd4d44facee371cc6e9', // cmsUSDC
+  '0x90772c109adc8d216967a2782eae8271b4e46c1e', // cmsUSDT
+  '0xd1cf3dbb78d2bd541ea498d86565ed4c8a91ea8d', // cmsSepUSDC
+  '0x17fbc62241ba80d1709ef64ce69ae788c8eb03f3', // bodhiUSDC
+  '0x6c2ce14293da8c6e19cad5a6b2a060426e2aeeb4', // cmsSepUSDT
+  '0xc44acd62b6ab1b341798a803c5212a7d2fcc28df', // hyperWildcatWBTC
+  '0x255bb30ed2e861baf508c10fc3c682e9577a0c87', // hyperWildcatcbBTC
+  '0x69e56f526637b430561e8293f3307765a046d750', // hyperWildcatWETH
+  '0xf21cd0fb0b27f966ee630e80d50d17dd090b9ebc', // MiningStoreUSDC
+  '0x55a365f3997b2f015001c53cf6a73335e593ad8a', // scpUSDC
+  '0xb3beb373d241378f5f1fd68ed865349257602476', // lilengUSDT
+  '0xf7645afe817a1c6cdf985b1ff4750a00ec4fe505', // USDTUSDT
+  '0xdba32266e0c9315119c6f02808db8e0570d8ab83', // lilengUSDC
+  '0x1ae65d2df9b39f7615ca2e6361eccf79500c325a', // hyperPrivateUSDC
+  '0xeafa12cc0905baabed8618584f0796f5d19da3c4', // KAI2USDC
+  '0xf716fe4b887e052f35dffe0952d96782d4ccf7dd', // KeyEURCEURC
+  '0x603b29847659618813f039c73379746585b78875', // lilengHYUSDC
+  '0x8c06d86596d671798a67e80dc44a281c8d822fd3', // OPENHALALUSDT
+  '0x2a1ffdd430ed6b7fcf4f8b9549154e6345bbebfb', // hyperWildcatPrivate1USDT
 ];
 
 const boundaries = {
