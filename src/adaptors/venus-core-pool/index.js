@@ -161,6 +161,8 @@ const getApy = async () => {
   ).output.map((o) => o.output);
 
   const yieldPools = yieldMarkets.map((pool, i) => {
+    if (pool.price === undefined || pool.price === null) return null;
+
     const totalSupplyUsd = calculateTvl(
       pool.getCash,
       pool.totalBorrows,
@@ -215,7 +217,7 @@ const getApy = async () => {
     );
 
     return readyToExport;
-  });
+  }).filter(Boolean);
 
   return yieldPools;
 };
