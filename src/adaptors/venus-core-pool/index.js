@@ -130,9 +130,9 @@ const getPrices = async (chain, addresses) => {
 
 function calculateApy(rate, decimals, price = 1, tvl = 1) {
   // APR compounded daily
-  const BLOCK_TIME = 0.75; // https://x.com/BNBCHAIN/status/1939374483833335935
+  const BLOCK_TIME = 0.45;
   const DAILY_BLOCKS = (24 * 60 * 60) / BLOCK_TIME;
-  const dailyApr = rate * price * DAILY_BLOCKS / tvl;
+  const dailyApr = (rate * price * DAILY_BLOCKS) / tvl;
   const apy = ((dailyApr / decimals + 1) ** 364 - 1) * 100;
   return apy;
 }
@@ -176,7 +176,10 @@ const getApy = async () => {
       pool.underlyingTokenDecimals
     );
     const tvl = totalSupplyUsd - totalBorrowUsd;
-    const apyBase = calculateApy(pool.supplyRatePerBlock, pool.underlyingTokenDecimals);
+    const apyBase = calculateApy(
+      pool.supplyRatePerBlock,
+      pool.underlyingTokenDecimals
+    );
     const apyReward = calculateApy(
       pool.venusSupplySpeeds,
       1e18, // XVS decimals
@@ -184,7 +187,10 @@ const getApy = async () => {
       totalSupplyUsd
     );
 
-    const apyBaseBorrow = calculateApy(pool.borrowRatePerBlock, pool.underlyingTokenDecimals);
+    const apyBaseBorrow = calculateApy(
+      pool.borrowRatePerBlock,
+      pool.underlyingTokenDecimals
+    );
     const apyRewardBorrow = calculateApy(
       pool.venusBorrowSpeeds,
       1e18, // XVS decimals
