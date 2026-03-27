@@ -2,7 +2,13 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { readFromS3, writeToS3 } = require('./s3');
 
-const API_BASE = `${(process.env.LLAMA_INDEXER_V2_ENDPOINT || '').replace(/\/$/, '')}/holders`;
+const INDEXER_ENDPOINT = process.env.LLAMA_INDEXER_V2_ENDPOINT;
+if (!INDEXER_ENDPOINT) {
+  console.warn('WARNING: LLAMA_INDEXER_V2_ENDPOINT is not set — holder API calls will fail');
+}
+const API_BASE = INDEXER_ENDPOINT
+  ? `${INDEXER_ENDPOINT.replace(/\/$/, '')}/holders`
+  : null;
 const RETRYABLE_CODES = new Set([429, 500, 502, 503, 504]);
 const BALANCE_CHUNK_SIZE = 2000;
 const CHUNK_CONCURRENCY = 10;
@@ -356,6 +362,7 @@ async function fetchHolders(
   fromBlock = null,
   snapshot = false
 ) {
+  if (!API_BASE) throw new Error('LLAMA_INDEXER_V2_ENDPOINT is not configured');
   const params = new URLSearchParams({ chainId, token });
   if (limit != null) params.set('limit', limit);
   if (rebase) params.set('rebase', 'true');
