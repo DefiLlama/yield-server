@@ -2007,6 +2007,7 @@ const excludePools = [
   '0x603B29847659618813F039C73379746585b78875', // lilengHYUSDC
   '0x8c06d86596D671798A67e80dc44a281C8d822fd3', // OPENHALALUSDT
   '0x2a1fFDd430eD6B7FCF4f8B9549154E6345BBebFB', // hyperWildcatPrivate1USDT
+  '0xc7b4c17861357b8abb91f25581e7263e08dcb59c-ethereum', // aave-v3 SNX on ethereum, frozen market (0% LTV, borrowing disabled)
 ];
 
 const boundaries = {
