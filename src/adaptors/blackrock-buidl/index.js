@@ -40,7 +40,10 @@ const dailyAccrualToApy = (rate) =>
   rate && rate > 0 ? (Math.pow(1 + rate, 365) - 1) * 100 : 0;
 
 const apy = async () => {
-  const { data: feeds } = await axios.get(REDSTONE_URL);
+  const feeds = await axios
+    .get(REDSTONE_URL, { timeout: 10_000 })
+    .then((r) => r.data)
+    .catch(() => ({}));
 
   // Fetch EVM supplies, decimals, prices, and Solana supply in parallel
   const priceKeys = evmPools
