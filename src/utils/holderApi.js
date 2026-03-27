@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { readFromS3, writeToS3 } = require('./s3');
 
-const API_BASE = 'https://peluche2.llamao.fi/holders';
+const API_BASE = `${(process.env.LLAMA_INDEXER_V2_ENDPOINT || '').replace(/\/$/, '')}/holders`;
 const RETRYABLE_CODES = new Set([429, 500, 502, 503, 504]);
 const BALANCE_CHUNK_SIZE = 2000;
 const CHUNK_CONCURRENCY = 10;
@@ -343,8 +343,8 @@ function resolveChainId(chain) {
 // Peluche API
 
 function getHeaders() {
-  return process.env.HOLDERS_API_KEY
-    ? { 'x-api-key': process.env.HOLDERS_API_KEY }
+  return process.env.LLAMA_INDEXER_V2_API_KEY
+    ? { 'x-api-key': process.env.LLAMA_INDEXER_V2_API_KEY }
     : {};
 }
 
