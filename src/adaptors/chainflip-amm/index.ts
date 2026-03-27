@@ -10,7 +10,7 @@ const getPool = async () => {
   const btcPool = {
     pool: 'chainflip-boost-btc',
     chain: utils.formatChain('bitcoin'),
-    project: 'chainflip',
+    project: 'chainflip-amm',
     symbol: utils.formatSymbol('BTC'),
     tvlUsd: pool.tvl,
     apy: pool.apy,
