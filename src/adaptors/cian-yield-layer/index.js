@@ -65,7 +65,7 @@ const main = async () => {
       const symbol = symbolSplit.replace(/ *\([^)]*\) */g, '');
       // extract content within () -> meta data; handle case where no parentheses exist
       const poolMetaMatch = /\(([^)]+)\)/.exec(symbolSplit);
-      const poolMeta = poolMetaMatch ? poolMetaMatch[1] : null;
+      const poolMeta = poolMetaMatch ? poolMetaMatch[1] : "";
 
       // Filter out zero addresses from underlyingTokens
       const filteredUnderlyingTokens = p.underlyingTokens
