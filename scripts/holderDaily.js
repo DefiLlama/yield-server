@@ -42,6 +42,7 @@ function parseArgs() {
     flaggedOnly: false,
     cache: false,
     daily: false,
+    reseed: false,
     limit: 0,
     chain: null,
     token: null,
@@ -90,6 +91,9 @@ function parseArgs() {
         break;
       case '--daily':
         opts.daily = true;
+        break;
+      case '--reseed':
+        opts.reseed = true;
         break;
       case '--limit':
         opts.limit = Number(args[++i]);
@@ -158,6 +162,7 @@ Options:
   --flagged-only           Only process flagged (rebase) tokens
   --cache                  Read from S3 cache only (skip API calls)
   --daily                  Full daily run: standard + flagged (incremental)
+  --reseed                 Force full re-seed for all flagged pools (ignore S3 cache)
   --chain NAME             Only process pools on this chain
   --token ADDRESS          Only process a single token address
   --pool POOL_ID           Only process a single pool by pool ID
@@ -450,22 +455,23 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
   const totalSupply = totalSupplyMap[supplyKey];
   const decimals = decimalsMap[supplyKey] ?? null;
 
-  if (data.deltas && data.deltas.length > 0 && totalSupply && totalSupply > 0n) {
-    const top10Balance = data.deltas.reduce(
-      (sum, d) => sum + BigInt(d.delta || d.balance || d.amount || 0),
+  const topEntries = data.holders || data.deltas || [];
+  if (topEntries.length > 0 && totalSupply && totalSupply > 0n) {
+    const top10Balance = topEntries.reduce(
+      (sum, d) => sum + BigInt(d.balance || d.delta || d.amount || 0),
       0n
     );
     top10Pct = Number((top10Balance * 10000n) / totalSupply) / 100;
 
     top10Holders = {
       decimals: decimals ?? null,
-      holders: data.deltas.map((d) => ({
+      holders: topEntries.map((d) => ({
         address: d.holder || d.address || d.owner,
-        balance: String(d.delta || d.balance || d.amount || 0),
+        balance: String(d.balance || d.delta || d.amount || 0),
         balancePct:
           totalSupply > 0n
             ? Number(
-                (BigInt(d.delta || d.balance || d.amount || 0) * 10000n) /
+                (BigInt(d.balance || d.delta || d.amount || 0) * 10000n) /
                   totalSupply
               ) / 100
             : 0,
@@ -490,12 +496,13 @@ async function processShareBasedPool(task, totalSupplyMap, decimalsMap, today, s
   try {
     const data = await fetchHolders(chainId, tokenAddress, 100000000000, false);
 
-    if (!data.deltas || data.deltas.length === 0) {
+    const entries = data.holders || data.deltas || [];
+    if (entries.length === 0) {
       return processPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
 
-    const addresses = data.deltas
-      .map((d) => d.address || d.owner)
+    const addresses = entries
+      .map((d) => d.holder || d.address || d.owner)
       .filter(Boolean);
     if (addresses.length === 0) {
       return processPool(task, totalSupplyMap, decimalsMap, today, stats);
@@ -572,16 +579,17 @@ async function seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats) 
     }
 
     const data = await fetchHolders(chainId, tokenAddress, 100000000000, true);
-    if (!data.deltas || data.deltas.length === 0) {
+    const entries = data.holders || data.deltas || [];
+    if (entries.length === 0) {
       log('FALLBACK', `${tokenAddress} on ${chain}: empty rebase=true response, standard fallback (no S3 cache)`);
       return processPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
 
-    const holders = data.deltas
+    const holders = entries
       .filter((d) => d.holder)
       .map((d) => ({
         address: d.holder.toLowerCase(),
-        balance: BigInt(d.delta || 0),
+        balance: BigInt(d.balance || d.delta || 0),
       }))
       .filter((h) => h.balance > 0n)
       .sort((a, b) =>
@@ -609,7 +617,7 @@ async function seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats) 
 
     // Attach holder cache data — S3 save happens in the batch loop
     if (process.env.BUCKET_HOLDERS_DATA) {
-      result._holderCache = { tokenAddress, chain, holders, holderCount, tokenType: task.tokenType };
+      result._holderCache = { tokenAddress, chain, holders, holderCount, tokenType: task.tokenType, currentBlock: data.to_block };
     }
 
     return result;
@@ -621,63 +629,67 @@ async function seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats) 
 
 const TOP_N_RECHECK = 100;
 
-// Flagged pool incremental — daily rebase=true + from_block
-async function processFlaggedIncremental(task, totalSupplyMap, decimalsMap, today, stats) {
+// Chains where snapshot/from_block is not yet supported — always do full seed
+const NO_SNAPSHOT_CHAINS = new Set(['bsc', 'polygon', 'xdai']);
+
+// Flagged pool incremental — daily snapshot from last cached block
+// preloadedCache is optional — if provided, skips S3 read
+async function processFlaggedIncremental(task, totalSupplyMap, decimalsMap, today, stats, preloadedCache) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
 
+  // Chains without snapshot support — always do a full seed
+  if (NO_SNAPSHOT_CHAINS.has(chain)) {
+    return seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats);
+  }
+
   try {
-    const cache = await loadHolderCache(tokenAddress, chain);
+    const cache = preloadedCache || await loadHolderCache(tokenAddress, chain);
     if (!cache || !cache.holders || cache.holders.length === 0) {
       log('INCREMENTAL', `${tokenAddress} on ${chain}: no cache → full seed`);
       return seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
 
-    const currentBlock = await getCurrentBlock(chain);
-
+    // snapshot=true returns current balances for all addresses with activity
+    // since from_block, including balance=0 for exited holders
     const data = await fetchHolders(
       chainId,
       tokenAddress,
       100000000000,
       true,
-      cache.lastBlock
+      cache.lastBlock,
+      true
     );
 
-    const activeHolders = (data.deltas || [])
-      .filter((d) => d.holder && BigInt(d.delta || 0) > 0n)
-      .map((d) => ({
-        address: d.holder.toLowerCase(),
-        balance: BigInt(d.delta),
-      }));
+    const toBlock = data.to_block;
+    const entries = data.holders || data.deltas || [];
 
+    // Build holder map from cache
     const holderMap = new Map();
     for (const h of cache.holders) {
       holderMap.set(h.address.toLowerCase(), BigInt(h.balance));
     }
 
-    const activeSet = new Set();
-    for (const h of activeHolders) {
-      holderMap.set(h.address, h.balance);
-      activeSet.add(h.address);
-    }
-
-    // Remove exited holders (in delta but not active)
-    const allDeltaAddresses = new Set(
-      (data.deltas || [])
-        .map((d) => (d.holder || '').toLowerCase())
-        .filter(Boolean)
-    );
-    for (const addr of allDeltaAddresses) {
-      if (!activeSet.has(addr)) {
+    // Apply snapshot: balance > 0 → upsert, balance === 0 → delete
+    const activeAddrs = new Set();
+    for (const d of entries) {
+      const addr = (d.holder || d.address || '').toLowerCase();
+      if (!addr) continue;
+      const bal = BigInt(d.balance || d.delta || '0');
+      if (bal > 0n) {
+        holderMap.set(addr, bal);
+        activeAddrs.add(addr);
+      } else {
         holderMap.delete(addr);
       }
     }
 
     // True rebase: re-verify top N cached holders via balanceOf
+    // (balances drift without transfers — snapshot only covers addresses with activity)
     if (cache.tokenType === 'true_rebase') {
       const topCached = cache.holders
         .slice(0, TOP_N_RECHECK)
         .map((h) => h.address.toLowerCase());
-      const toRecheck = topCached.filter((addr) => !activeSet.has(addr));
+      const toRecheck = topCached.filter((addr) => !activeAddrs.has(addr));
       if (toRecheck.length > 0) {
         const refined = await refineHoldersOnChain(
           tokenAddress,
@@ -717,14 +729,16 @@ async function processFlaggedIncremental(task, totalSupplyMap, decimalsMap, toda
     );
 
     // Attach holder cache data for S3 save
-    if (process.env.BUCKET_HOLDERS_DATA) {
+    // Skip if snapshot was empty and no rebase re-verification — nothing changed
+    const snapshotChanged = entries.length > 0 || cache.tokenType === 'true_rebase';
+    if (process.env.BUCKET_HOLDERS_DATA && snapshotChanged) {
       result._holderCache = {
         tokenAddress,
         chain,
         holders,
         holderCount,
         tokenType: cache.tokenType,
-        currentBlock,
+        currentBlock: toBlock,
       };
     }
 
@@ -1233,10 +1247,10 @@ async function main() {
   // Optimized: upfront totalSupply + classification with S3 cache reuse, larger batches, reduced delays
 
   if (opts.daily) {
-    const STANDARD_BATCH = 50;
-    const FLAGGED_BATCH = 15;
-    const STANDARD_DELAY = 200;
-    const FLAGGED_DELAY = 500;
+    const STANDARD_BATCH = 25;
+    const FLAGGED_BATCH = 5;
+    const STANDARD_DELAY = 1000;
+    const FLAGGED_DELAY = 2000;
 
     // ── Classification (reuse S3 cache data for flagged) ──
     log('CLASSIFY', 'Loading cached classifications from S3...');
@@ -1444,14 +1458,19 @@ async function main() {
         const batchTimer = createTimer();
 
         // Split cached vs uncached using pre-loaded S3 data (no second S3 fetch)
+        // --reseed forces all pools through seedFlaggedPool (full re-fetch)
         const cachedTasks = [];
         const uncachedTasks = [];
         for (const task of batch) {
-          const key = `${task.tokenAddress.toLowerCase()}-${task.chain}`;
-          if (holderCacheMap.has(key)) {
-            cachedTasks.push(task);
-          } else {
+          if (opts.reseed) {
             uncachedTasks.push(task);
+          } else {
+            const key = `${task.tokenAddress.toLowerCase()}-${task.chain}`;
+            if (holderCacheMap.has(key)) {
+              cachedTasks.push(task);
+            } else {
+              uncachedTasks.push(task);
+            }
           }
         }
 
@@ -1460,10 +1479,13 @@ async function main() {
 
         const batchPayloads = [];
 
-        // Incremental for cached
+        // Incremental for cached — pass preloaded S3 cache to avoid second read
         if (cachedTasks.length > 0) {
           const results = await Promise.allSettled(
-            cachedTasks.map((t) => processFlaggedIncremental(t, tsMap, decMap, opts.targetDate, stats))
+            cachedTasks.map((t) => {
+              const key = `${t.tokenAddress.toLowerCase()}-${t.chain}`;
+              return processFlaggedIncremental(t, tsMap, decMap, opts.targetDate, stats, holderCacheMap.get(key));
+            })
           );
           for (let j = 0; j < results.length; j++) {
             const r = results[j];
@@ -1513,13 +1535,11 @@ async function main() {
             s3Payloads.map(async (p) => {
               const c = p._holderCache;
               try {
-                const currentBlock = c.currentBlock || await getCurrentBlock(c.chain);
-                const tokenType = c.tokenType || await classifyToken(c.tokenAddress, c.chain);
                 await saveHolderCache(c.tokenAddress, c.chain, {
                   token: c.tokenAddress,
                   chain: c.chain,
-                  lastBlock: currentBlock,
-                  tokenType,
+                  lastBlock: c.currentBlock,
+                  tokenType: c.tokenType,
                   holderCount: c.holderCount,
                   holders: c.holders.map((h) => ({ address: h.address, balance: String(h.balance) })),
                   updatedAt: new Date().toISOString(),

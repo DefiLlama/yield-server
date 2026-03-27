@@ -1,4 +1,5 @@
 const sdk = require('@defillama/sdk');
+const { getChainKeyFromLabel } = sdk.chainUtils;
 
 const {
   fetchHolders,
@@ -23,29 +24,43 @@ const MAX_SEED_PER_RUN = 75;
 const CLASSIFY_BATCH_SIZE = 500;
 const TOP_N_RECHECK = 100;
 
+// Chains where snapshot/from_block is not yet supported — always do full seed
+const NO_SNAPSHOT_CHAINS = new Set(['bsc', 'polygon', 'xdai']);
+
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
   await main();
 };
 
+function elapsed(start) {
+  const ms = Date.now() - start;
+  if (ms < 1000) return `${ms}ms`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  const m = Math.floor(s / 60);
+  return `${m}m ${(s % 60).toFixed(0)}s`;
+}
+
 const main = async () => {
   const startTime = Date.now();
-  console.log('START DAILY HOLDER PROCESSING');
+  console.log('═══ DAILY HOLDER PROCESSING ═══');
 
+  // ── Discovery ──
+  const discoveryStart = Date.now();
   const pools = await getEligiblePools();
-  console.log(`Found ${pools.length} eligible pools`);
 
   const tasks = [];
   for (const pool of pools) {
     if (!pool.token || !isValidEvmAddress(pool.token)) continue;
     if (!pool.chain) continue;
 
-    const chainId = resolveChainId(pool.chain);
+    const chain = getChainKeyFromLabel(pool.chain) || pool.chain;
+    const chainId = resolveChainId(chain);
     if (chainId == null) continue;
 
     tasks.push({
       configID: pool.configID,
-      chain: pool.chain,
+      chain,
       chainId,
       tokenAddress: pool.token,
       tvlUsd: pool.tvlUsd,
@@ -53,10 +68,11 @@ const main = async () => {
   }
 
   console.log(
-    `${tasks.length} valid EVM pools (${
-      pools.length - tasks.length
-    } filtered out)`
+    `[DISCOVERY] ${tasks.length} valid EVM pools (${pools.length - tasks.length} filtered) [${elapsed(discoveryStart)}]`
   );
+
+  // ── Classification ──
+  const classifyStart = Date.now();
 
   // Load cached classifications from S3
   const cacheResults = await Promise.allSettled(
@@ -66,15 +82,19 @@ const main = async () => {
     })
   );
 
+  let cachedClassifications = 0;
   for (const r of cacheResults) {
     if (r.status !== 'fulfilled' || !r.value) continue;
     r.value.task.tokenType = r.value.cache?.tokenType ?? null;
+    if (r.value.task.tokenType != null) cachedClassifications++;
   }
+
+  console.log(`[CLASSIFY] ${cachedClassifications} loaded from S3 cache`);
 
   // Classify unclassified tokens via on-chain interface probing
   const unclassifiedTasks = tasks.filter((t) => t.tokenType == null);
   if (unclassifiedTasks.length > 0) {
-    console.log(`Classifying ${unclassifiedTasks.length} unclassified tokens`);
+    console.log(`[CLASSIFY] Probing ${unclassifiedTasks.length} unclassified tokens`);
     const classMap = await classifyTokensBatch(unclassifiedTasks);
 
     for (const t of unclassifiedTasks) {
@@ -90,9 +110,7 @@ const main = async () => {
     const toCompare = unknownTasks.slice(0, CLASSIFY_BATCH_SIZE);
     const comparisonCached = new Set();
     if (toCompare.length > 0) {
-      console.log(
-        `Running llamao holders API comparison for ${toCompare.length} unknown tokens`
-      );
+      console.log(`[CLASSIFY] Running Peluche comparison for ${toCompare.length} unknown tokens`);
       for (let i = 0; i < toCompare.length; i += COMPARE_CONCURRENCY) {
         const batch = toCompare.slice(i, i + COMPARE_CONCURRENCY);
         await Promise.allSettled(
@@ -102,7 +120,7 @@ const main = async () => {
               task.tokenAddress,
               task.chain
             );
-            if (result == null) return; // error — leave as unknown, don't cache
+            if (result == null) return;
             task.tokenType = result;
             await saveHolderCache(task.tokenAddress, task.chain, {
               token: task.tokenAddress,
@@ -121,8 +139,7 @@ const main = async () => {
       }
     }
 
-    // Remaining unknowns that weren't comparison-checked default to standard
-    // but are NOT cached — they'll be re-checked on future runs
+    // Remaining unknowns default to standard (not cached — re-checked next run)
     const uncheckedDefaults = new Set();
     for (const t of unknownTasks) {
       if (t.tokenType === 'unknown') {
@@ -132,30 +149,30 @@ const main = async () => {
     }
 
     if (uncheckedDefaults.size > 0) {
-      console.log(
-        `${uncheckedDefaults.size} tokens defaulted to standard without comparison check (will retry next run)`
-      );
+      console.log(`[CLASSIFY] ${uncheckedDefaults.size} tokens defaulted to standard (will retry next run)`);
     }
 
-    // Cache only tokens that were actually classified (skip comparison-cached and unchecked defaults)
+    // Cache ABI-classified tokens
     const toCache = unclassifiedTasks.filter((task) => {
       const key = `${task.tokenAddress.toLowerCase()}-${task.chain}`;
       return !comparisonCached.has(key) && !uncheckedDefaults.has(key);
     });
-    console.log(`Caching classification for ${toCache.length} tokens`);
-    await Promise.allSettled(
-      toCache.map(async (task) => {
-        await saveHolderCache(task.tokenAddress, task.chain, {
-          token: task.tokenAddress,
-          chain: task.chain,
-          tokenType: task.tokenType,
-          lastBlock: 0,
-          holderCount: 0,
-          holders: [],
-          updatedAt: new Date().toISOString(),
-        });
-      })
-    );
+    if (toCache.length > 0) {
+      await Promise.allSettled(
+        toCache.map(async (task) => {
+          await saveHolderCache(task.tokenAddress, task.chain, {
+            token: task.tokenAddress,
+            chain: task.chain,
+            tokenType: task.tokenType,
+            lastBlock: 0,
+            holderCount: 0,
+            holders: [],
+            updatedAt: new Date().toISOString(),
+          });
+        })
+      );
+      console.log(`[CLASSIFY] Cached classification for ${toCache.length} tokens`);
+    }
   }
 
   // Split into standard vs flagged
@@ -166,7 +183,7 @@ const main = async () => {
   const flaggedTasks = tasks.filter((t) => needsRebase(t.tokenType));
 
   console.log(
-    `${standardTasks.length} standard, ${flaggedTasks.length} flagged (need rebase)`
+    `[CLASSIFY] ${standardTasks.length} standard, ${flaggedTasks.length} flagged [${elapsed(classifyStart)}]`
   );
 
   const today = new Date();
@@ -175,6 +192,9 @@ const main = async () => {
   let success = 0;
   let failed = 0;
   let skipped = 0;
+  let s3Saves = 0;
+  let s3Errors = 0;
+  let dbInserts = 0;
 
   async function fetchTotalSupplyForBatch(batch) {
     const chainGroups = {};
@@ -207,7 +227,7 @@ const main = async () => {
             }
           }
         } catch (err) {
-          console.log(`totalSupply failed for ${chain}: ${err.message}`);
+          console.log(`[ERROR] totalSupply failed for ${chain}: ${err.message}`);
         }
       })
     );
@@ -222,20 +242,25 @@ const main = async () => {
       batch.map((t) => processFn(t, totalSupplyMap, today))
     );
 
-    for (const r of results) {
+    for (let j = 0; j < results.length; j++) {
+      const r = results[j];
+      const t = batch[j];
       if (r.status === 'fulfilled') {
         if (r.value) {
           batchPayloads.push(r.value);
           success++;
+          console.log(`  ✓ ${t.tokenAddress} on ${t.chain} — ${r.value.holderCount} holders`);
         } else {
           skipped++;
+          console.log(`  ⊘ ${t.tokenAddress} on ${t.chain} — skipped (null result)`);
         }
       } else {
         failed++;
-        console.log(`Pool failed: ${r.reason?.message || r.reason}`);
+        console.log(`  ✗ ${t.tokenAddress} on ${t.chain} — FAILED: ${r.reason?.message || r.reason}`);
       }
     }
 
+    // S3 saves
     const s3Payloads = batchPayloads.filter((p) => p._holderCache);
     if (s3Payloads.length > 0) {
       await Promise.allSettled(
@@ -254,82 +279,121 @@ const main = async () => {
               })),
               updatedAt: new Date().toISOString(),
             });
+            s3Saves++;
           } catch (err) {
-            console.log(
-              `S3 cache save failed for ${c.tokenAddress} on ${c.chain}: ${err.message}`
-            );
+            s3Errors++;
+            console.log(`[S3-ERROR] ${c.tokenAddress} on ${c.chain}: ${err.message}`);
           }
         })
       );
     }
     for (const p of batchPayloads) delete p._holderCache;
 
+    // DB write
     if (batchPayloads.length > 0) {
       try {
         await insertHolder(batchPayloads);
+        dbInserts += batchPayloads.length;
       } catch (err) {
-        console.log(`Batch insert failed: ${err.message}`);
+        console.log(`[DB-ERROR] Batch insert failed: ${err.message}`);
         failed += batchPayloads.length;
         success -= batchPayloads.length;
       }
     }
+
+    return batchPayloads.length;
   }
 
-  // Process standard pools
-  for (let i = 0; i < standardTasks.length; i += BATCH_SIZE) {
-    await processBatch(standardTasks.slice(i, i + BATCH_SIZE), processPool);
-    if (i + BATCH_SIZE < standardTasks.length) {
-      await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+  // ── Standard Processing ──
+  if (standardTasks.length > 0) {
+    const standardStart = Date.now();
+    const totalBatches = Math.ceil(standardTasks.length / BATCH_SIZE);
+    console.log(`[STANDARD] Processing ${standardTasks.length} pools in ${totalBatches} batches`);
+
+    for (let i = 0; i < standardTasks.length; i += BATCH_SIZE) {
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const batchStart = Date.now();
+      const inserted = await processBatch(standardTasks.slice(i, i + BATCH_SIZE), processPool);
+      const pct = ((Math.min(i + BATCH_SIZE, standardTasks.length) / standardTasks.length) * 100).toFixed(1);
+      console.log(`[STANDARD] Batch ${batchNum}/${totalBatches}: ${inserted} inserted (${pct}%) [${elapsed(batchStart)}]`);
+      if (i + BATCH_SIZE < standardTasks.length) {
+        await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+      }
     }
+
+    console.log(`[STANDARD] Done [${elapsed(standardStart)}]`);
   }
 
-  // Process flagged pools
+  // ── Flagged Processing ──
   let seedCount = 0;
 
-  for (let i = 0; i < flaggedTasks.length; i += FLAGGED_BATCH_SIZE) {
-    const batch = flaggedTasks.slice(i, i + FLAGGED_BATCH_SIZE);
+  if (flaggedTasks.length > 0) {
+    const flaggedStart = Date.now();
+    const totalBatches = Math.ceil(flaggedTasks.length / FLAGGED_BATCH_SIZE);
+    let incrementalCount = 0;
+    let cachedCount = 0;
+    let uncachedCount = 0;
+    console.log(`[FLAGGED] Processing ${flaggedTasks.length} pools in ${totalBatches} batches`);
 
-    const batchInfo = await Promise.all(
-      batch.map(async (task) => {
-        const cache = await loadHolderCache(task.tokenAddress, task.chain);
-        const hasHolderData =
-          cache && cache.holders && cache.holders.length > 0;
-        return { task, hasHolderData };
-      })
-    );
+    for (let i = 0; i < flaggedTasks.length; i += FLAGGED_BATCH_SIZE) {
+      const batchNum = Math.floor(i / FLAGGED_BATCH_SIZE) + 1;
+      const batchStart = Date.now();
+      const batch = flaggedTasks.slice(i, i + FLAGGED_BATCH_SIZE);
 
-    const cached = batchInfo.filter((b) => b.hasHolderData).map((b) => b.task);
-    if (cached.length > 0) {
-      await processBatch(cached, processFlaggedPoolIncremental);
-    }
-
-    const uncached = batchInfo
-      .filter((b) => !b.hasHolderData)
-      .map((b) => b.task);
-    const toSeed = uncached.slice(0, Math.max(0, MAX_SEED_PER_RUN - seedCount));
-    if (toSeed.length > 0) {
-      await processBatch(toSeed, seedFlaggedPool);
-      seedCount += toSeed.length;
-    }
-
-    const overflowCount = uncached.length - toSeed.length;
-    if (overflowCount > 0) {
-      skipped += overflowCount;
-      console.log(
-        `Skipping ${overflowCount} unseeded flagged pools (seed cap reached)`
+      const batchInfo = await Promise.all(
+        batch.map(async (task) => {
+          const cache = await loadHolderCache(task.tokenAddress, task.chain);
+          const hasHolderData =
+            cache && cache.holders && cache.holders.length > 0;
+          return { task, hasHolderData };
+        })
       );
+
+      const cached = batchInfo.filter((b) => b.hasHolderData).map((b) => b.task);
+      if (cached.length > 0) {
+        await processBatch(cached, processFlaggedPoolIncremental);
+        incrementalCount += cached.length;
+        cachedCount += cached.length;
+      }
+
+      const uncached = batchInfo
+        .filter((b) => !b.hasHolderData)
+        .map((b) => b.task);
+      uncachedCount += uncached.length;
+      const toSeed = uncached.slice(0, Math.max(0, MAX_SEED_PER_RUN - seedCount));
+      if (toSeed.length > 0) {
+        await processBatch(toSeed, seedFlaggedPool);
+        seedCount += toSeed.length;
+      }
+
+      const overflowCount = uncached.length - toSeed.length;
+      if (overflowCount > 0) {
+        skipped += overflowCount;
+      }
+
+      const pct = ((Math.min(i + FLAGGED_BATCH_SIZE, flaggedTasks.length) / flaggedTasks.length) * 100).toFixed(1);
+      console.log(
+        `[FLAGGED] Batch ${batchNum}/${totalBatches}: ${cached.length} incremental, ${toSeed.length} seed` +
+        `${overflowCount > 0 ? `, ${overflowCount} skipped` : ''} (${pct}%) [${elapsed(batchStart)}]`
+      );
+
+      if (i + FLAGGED_BATCH_SIZE < flaggedTasks.length) {
+        await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+      }
     }
 
-    if (i + FLAGGED_BATCH_SIZE < flaggedTasks.length) {
-      await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
-    }
+    console.log(
+      `[FLAGGED] Done: ${incrementalCount} incremental, ${seedCount} seeded, ${uncachedCount - seedCount} skipped (cap) [${elapsed(flaggedStart)}]`
+    );
   }
 
-  console.log(
-    `DONE: ${success} success, ${failed} failed, ${skipped} skipped out of ${tasks.length} pools ` +
-      `(${standardTasks.length} standard, ${flaggedTasks.length} flagged, ${seedCount} seeded) ` +
-      `(${Date.now() - startTime}ms)`
-  );
+  // ── Summary ──
+  console.log('═══ SUMMARY ═══');
+  console.log(`Pools:    ${success} success, ${failed} failed, ${skipped} skipped / ${tasks.length} total`);
+  console.log(`Split:    ${standardTasks.length} standard, ${flaggedTasks.length} flagged (${seedCount} seeded)`);
+  console.log(`DB:       ${dbInserts} inserts`);
+  console.log(`S3:       ${s3Saves} saves, ${s3Errors} errors`);
+  console.log(`Time:     ${elapsed(startTime)}`);
 };
 
 function buildResult(
@@ -454,25 +518,25 @@ async function processPool(task, totalSupplyMap, today) {
   const supplyKey = `${tokenAddress.toLowerCase()}-${chain}`;
   const totalSupply = totalSupplyMap[supplyKey];
 
+  const topEntries = data.holders || data.deltas || [];
   if (
-    data.deltas &&
-    data.deltas.length > 0 &&
+    topEntries.length > 0 &&
     totalSupply &&
     totalSupply > 0n
   ) {
-    const top10Balance = data.deltas.reduce(
-      (sum, d) => sum + BigInt(d.delta || d.balance || d.amount || 0),
+    const top10Balance = topEntries.reduce(
+      (sum, d) => sum + BigInt(d.balance || d.delta || d.amount || 0),
       0n
     );
     top10Pct = Number((top10Balance * 10000n) / totalSupply) / 100;
 
-    top10Holders = data.deltas.map((d) => ({
+    top10Holders = topEntries.map((d) => ({
       address: d.holder || d.address || d.owner,
-      balance: String(d.delta || d.balance || d.amount || 0),
+      balance: String(d.balance || d.delta || d.amount || 0),
       balancePct:
         totalSupply > 0n
           ? Number(
-              (BigInt(d.delta || d.balance || d.amount || 0) * 10000n) /
+              (BigInt(d.balance || d.delta || d.amount || 0) * 10000n) /
                 totalSupply
             ) / 100
           : 0,
@@ -497,9 +561,7 @@ async function seedFlaggedPool(task, totalSupplyMap, today) {
     // Pre-check holder count — high-holder tokens will timeout on Peluche rebase=true
     const preview = await fetchHolders(chainId, tokenAddress, 1, false);
     if (preview.total_holders > HIGH_HOLDER_THRESHOLD) {
-      console.log(
-        `${tokenAddress} on ${chain}: ${preview.total_holders} holders, using ANKR fallback`
-      );
+      console.log(`  [FALLBACK] ${tokenAddress} on ${chain}: ${preview.total_holders} holders → ANKR (no S3 cache)`);
       const ankrData = await getAnkrTopHolders(tokenAddress, chain, 15);
       if (ankrData && ankrData.holders.length > 0) {
         return buildResult(
@@ -513,20 +575,22 @@ async function seedFlaggedPool(task, totalSupplyMap, today) {
           today
         );
       }
-      // ANKR unavailable — fall through to processShareBasedPool
+      console.log(`  [FALLBACK] ${tokenAddress} on ${chain}: ANKR failed → on-chain fallback`);
       return processShareBasedPool(task, totalSupplyMap, today);
     }
 
     const data = await fetchHolders(chainId, tokenAddress, 100000000000, true);
-    if (!data.deltas || data.deltas.length === 0) {
+    const entries = data.holders || data.deltas || [];
+    if (entries.length === 0) {
+      console.log(`  [FALLBACK] ${tokenAddress} on ${chain}: empty rebase=true → standard fallback (no S3 cache)`);
       return processPool(task, totalSupplyMap, today);
     }
 
-    const holders = data.deltas
+    const holders = entries
       .filter((d) => d.holder)
       .map((d) => ({
         address: d.holder.toLowerCase(),
-        balance: BigInt(d.delta || 0),
+        balance: BigInt(d.balance || d.delta || 0),
       }))
       .filter((h) => h.balance > 0n)
       .sort((a, b) =>
@@ -534,15 +598,11 @@ async function seedFlaggedPool(task, totalSupplyMap, today) {
       );
 
     if (holders.length === 0) {
+      console.log(`  [FALLBACK] ${tokenAddress} on ${chain}: no valid holders → standard fallback (no S3 cache)`);
       return processPool(task, totalSupplyMap, today);
     }
 
     const holderCount = holders.length;
-
-    const [currentBlock, tokenType] = await Promise.all([
-      getCurrentBlock(chain),
-      classifyToken(tokenAddress, chain),
-    ]);
 
     const result = buildResult(
       holders,
@@ -561,20 +621,25 @@ async function seedFlaggedPool(task, totalSupplyMap, today) {
       chain,
       holders,
       holderCount,
-      tokenType,
-      currentBlock,
+      tokenType: task.tokenType,
+      currentBlock: data.to_block,
     };
 
     return result;
   } catch (err) {
-    console.log(`Seed failed for ${tokenAddress} on ${chain}: ${err.message}`);
+    console.log(`  [FALLBACK] ${tokenAddress} on ${chain}: seed failed (${err.message}) → on-chain fallback`);
     return processShareBasedPool(task, totalSupplyMap, today);
   }
 }
 
-// Flagged pool incremental — daily rebase=true + from_block
+// Flagged pool incremental — daily snapshot from last cached block
 async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
+
+  // Chains without snapshot support — always do a full seed
+  if (NO_SNAPSHOT_CHAINS.has(chain)) {
+    return seedFlaggedPool(task, totalSupplyMap, today);
+  }
 
   try {
     const cache = await loadHolderCache(tokenAddress, chain);
@@ -582,52 +647,47 @@ async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
       return seedFlaggedPool(task, totalSupplyMap, today);
     }
 
-    const currentBlock = await getCurrentBlock(chain);
-
+    // snapshot=true returns current balances for all addresses with activity
+    // since from_block, including balance=0 for exited holders
     const data = await fetchHolders(
       chainId,
       tokenAddress,
       100000000000,
       true,
-      cache.lastBlock
+      cache.lastBlock,
+      true
     );
 
-    const activeHolders = (data.deltas || [])
-      .filter((d) => d.holder && BigInt(d.delta || 0) > 0n)
-      .map((d) => ({
-        address: d.holder.toLowerCase(),
-        balance: BigInt(d.delta),
-      }));
+    const toBlock = data.to_block;
+    const entries = data.holders || data.deltas || [];
 
+    // Build holder map from cache
     const holderMap = new Map();
     for (const h of cache.holders) {
       holderMap.set(h.address.toLowerCase(), BigInt(h.balance));
     }
 
-    const activeSet = new Set();
-    for (const h of activeHolders) {
-      holderMap.set(h.address, h.balance);
-      activeSet.add(h.address);
-    }
-
-    // Remove exited holders (in delta but not active)
-    const allDeltaAddresses = new Set(
-      (data.deltas || [])
-        .map((d) => (d.holder || '').toLowerCase())
-        .filter(Boolean)
-    );
-    for (const addr of allDeltaAddresses) {
-      if (!activeSet.has(addr)) {
+    // Apply snapshot: balance > 0 → upsert, balance === 0 → delete
+    const activeAddrs = new Set();
+    for (const d of entries) {
+      const addr = (d.holder || d.address || '').toLowerCase();
+      if (!addr) continue;
+      const bal = BigInt(d.balance || d.delta || '0');
+      if (bal > 0n) {
+        holderMap.set(addr, bal);
+        activeAddrs.add(addr);
+      } else {
         holderMap.delete(addr);
       }
     }
 
     // True rebase: re-verify top N cached holders via balanceOf
+    // (balances drift without transfers — snapshot only covers addresses with activity)
     if (cache.tokenType === 'true_rebase') {
       const topCached = cache.holders
         .slice(0, TOP_N_RECHECK)
         .map((h) => h.address.toLowerCase());
-      const toRecheck = topCached.filter((addr) => !activeSet.has(addr));
+      const toRecheck = topCached.filter((addr) => !activeAddrs.has(addr));
       if (toRecheck.length > 0) {
         const refined = await refineHoldersOnChain(
           tokenAddress,
@@ -666,14 +726,12 @@ async function processFlaggedPoolIncremental(task, totalSupplyMap, today) {
       holders,
       holderCount,
       tokenType: cache.tokenType,
-      currentBlock,
+      currentBlock: toBlock,
     };
 
     return result;
   } catch (err) {
-    console.log(
-      `Incremental failed for ${tokenAddress} on ${chain}, falling back: ${err.message}`
-    );
+    console.log(`  [FALLBACK] ${tokenAddress} on ${chain}: incremental failed (${err.message}) → on-chain fallback`);
     return processShareBasedPool(task, totalSupplyMap, today);
   }
 }
@@ -684,13 +742,14 @@ async function processShareBasedPool(task, totalSupplyMap, today) {
 
   try {
     const data = await fetchHolders(chainId, tokenAddress, 100000000000, false);
+    const entries = data.holders || data.deltas || [];
 
-    if (!data.deltas || data.deltas.length === 0) {
+    if (entries.length === 0) {
       return processPool(task, totalSupplyMap, today);
     }
 
-    const addresses = data.deltas
-      .map((d) => d.address || d.owner)
+    const addresses = entries
+      .map((d) => d.holder || d.address || d.owner)
       .filter(Boolean);
     if (addresses.length === 0) {
       return processPool(task, totalSupplyMap, today);
@@ -710,9 +769,7 @@ async function processShareBasedPool(task, totalSupplyMap, today) {
       today
     );
   } catch (err) {
-    console.log(
-      `Flagged refinement failed for ${tokenAddress} on ${chain}, falling back: ${err.message}`
-    );
+    console.log(`  [FALLBACK] ${tokenAddress} on ${chain}: on-chain refinement failed (${err.message}) → standard fallback`);
     return processPool(task, totalSupplyMap, today);
   }
 }

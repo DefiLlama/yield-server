@@ -353,12 +353,14 @@ async function fetchHolders(
   token,
   limit = 10,
   rebase = false,
-  fromBlock = null
+  fromBlock = null,
+  snapshot = false
 ) {
   const params = new URLSearchParams({ chainId, token });
   if (limit != null) params.set('limit', limit);
   if (rebase) params.set('rebase', 'true');
   if (fromBlock) params.set('from_block', fromBlock);
+  if (snapshot) params.set('snapshot', 'true');
   const url = `${API_BASE}?${params}`;
   const headers = getHeaders();
 
