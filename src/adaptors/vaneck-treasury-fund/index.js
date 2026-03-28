@@ -45,14 +45,14 @@ const apy = async () => {
         evmPools.map((p) =>
           sdk.api.erc20
             .totalSupply({ target: p.address, chain: p.chain })
-            .catch(() => ({ output: '0' }))
+            .catch(() => null)
         )
       ),
       Promise.all(
         evmPools.map((p) =>
           sdk.api.abi
             .call({ target: p.address, chain: p.chain, abi: 'erc20:decimals' })
-            .catch(() => ({ output: 6 }))
+            .catch(() => null)
         )
       ),
       getTotalSupply(SOLANA_TOKEN).catch(() => 0),
@@ -67,10 +67,13 @@ const apy = async () => {
   const pools = [];
 
   for (let i = 0; i < evmPools.length; i++) {
+    if (!supplyResults[i] || !decimalsResults[i]) continue;
+
     const { chain, chainName, address, feedId } = evmPools[i];
     const decimals = Number(decimalsResults[i].output);
     const supply = Number(supplyResults[i].output) / 10 ** decimals;
 
+    if (!Number.isFinite(decimals) || !Number.isFinite(supply)) continue;
     if (supply < 10000) continue;
 
     const price = getPrice(`${chain}:${address}`);
