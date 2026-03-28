@@ -8,9 +8,24 @@ const REDSTONE_URL =
   'https://oracle-gateway-1.a.redstone.finance/data-packages/latest/redstone-primary-prod';
 
 const evmPools = [
-  { chain: 'ethereum', chainName: 'Ethereum', address: '0x2255718832bC9fD3bE1CaF75084F4803DA14FF01', feedId: 'VBILL_ETHEREUM_DAILY_ACCRUAL' },
-  { chain: 'bsc', chainName: 'BSC', address: '0x14d72634328C4D03bBA184A48081Df65F1911279', feedId: 'VBILL_BNB_DAILY_ACCRUAL' },
-  { chain: 'avax', chainName: 'Avalanche', address: '0x7F4546eF315Efc65336187Fe3765ea779Ac90183', feedId: 'VBILL_AVALANCHE_DAILY_ACCRUAL' },
+  {
+    chain: 'ethereum',
+    chainName: 'Ethereum',
+    address: '0x2255718832bC9fD3bE1CaF75084F4803DA14FF01',
+    feedId: 'VBILL_ETHEREUM_DAILY_ACCRUAL',
+  },
+  {
+    chain: 'bsc',
+    chainName: 'BSC',
+    address: '0x14d72634328C4D03bBA184A48081Df65F1911279',
+    feedId: 'VBILL_BNB_DAILY_ACCRUAL',
+  },
+  {
+    chain: 'avax',
+    chainName: 'Avalanche',
+    address: '0x7F4546eF315Efc65336187Fe3765ea779Ac90183',
+    feedId: 'VBILL_AVALANCHE_DAILY_ACCRUAL',
+  },
 ];
 
 const SOLANA_TOKEN = '34mJztT9am2jybSukvjNqRjgJBZqHJsHnivArx1P4xy1';
@@ -109,5 +124,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://securitize.io/invest/vaneck-vbill',
+  url: 'https://securitize.io/primary-market/vaneck-vbill',
 };

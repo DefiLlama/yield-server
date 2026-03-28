@@ -143,5 +143,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://securitize.io/invest/blackrock-buidl',
+  url: 'https://securitize.io/primary-market/blackrock-fund',
 };
