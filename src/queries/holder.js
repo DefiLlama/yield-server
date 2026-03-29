@@ -101,8 +101,8 @@ const getHolderOffset = async (days, conn) => {
   const query = `
     SELECT DISTINCT ON ("configID") "configID", "holderCount"
     FROM holder_daily
-    WHERE timestamp >= $<target> - INTERVAL '2 days'
-      AND timestamp <= $<target>
+    WHERE timestamp >= $<target>::timestamp - INTERVAL '2 days'
+      AND timestamp <= $<target>::timestamp
     ORDER BY "configID", timestamp DESC
   `;
   const rows = await conn.query(query, { target });
