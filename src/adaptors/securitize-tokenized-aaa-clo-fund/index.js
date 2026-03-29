@@ -17,10 +17,10 @@ const getOraclePrice = (block) =>
     .call({
       target: ORACLE,
       chain: 'ethereum',
-      abi: 'uint256:latestAnswer',
+      abi: 'int256:latestAnswer',
       block,
     })
-    .then((r) => r.output / 1e8);
+    .then((r) => Number(r.output) / 1e8);
 
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
@@ -63,7 +63,7 @@ const apy = async () => {
   if (!Number.isFinite(decimals) || !Number.isFinite(supply)) return [];
 
   const tvlUsd = supply * priceNow;
-  if (tvlUsd < 10000) return [];
+  if (!Number.isFinite(priceNow) || !Number.isFinite(tvlUsd)) return [];
 
   return [
     {
