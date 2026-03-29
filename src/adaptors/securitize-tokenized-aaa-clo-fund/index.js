@@ -32,7 +32,7 @@ const apy = async () => {
   ]);
 
   const [priceNow, price7d, price30d] = await Promise.all([
-    getOraclePrice(blockNow),
+    getOraclePrice(blockNow).catch(() => null),
     block7d ? getOraclePrice(block7d).catch(() => null) : null,
     block30d ? getOraclePrice(block30d).catch(() => null) : null,
   ]);
