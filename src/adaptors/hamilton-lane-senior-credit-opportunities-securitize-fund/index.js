@@ -87,14 +87,18 @@ const apy = async () => {
     if (!Number.isFinite(decimals) || !Number.isFinite(supply)) continue;
 
     const tvlUsd = supply * priceNow;
-    if (!Number.isFinite(priceNow) || !Number.isFinite(tvlUsd) || tvlUsd < 10000)
+    if (
+      !Number.isFinite(priceNow) ||
+      !Number.isFinite(tvlUsd) ||
+      tvlUsd < 10000
+    )
       continue;
 
     pools.push({
       pool: `${address.toLowerCase()}-${chain}`,
       chain: chainName,
       project,
-      symbol: 'SCOPE',
+      symbol: 'HLSCOPE',
       tvlUsd,
       apyBase,
       underlyingTokens: [address],
