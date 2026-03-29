@@ -154,7 +154,20 @@ const getApy = async () => {
                 chain: 'base'
             })).output;
 
-            const allPools = [...new Set([...registryPools, ...(extraPools[chainKey] || [])])];
+            const allPoolsCandidates = [...new Set([...registryPools, ...(extraPools[chainKey] || [])])];
+            if (allPoolsCandidates.length === 0) continue;
+
+            // Filter out vaults with deposits paused (withdrawal-only)
+            const depositsPausedRes = await sdk.api.abi.multiCall({
+                calls: allPoolsCandidates.map(p => ({ target: p })),
+                abi: { name: 'depositsPaused', inputs: [], outputs: [{ type: 'bool' }], stateMutability: 'view', type: 'function' },
+                chain: chainKey,
+                permitFailure: true,
+            });
+            const allPools = allPoolsCandidates.filter((_, i) => {
+                const res = depositsPausedRes.output[i];
+                return res?.output !== true;
+            });
             if (allPools.length === 0) continue;
 
             // Separate standard and custom vaults
