@@ -34,34 +34,28 @@ const getOraclePrice = (block) =>
     .call({
       target: ORACLE,
       chain: 'ethereum',
-      abi: 'uint256:latestAnswer',
+      abi: 'int256:latestAnswer',
       block,
     })
-    .then((r) => r.output / 1e8);
+    .then((r) => Number(r.output) / 1e8);
 
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
 
-  const [blockNow, block7d, block30d] = await Promise.all([
+  const [blockNow, block7d] = await Promise.all([
     getBlock(now),
     getBlock(now - 86400 * 7).catch(() => null),
-    getBlock(now - 86400 * 30).catch(() => null),
   ]);
 
-  const [priceNow, price7d, price30d] = await Promise.all([
-    getOraclePrice(blockNow),
+  const [priceNow, price7d] = await Promise.all([
+    getOraclePrice(blockNow).catch(() => null),
     block7d ? getOraclePrice(block7d).catch(() => null) : null,
-    block30d ? getOraclePrice(block30d).catch(() => null) : null,
   ]);
 
   const apyBase =
-    price30d && price30d > 0
-      ? ((priceNow - price30d) / price30d) * (365 / 30) * 100
-      : 0;
-  const apyBase7d =
     price7d && price7d > 0
       ? ((priceNow - price7d) / price7d) * (365 / 7) * 100
-      : null;
+      : 0;
 
   // Fetch supplies and decimals in parallel
   const [supplyResults, decimalsResults] = await Promise.all([
@@ -93,7 +87,8 @@ const apy = async () => {
     if (!Number.isFinite(decimals) || !Number.isFinite(supply)) continue;
 
     const tvlUsd = supply * priceNow;
-    if (tvlUsd < 10000) continue;
+    if (!Number.isFinite(priceNow) || !Number.isFinite(tvlUsd) || tvlUsd < 10000)
+      continue;
 
     pools.push({
       pool: `${address.toLowerCase()}-${chain}`,
@@ -102,7 +97,6 @@ const apy = async () => {
       symbol: 'SCOPE',
       tvlUsd,
       apyBase,
-      ...(apyBase7d != null && { apyBase7d }),
       underlyingTokens: [address],
     });
   }
