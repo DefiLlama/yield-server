@@ -166,7 +166,7 @@ const getApy = async () => {
             });
             const allPools = allPoolsCandidates.filter((_, i) => {
                 const res = depositsPausedRes.output[i];
-                return res?.output !== true;
+                return !(res?.success && res.output === true);
             });
             if (allPools.length === 0) continue;
 
