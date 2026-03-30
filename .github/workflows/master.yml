@@ -57,5 +57,3 @@ jobs:
           LLAMA_INDEXER_V2_ENDPOINT: ${{ secrets.LLAMA_INDEXER_V2_ENDPOINT }}
           LLAMA_INDEXER_V2_API_KEY: ${{ secrets.LLAMA_INDEXER_V2_API_KEY }}
           PROJECT_0_API_KEY: ${{ secrets.PROJECT_0_API_KEY }}
-          ANKR_API_KEY: ${{ secrets.ANKR_API_KEY }}
-          HOLDERS_API_KEY: ${{ secrets.HOLDERS_API_KEY }}

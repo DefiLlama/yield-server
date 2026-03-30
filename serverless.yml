@@ -183,18 +183,6 @@ functions:
       # every hour at :00
       - schedule: cron(0 * * * ? *)
 
-  # --- holder data pipeline
-  triggerHoldersDaily:
-    handler: src/handlers/triggerHoldersDaily.handler
-    description: Daily holder processing via external API
-    timeout: 900
-    memorySize: 1024
-    # events:
-    #   - schedule: cron(0 6 * * ? *)
-    environment:
-      HOLDERS_API_KEY: ${file(./env.js):HOLDERS_API_KEY}
-      ANKR_API_KEY: ${file(./env.js):ANKR_API_KEY}
-
 resources:
   Resources:
     # QUEUES
