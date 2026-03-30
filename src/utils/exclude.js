@@ -254,6 +254,9 @@ const excludeAdaptors = [
   'prismalst',
   'chronos-v1',
   'betswirl',
+  'cream-lending',
+  'interport-finance',
+  'the-standard',
 ];
 
 const excludePools = [
