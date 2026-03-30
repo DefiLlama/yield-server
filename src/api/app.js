@@ -5,6 +5,7 @@ const { Redis } = require("ioredis");
 const redis = new Redis(process.env.REDIS_URL);
 
 const yieldRoutes = require('./routes/yield');
+const holderRoutes = require('./routes/holders');
 const config = require('./routes/config');
 const median = require('./routes/median');
 const perp = require('./routes/perp');
@@ -44,7 +45,7 @@ async function redisCache (req, res, next) {
   }
 }
 
-app.use('/', [volatility]);
+app.use('/', [volatility, holderRoutes]);
 
 app.use(redisCache)
 
