@@ -1,6 +1,6 @@
 const path = require('path');
 require('dotenv').config({
-  path: path.resolve(__dirname, '../config.env'),
+  path: path.resolve(__dirname, '../../config.env'),
 });
 
 const sdk = require('@defillama/sdk');
@@ -15,11 +15,11 @@ const {
   classifyTokensBatch,
   getAnkrTopHolders,
   HIGH_HOLDER_THRESHOLD,
-} = require('../src/utils/holderApi');
+} = require('../utils/holderApi');
 
 const { getChainKeyFromLabel } = sdk.chainUtils;
-const { getEligiblePools, insertHolder } = require('../src/queries/holder');
-const { connect } = require('../src/utils/dbConnection');
+const { getEligiblePools, insertHolder } = require('../queries/holder');
+const { connect } = require('../utils/dbConnection');
 
 // ── CLI Parsing ──────────────────────────────────────────────────────────────
 
@@ -107,7 +107,7 @@ function parseArgs() {
 
 function printHelp() {
   console.log(`
-Usage: node scripts/holderDaily.js [options]
+Usage: node src/jobs/holderDaily.js [options]
 
 Options:
   --tvl-min N              TVL threshold in USD (default: 10000)
@@ -132,10 +132,10 @@ Environment:
   ANKR_API_KEY                Optional — ANKR fallback (skipped if missing)
 
 Examples:
-  node scripts/holderDaily.js
-  node scripts/holderDaily.js --flagged-only --reseed
-  node scripts/holderDaily.js --chain ethereum --token 0x856c...
-  node scripts/holderDaily.js --dry-run --limit 100
+  node src/jobs/holderDaily.js
+  node src/jobs/holderDaily.js --flagged-only --reseed
+  node src/jobs/holderDaily.js --chain ethereum --token 0x856c...
+  node src/jobs/holderDaily.js --dry-run --limit 100
 `);
 }
 
