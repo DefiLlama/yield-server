@@ -2,7 +2,13 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { readFromS3, writeToS3 } = require('./s3');
 
-const API_BASE = 'https://peluche2.llamao.fi/holders';
+const INDEXER_ENDPOINT = process.env.LLAMA_INDEXER_V2_ENDPOINT;
+if (!INDEXER_ENDPOINT) {
+  console.warn('WARNING: LLAMA_INDEXER_V2_ENDPOINT is not set — holder API calls will fail');
+}
+const API_BASE = INDEXER_ENDPOINT
+  ? `${INDEXER_ENDPOINT.replace(/\/$/, '')}/holders`
+  : null;
 const RETRYABLE_CODES = new Set([429, 500, 502, 503, 504]);
 const BALANCE_CHUNK_SIZE = 2000;
 const CHUNK_CONCURRENCY = 10;
@@ -25,7 +31,7 @@ const ANKR_CHAIN_MAP = {
 
 // S3 cache
 
-const CACHE_BUCKET = process.env.BUCKET_DATA;
+const CACHE_BUCKET = process.env.BUCKET_HOLDERS_DATA;
 const CACHE_PREFIX = 'holders/cache';
 
 async function loadHolderCache(tokenAddress, chain) {
@@ -343,8 +349,8 @@ function resolveChainId(chain) {
 // Peluche API
 
 function getHeaders() {
-  return process.env.HOLDERS_API_KEY
-    ? { 'x-api-key': process.env.HOLDERS_API_KEY }
+  return process.env.LLAMA_INDEXER_V2_API_KEY
+    ? { 'x-api-key': process.env.LLAMA_INDEXER_V2_API_KEY }
     : {};
 }
 
@@ -353,12 +359,15 @@ async function fetchHolders(
   token,
   limit = 10,
   rebase = false,
-  fromBlock = null
+  fromBlock = null,
+  snapshot = false
 ) {
+  if (!API_BASE) throw new Error('LLAMA_INDEXER_V2_ENDPOINT is not configured');
   const params = new URLSearchParams({ chainId, token });
   if (limit != null) params.set('limit', limit);
   if (rebase) params.set('rebase', 'true');
   if (fromBlock) params.set('from_block', fromBlock);
+  if (snapshot) params.set('snapshot', 'true');
   const url = `${API_BASE}?${params}`;
   const headers = getHeaders();
 
