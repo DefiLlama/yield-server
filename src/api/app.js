@@ -13,6 +13,7 @@ const lsd = require('./routes/lsd');
 const pools = require('./routes/pools');
 const { getCacheDates } = require('../utils/headers');
 const volatility = require('./routes/volatility');
+const tokenAddress = require('./routes/tokenAddress');
 
 const app = express();
 app.use(require('morgan')('dev'));
@@ -44,7 +45,7 @@ async function redisCache (req, res, next) {
   }
 }
 
-app.use('/', [volatility]);
+app.use('/', [volatility, tokenAddress]);
 
 app.use(redisCache)
 
