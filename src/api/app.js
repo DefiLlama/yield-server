@@ -45,7 +45,7 @@ async function redisCache (req, res, next) {
   }
 }
 
-app.use('/', [volatility, holderRoutes]);
+app.use('/', [volatility]);
 
 app.use(redisCache)
 
