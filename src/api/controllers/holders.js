@@ -1,11 +1,14 @@
 const validator = require('validator');
 
 const { conn } = require('../db');
+const { customHeader } = require('../../utils/headers');
 const {
   getLatestHolders,
   getHolderHistory: queryHolderHistory,
   getHolderOffset,
 } = require('../../queries/holder');
+
+const HOLDER_CACHE_SECONDS = 3600;
 
 const getHolderHistory = async (req, res) => {
   const configID = req.params.pool;
@@ -14,7 +17,10 @@ const getHolderHistory = async (req, res) => {
 
   try {
     const response = await queryHolderHistory(configID, conn);
-    res.status(200).json({ status: 'success', data: response });
+    res
+      .set(customHeader(HOLDER_CACHE_SECONDS))
+      .status(200)
+      .json({ status: 'success', data: response });
   } catch (err) {
     console.log('getHolderHistory failed:', err.message);
     res.status(500).json({ status: 'error' });
@@ -50,7 +56,10 @@ const getHolders = async (req, res) => {
       };
     }
 
-    res.status(200).json({ status: 'success', data });
+    res
+      .set(customHeader(HOLDER_CACHE_SECONDS))
+      .status(200)
+      .json({ status: 'success', data });
   } catch (err) {
     console.log('getHolders failed:', err.message);
     res.status(500).json({ status: 'error' });
