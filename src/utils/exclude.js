@@ -257,6 +257,7 @@ const excludeAdaptors = [
   'cream-lending',
   'interport-finance',
   'the-standard',
+  'oxium',
 ];
 
 const excludePools = [
