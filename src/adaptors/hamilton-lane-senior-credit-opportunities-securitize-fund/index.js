@@ -42,19 +42,19 @@ const getOraclePrice = (block) =>
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
 
-  const [blockNow, block7d] = await Promise.all([
+  const [blockNow, block30d] = await Promise.all([
     getBlock(now),
-    getBlock(now - 86400 * 7).catch(() => null),
+    getBlock(now - 86400 * 30).catch(() => null),
   ]);
 
-  const [priceNow, price7d] = await Promise.all([
+  const [priceNow, price30d] = await Promise.all([
     getOraclePrice(blockNow).catch(() => null),
-    block7d ? getOraclePrice(block7d).catch(() => null) : null,
+    block30d ? getOraclePrice(block30d).catch(() => null) : null,
   ]);
 
   const apyBase =
-    price7d && price7d > 0
-      ? ((priceNow - price7d) / price7d) * (365 / 7) * 100
+    price30d && price30d > 0
+      ? ((priceNow - price30d) / price30d) * (365 / 30) * 100
       : 0;
 
   // Fetch supplies and decimals in parallel
