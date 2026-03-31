@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getMerklRewardsByIdentifier } = require('../merkl/merkl-by-identifier');
 
 const PUFETH = '0xD9A442856C234a39a81a089C06451EBAa4306a72';
 const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
@@ -69,28 +70,34 @@ const apy = async () => {
   const apyBase7d =
     rate7dNum > 0 ? ((rateNowNum - rate7dNum) / rate7dNum / 7) * 365 * 100 : 0;
 
-  // Fetch pufETH price for TVL calculation
+  // Fetch pufETH price and Merkl rewards in parallel
   const priceKey = `ethereum:${PUFETH}`;
-  const priceRes = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`,
-  );
+  const [priceRes, merklRewards] = await Promise.all([
+    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+    getMerklRewardsByIdentifier(PUFETH, 'ethereum'),
+  ]);
   const price = priceRes.data.coins[priceKey]?.price;
 
   const tvlUsd = totalSupply * price;
 
-  return [
-    {
-      pool: PUFETH,
-      chain: 'ethereum',
-      project: 'puffer-stake',
-      symbol: 'pufETH',
-      tvlUsd,
-      apyBase,
-      apyBase7d,
-      underlyingTokens: [WETH],
-      url: 'https://app.puffer.fi/stake',
-    },
-  ];
+  const pool = {
+    pool: PUFETH,
+    chain: 'ethereum',
+    project: 'puffer-stake',
+    symbol: 'pufETH',
+    tvlUsd,
+    apyBase,
+    apyBase7d,
+    underlyingTokens: [WETH],
+    url: 'https://app.puffer.fi/stake',
+  };
+
+  if (merklRewards?.apyReward > 0) {
+    pool.apyReward = merklRewards.apyReward;
+    pool.rewardTokens = merklRewards.rewardTokens;
+  }
+
+  return [pool];
 };
 
 module.exports = {
