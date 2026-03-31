@@ -3,6 +3,13 @@ const utils = require('../utils');
 const API_ENDPOINT = 'https://api.stakedao.org/api/';
 const SDT_ADDRESS = '0x73968b9a57c6e53d41345fd57a6e6ae27d6cdb2f';
 
+// Boosted reward tokens per protocol — the API reports these with apr: 0
+// in the rewards array, but the actual APR is in apr.current.details
+const BOOST_TOKEN_SYMBOL = {
+  curve: 'CRV',
+  balancer: 'BAL',
+};
+
 const CHAINS = {
   1: 'ethereum',
   42161: 'arbitrum',
@@ -38,32 +45,64 @@ const poolsFunction = async () => {
     .concat(pendleStrategies)
     .concat(yearnStrategies)
     .reduce((acc, strat) => {
-      const rewardTokens = strat?.rewards
-        ?.filter((t) => {
-          if (t.token.address === SDT_ADDRESS) {
-            return parseFloat(strat.sdtApr.sdtFuturMinApr) > 0;
-          }
+      const rewardTokens = (
+        strat?.rewards
+          ?.filter((t) => {
+            if (t.token.address === SDT_ADDRESS) {
+              return parseFloat(strat.sdtApr.sdtFuturMinApr) > 0;
+            }
 
-          return t.apr > 0;
-        })
-        .map((t) => t.token.address);
+            return t.apr > 0;
+          })
+          .map((t) => t.token.address) || []
+      );
 
       // strategies APR
-      const apyBase =
+      let apyBase =
         strat.tradingApy +
         (strat.underlyingReward?.reduce(
           (acc, underlyingReward) => acc + underlyingReward.apy,
           0
         ) || 0);
-      const apyReward = strat.apr.current.total - apyBase;
+      let apyReward = strat.apr.current.total - apyBase;
 
       let symbol = strat.name?.replace('/', '-') ?? ['placeholder'];
+      let poolMeta = strat.protocol ? utils.formatChain(strat.protocol) : null;
 
-      const underlyingTokens = strat?.coins?.map((t) =>
+      let underlyingTokens = strat?.coins?.map((t) =>
         t?.symbol === 'ETH'
           ? '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
           : t?.address
       );
+
+      // Handle Curve LlamaLend pools
+      if (strat.isLending) {
+        const crvUsdCoin = strat.coins?.find((c) => c.symbol === 'crvUSD');
+        const collateralCoin = strat.coins?.find(
+          (c) => c.symbol !== 'crvUSD'
+        );
+        symbol = 'crvUSD';
+        poolMeta = `Curve LlamaLend ${collateralCoin?.symbol || ''}`.trim();
+        if (crvUsdCoin) {
+          underlyingTokens = [crvUsdCoin.address];
+        }
+      }
+
+      // Curve/Balancer boosted reward APR is included in apr.current.total
+      // but reported as apr: 0 in the rewards array — add the token explicitly
+      const boostSymbol = BOOST_TOKEN_SYMBOL[strat.protocol];
+      if (apyReward > 0 && boostSymbol) {
+        const boostReward = strat?.rewards?.find(
+          (r) => r.token?.symbol === boostSymbol
+        );
+        if (
+          boostReward &&
+          !rewardTokens.includes(boostReward.token.address)
+        ) {
+          rewardTokens.push(boostReward.token.address);
+        }
+      }
+
 
       return acc.concat([
         {
@@ -71,7 +110,7 @@ const poolsFunction = async () => {
           chain: utils.formatChain(CHAINS[strat.chainId]),
           project: 'stake-dao',
           symbol: symbol ? utils.formatSymbol(symbol) : null,
-          poolMeta: strat.protocol ? utils.formatChain(strat.protocol) : null,
+          poolMeta,
           tvlUsd: strat.tvl,
           apyReward,
           apyBase,
