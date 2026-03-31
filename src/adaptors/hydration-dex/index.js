@@ -3,7 +3,7 @@ const utils = require('../utils');
 const axios = require('axios');
 
 const HYDRATION_GRAPHQL_URL =
-  'https://galacticcouncil.squids.live/hydration-pools:unified-prod/api/graphql';
+  'https://orca-main-aggr-indx.indexer.hydration.cloud/graphql';
 
 // CoinGecko ID mapping for underlying token resolution and pricing
 const cgMapping = {
@@ -163,14 +163,21 @@ const poolsFunction = async () => {
     }
 
     // --- Stableswap pools (not already in omnipool) ---
+    // Build asset lookup keyed by both assetRegistryId and id (hex address)
+    const assetLookup = {};
+    assetNodes.forEach((a) => {
+      if (a.assetRegistryId) assetLookup[a.assetRegistryId] = a;
+      if (a.id) assetLookup[a.id] = a;
+    });
+
     // Build stableswap composition map: poolId -> [{assetId, registryId, symbol, decimals}]
     const stableswapComps = {};
     for (const sa of stableswapAssets) {
       if (!stableswapComps[sa.poolId]) stableswapComps[sa.poolId] = [];
-      const asset = sa.asset || {};
+      const asset = assetLookup[sa.assetId] || {};
       stableswapComps[sa.poolId].push({
         assetId: sa.assetId,
-        registryId: asset.assetRegistryId,
+        registryId: asset.assetRegistryId || sa.assetId,
         symbol: asset.symbol,
         decimals: asset.decimals,
       });
@@ -279,21 +286,25 @@ async function fetchOmnipoolYieldMetrics() {
 }
 
 async function fetchIncentiveMetrics() {
-  const query = gql`
-    query {
-      allAssetsYieldMetrics {
-        nodes {
-          id
-          poolType
-          feeApyPerc
-          incentivesApyPerc
-          incentivesTokens
+  try {
+    const query = gql`
+      query {
+        allAssetsYieldMetrics {
+          nodes {
+            id
+            poolType
+            feeApyPerc
+            incentivesApyPerc
+            incentivesTokens
+          }
         }
       }
-    }
-  `;
-  const response = await request(HYDRATION_GRAPHQL_URL, query);
-  return response.allAssetsYieldMetrics.nodes || [];
+    `;
+    const response = await request(HYDRATION_GRAPHQL_URL, query);
+    return response.allAssetsYieldMetrics.nodes || [];
+  } catch {
+    return [];
+  }
 }
 
 async function fetchStableswapYieldMetrics() {
@@ -316,6 +327,7 @@ async function fetchAssetSymbols() {
     query {
       assets {
         nodes {
+          id
           assetRegistryId
           symbol
           decimals
@@ -350,11 +362,6 @@ async function fetchStableswapCompositions() {
         nodes {
           poolId
           assetId
-          asset {
-            assetRegistryId
-            symbol
-            decimals
-          }
         }
       }
     }
