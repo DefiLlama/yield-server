@@ -34,9 +34,10 @@ const apy = async () => {
         apyBase: Number(s.integrationInfo?.overallApy ?? s.apy7d),
         apyBase7d: Number(s.apy7d),
         poolMeta: s.symbol,
-        url: 'https://app.forgeyields.com',
+        url: `https://app.forgeyields.com/opportunities/${s.symbol}`,
         token: gw.token_gateway,
         underlyingTokens: tokens,
+        searchTokenOverride: gw.token_gateway,
       });
     }
   }
