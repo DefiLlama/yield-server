@@ -10,6 +10,8 @@ const DECIMALS = {
   vyETH: 18,
   yBTC: 18,
   vyBTC: 18,
+  yPYMN: 18,
+  yValos: 18
 };
 
 // Contract addresses - Multi-chain configuration
@@ -74,6 +76,14 @@ const YPRISM_CONTRACTS = {
 const YHLP_CONTRACTS = {
   ethereum: '0x386e0983d0e05f5239fd029793ef3ba37b468e9c',
 };
+
+const YVALOS_CONTRACTS = {
+  ethereum: "0xd04ae722b3fe56812e13bb212a79cea7c1b08ff0",
+}
+
+const YPYMN_CONTRACTS = {
+  ethereum: "0x06c2c73f30135c831d010ec7b82d0f32321c4f27",
+}
 // Underlying token addresses per chain (USDC for yUSD/vyUSD, WETH for yETH/vyETH, WBTC for yBTC/vyBTC)
 const UNDERLYING_TOKENS = {
   ethereum: {
@@ -280,7 +290,9 @@ const poolsFunction = async () => {
         processToken(YBTC_CONTRACTS[chain], 'yBTC', chain),
         processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain),
         processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain),
-        processToken(YHLP_CONTRACTS[chain], 'yHLP', chain)
+        processToken(YHLP_CONTRACTS[chain], 'yHLP', chain),
+        processToken(YVALOS_CONTRACTS[chain], 'yValos', chain),
+        processToken(YPYMN_CONTRACTS[chain], 'yPYMN', chain)
       );
     }
     if (chain === 'arbitrum' || chain === 'base') {
