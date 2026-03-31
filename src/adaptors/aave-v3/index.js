@@ -32,6 +32,9 @@ const protocolDataProviders = {
   celo: '0x33b7d355613110b4E842f5f7057Ccd36fb4cee28',
   plasma: '0xf2D6E38B407e31E7E7e4a16E6769728b76c7419F',
   horizon: '0x53519c32f73fE1797d10210c4950fFeBa3b21504', // RWA market on ethereum
+  mantle: '0x487c5c669D9eee6057C44973207101276cf73b68',
+  megaeth: '0x9588b453A4EE24a420830CB3302195cA7aA3b403',
+  ink: '0x96086C25d13943C80Ff9a19791a40Df6aFC08328',
 };
 
 const getApy = async (market) => {
