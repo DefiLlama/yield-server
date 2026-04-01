@@ -120,6 +120,7 @@ const topLvl = async (chainString, url, query, timestamp) => {
         pool: `${p.id}-${chainString}-uniswap-v4`,
         chain: utils.formatChain(chainString),
         project: 'uniswap-v4',
+        token: null,
         poolMeta,
         symbol: `${p.token0.symbol}-${p.token1.symbol}`,
         tvlUsd: p.totalValueLockedUSD,
