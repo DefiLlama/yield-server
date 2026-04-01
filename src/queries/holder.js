@@ -8,6 +8,7 @@ const holderColumns = new pgp.helpers.ColumnSet(
     'timestamp',
     { name: 'holderCount', def: null },
     { name: 'avgPositionUsd', def: null },
+    { name: 'medianPositionUsd', def: null },
     { name: 'top10Pct', def: null },
     { name: 'top10Holders', def: null, mod: ':json' },
   ],
@@ -62,7 +63,7 @@ const getLatestHolders = async (conn) => {
 
   const query = `
     SELECT DISTINCT ON ("configID")
-      "configID", "holderCount", "avgPositionUsd", "top10Pct", "top10Holders"
+      "configID", "holderCount", "avgPositionUsd", "medianPositionUsd", "top10Pct", "top10Holders"
     FROM holder_daily
     WHERE timestamp >= NOW() - INTERVAL '30 days'
     ORDER BY "configID", timestamp DESC
@@ -82,7 +83,7 @@ const getHolderHistory = async (configID, conn) => {
   conn = conn || (await connect());
 
   const query = `
-    SELECT timestamp, "holderCount", "avgPositionUsd", "top10Pct", "top10Holders"
+    SELECT timestamp, "holderCount", "avgPositionUsd", "medianPositionUsd", "top10Pct", "top10Holders"
     FROM holder_daily
     WHERE "configID" = $<configID>
     ORDER BY timestamp ASC
