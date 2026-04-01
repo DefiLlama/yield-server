@@ -279,7 +279,8 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
 
   let data;
   try {
-    data = await fetchHolders(chainId, tokenAddress, 10, false);
+    // Fetch 11 so that after filtering the token contract we still have 10
+    data = await fetchHolders(chainId, tokenAddress, 11, false);
   } catch (err) {
     if (process.env.ANKR_API_KEY) {
       const t = createTimer();
@@ -330,18 +331,19 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
   const totalSupply = totalSupplyMap[supplyKey];
   const decimals = decimalsMap[supplyKey] ?? null;
 
-  // Exclude the token contract itself from holder list
-  const topEntries = (data.holders || data.deltas || [])
-    .filter((d) => (d.holder || d.address || d.owner || '').toLowerCase() !== tokenAddr);
-  if (topEntries.length > 0 && totalSupply && totalSupply > 0n) {
-    const top10Balance = topEntries.reduce(
+  // Exclude the token contract itself, then take the true top 10
+  const top10 = (data.holders || data.deltas || [])
+    .filter((d) => (d.holder || d.address || d.owner || '').toLowerCase() !== tokenAddr)
+    .slice(0, 10);
+  if (top10.length > 0 && totalSupply && totalSupply > 0n) {
+    const top10Balance = top10.reduce(
       (sum, d) => sum + BigInt(d.balance || d.delta || d.amount || 0),
       0n
     );
     top10Pct = Math.min(Number((top10Balance * 10000n) / totalSupply) / 100, 100);
     top10Holders = {
       decimals,
-      holders: topEntries.map((d) => ({
+      holders: top10.map((d) => ({
         address: d.holder || d.address || d.owner,
         balance: String(d.balance || d.delta || d.amount || 0),
         balancePct: Math.min(
