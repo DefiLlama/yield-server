@@ -338,10 +338,20 @@ const apy = async () => {
     let allVaultV2s = [];
     skip = 0;
     while (true) {
-      const { vaultV2s } = await request(GRAPH_URL, gqlQueries.vaultV2s, {
-        chainId,
-        skip,
-      });
+      let vaultV2s;
+      try {
+        const response = await request(GRAPH_URL, gqlQueries.vaultV2s, {
+          chainId,
+          skip,
+        });
+        vaultV2s = response.vaultV2s;
+      } catch (error) {
+        if (error.response?.data?.vaultV2s) {
+          vaultV2s = error.response.data.vaultV2s;
+        } else {
+          throw error;
+        }
+      }
 
       if (!vaultV2s.items.length) break;
 
@@ -353,10 +363,20 @@ const apy = async () => {
     let allMarkets = [];
     skip = 0;
     while (true) {
-      const { markets } = await request(GRAPH_URL, gqlQueries.marketsData, {
-        chainId,
-        skip,
-      });
+      let markets;
+      try {
+        const response = await request(GRAPH_URL, gqlQueries.marketsData, {
+          chainId,
+          skip,
+        });
+        markets = response.markets;
+      } catch (error) {
+        if (error.response?.data?.markets) {
+          markets = error.response.data.markets;
+        } else {
+          throw error;
+        }
+      }
 
       if (!markets.items.length) break;
 
@@ -383,7 +403,7 @@ const apy = async () => {
         const allocationUsd = allocatedMarket.supplyAssetsUsd;
         if (allocationUsd > 0) {
           // For each reward from the allocated market
-          allocatedMarket.market.state.rewards?.forEach((rw) => {
+          allocatedMarket.market.state?.rewards?.forEach((rw) => {
             if (rw.supplyApr > 0) {
               additionalRewardTokens.add(rw.asset.address.toLowerCase());
             }
@@ -429,7 +449,7 @@ const apy = async () => {
     const earnV2Pools = buildVaultV2Pools(earnV2, chain);
 
     const borrowPools = borrow.map((market) => {
-      if (!market.collateralAsset?.symbol) return null;
+      if (!market.collateralAsset?.symbol || !market.state) return null;
       // Skip expired PT collateral markets
       if (
         expiredPTAddresses.has(market.collateralAsset.address.toLowerCase())
