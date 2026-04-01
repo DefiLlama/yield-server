@@ -29,7 +29,7 @@ const chains = {
 
 const DYNAMIC_FEE_FLAG = 0x800000;
 const PAGE_SIZE = 1000;
-const TVL_MIN = 10000;
+const TVL_MIN = 50000;
 
 const queryWithSkip = (skip) => gql`
   {
