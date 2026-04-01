@@ -236,8 +236,20 @@ function buildResult(
   // from internal accounting transfers, producing phantom >100% concentrations
   const tokenAddr = tokenAddress.toLowerCase();
   const filtered = holders.filter((h) => (h.address || '').toLowerCase() !== tokenAddr);
+  const effectiveCount = holderCount - (holders.length - filtered.length);
 
-  const avgPositionUsd = tvlUsd / holderCount;
+  if (effectiveCount === 0) {
+    return {
+      configID,
+      timestamp: today.toISOString(),
+      holderCount: 0,
+      avgPositionUsd: null,
+      top10Pct: null,
+      top10Holders: null,
+    };
+  }
+
+  const avgPositionUsd = tvlUsd / effectiveCount;
   const supplyKey = `${tokenAddr}-${chain}`;
   const totalSupply = totalSupplyMap[supplyKey];
   const decimals = decimalsMap[supplyKey] ?? null;
@@ -266,7 +278,7 @@ function buildResult(
   return {
     configID,
     timestamp: today.toISOString(),
-    holderCount,
+    holderCount: effectiveCount,
     avgPositionUsd,
     top10Pct,
     top10Holders,
@@ -323,16 +335,24 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
     return { configID, timestamp: today.toISOString(), holderCount: 0, avgPositionUsd: null, top10Pct: null, top10Holders: null };
   }
 
-  const avgPositionUsd = holderCount > 0 ? tvlUsd / holderCount : null;
+  const tokenAddr = tokenAddress.toLowerCase();
+  const allEntries = data.holders || data.deltas || [];
+  const hasSelf = allEntries.some((d) => (d.holder || d.address || d.owner || '').toLowerCase() === tokenAddr);
+  const effectiveCount = hasSelf ? holderCount - 1 : holderCount;
+
+  if (effectiveCount === 0) {
+    return { configID, timestamp: today.toISOString(), holderCount: 0, avgPositionUsd: null, top10Pct: null, top10Holders: null };
+  }
+
+  const avgPositionUsd = tvlUsd / effectiveCount;
   let top10Pct = null;
   let top10Holders = null;
-  const tokenAddr = tokenAddress.toLowerCase();
   const supplyKey = `${tokenAddr}-${chain}`;
   const totalSupply = totalSupplyMap[supplyKey];
   const decimals = decimalsMap[supplyKey] ?? null;
 
   // Exclude the token contract itself, then take the true top 10
-  const top10 = (data.holders || data.deltas || [])
+  const top10 = allEntries
     .filter((d) => (d.holder || d.address || d.owner || '').toLowerCase() !== tokenAddr)
     .slice(0, 10);
   if (top10.length > 0 && totalSupply && totalSupply > 0n) {
@@ -356,7 +376,7 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
     };
   }
 
-  return { configID, timestamp: today.toISOString(), holderCount, avgPositionUsd, top10Pct, top10Holders };
+  return { configID, timestamp: today.toISOString(), holderCount: effectiveCount, avgPositionUsd, top10Pct, top10Holders };
 }
 
 // On-chain balanceOf fallback for share-based / failed flagged pools
