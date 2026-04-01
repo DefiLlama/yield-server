@@ -26,20 +26,15 @@ const apy = async () => {
     ).output / 1e18;
 
   const now = Math.floor(Date.now() / 1000);
-  const timestamp1dayAgo = now - 86400;
-  const timestamp7dayAgo = now - 86400 * 7;
+  const timestamp180dayAgo = now - 86400 * 180;
 
-  // Get historical block numbers
-  const [block1dayAgo, block7dayAgo] = await Promise.all([
-    getBlock(timestamp1dayAgo),
-    getBlock(timestamp7dayAgo),
-  ]);
+  // Get historical block number
+  const block180dayAgo = await getBlock(timestamp180dayAgo);
 
-  // Fetch exchange rates (convertToAssets for 1e18 shares) at current,
-  // 1d ago, and 7d ago
+  // Fetch exchange rates (convertToAssets for 1e18 shares) at current and 180d ago
   const ONE_SHARE = (1e18).toFixed(0);
 
-  const [rateNow, rate1d, rate7d] = await Promise.all([
+  const [rateNow, rate180d] = await Promise.all([
     sdk.api.abi.call({
       target: PUFETH,
       abi: CONVERT_TO_ASSETS_ABI,
@@ -49,28 +44,18 @@ const apy = async () => {
       target: PUFETH,
       abi: CONVERT_TO_ASSETS_ABI,
       params: [ONE_SHARE],
-      block: block1dayAgo,
-    }),
-    sdk.api.abi.call({
-      target: PUFETH,
-      abi: CONVERT_TO_ASSETS_ABI,
-      params: [ONE_SHARE],
-      block: block7dayAgo,
+      block: block180dayAgo,
     }),
   ]);
 
-  // Calculate APY from rate changes (annualized)
+  // Calculate APY from rate change (annualized over 180 days)
   const rateNowNum = Number(rateNow.output);
-  const rate1dNum = Number(rate1d.output);
-  const rate7dNum = Number(rate7d.output);
+  const rate180dNum = Number(rate180d.output);
 
-  // 1-day annualized APY
   const apyBase =
-    rate1dNum > 0 ? ((rateNowNum - rate1dNum) / rate1dNum) * 365 * 100 : 0;
-
-  // 7-day annualized APY
-  const apyBase7d =
-    rate7dNum > 0 ? ((rateNowNum - rate7dNum) / rate7dNum / 7) * 365 * 100 : 0;
+    rate180dNum > 0
+      ? ((rateNowNum - rate180dNum) / rate180dNum / 180) * 365 * 100
+      : 0;
 
   // Fetch pufETH price and Merkl rewards in parallel
   const priceKey = `ethereum:${PUFETH}`;
@@ -94,7 +79,6 @@ const apy = async () => {
     symbol: 'pufETH',
     tvlUsd,
     apyBase,
-    apyBase7d,
     underlyingTokens: [WETH],
     url: 'https://app.puffer.fi/stake',
   };
