@@ -210,6 +210,23 @@ process.on('SIGINT', () => {
 
 // ── Processing Functions ─────────────────────────────────────────────────────
 
+function computeMedianPositionUsd(holders, tvlUsd) {
+  if (!holders || holders.length === 0) return null;
+
+  const n = holders.length;
+  const mid = Math.floor(n / 2);
+  // holders are sorted descending — median is the middle element
+  const medianBalance =
+    n % 2 === 0
+      ? (holders[mid - 1].balance + holders[mid].balance) / 2n
+      : holders[mid].balance;
+
+  const totalBalance = holders.reduce((sum, h) => sum + h.balance, 0n);
+  if (totalBalance === 0n) return null;
+
+  return (Number(medianBalance * 10000n / totalBalance) / 10000) * tvlUsd;
+}
+
 function buildResult(
   holders,
   holderCount,
@@ -227,19 +244,21 @@ function buildResult(
       timestamp: today.toISOString(),
       holderCount: 0,
       avgPositionUsd: null,
+      medianPositionUsd: null,
       top10Pct: null,
       top10Holders: null,
     };
   }
 
   const avgPositionUsd = tvlUsd / holderCount;
+  const medianPositionUsd = computeMedianPositionUsd(holders, tvlUsd);
   const supplyKey = `${tokenAddress.toLowerCase()}-${chain}`;
   const totalSupply = totalSupplyMap[supplyKey];
   const decimals = decimalsMap[supplyKey] ?? null;
   let top10Pct = null;
   let top10Holders = null;
 
-  if (totalSupply && totalSupply > 0n) {
+  if (holders.length > 0 && totalSupply && totalSupply > 0n) {
     const top10 = holders.slice(0, 10);
     const top10Balance = top10.reduce((sum, h) => sum + h.balance, 0n);
     top10Pct = Number((top10Balance * 10000n) / totalSupply) / 100;
@@ -261,6 +280,7 @@ function buildResult(
     timestamp: today.toISOString(),
     holderCount,
     avgPositionUsd,
+    medianPositionUsd,
     top10Pct,
     top10Holders,
   };
@@ -272,7 +292,7 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
 
   let data;
   try {
-    data = await fetchHolders(chainId, tokenAddress, 10, false);
+    data = await fetchHolders(chainId, tokenAddress, 100000000000, false);
   } catch (err) {
     if (process.env.ANKR_API_KEY) {
       const t = createTimer();
@@ -311,38 +331,17 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
     return null;
   }
 
-  if (holderCount === 0) {
-    return { configID, timestamp: today.toISOString(), holderCount: 0, avgPositionUsd: null, top10Pct: null, top10Holders: null };
-  }
+  const entries = data.holders || data.deltas || [];
+  const holders = entries
+    .filter((d) => d.holder || d.address || d.owner)
+    .map((d) => ({
+      address: (d.holder || d.address || d.owner).toLowerCase(),
+      balance: BigInt(d.balance || d.delta || d.amount || 0),
+    }))
+    .filter((h) => h.balance > 0n)
+    .sort((a, b) => (b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0));
 
-  const avgPositionUsd = holderCount > 0 ? tvlUsd / holderCount : null;
-  let top10Pct = null;
-  let top10Holders = null;
-  const supplyKey = `${tokenAddress.toLowerCase()}-${chain}`;
-  const totalSupply = totalSupplyMap[supplyKey];
-  const decimals = decimalsMap[supplyKey] ?? null;
-
-  const topEntries = data.holders || data.deltas || [];
-  if (topEntries.length > 0 && totalSupply && totalSupply > 0n) {
-    const top10Balance = topEntries.reduce(
-      (sum, d) => sum + BigInt(d.balance || d.delta || d.amount || 0),
-      0n
-    );
-    top10Pct = Number((top10Balance * 10000n) / totalSupply) / 100;
-    top10Holders = {
-      decimals,
-      holders: topEntries.map((d) => ({
-        address: d.holder || d.address || d.owner,
-        balance: String(d.balance || d.delta || d.amount || 0),
-        balancePct:
-          totalSupply > 0n
-            ? Number((BigInt(d.balance || d.delta || d.amount || 0) * 10000n) / totalSupply) / 100
-            : 0,
-      })),
-    };
-  }
-
-  return { configID, timestamp: today.toISOString(), holderCount, avgPositionUsd, top10Pct, top10Holders };
+  return buildResult(holders, holderCount, configID, tvlUsd, totalSupplyMap, decimalsMap, chain, tokenAddress, today);
 }
 
 // On-chain balanceOf fallback for share-based / failed flagged pools
