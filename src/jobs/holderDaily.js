@@ -232,26 +232,33 @@ function buildResult(
     };
   }
 
+  // Exclude the token contract itself — Peluche can report it as a holder
+  // from internal accounting transfers, producing phantom >100% concentrations
+  const tokenAddr = tokenAddress.toLowerCase();
+  const filtered = holders.filter((h) => (h.address || '').toLowerCase() !== tokenAddr);
+
   const avgPositionUsd = tvlUsd / holderCount;
-  const supplyKey = `${tokenAddress.toLowerCase()}-${chain}`;
+  const supplyKey = `${tokenAddr}-${chain}`;
   const totalSupply = totalSupplyMap[supplyKey];
   const decimals = decimalsMap[supplyKey] ?? null;
   let top10Pct = null;
   let top10Holders = null;
 
   if (totalSupply && totalSupply > 0n) {
-    const top10 = holders.slice(0, 10);
+    const top10 = filtered.slice(0, 10);
     const top10Balance = top10.reduce((sum, h) => sum + h.balance, 0n);
-    top10Pct = Number((top10Balance * 10000n) / totalSupply) / 100;
+    top10Pct = Math.min(Number((top10Balance * 10000n) / totalSupply) / 100, 100);
     top10Holders = {
       decimals,
       holders: top10.map((h) => ({
         address: h.address,
         balance: String(h.balance),
-        balancePct:
+        balancePct: Math.min(
           totalSupply > 0n
             ? Number((h.balance * 10000n) / totalSupply) / 100
             : 0,
+          100
+        ),
       })),
     };
   }
@@ -318,26 +325,31 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
   const avgPositionUsd = holderCount > 0 ? tvlUsd / holderCount : null;
   let top10Pct = null;
   let top10Holders = null;
-  const supplyKey = `${tokenAddress.toLowerCase()}-${chain}`;
+  const tokenAddr = tokenAddress.toLowerCase();
+  const supplyKey = `${tokenAddr}-${chain}`;
   const totalSupply = totalSupplyMap[supplyKey];
   const decimals = decimalsMap[supplyKey] ?? null;
 
-  const topEntries = data.holders || data.deltas || [];
+  // Exclude the token contract itself from holder list
+  const topEntries = (data.holders || data.deltas || [])
+    .filter((d) => (d.holder || d.address || d.owner || '').toLowerCase() !== tokenAddr);
   if (topEntries.length > 0 && totalSupply && totalSupply > 0n) {
     const top10Balance = topEntries.reduce(
       (sum, d) => sum + BigInt(d.balance || d.delta || d.amount || 0),
       0n
     );
-    top10Pct = Number((top10Balance * 10000n) / totalSupply) / 100;
+    top10Pct = Math.min(Number((top10Balance * 10000n) / totalSupply) / 100, 100);
     top10Holders = {
       decimals,
       holders: topEntries.map((d) => ({
         address: d.holder || d.address || d.owner,
         balance: String(d.balance || d.delta || d.amount || 0),
-        balancePct:
+        balancePct: Math.min(
           totalSupply > 0n
             ? Number((BigInt(d.balance || d.delta || d.amount || 0) * 10000n) / totalSupply) / 100
             : 0,
+          100
+        ),
       })),
     };
   }
@@ -357,7 +369,10 @@ async function processShareBasedPool(task, totalSupplyMap, decimalsMap, today, s
       return processPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
 
-    const addresses = entries.map((d) => d.holder || d.address || d.owner).filter(Boolean);
+    const tokenAddr = tokenAddress.toLowerCase();
+    const addresses = entries
+      .map((d) => d.holder || d.address || d.owner)
+      .filter((a) => a && a.toLowerCase() !== tokenAddr);
     if (addresses.length === 0) {
       return processPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
@@ -413,10 +428,11 @@ async function seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats) 
       return processPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
 
+    const tokenAddr = tokenAddress.toLowerCase();
     const holders = entries
       .filter((d) => d.holder)
       .map((d) => ({ address: d.holder.toLowerCase(), balance: BigInt(d.balance || d.delta || 0) }))
-      .filter((h) => h.balance > 0n)
+      .filter((h) => h.balance > 0n && h.address !== tokenAddr)
       .sort((a, b) => (b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0));
 
     if (holders.length === 0) {
@@ -491,6 +507,9 @@ async function processFlaggedIncremental(task, totalSupplyMap, decimalsMap, toda
         for (const h of refined) holderMap.set(h.address.toLowerCase(), h.balance);
       }
     }
+
+    // Exclude the token contract itself
+    holderMap.delete(tokenAddress.toLowerCase());
 
     const holders = Array.from(holderMap.entries())
       .map(([address, balance]) => ({ address, balance }))
