@@ -3,8 +3,6 @@ const axios = require('axios');
 const { getMerklRewardsByIdentifier } = require('../merkl/merkl-by-identifier');
 
 const PUFETH = '0xD9A442856C234a39a81a089C06451EBAa4306a72';
-const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
-
 const CONVERT_TO_ASSETS_ABI =
   'function convertToAssets(uint256 shares) view returns (uint256 assets)';
 
@@ -79,8 +77,9 @@ const apy = async () => {
     symbol: 'pufETH',
     tvlUsd,
     apyBase,
-    underlyingTokens: [WETH],
+    underlyingTokens: ['0x0000000000000000000000000000000000000000'],
     url: 'https://app.puffer.fi/stake',
+    searchTokenOverride: PUFETH,
   };
 
   if (merklRewards?.apyReward > 0) {
