@@ -10,7 +10,9 @@ const CONVERT_TO_ASSETS_ABI =
 
 const getBlock = (timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/ethereum/${timestamp}`)
+    .get(`https://coins.llama.fi/block/ethereum/${timestamp}`, {
+      timeout: 10_000,
+    })
     .then((r) => r.data.height);
 
 const apy = async () => {
@@ -73,10 +75,15 @@ const apy = async () => {
   // Fetch pufETH price and Merkl rewards in parallel
   const priceKey = `ethereum:${PUFETH}`;
   const [priceRes, merklRewards] = await Promise.all([
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`, {
+      timeout: 10_000,
+    }),
     getMerklRewardsByIdentifier(PUFETH, 'ethereum'),
   ]);
   const price = priceRes.data.coins[priceKey]?.price;
+  if (!Number.isFinite(price)) {
+    throw new Error(`Missing/invalid price for ${priceKey}`);
+  }
 
   const tvlUsd = totalSupply * price;
 
