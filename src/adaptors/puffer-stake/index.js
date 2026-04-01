@@ -24,15 +24,20 @@ const apy = async () => {
     ).output / 1e18;
 
   const now = Math.floor(Date.now() / 1000);
-  const timestamp180dayAgo = now - 86400 * 180;
+  const timestamp7dayAgo = now - 86400 * 7;
+  const timestamp30dayAgo = now - 86400 * 30;
 
-  // Get historical block number
-  const block180dayAgo = await getBlock(timestamp180dayAgo);
+  // Get historical block numbers
+  const [block7dayAgo, block30dayAgo] = await Promise.all([
+    getBlock(timestamp7dayAgo),
+    getBlock(timestamp30dayAgo),
+  ]);
 
-  // Fetch exchange rates (convertToAssets for 1e18 shares) at current and 180d ago
+  // Fetch exchange rates (convertToAssets for 1e18 shares) at current,
+  // 7d ago, and 30d ago
   const ONE_SHARE = (1e18).toFixed(0);
 
-  const [rateNow, rate180d] = await Promise.all([
+  const [rateNow, rate7d, rate30d] = await Promise.all([
     sdk.api.abi.call({
       target: PUFETH,
       abi: CONVERT_TO_ASSETS_ABI,
@@ -42,18 +47,27 @@ const apy = async () => {
       target: PUFETH,
       abi: CONVERT_TO_ASSETS_ABI,
       params: [ONE_SHARE],
-      block: block180dayAgo,
+      block: block7dayAgo,
+    }),
+    sdk.api.abi.call({
+      target: PUFETH,
+      abi: CONVERT_TO_ASSETS_ABI,
+      params: [ONE_SHARE],
+      block: block30dayAgo,
     }),
   ]);
 
-  // Calculate APY from rate change (annualized over 180 days)
+  // Calculate APY from rate changes (annualized)
   const rateNowNum = Number(rateNow.output);
-  const rate180dNum = Number(rate180d.output);
+  const rate7dNum = Number(rate7d.output);
+  const rate30dNum = Number(rate30d.output);
 
   const apyBase =
-    rate180dNum > 0
-      ? ((rateNowNum - rate180dNum) / rate180dNum / 180) * 365 * 100
+    rate30dNum > 0
+      ? ((rateNowNum - rate30dNum) / rate30dNum / 30) * 365 * 100
       : 0;
+  const apyBase7d =
+    rate7dNum > 0 ? ((rateNowNum - rate7dNum) / rate7dNum / 7) * 365 * 100 : 0;
 
   // Fetch pufETH price and Merkl rewards in parallel
   const priceKey = `ethereum:${PUFETH}`;
@@ -77,6 +91,7 @@ const apy = async () => {
     symbol: 'pufETH',
     tvlUsd,
     apyBase,
+    apyBase7d,
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],
     url: 'https://app.puffer.fi/stake',
     searchTokenOverride: PUFETH,
