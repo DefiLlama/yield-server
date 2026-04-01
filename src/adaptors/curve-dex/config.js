@@ -15,6 +15,7 @@ exports.BLOCKCHAINIDS = [
   'fraxtal',
   'sonic',
   'monad',
+  'plasma',
   // 'celo',
 ];
 // https://github.com/curvefi/curve-api/blob/main/endpoints.md#getpools
@@ -45,6 +46,7 @@ exports.BLOCKCHAINIDS.forEach((blockchainId) => {
       blockchainRegistries = REGISTRY_TYPES.slice(0, 3);
       break;
     case 'monad':
+    case 'plasma':
       blockchainRegistries = REGISTRY_TYPES.slice(-3);
       break;
     default:

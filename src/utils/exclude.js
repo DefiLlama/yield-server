@@ -253,6 +253,11 @@ const excludeAdaptors = [
   'supervaults',
   'prismalst',
   'chronos-v1',
+  'betswirl',
+  'cream-lending',
+  'interport-finance',
+  'the-standard',
+  'oxium',
 ];
 
 const excludePools = [
@@ -1980,6 +1985,34 @@ const excludePools = [
   'euler-earn-0xa9C251F8304b1B3Fc2b9e8fcae78D94Eff82Ac66-plasma',
   '0xa446938b0204Aa4055cdFEd68Ddf0E0d1BAB3E9E',
   'euler-earn-0x49C5733d71511A78a3E12925ea832f49031c97e9-ethereum',
+  // wildcat-protocol closed/terminated markets (checksummed to match adapter output)
+  '0x5850Afc80561932b0abb63DD13CDC129395323a3', // WMTWBTC
+  '0x25083923f2174C5Ff00D26cd6BC497221713C5b9', // wmtWBTC
+  '0x50eBdf73A0dF61B782CeA489e8102b3Bfde0BDA6', // wmtUSDC
+  '0x605309F21C1864Bb0522781A2F97B91FE3a48601', // wmtWETH
+  '0x90D0Ff1a7b1abef69EAF3952641058673439e2e3', // wmtUSDT
+  '0x0b6C6D557109F9e793297D54ee3fbDE2e315B070', // wldUSDC
+  '0xE922dB9Bf086f1bff409bdD4d44FacEe371cC6e9', // cmsUSDC
+  '0x90772C109adc8d216967a2782eaE8271b4e46C1E', // cmsUSDT
+  '0xd1CF3dBB78D2bd541EA498D86565ed4C8A91eA8d', // cmsSepUSDC
+  '0x17fbc62241bA80d1709EF64cE69AE788C8Eb03f3', // bodhiUSDC
+  '0x6c2Ce14293DA8c6e19caD5A6B2a060426e2aeeB4', // cmsSepUSDT
+  '0xc44acD62b6aB1B341798A803c5212a7D2fCc28df', // hyperWildcatWBTC
+  '0x255bb30ed2E861BAF508C10fC3C682E9577A0C87', // hyperWildcatcbBTC
+  '0x69e56f526637b430561e8293F3307765a046D750', // hyperWildcatWETH
+  '0xf21cD0Fb0b27F966EE630E80d50d17dD090B9ebC', // MiningStoreUSDC
+  '0x55A365F3997B2F015001C53Cf6A73335E593aD8A', // scpUSDC
+  '0xb3Beb373d241378F5F1fD68ED865349257602476', // lilengUSDT
+  '0xF7645Afe817a1C6CDF985B1ff4750A00Ec4fE505', // USDTUSDT
+  '0xDbA32266E0c9315119c6F02808Db8e0570d8aB83', // lilengUSDC
+  '0x1AE65d2DF9B39f7615ca2e6361ecCF79500c325a', // hyperPrivateUSDC
+  '0xEaFa12Cc0905bAabED8618584f0796F5D19Da3C4', // KAI2USDC
+  '0xF716fE4b887e052F35DFFe0952d96782d4cCf7dd', // KeyEURCEURC
+  '0x603B29847659618813F039C73379746585b78875', // lilengHYUSDC
+  '0x8c06d86596D671798A67e80dc44a281C8d822fd3', // OPENHALALUSDT
+  '0x2a1fFDd430eD6B7FCF4f8B9549154E6345BBebFB', // hyperWildcatPrivate1USDT
+  '0xc7b4c17861357b8abb91f25581e7263e08dcb59c-ethereum', // aave-v3 SNX on ethereum, frozen market (0% LTV, borrowing disabled)
+  '0xB2bFb52cfc40584AC4e9e2B36a5B8d6554A56e0b-Avax', // upshift UPAVAX, withdrawals only
 ];
 
 const boundaries = {

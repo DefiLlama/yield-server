@@ -51,10 +51,17 @@ const apy = async () => {
     })
   ).output.map((i) => i.output);
 
-  const maximumDeposit = (
+  const totalAssets = (
     await sdk.api.abi.multiCall({
       calls: markets.map((m) => ({ target: m })),
-      abi: abi.find((i) => i.name === 'maximumDeposit'),
+      abi: abi.find((i) => i.name === 'totalAssets'),
+    })
+  ).output.map((i) => i.output);
+
+  const totalDebts = (
+    await sdk.api.abi.multiCall({
+      calls: markets.map((m) => ({ target: m })),
+      abi: abi.find((i) => i.name === 'totalDebts'),
     })
   ).output.map((i) => i.output);
 
@@ -83,7 +90,13 @@ const apy = async () => {
       symbol: symbol[i],
       apyBase: annualInterestBips[i] / 100,
       tvlUsd:
-        (maximumDeposit[i] / 10 ** decimals[i]) *
+        (totalAssets[i] / 10 ** decimals[i]) *
+        prices[`${chain}:${asset[i]}`]?.price,
+      totalSupplyUsd:
+        (totalDebts[i] / 10 ** decimals[i]) *
+        prices[`${chain}:${asset[i]}`]?.price,
+      totalBorrowUsd:
+        ((totalDebts[i] - totalAssets[i]) / 10 ** decimals[i]) *
         prices[`${chain}:${asset[i]}`]?.price,
       underlyingTokens: [asset[i]],
       poolMeta: name[i],

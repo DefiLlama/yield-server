@@ -66,26 +66,36 @@ async function apy() {
       const chainId = market.metadata.chainId;
       const chain = chains[chainId];
 
+      // Underlying reward tokens (unweighted, for PT)
       const rewardTokens =
         market.metrics.underlyingRewards
           ?.filter((r) => r?.rewardToken?.address)
           ?.map((r) => r.rewardToken.address) || [];
       const rewardApy = market.metrics.underlyingRewardsApy || 0;
 
+      // Pool-weighted reward tokens (for LP)
+      const poolRewardTokens =
+        market.metrics.poolTargetRewards
+          ?.filter((r) => r?.rewardToken?.address)
+          ?.map((r) => r.rewardToken.address) || [];
+
       // LP Pool APY
+      // apyBase = total pool APY minus reward component
+      // apyReward = pool-weighted reward APY (poolTargetRewardsApy)
       const lpApy = {
         pool: tokenId(market.tokens.poolToken.address, chainId),
         chain: utils.formatChain(chain.name),
         project: 'napier',
         symbol: utils.formatSymbol(market.tokens.targetToken.symbol),
         tvlUsd: Number(market.metrics.poolTvlInUsdFmt),
-        apyBase: Number(market.metrics.poolBaseApy),
-        apyReward: Number(rewardApy),
-        rewardTokens,
+        apyBase: Number(market.metrics.poolApy) - Number(market.metrics.poolTargetRewardsApy || 0),
+        apyReward: Number(market.metrics.poolTargetRewardsApy || 0),
+        rewardTokens: poolRewardTokens,
         underlyingTokens: [
           market.tokens.principalToken.address,
           market.tokens.targetToken.address,
         ],
+        volumeUsd1d: Number(market.metrics.volumeInUsd) || 0,
         poolMeta: `LP Pool | Maturity ${formatMaturity(
           market.maturityTimestamp
         )}`,
