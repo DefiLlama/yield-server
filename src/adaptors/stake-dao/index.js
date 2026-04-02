@@ -106,7 +106,7 @@ const poolsFunction = async () => {
 
       return acc.concat([
         {
-          pool: `sd-${strat.key}-${CHAINS[strat.chainId]}`,
+          pool: `sd-${strat.key}-${CHAINS[strat.chainId]}`.toLowerCase(),
           chain: utils.formatChain(CHAINS[strat.chainId]),
           project: 'stake-dao',
           symbol: symbol ? utils.formatSymbol(symbol) : null,
@@ -129,7 +129,7 @@ const poolsFunction = async () => {
       if (!CHAINS[locker.chainId]) return [];
 
       return {
-        pool: locker.sdToken.symbol,
+        pool: locker.sdToken.symbol.toLowerCase(),
         chain: utils.formatChain(CHAINS[locker.chainId]),
         project: 'stake-dao',
         symbol: utils.formatSymbol(locker.sdToken.symbol),
