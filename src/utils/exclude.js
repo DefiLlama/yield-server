@@ -258,6 +258,7 @@ const excludeAdaptors = [
   'interport-finance',
   'the-standard',
   'oxium',
+  'mars-lend',
 ];
 
 const excludePools = [
