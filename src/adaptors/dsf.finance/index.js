@@ -12,7 +12,6 @@ const abi = {
 
 const APY_MAIN_DAYS = 7;
 const APY_BASE_7D_DAYS = 7;
-const APY_BASE_30D_DAYS = 30;
 
 const SCALE = 10n ** 12n;
 const BLOCK_FALLBACK_OFFSETS = [0, -5, 5, -25, 25, -100, 100, -300, 300];
@@ -189,16 +188,14 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
       getLpPriceAtBlock(dsfPoolStables, blockNow),
     ]);
 
-    const [apyMain, apyBase7d, apyBase30d] = await Promise.all([
+    const [apyMain, apyBase7d] = await Promise.all([
       getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_MAIN_DAYS),
       getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_BASE_7D_DAYS),
-      getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_BASE_30D_DAYS),
     ]);
 
     if (
       !Number.isFinite(apyMain) ||
-      !Number.isFinite(apyBase7d) ||
-      !Number.isFinite(apyBase30d)
+      !Number.isFinite(apyBase7d)
     ) {
       throw new Error('DSF: APY fields are not finite');
     }
@@ -213,7 +210,6 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
         apy: apyMain,
         apyBase: apyMain,
         apyBase7d,
-        apyBase30d,
         rewardTokens: null,
         underlyingTokens: [
           '0xdAC17F958D2ee523a2206206994597C13D831ec7',
