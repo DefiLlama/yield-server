@@ -6,23 +6,26 @@ const APXUSD_TOKEN = '0x98A878b1Cd98131B271883B390f68D2c90674665';
 const RATE_VIEW = '0xCABa36EDE2C08e16F3602e8688a8bE94c1B4e484';
 
 const apy = async () => {
-  const totalAssets = (
-    await sdk.api.abi.call({
+  const [totalAssetsRes, apyRes, { pricesByAddress }] = await Promise.all([
+    sdk.api.abi.call({
       target: APYUSD_VAULT,
       abi: 'function totalAssets() view returns (uint256)',
       chain: 'ethereum',
-    })
-  ).output;
-
-  const apyResult = (
-    await sdk.api.abi.call({
+    }),
+    sdk.api.abi.call({
       target: RATE_VIEW,
       abi: 'function apy() view returns (uint256)',
       chain: 'ethereum',
-    })
-  ).output;
+    }),
+    utils.getPrices([APXUSD_TOKEN], 'ethereum'),
+  ]);
 
-  const tvlUsd = totalAssets / 1e18;
+  const totalAssets = totalAssetsRes.output;
+  const apyResult = apyRes.output;
+  const tokenPrice = pricesByAddress[APXUSD_TOKEN.toLowerCase()];
+
+  // Multiply by token price so TVL stays accurate if apxUSD depegs
+  const tvlUsd = (totalAssets / 1e18) * tokenPrice;
   const apyBase = apyResult / 1e16;
 
   return [
