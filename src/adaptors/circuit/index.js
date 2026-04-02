@@ -59,6 +59,8 @@ async function apy() {
       tvlUsd: collateralUsd,
       totalSupplyUsd: collateralUsd,
       totalBorrowUsd: borrowedBYC,
+      apyBase: 0,
+      apyReward: 0,
       apyBaseBorrow: stabilityFeeApy,
       mintedCoin: "BYC",
       poolMeta: "XCH collateral vault",
