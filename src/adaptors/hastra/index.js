@@ -15,6 +15,9 @@ const getTokenAccountBalance = async (account) => {
     method: 'getTokenAccountBalance',
     params: [account],
   });
+  if (res.data.error) {
+    throw new Error(`Error fetching token account balance: ${res.data.error.message}`);
+  }
   const { amount, decimals } = res.data.result.value;
   return Number(amount) / Math.pow(10, decimals);
 };
@@ -33,9 +36,12 @@ const apy = async () => {
   const { wylds_card, demo_prime_card } = porResponse.data;
 
   const wyldsPrice =
-    priceResponse.data.coins[`solana:${WYLDS_MINT}`]?.price ?? 1;
+    priceResponse.data.coins[`solana:${WYLDS_MINT}`]?.price;
+  if (!wyldsPrice) {
+    throw new Error(`Missing price for wYLDS (solana:${WYLDS_MINT})`);
+  }
 
-  const wyldsTvl = (wyldsSupply - vaultedWylds) * wyldsPrice;
+  const wyldsTvl = Math.max(0, wyldsSupply - vaultedWylds) * wyldsPrice;
   const primeTvl = vaultedWylds * wyldsPrice;
 
   return [
