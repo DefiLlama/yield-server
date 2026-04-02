@@ -10,21 +10,38 @@ const abi = {
   totalSupply: 'uint256:totalSupply',
 };
 
-const APY_BASE_DAYS = 1;
+const APY_MAIN_DAYS = 7;
 const APY_BASE_7D_DAYS = 7;
+const APY_BASE_30D_DAYS = 30;
+
 const SCALE = 10n ** 12n;
-const BLOCK_FALLBACK_OFFSETS = [0, -1, 1, -2, 2];
+const BLOCK_FALLBACK_OFFSETS = [0, -5, 5, -25, 25, -100, 100, -300, 300];
+
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function getBlockAtTs(chain, ts) {
   const url = `https://coins.llama.fi/block/${chain}/${ts}`;
-  const res = await utils.getData(url);
+  let lastError;
 
-  const height = res?.height ?? res?.block;
-  if (height == null) {
-    throw new Error(`DSF: no block for ts=${ts}`);
+  for (let i = 0; i < 4; i++) {
+    try {
+      const res = await utils.getData(url);
+      const height = res?.height ?? res?.block;
+
+      if (height == null) {
+        throw new Error(`DSF: no block in response for ts=${ts}`);
+      }
+
+      return height;
+    } catch (e) {
+      lastError = e;
+      await sleep(250 * (i + 1));
+    }
   }
 
-  return height;
+  throw new Error(`DSF: no block for ts=${ts}; ${lastError?.message ?? String(lastError)}`);
 }
 
 async function callBigIntAtBlockWithFallback(contractAddress, abiFragment, block, label) {
@@ -96,11 +113,18 @@ async function getTVL(contractAddress, block) {
     'totalHoldings',
   );
 
+  if (tvlResult.value < 0n) {
+    throw new Error(
+      `DSF: totalHoldings is negative near block=${block}; resolvedBlock=${tvlResult.block}`,
+    );
+  }
+
   return tvlResult.value;
 }
 
 function annualizeLinearFromGrowth(growthNum, growthDen, dtSeconds) {
   const yearSeconds = 365 * 24 * 60 * 60;
+
   if (!dtSeconds || dtSeconds <= 0) {
     throw new Error(`DSF: invalid dtSeconds=${dtSeconds}`);
   }
@@ -113,6 +137,7 @@ function annualizeLinearFromGrowth(growthNum, growthDen, dtSeconds) {
   }
 
   const r = num / den - 1;
+
   if (!Number.isFinite(r)) {
     throw new Error('DSF: invalid annualization ratio');
   }
@@ -140,6 +165,10 @@ async function getApyForDaysFromLpNow(contractAddress, nowTs, lpNow, days) {
   const blockPrev = await getBlockAtTs(CHAIN, prevTs);
   const lpPrev = await getLpPriceAtBlock(contractAddress, blockPrev);
 
+  if (lpPrev <= 0n) {
+    throw new Error(`DSF: lpPrev is invalid for ${days}d window`);
+  }
+
   const growthScaled = (lpNow * SCALE) / lpPrev;
   const apy = annualizeLinearFromGrowth(growthScaled, SCALE, dtSeconds);
 
@@ -160,12 +189,17 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
       getLpPriceAtBlock(dsfPoolStables, blockNow),
     ]);
 
-    const [apyBase, apyBase7d] = await Promise.all([
-      getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_BASE_DAYS),
+    const [apyMain, apyBase7d, apyBase30d] = await Promise.all([
+      getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_MAIN_DAYS),
       getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_BASE_7D_DAYS),
+      getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_BASE_30D_DAYS),
     ]);
 
-    if (!Number.isFinite(apyBase) || !Number.isFinite(apyBase7d)) {
+    if (
+      !Number.isFinite(apyMain) ||
+      !Number.isFinite(apyBase7d) ||
+      !Number.isFinite(apyBase30d)
+    ) {
       throw new Error('DSF: APY fields are not finite');
     }
 
@@ -176,9 +210,10 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
         project: 'dsf.finance',
         symbol: 'USDT-USDC-DAI',
         tvlUsd: format1e18ToNumber(tvl),
-        apy: apyBase,
-        apyBase,
+        apy: apyMain,
+        apyBase: apyMain,
         apyBase7d,
+        apyBase30d,
         rewardTokens: null,
         underlyingTokens: [
           '0xdAC17F958D2ee523a2206206994597C13D831ec7',
