@@ -23,6 +23,9 @@ const apy = async () => {
   const totalAssets = totalAssetsRes.output;
   const apyResult = apyRes.output;
   const tokenPrice = pricesByAddress[APXUSD_TOKEN.toLowerCase()];
+  if (!Number.isFinite(tokenPrice)) {
+    throw new Error(`apxUSD price unavailable from coins.llama.fi`);
+  }
 
   // Multiply by token price so TVL stays accurate if apxUSD depegs
   const tvlUsd = (totalAssets / 1e18) * tokenPrice;
