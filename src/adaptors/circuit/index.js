@@ -30,23 +30,31 @@ async function apy() {
   // stats is oldest-first; take the most recent entry
   const s = data.stats[data.stats.length - 1];
 
-  const collateralUsd = s.collateral_usd ?? 0;
-  const borrowedBYC = s.byc_in_circulation / MCAT;      // total BYC minted (USD)
-  const savingsBalanceBYC = s.savings_balance / MCAT;   // BYC in savings vaults (USD)
+  const toNum = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const collateralUsd = toNum(s.collateral_usd);
+  const borrowedBYC = toNum(s.byc_in_circulation) / MCAT;      // total BYC minted (USD)
+  const savingsBalanceBYC = toNum(s.savings_balance) / MCAT;   // BYC in savings vaults (USD)
 
   // Stability fee APY: annualised fee income / outstanding principal
   // projected_revenue = undiscounted_principal * annual_rate (in mBYC)
+  const undiscountedPrincipal = toNum(s.undiscounted_principal);
+  const projectedRevenue = toNum(s.projected_revenue);
   const stabilityFeeApy =
-    s.undiscounted_principal > 0
-      ? (s.projected_revenue / s.undiscounted_principal) * 100
+    undiscountedPrincipal > 0
+      ? (projectedRevenue / undiscountedPrincipal) * 100
       : 0;
 
   // Savings APY: annualised interest cost / undiscounted savings balance
   // undiscounted_savings_balance = savings_balance + accrued_interest (both in mBYC)
-  const undiscountedSavings = s.savings_balance + s.accrued_interest;
+  const undiscountedSavings = toNum(s.savings_balance) + toNum(s.accrued_interest);
+  const projectedCost = toNum(s.projected_cost);
   const savingsApy =
     undiscountedSavings > 0
-      ? (s.projected_cost / undiscountedSavings) * 100
+      ? (projectedCost / undiscountedSavings) * 100
       : 0;
 
   return [
