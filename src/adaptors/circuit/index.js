@@ -16,13 +16,13 @@
  *   - XCH values: mojos; divide by 1e12 to get XCH
  */
 
-const { get } = require("../utils");
+const { getData } = require("../utils");
 
 const STATS_API = "https://api.circuitdao.com/protocol/stats";
 const MCAT = 1000;   // mBYC → BYC (= USD)
 
 async function apy() {
-  const data = await get(STATS_API);
+  const data = await getData(STATS_API);
   if (!Array.isArray(data?.stats) || data.stats.length === 0) {
     throw new Error("Circuit stats API returned empty or invalid data");
   }
