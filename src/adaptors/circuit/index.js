@@ -16,7 +16,7 @@
  *   - XCH values: mojos; divide by 1e12 to get XCH
  */
 
-const { get } = require("../helper/http");
+const { get } = require("../utils");
 
 const STATS_API = "https://api.circuitdao.com/protocol/stats";
 const MCAT = 1000;   // mBYC → BYC (= USD)
