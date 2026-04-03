@@ -259,6 +259,8 @@ const excludeAdaptors = [
   'the-standard',
   'oxium',
   'mars-lend',
+  'connext',
+  'hmx',
 ];
 
 const excludePools = [
