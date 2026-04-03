@@ -241,7 +241,7 @@ const getPoolData = async () => {
             chain: 'berachain',
             project: 'berapaw',
             symbol: vault.stakingToken.symbol,
-            tvlUsd: parseFloat(vault.dynamicData.tvl),
+            tvlUsd: parseFloat(vault.dynamicData?.tvl || 0),
             apyReward: lbgtApr,
             rewardTokens: [ADDRESSES.LBGT],
             underlyingTokens: [underlying],
