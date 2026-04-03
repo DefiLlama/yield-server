@@ -99,8 +99,9 @@ const apy = async () => {
     if (assetsRaw == null) return null;
 
     const assets = Number(assetsRaw);
-    const price = prices[`${CHAIN}:${vault.collateral}`]?.price ?? 0;
-    const tvlUsd = (assets / 10 ** vault.decimals) * price;
+    const priceEntry = prices[`${CHAIN}:${vault.collateral}`];
+    if (priceEntry?.price == null) return null;
+    const tvlUsd = (assets / 10 ** vault.decimals) * priceEntry.price;
 
     let apyBase = 0;
     const currRaw = ppsNow.output[i]?.output;
