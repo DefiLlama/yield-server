@@ -117,7 +117,7 @@ const getVaultsFromApi = async () => {
                 includeNonWhitelisted: false,
             },
         },
-        query: `query GetVaults($where: GqlRewardVaultFilter, $pageSize: Int, $skip: Int, $orderBy: GqlRewardVaultOrderBy = bgtCapturePercentage, $orderDirection: GqlRewardVaultOrderDirection = desc, $search: String) {
+        query: `query DefillamaGetVaults($where: GqlRewardVaultFilter, $pageSize: Int, $skip: Int, $orderBy: GqlRewardVaultOrderBy = bgtCapturePercentage, $orderDirection: GqlRewardVaultOrderDirection = desc, $search: String) {
             polGetRewardVaults(
                 where: $where
                 first: $pageSize
@@ -170,7 +170,9 @@ const getVaultsFromApi = async () => {
         }`
     };
 
-    const response = await utils.getData('https://api.berachain.com/', query);
+    const response = await utils.getData('https://api.berachain.com/', query, {
+        'x-graphql-client-name': 'Defillama.yield-server',
+    });
     return response.data.polGetRewardVaults.vaults;
 };
 
