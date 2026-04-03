@@ -54,6 +54,7 @@ const apy = async () => {
     calls: VAULTS.map((v) => ({ target: v.address })),
     abi: TOTAL_ASSETS_ABI,
     chain: CHAIN,
+    permitFailure: true,
   });
 
   const currentBlock = (await sdk.api.util.getLatestBlock(CHAIN)).number;
@@ -82,7 +83,10 @@ const apy = async () => {
   ]);
 
   return VAULTS.map((vault, i) => {
-    const assets = Number(totalAssetsRes.output[i].output);
+    const assetsRaw = totalAssetsRes.output?.[i]?.output;
+    if (assetsRaw == null) return null;
+
+    const assets = Number(assetsRaw);
     const price = prices[`${CHAIN}:${vault.collateral}`]?.price ?? 0;
     const tvlUsd = (assets / 10 ** vault.decimals) * price;
 
@@ -110,7 +114,7 @@ const apy = async () => {
       token: vault.address,
       url: 'https://zensats.app',
     };
-  }).filter((p) => utils.keepFinite(p));
+  }).filter((p) => p !== null && utils.keepFinite(p));
 };
 
 module.exports = {
