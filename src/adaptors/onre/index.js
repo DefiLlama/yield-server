@@ -11,8 +11,10 @@ const apy = async () => {
     axios.get(`${API_BASE}/live-tvl`),
   ]);
 
-  const apyBase = Number(apyRes.data) * 100;
-  const tvlUsd = Number(tvlRes.data);
+  const parsedApy = parseFloat(apyRes.data);
+  const parsedTvl = parseFloat(tvlRes.data);
+  const apyBase = Number.isFinite(parsedApy) ? parsedApy * 100 : undefined;
+  const tvlUsd = Number.isFinite(parsedTvl) ? parsedTvl : undefined;
 
   return [
     {
