@@ -11,6 +11,12 @@ const Addresses = {
     jrUSDe: '0xC58D044404d8B14e953C115E67823784dEA53d8F',
     underlying: '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3', // USDe
   },
+  neutrl: {
+    cdo: '0x7b6c960cf185fb27ECb91c174FAe065978beDd10',
+    srNUSD: '0x65a44528e8868166401eA08b549E19552af589dB',
+    jrNUSD: '0xFC807058A352b61aEef6A38e2D0fC3990225E772',
+    underlying: '0xE556ABa6fe6036275Ec1f87eda296BE72C811BCE', // NUSD
+  },
 };
 
 const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
@@ -87,6 +93,8 @@ const apy = async () => {
     return await Promise.all([
       loadPool('ethena', 'srUSDe'),
       loadPool('ethena', 'jrUSDe'),
+      loadPool('neutrl', 'srNUSD'),
+      loadPool('neutrl', 'jrNUSD'),
     ]);
   } catch (error) {
     console.error('Error fetching APYs:', error);
