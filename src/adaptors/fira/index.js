@@ -6,8 +6,14 @@ const abiLendingMarket = require('./abiLendingMarket');
 
 const CHAIN = 'ethereum';
 const PROJECT = 'fira';
-const URL = 'https://app.fira.money';
+const URLS = {
+  REWARD_APR_RATE: 'https://app.fira.money/api/apr/pools',
+  DAPP: 'https://app.fira.money',
+};
+const BCLP_ORACLE = '0xfEAAEC9124FB007d7c44Ed704A08d24b264de921';
+const FIRA_MARKET_FACTORY = '0xBF1EfC2199ae9EE1B6f5060a45D4440157E49744';
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
+const WAD = 1e18;
 const API_ALIASES = {
   'USD0++': 'bUSD0',
 };
@@ -15,6 +21,8 @@ const API_ALIASES = {
 const EVENTS = {
   CreateMarket:
     'event CreateMarket(bytes32 indexed id, tuple(address loanToken,address collateralToken,address oracle,address irm,uint256 ltv,uint256 lltv,address whitelist) marketParams)',
+  CreateNewMarket:
+    'event CreateNewMarket(address indexed market, address indexed BT, int256 scalarRoot, int256 initialAnchor, uint80 lnFeeRateRoot)',
 };
 
 const BOND_TOKEN_ABI = {
@@ -27,6 +35,18 @@ const PENDLE_PT_ABI = {
 const WRAPPED_TOKEN_ABI = {
   assetInfo:
     'function assetInfo() view returns (uint8 assetType,address assetAddress,uint8 assetDecimals)',
+};
+const BCLP_ORACLE_ABI = {
+  btToAssetRate:
+    'function getBtToAssetRate(address market, uint32 duration) view returns (uint256)',
+  btToFwRate:
+    'function getBtToFwRate(address market, uint32 duration) view returns (uint256)',
+};
+const FIRA_MARKET_ABI = {
+  readTokens:
+    'function readTokens() view returns (address _FW,address _BT,address _CT)',
+  readState:
+    'function readState(address router) view returns ((int256 totalBt,int256 totalFw,int256 totalLp,address treasury,int256 scalarRoot,uint256 expiry,uint256 lnFeeRateRoot,uint256 reserveFeePercent,uint256 lastLnImpliedRate))',
 };
 
 const IIIRM_BORROW_RATE_VIEW_ABI =
@@ -50,6 +70,12 @@ const CONFIG = {
     {
       address: '0x280ddD897F39C33fEf1CbF863B386Cb9a8e53a0e',
       rateType: 'fixed',
+    },
+  ],
+  sisuVaults: [
+    {
+      address: '0x50791a5cA041b9D6Dd03e64E3Fa0e34a376759AC',
+      rateType: 'variable',
     },
   ],
 };
@@ -92,6 +118,17 @@ const getPrices = async (addresses) => {
     `https://coins.llama.fi/prices/current/${keys.join(',')}`
   );
   return data.coins || {};
+};
+
+const getRewardAprMap = async () => {
+  const { data } = await axios.get(URLS.REWARD_APR_RATE);
+  if (!Array.isArray(data)) return {};
+  return data.reduce((acc, pool) => {
+    const poolKey = (pool?.pool || '').toLowerCase();
+    if (!poolKey) return acc;
+    acc[poolKey] = pool;
+    return acc;
+  }, {});
 };
 
 const getUzrPool = async (prices) => {
@@ -142,7 +179,7 @@ const getUzrPool = async (prices) => {
     rewardTokens: [],
     ltv: LTV,
     poolMeta: `Max leverage ~${maxLeverage.toFixed(2)}x`,
-    url: URL,
+    url: URLS.DAPP,
   };
 };
 
@@ -156,6 +193,48 @@ const getMarketIds = async (lendingMarket) => {
     chain: CHAIN,
   });
   return [...new Set(logs.map((log) => log.args.id.toLowerCase()))];
+};
+
+const getFixedPoolToFiraMarket = async (fixedPools) => {
+  if (!fixedPools.length) return {};
+
+  const currentBlock = await sdk.api.util.getLatestBlock(CHAIN);
+  const marketLogs = await sdk.getEventLogs({
+    target: FIRA_MARKET_FACTORY,
+    eventAbi: EVENTS.CreateNewMarket,
+    fromBlock: CONFIG.fromBlock,
+    toBlock: currentBlock.number,
+    chain: CHAIN,
+  });
+  const marketAddresses = [
+    ...new Set(marketLogs.map((log) => log.args.market.toLowerCase())),
+  ];
+  if (!marketAddresses.length) return {};
+
+  const readTokensRes = await sdk.api.abi.multiCall({
+    chain: CHAIN,
+    abi: FIRA_MARKET_ABI.readTokens,
+    calls: marketAddresses.map((market) => ({ target: market })),
+    permitFailure: true,
+  });
+
+  const btToMarket = {};
+  readTokensRes.output.forEach((res) => {
+    if (!res.success || !res.output) return;
+    const bt = (res.output._BT || res.output[1] || '').toLowerCase();
+    if (!bt) return;
+    // Map by BT only. If multiple markets share the same BT, keep the first discovered.
+    if (!btToMarket[bt]) btToMarket[bt] = res.input.target.toLowerCase();
+  });
+
+  const fixedPoolToMarket = {};
+  fixedPools.forEach((pool) => {
+    const bt = pool.marketParams.loanToken.toLowerCase();
+    const poolKey = `${pool.lendingMarket.toLowerCase()}-${pool.marketId}`;
+    fixedPoolToMarket[poolKey] = btToMarket[bt] || null;
+  });
+
+  return fixedPoolToMarket;
 };
 
 const getFixedRateInfo = async (loanToken) => {
@@ -207,6 +286,8 @@ const buildPool = ({
   prices,
   fixedRateInfo,
   collateralUnderlyingByToken,
+  fixedMarketStateByPool,
+  aprPoolData,
 }) => {
   const loanToken = marketParams.loanToken.toLowerCase();
   const collateralToken = marketParams.collateralToken.toLowerCase();
@@ -242,38 +323,26 @@ const buildPool = ({
 
   if (rateType === 'fixed') {
     maturity = fixedRateInfo?.expiry ?? null;
-    const now = Math.floor(Date.now() / 1000);
-    const secondsToMaturity = maturity && maturity > now ? maturity - now : 0;
-    const fw = fixedRateInfo?.fw;
-    const btPriceRaw = prices[`${CHAIN}:${loanToken}`]?.price ?? 0;
-    const btPrice =
-      btPriceRaw > 0 ? btPriceRaw : Number(fixedRateInfo?.underlyingPrice ?? 0);
-    const fwPriceRaw = fw ? prices[`${CHAIN}:${fw}`]?.price ?? 0 : 0;
-    const fwPrice =
-      fwPriceRaw > 0
-        ? fwPriceRaw
-        : Number(
-            fixedRateInfo?.fwUnderlyingPrice ??
-              fixedRateInfo?.underlyingPrice ??
-              0
-          );
-
-    if (btPrice && fwPrice && secondsToMaturity > 0) {
-      const grossReturn = fwPrice / btPrice - 1;
-      const annualizedRate =
-        grossReturn * (SECONDS_PER_YEAR / secondsToMaturity);
+    const poolKey = `${lendingMarket.toLowerCase()}-${marketId}`;
+    const marketState = fixedMarketStateByPool[poolKey];
+    const lastLnImpliedRate = Number(
+      marketState?.lastLnImpliedRate ??
+        marketState?.[8] ??
+        marketState?.market?.lastLnImpliedRate ??
+        0
+    );
+    if (lastLnImpliedRate > 0) {
+      const btApr = Math.exp(lastLnImpliedRate / WAD) - 1;
       borrowRatePerSecond =
-        Number.isFinite(annualizedRate) && annualizedRate > 0
-          ? annualizedRate / SECONDS_PER_YEAR
-          : 0;
+        Number.isFinite(btApr) && btApr > 0 ? btApr / SECONDS_PER_YEAR : 0;
     }
   } else {
     borrowRatePerSecond = marketState.borrowRatePerSecond || 0;
   }
 
   const supplyRatePerSecond = borrowRatePerSecond * utilization * (1 - fee);
-  const apyBaseBorrow = toApyPercent(borrowRatePerSecond);
-  const apyBase = toApyPercent(supplyRatePerSecond);
+  const computedApyBaseBorrow = toApyPercent(borrowRatePerSecond);
+  const computedApyBase = toApyPercent(supplyRatePerSecond);
 
   const metadata = [];
   metadata.push(rateType);
@@ -283,15 +352,20 @@ const buildPool = ({
     );
     const loanUnderlyingSymbol =
       tokenMeta[fixedRateInfo?.underlyingToken || '']?.symbol || null;
-    const collateralUnderlyingToken = collateralUnderlyingByToken[collateralToken];
+    const collateralUnderlyingToken =
+      collateralUnderlyingByToken[collateralToken];
     const collateralUnderlyingSymbol =
       tokenMeta[collateralUnderlyingToken || '']?.symbol || null;
     if (loanUnderlyingSymbol) {
-      metadata.push(`loan underlying ${utils.formatSymbol(loanUnderlyingSymbol)}`);
+      metadata.push(
+        `loan underlying ${utils.formatSymbol(loanUnderlyingSymbol)}`
+      );
     }
     if (collateralUnderlyingSymbol) {
       metadata.push(
-        `collateral underlying ${utils.formatSymbol(collateralUnderlyingSymbol)}`
+        `collateral underlying ${utils.formatSymbol(
+          collateralUnderlyingSymbol
+        )}`
       );
     }
   }
@@ -302,20 +376,27 @@ const buildPool = ({
     project: PROJECT,
     symbol: utils.formatSymbol(`${collateralSymbol}-${loanSymbol}`),
     tvlUsd,
-    apyBase,
-    apyBaseBorrow,
+    apyBase:
+      aprPoolData?.apyBase === undefined
+        ? computedApyBase
+        : aprPoolData.apyBase,
+    apyBaseBorrow:
+      aprPoolData?.apyBaseBorrow === undefined
+        ? computedApyBaseBorrow
+        : aprPoolData.apyBaseBorrow,
     totalSupplyUsd,
     totalBorrowUsd,
     underlyingTokens: [loanToken],
     borrowable: true,
     ltv: Number(marketParams.lltv) / 1e18,
     mintedCoin: utils.formatSymbol(loanSymbol),
-    poolMeta: metadata.join(' | '),
-    url: URL,
+    poolMeta: aprPoolData?.poolMeta || metadata.join(' | '),
+    url: URLS.DAPP,
   };
 };
 
 const apy = async () => {
+  const [aprPoolMap] = await Promise.all([getRewardAprMap()]);
   const allMarkets = [];
 
   for (const lendingMarketConfig of CONFIG.lendingMarkets) {
@@ -415,6 +496,28 @@ const apy = async () => {
     const underlyingToken = info.fw ? fwToUnderlying[info.fw] : null;
     info.underlyingToken = underlyingToken || null;
   });
+
+  const fixedPools = allMarkets.filter((m) => m.rateType === 'fixed');
+  const fixedMarketStateByPool = {};
+  if (fixedPools.length) {
+    const fixedPoolToMarket = await getFixedPoolToFiraMarket(fixedPools);
+    const fixedReadStateRes = await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      abi: FIRA_MARKET_ABI.readState,
+      calls: fixedPools.map((m) => ({
+        target:
+          fixedPoolToMarket[`${m.lendingMarket.toLowerCase()}-${m.marketId}`] ||
+          '0x0000000000000000000000000000000000000000',
+        params: [BCLP_ORACLE],
+      })),
+      permitFailure: true,
+    });
+
+    fixedPools.forEach((m, index) => {
+      const poolKey = `${m.lendingMarket.toLowerCase()}-${m.marketId}`;
+      fixedMarketStateByPool[poolKey] = fixedReadStateRes.output[index]?.output;
+    });
+  }
 
   // Collateral may be Pendle PT: PT -> SY -> assetInfo() -> underlying asset.
   const collateralSyRes = collateralTokens.length
@@ -540,17 +643,38 @@ const apy = async () => {
         fixedRateInfo:
           fixedRateInfoByLoanToken[market.marketParams.loanToken.toLowerCase()],
         collateralUnderlyingByToken: collateralToUnderlying,
+        fixedMarketStateByPool,
+        aprPoolData:
+          aprPoolMap[
+            `${market.lendingMarket.toLowerCase()}-${
+              market.marketId
+            }`.toLowerCase()
+          ],
       })
     )
     .filter(Boolean)
     .filter((pool) => utils.keepFinite(pool));
 
+  const sisuPools = CONFIG.sisuVaults
+    .map((vault) => {
+      const poolKey = vault.address.toLowerCase();
+      const aprPoolData = aprPoolMap[poolKey];
+      if (!aprPoolData) return null;
+      return {
+        ...aprPoolData,
+        pool: poolKey,
+        url: aprPoolData.url || URLS.DAPP,
+      };
+    })
+    .filter(Boolean)
+    .filter((pool) => utils.keepFinite(pool));
+
   const uzrPool = await getUzrPool(prices);
-  return [uzrPool, ...marketPools];
+  return [uzrPool, ...marketPools, ...sisuPools];
 };
 
 module.exports = {
   apy,
-  url: URL,
+  url: URLS.DAPP,
   timetravel: false,
 };
