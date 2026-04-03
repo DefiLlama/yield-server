@@ -108,7 +108,7 @@ const getLpApr = async (stakingTvlUsd) => {
 
 const getVaultsFromApi = async () => {
     const query = {
-        operationName: "GetVaults",
+        operationName: "DefillamaGetVaults",
         variables: {
             orderBy: "apr",
             orderDirection: "desc",
