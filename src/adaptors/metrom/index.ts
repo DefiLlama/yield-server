@@ -23,6 +23,7 @@ const CHAIN_TYPE_AND_NAMES: ByChainTypeAndId<string> = {
     9_745: 'Plasma',
     5_464: 'Saga',
     56: 'BSC',
+    4_326: 'MegaETH',
   },
   aptos: {
     1: 'Aptos',
@@ -44,6 +45,7 @@ interface BaseTarget {
 interface AmmPoolLiquidityTarget extends BaseTarget {
   type: 'amm-pool-liquidity';
   id: string;
+  dex: string;
   tokens: Token[];
   usdTvl: number;
 }
@@ -177,6 +179,7 @@ module.exports = {
 interface ProcessedCampaign {
   symbol: string;
   underlyingTokens: string[];
+  poolMeta: string;
 }
 
 function processCampaign(campaign: Campaign): ProcessedCampaign | null {
@@ -187,13 +190,24 @@ function processCampaign(campaign: Campaign): ProcessedCampaign | null {
           campaign.target.tokens.map((token) => token.symbol).join(' - ')
         ),
         underlyingTokens: campaign.target.tokens.map((token) => token.address),
+        poolMeta: humanizeTargetProtocol('Pool on', campaign.target.dex),
       };
     }
-    case 'liquity-v2-debt':
+    case 'liquity-v2-debt': {
+      return {
+        symbol: formatSymbol(campaign.target.collateral.symbol),
+        underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Borrow on', campaign.target.brand),
+      };
+    }
     case 'liquity-v2-stability-pool': {
       return {
         symbol: formatSymbol(campaign.target.collateral.symbol),
         underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol(
+          'Deposit to stability pool on',
+          campaign.target.brand
+        ),
       };
     }
     case 'gmx-v1-liquidity': {
@@ -201,16 +215,36 @@ function processCampaign(campaign: Campaign): ProcessedCampaign | null {
       // campaigns, address this later on
       return null;
     }
-    case 'aave-v3-supply':
-    case 'aave-v3-borrow':
+    case 'aave-v3-supply': {
+      return {
+        symbol: formatSymbol(campaign.target.collateral.symbol),
+        underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Lend on', campaign.target.brand),
+      };
+    }
+    case 'aave-v3-borrow': {
+      return {
+        symbol: formatSymbol(campaign.target.collateral.symbol),
+        underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Borrow on', campaign.target.brand),
+      };
+    }
     case 'aave-v3-net-supply': {
       return {
         symbol: formatSymbol(campaign.target.collateral.symbol),
         underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Net lend on', campaign.target.brand),
       };
     }
     default: {
       return null;
     }
   }
+}
+
+function humanizeTargetProtocol(action: string, protocolSlug: string): string {
+  return `${action} ${protocolSlug
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')}`;
 }
