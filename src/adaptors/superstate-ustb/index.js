@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const utils = require('../utils');
+const { getTotalSupply } = utils;
 
 const USTB = {
     ethereum: '0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e',
@@ -69,7 +70,7 @@ const apy = async () => {
     return [
         {
             pool: `${USTB['ethereum']}`,
-            chain: 'ethereum',
+            chain: utils.formatChain('ethereum'),
             project,
             symbol,
             apyBase: apr30d,
@@ -79,7 +80,7 @@ const apy = async () => {
         },
         {
             pool: `${USTB['plume_mainnet']}`,
-            chain: 'plume_mainnet',
+            chain: utils.formatChain('plume_mainnet'),
             project,
             symbol,
             apyBase: apr30d,
@@ -89,7 +90,7 @@ const apy = async () => {
         },
         {
             pool: `${USTB['solana']}`,
-            chain: 'solana',
+            chain: utils.formatChain('solana'),
             project,
             symbol,
             apyBase: apr30d,
