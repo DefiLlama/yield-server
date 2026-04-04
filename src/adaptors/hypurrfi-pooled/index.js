@@ -135,7 +135,7 @@ const apy = async () => {
         debtCeilingUsd: null,
         apyBaseBorrow,
         ltv: ltv / 10000,
-        url: `https://app.hypurr.fi/markets/pooled/999/${asset}`,
+        url: `https://hypurrfi.com/markets/pooled/999/${asset}`,
         borrowable,
         mintedCoin: null,
         poolMeta: null,
@@ -150,5 +150,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: "https://app.hypurr.fi/lend",
+  url: "https://hypurrfi.com/lend",
 };
