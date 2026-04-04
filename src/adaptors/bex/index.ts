@@ -49,7 +49,7 @@ async function filterPools(pools) {
 
 async function getPools() {
   const query = gql`
-    query GetPoolData {
+    query DefillamaGetPoolData {
       poolGetPools(
         orderBy: totalLiquidity
         orderDirection: desc
@@ -78,7 +78,10 @@ async function getPools() {
       }
     }
   `;
-  return await request(BEX_API_URL, query);
+  return await request(BEX_API_URL, query, {}, {
+    // this is just for analytics purposes
+    'x-graphql-client-name': 'Defillama.yield-server',
+  });
 }
 
 module.exports = {
