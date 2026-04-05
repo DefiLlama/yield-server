@@ -338,8 +338,8 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
 
   let data;
   try {
-    // Fetch 11 so that after filtering the token contract we still have 10
-    data = await fetchHolders(chainId, tokenAddress, 11, false);
+    // Fetch 13 so that after filtering token contract + burn addresses we still have 10
+    data = await fetchHolders(chainId, tokenAddress, 13, false);
   } catch (err) {
     if (process.env.ANKR_API_KEY) {
       const t = createTimer();
