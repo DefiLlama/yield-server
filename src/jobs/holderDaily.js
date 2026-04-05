@@ -208,6 +208,54 @@ process.on('SIGINT', () => {
   log('SHUTDOWN', 'Press Ctrl+C again to force exit.');
 });
 
+// ── Burned Supply ────────────────────────────────────────────────────────────
+
+const BURN_ADDRESSES = [
+  '0x0000000000000000000000000000000000000000',
+  '0x000000000000000000000000000000000000dead',
+];
+
+// Fetch burned supply (zero + dead address balances) and subtract from supply map
+async function subtractBurnedSupply(supplyMap, chainGroups) {
+  await Promise.allSettled(
+    Object.entries(chainGroups).map(async ([chain, group]) => {
+      const seen = new Set();
+      const tokens = [];
+      for (const t of group) {
+        const key = t.tokenAddress.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        tokens.push(t.tokenAddress);
+      }
+      const calls = [];
+      for (const token of tokens) {
+        for (const burn of BURN_ADDRESSES) {
+          calls.push({ target: token, params: [burn] });
+        }
+      }
+      if (calls.length === 0) return;
+      try {
+        const { output } = await sdk.api.abi.multiCall({
+          abi: 'erc20:balanceOf',
+          calls,
+          chain,
+          permitFailure: true,
+        });
+        for (const item of output) {
+          if (!item.output || item.output === '0') continue;
+          const key = `${item.input.target.toLowerCase()}-${chain}`;
+          if (supplyMap[key]) {
+            supplyMap[key] -= BigInt(item.output);
+            if (supplyMap[key] < 0n) supplyMap[key] = 0n;
+          }
+        }
+      } catch (err) {
+        log('SUPPLY', `Burned supply fetch failed for ${chain}: ${err.message}`);
+      }
+    })
+  );
+}
+
 // ── Processing Functions ─────────────────────────────────────────────────────
 
 function buildResult(
@@ -266,9 +314,7 @@ function buildResult(
         address: h.address,
         balance: String(h.balance),
         balancePct: Math.min(
-          totalSupply > 0n
-            ? Number((h.balance * 10000n) / totalSupply) / 100
-            : 0,
+          Number((h.balance * 10000n) / totalSupply) / 100,
           100
         ),
       })),
@@ -351,9 +397,13 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
   const totalSupply = totalSupplyMap[supplyKey];
   const decimals = decimalsMap[supplyKey] ?? null;
 
-  // Exclude the token contract itself, then take the true top 10
+  // Exclude the token contract itself and negative balances, then take top 10
   const top10 = allEntries
-    .filter((d) => (d.holder || d.address || d.owner || '').toLowerCase() !== tokenAddr)
+    .filter((d) => {
+      const addr = (d.holder || d.address || d.owner || '').toLowerCase();
+      const bal = BigInt(d.balance || d.delta || d.amount || 0);
+      return addr !== tokenAddr && bal > 0n;
+    })
     .slice(0, 10);
   if (top10.length > 0 && totalSupply && totalSupply > 0n) {
     const top10Balance = top10.reduce(
@@ -367,9 +417,7 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
         address: d.holder || d.address || d.owner,
         balance: String(d.balance || d.delta || d.amount || 0),
         balancePct: Math.min(
-          totalSupply > 0n
-            ? Number((BigInt(d.balance || d.delta || d.amount || 0) * 10000n) / totalSupply) / 100
-            : 0,
+          Number((BigInt(d.balance || d.delta || d.amount || 0) * 10000n) / totalSupply) / 100,
           100
         ),
       })),
@@ -743,6 +791,8 @@ async function main() {
         }
       })
     );
+    // Subtract burned supply (zero + dead address) to get circulating supply
+    await subtractBurnedSupply(standardSupplyMap, chainGroups);
     log('SUPPLY', `Done: ${Object.keys(standardSupplyMap).length} tokens (${supplyTimer.stop()})`);
 
     // Process standard batches
@@ -846,6 +896,7 @@ async function main() {
           }
         })
       );
+      await subtractBurnedSupply(tsMap, chainGroups);
       return { tsMap, decMap };
     }
 
