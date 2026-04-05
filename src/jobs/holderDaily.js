@@ -280,10 +280,11 @@ function buildResult(
     };
   }
 
-  // Exclude the token contract itself — Peluche can report it as a holder
-  // from internal accounting transfers, producing phantom >100% concentrations
+  // Exclude the token contract and burn addresses — Peluche can report them
+  // as holders from internal accounting transfers or LP burns
   const tokenAddr = tokenAddress.toLowerCase();
-  const filtered = holders.filter((h) => (h.address || '').toLowerCase() !== tokenAddr);
+  const excludeAddrs = new Set([tokenAddr, ...BURN_ADDRESSES]);
+  const filtered = holders.filter((h) => !excludeAddrs.has((h.address || '').toLowerCase()));
   const effectiveCount = holderCount - (holders.length - filtered.length);
 
   if (effectiveCount === 0) {
@@ -397,12 +398,13 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
   const totalSupply = totalSupplyMap[supplyKey];
   const decimals = decimalsMap[supplyKey] ?? null;
 
-  // Exclude the token contract itself and negative balances, then take top 10
+  // Exclude token contract, burn addresses, and negative balances, then take top 10
+  const excludeAddrs = new Set([tokenAddr, ...BURN_ADDRESSES]);
   const top10 = allEntries
     .filter((d) => {
       const addr = (d.holder || d.address || d.owner || '').toLowerCase();
       const bal = BigInt(d.balance || d.delta || d.amount || 0);
-      return addr !== tokenAddr && bal > 0n;
+      return !excludeAddrs.has(addr) && bal > 0n;
     })
     .slice(0, 10);
   if (top10.length > 0 && totalSupply && totalSupply > 0n) {
@@ -440,9 +442,10 @@ async function processShareBasedPool(task, totalSupplyMap, decimalsMap, today, s
     }
 
     const tokenAddr = tokenAddress.toLowerCase();
+    const excludeAddrs = new Set([tokenAddr, ...BURN_ADDRESSES]);
     const addresses = entries
       .map((d) => d.holder || d.address || d.owner)
-      .filter((a) => a && a.toLowerCase() !== tokenAddr);
+      .filter((a) => a && !excludeAddrs.has(a.toLowerCase()));
     if (addresses.length === 0) {
       return processPool(task, totalSupplyMap, decimalsMap, today, stats);
     }
@@ -499,10 +502,11 @@ async function seedFlaggedPool(task, totalSupplyMap, decimalsMap, today, stats) 
     }
 
     const tokenAddr = tokenAddress.toLowerCase();
+    const excludeAddrs = new Set([tokenAddr, ...BURN_ADDRESSES]);
     const holders = entries
       .filter((d) => d.holder)
       .map((d) => ({ address: d.holder.toLowerCase(), balance: BigInt(d.balance || d.delta || 0) }))
-      .filter((h) => h.balance > 0n && h.address !== tokenAddr)
+      .filter((h) => h.balance > 0n && !excludeAddrs.has(h.address))
       .sort((a, b) => (b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0));
 
     if (holders.length === 0) {
@@ -578,8 +582,9 @@ async function processFlaggedIncremental(task, totalSupplyMap, decimalsMap, toda
       }
     }
 
-    // Exclude the token contract itself
+    // Exclude the token contract and burn addresses
     holderMap.delete(tokenAddress.toLowerCase());
+    for (const burn of BURN_ADDRESSES) holderMap.delete(burn);
 
     const holders = Array.from(holderMap.entries())
       .map(([address, balance]) => ({ address, balance }))
