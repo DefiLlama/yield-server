@@ -280,7 +280,7 @@ function buildResult(
     };
   }
 
-  // Exclude the token contract and burn addresses — Peluche can report them
+  // Exclude the token contract and burn addresses — Indexer can report them
   // as holders from internal accounting transfers or LP burns
   const tokenAddr = tokenAddress.toLowerCase();
   const excludeAddrs = new Set([tokenAddr, ...BURN_ADDRESSES]);
@@ -332,9 +332,24 @@ function buildResult(
   };
 }
 
-// Standard pool — Peluche rebase=false, ANKR fallback
+// Projects where Indexer returns stale/incorrect holder data — use ANKR directly
+const ANKR_PREFERRED_PROJECTS = new Set(['native-credit-pool']);
+
+// Standard pool — Indexer rebase=false, ANKR fallback
 async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
+
+  // Skip Indexer for projects with known bad indexer data
+  if (ANKR_PREFERRED_PROJECTS.has(task.project) && process.env.ANKR_API_KEY) {
+    try {
+      const ankrData = await getAnkrTopHolders(tokenAddress, chain, 15);
+      if (ankrData && ankrData.holders.length > 0) {
+        stats.fallback.ankrCalls++;
+        stats.fallback.ankrSuccess++;
+        return buildResult(ankrData.holders, ankrData.holdersCount, configID, tvlUsd, totalSupplyMap, decimalsMap, chain, tokenAddress, today);
+      }
+    } catch {}
+  }
 
   let data;
   try {
@@ -412,6 +427,7 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
       (sum, d) => sum + BigInt(d.balance || d.delta || d.amount || 0),
       0n
     );
+
     top10Pct = Math.min(Number((top10Balance * 10000n) / totalSupply) / 100, 100);
     top10Holders = {
       decimals,
@@ -425,6 +441,7 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
       })),
     };
   }
+
 
   return { configID, timestamp: today.toISOString(), holderCount: effectiveCount, avgPositionUsd, top10Pct, top10Holders };
 }
@@ -676,7 +693,7 @@ async function main() {
     if (opts.token && pool.token.toLowerCase() !== opts.token) { stats.discovery.filteredOut++; continue; }
     if (opts.pool && pool.pool.toLowerCase() !== opts.pool) { stats.discovery.filteredOut++; continue; }
 
-    tasks.push({ configID: pool.configID, pool: pool.pool, chain, chainId, tokenAddress: pool.token, tvlUsd: pool.tvlUsd });
+    tasks.push({ configID: pool.configID, pool: pool.pool, chain, chainId, tokenAddress: pool.token, tvlUsd: pool.tvlUsd, project: pool.project });
   }
 
   stats.discovery.validEvm = tasks.length;

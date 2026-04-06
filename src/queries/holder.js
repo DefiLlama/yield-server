@@ -47,6 +47,7 @@ const getEligiblePools = async (tvlLB = 10000) => {
       c.pool,
       c.chain,
       c.token,
+      c.project,
       lt."tvlUsd"
     FROM config c
     JOIN latest_tvl lt ON lt."configID" = c.config_id
