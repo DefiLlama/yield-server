@@ -1,5 +1,29 @@
 const axios = require('axios');
 
+/**
+ * Gets the APR for a campaign with fallbacks.
+ * Priority: campaign.apr > Opportunity.apr > params.distributionSettings.apr
+ * Mirrors the backend's getCampaignApr logic so rewards survive Merkl recomputation windows.
+ */
+const getCampaignApr = (campaign) => {
+  if (typeof campaign.apr === 'number' && campaign.apr > 0) {
+    return campaign.apr;
+  }
+
+  if (campaign.Opportunity?.apr > 0) {
+    return campaign.Opportunity.apr;
+  }
+
+  const paramsApr =
+    campaign.params?.distributionMethodParameters?.distributionSettings?.apr;
+  if (paramsApr) {
+    const parsed = Number(paramsApr);
+    if (parsed > 0) return parsed < 1 ? parsed * 100 : parsed;
+  }
+
+  return 0;
+};
+
 exports.getVaultReward = async (url) => {
   // Paginate through all Merkl campaigns
   const PAGE_SIZE = 100;
@@ -26,16 +50,17 @@ exports.getVaultReward = async (url) => {
   allCampaigns
     .filter(
       (campaign) =>
-        typeof campaign.apr === 'number' &&
-        campaign.apr > 0 &&
+        getCampaignApr(campaign) > 0 &&
         campaign.Opportunity?.identifier &&
         campaign.Opportunity.identifier.trim() !== ''
     )
     .forEach((campaign) => {
       const key = campaign.Opportunity.identifier.toLowerCase();
+      const apr = getCampaignApr(campaign);
       const existing = vaultRewardMap.get(key);
-      if (!existing || campaign.apr > existing.apr) {
-        vaultRewardMap.set(key, campaign);
+      const existingApr = existing ? getCampaignApr(existing) : 0;
+      if (apr > existingApr) {
+        vaultRewardMap.set(key, { ...campaign, apr });
       }
     });
 
