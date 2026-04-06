@@ -10,8 +10,9 @@ const getCampaignApr = (campaign) => {
     return campaign.apr;
   }
 
-  if (campaign.Opportunity?.apr > 0) {
-    return campaign.Opportunity.apr;
+  const oppApr = Number(campaign.Opportunity?.apr);
+  if (oppApr > 0) {
+    return oppApr;
   }
 
   const paramsApr =
