@@ -332,9 +332,24 @@ function buildResult(
   };
 }
 
+// Projects where Peluche returns stale/incorrect holder data — use ANKR directly
+const ANKR_PREFERRED_PROJECTS = new Set(['native-credit-pool']);
+
 // Standard pool — Peluche rebase=false, ANKR fallback
 async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
   const { configID, chain, chainId, tokenAddress, tvlUsd } = task;
+
+  // Skip Peluche for projects with known bad indexer data
+  if (ANKR_PREFERRED_PROJECTS.has(task.project) && process.env.ANKR_API_KEY) {
+    try {
+      const ankrData = await getAnkrTopHolders(tokenAddress, chain, 15);
+      if (ankrData && ankrData.holders.length > 0) {
+        stats.fallback.ankrCalls++;
+        stats.fallback.ankrSuccess++;
+        return buildResult(ankrData.holders, ankrData.holdersCount, configID, tvlUsd, totalSupplyMap, decimalsMap, chain, tokenAddress, today);
+      }
+    } catch {}
+  }
 
   let data;
   try {
@@ -691,7 +706,7 @@ async function main() {
     if (opts.token && pool.token.toLowerCase() !== opts.token) { stats.discovery.filteredOut++; continue; }
     if (opts.pool && pool.pool.toLowerCase() !== opts.pool) { stats.discovery.filteredOut++; continue; }
 
-    tasks.push({ configID: pool.configID, pool: pool.pool, chain, chainId, tokenAddress: pool.token, tvlUsd: pool.tvlUsd });
+    tasks.push({ configID: pool.configID, pool: pool.pool, chain, chainId, tokenAddress: pool.token, tvlUsd: pool.tvlUsd, project: pool.project });
   }
 
   stats.discovery.validEvm = tasks.length;
