@@ -428,7 +428,7 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
   }
 
   // ANKR fallback: < 1% concentration with ≤100 holders indicates stale/wrong indexer data
-  const suspectData = (top10Pct === null || top10Pct < 1) && totalSupply > 0n;
+  const suspectData = top10Pct !== null && top10Pct < 1 && totalSupply > 0n;
   const canFallback = effectiveCount > 0 && effectiveCount <= 100 && process.env.ANKR_API_KEY;
   if (suspectData && canFallback) {
     try {
