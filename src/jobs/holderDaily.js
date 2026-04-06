@@ -412,6 +412,7 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
       (sum, d) => sum + BigInt(d.balance || d.delta || d.amount || 0),
       0n
     );
+
     top10Pct = Math.min(Number((top10Balance * 10000n) / totalSupply) / 100, 100);
     top10Holders = {
       decimals,
@@ -424,6 +425,21 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
         ),
       })),
     };
+  }
+
+  // ANKR fallback: if data looks suspicious (< 1% concentration with
+  // ≤100 holders), try ANKR which returns actual on-chain balances.
+  // No legitimate pool with ≤100 holders should have top10Pct < 1% — this
+  // catches tokens where Indexer tracks stale deltas or wrong units.
+  if ((top10Pct === null || top10Pct < 1) && effectiveCount > 0 && effectiveCount <= 100 && process.env.ANKR_API_KEY) {
+    try {
+      const ankrData = await getAnkrTopHolders(tokenAddress, chain, 15);
+      if (ankrData && ankrData.holders.length > 0) {
+        stats.fallback.ankrCalls++;
+        stats.fallback.ankrSuccess++;
+        return buildResult(ankrData.holders, ankrData.holdersCount, configID, tvlUsd, totalSupplyMap, decimalsMap, chain, tokenAddress, today);
+      }
+    } catch {}
   }
 
   return { configID, timestamp: today.toISOString(), holderCount: effectiveCount, avgPositionUsd, top10Pct, top10Holders };
