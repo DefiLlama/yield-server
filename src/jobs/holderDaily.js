@@ -427,10 +427,7 @@ async function processPool(task, totalSupplyMap, decimalsMap, today, stats) {
     };
   }
 
-  // ANKR fallback: if data looks suspicious (< 1% concentration with
-  // ≤100 holders), try ANKR which returns actual on-chain balances.
-  // No legitimate pool with ≤100 holders should have top10Pct < 1% — this
-  // catches tokens where Indexer tracks stale deltas or wrong units.
+  // ANKR fallback: < 1% concentration with ≤100 holders indicates stale/wrong indexer data
   if ((top10Pct === null || top10Pct < 1) && effectiveCount > 0 && effectiveCount <= 100 && process.env.ANKR_API_KEY) {
     try {
       const ankrData = await getAnkrTopHolders(tokenAddress, chain, 15);
