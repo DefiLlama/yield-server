@@ -261,6 +261,7 @@ const excludeAdaptors = [
   'mars-lend',
   'connext',
   'hmx',
+  'clave',
 ];
 
 const excludePools = [
@@ -2037,12 +2038,12 @@ const getProtocolExclusionsFromApi = async () => {
     return new Set(
       (Array.isArray(response.data) ? response.data : [])
         .filter((p) => p.rugged || p.deprecated || p.deadFrom)
-        .map((p) => p.slug)
+        .map((p) => p.slug),
     );
   } catch (err) {
     console.log(
       'Failed to fetch protocol exclusions; falling back to hardcoded list',
-      err?.message || err
+      err?.message || err,
     );
     return new Set();
   }
