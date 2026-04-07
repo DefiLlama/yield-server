@@ -10,8 +10,7 @@ const abi = {
   totalSupply: 'uint256:totalSupply',
 };
 
-const APY_MAIN_DAYS = 7;
-const APY_BASE_7D_DAYS = 7;
+const APY_DAYS = 7;
 
 const SCALE = 10n ** 12n;
 const BLOCK_FALLBACK_OFFSETS = [0, -5, 5, -25, 25, -100, 100, -300, 300];
@@ -121,27 +120,25 @@ async function getTVL(contractAddress, block) {
   return tvlResult.value;
 }
 
-function annualizeLinearFromGrowth(growthNum, growthDen, dtSeconds) {
-  const yearSeconds = 365 * 24 * 60 * 60;
-
+function annualizeFromGrowth(growthNum, growthDen, dtSeconds) {
   if (!dtSeconds || dtSeconds <= 0) {
     throw new Error(`DSF: invalid dtSeconds=${dtSeconds}`);
   }
 
-  const num = Number(growthNum);
-  const den = Number(growthDen);
+  const ratio = Number(growthNum) / Number(growthDen);
 
-  if (!Number.isFinite(num) || !Number.isFinite(den) || den === 0) {
+  if (!Number.isFinite(ratio) || ratio <= 0) {
     throw new Error('DSF: invalid growth ratio');
   }
 
-  const r = num / den - 1;
+  const periodsPerYear = (365 * 24 * 60 * 60) / dtSeconds;
+  const apy = (Math.pow(ratio, periodsPerYear) - 1) * 100;
 
-  if (!Number.isFinite(r)) {
-    throw new Error('DSF: invalid annualization ratio');
+  if (!Number.isFinite(apy)) {
+    throw new Error('DSF: invalid annualized APY');
   }
 
-  return (r * (yearSeconds / dtSeconds)) * 100;
+  return apy;
 }
 
 function format1e18ToNumber(x) {
@@ -169,7 +166,7 @@ async function getApyForDaysFromLpNow(contractAddress, nowTs, lpNow, days) {
   }
 
   const growthScaled = (lpNow * SCALE) / lpPrev;
-  const apy = annualizeLinearFromGrowth(growthScaled, SCALE, dtSeconds);
+  const apy = annualizeFromGrowth(growthScaled, SCALE, dtSeconds);
 
   if (!Number.isFinite(apy)) {
     throw new Error(`DSF: APY ${days}d is not finite`);
@@ -188,16 +185,10 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
       getLpPriceAtBlock(dsfPoolStables, blockNow),
     ]);
 
-    const [apyMain, apyBase7d] = await Promise.all([
-      getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_MAIN_DAYS),
-      getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_BASE_7D_DAYS),
-    ]);
+    const apyBase = await getApyForDaysFromLpNow(dsfPoolStables, nowTs, lpNow, APY_DAYS);
 
-    if (
-      !Number.isFinite(apyMain) ||
-      !Number.isFinite(apyBase7d)
-    ) {
-      throw new Error('DSF: APY fields are not finite');
+    if (!Number.isFinite(apyBase)) {
+      throw new Error('DSF: APY is not finite');
     }
 
     return [
@@ -207,14 +198,12 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
         project: 'dsf.finance',
         symbol: 'USDT-USDC-DAI',
         tvlUsd: format1e18ToNumber(tvl),
-        apy: apyMain,
-        apyBase: apyMain,
-        apyBase7d,
-        rewardTokens: null,
+        apyBase,
+        rewardTokens: [],
         underlyingTokens: [
-          '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-          '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-          '0x6B175474e89094C44Da98b954EedeAC495271d0F',
+          '0xdac17f958d2ee523a2206206994597c13d831ec7',
+          '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+          '0x6b175474e89094c44da98b954eedeac495271d0f',
         ],
         poolMeta: 'Stablecoin Yield Strategy (Curve & Convex)',
         url: 'https://app.dsf.finance/',
