@@ -5,15 +5,19 @@ const ETHEREUM_CHAIN_ID = '0x1';
 const STARKNET_CHAIN_ID = '0x534e5f4d41494e';
 const MIN_TVL_USD = 10000;
 
+function normalizeChainId(chainId) {
+  return BigInt(chainId).toString();
+}
+
 const CHAINS = [
   {
     chainId: ETHEREUM_CHAIN_ID,
-    apiChainId: BigInt(ETHEREUM_CHAIN_ID).toString(),
+    normalizedChainId: normalizeChainId(ETHEREUM_CHAIN_ID),
     chain: 'ethereum',
   },
   {
     chainId: STARKNET_CHAIN_ID,
-    apiChainId: BigInt(STARKNET_CHAIN_ID).toString(),
+    normalizedChainId: normalizeChainId(STARKNET_CHAIN_ID),
     chain: 'starknet',
   },
 ];
@@ -32,7 +36,7 @@ function getPairKey(chainId, tokenA, tokenB) {
 }
 
 function formatTokenAddress(chainId, address) {
-  if (chainId === STARKNET_CHAIN_ID) {
+  if (normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)) {
     return utils.padStarknetAddress(address);
   }
 
@@ -97,8 +101,8 @@ function buildCampaignRewards(campaigns, tokenByKey) {
   return rewardsByPair;
 }
 
-async function getChainData({ apiChainId }) {
-  const query = `chainId=${encodeURIComponent(apiChainId)}`;
+async function getChainData({ normalizedChainId }) {
+  const query = `chainId=${encodeURIComponent(normalizedChainId)}`;
 
   const [tokens, pairData, campaigns] = await Promise.all([
     utils.getData(`${API_URL}/tokens?${query}&pageSize=10000`),
@@ -151,7 +155,9 @@ async function apy() {
       return {
         pool: `ekubo-${chainId}-${token0.address}-${token1.address}`.toLowerCase(),
         chain: utils.formatChain(
-          CHAINS.find((chain) => chain.chainId === chainId)?.chain ?? chainId
+          CHAINS.find(
+            (chain) => chain.normalizedChainId === normalizeChainId(chainId)
+          )?.chain ?? chainId
         ),
         project: 'ekubo',
         symbol: `${token0.symbol}-${token1.symbol}`,
