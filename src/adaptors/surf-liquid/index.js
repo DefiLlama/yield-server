@@ -238,7 +238,7 @@ const apy = async () => {
     const userApy = avgMorphoApy * (1 - PERFORMANCE_FEE);
 
     pools.push({
-      pool: `${V3_FACTORY.toLowerCase()}-${ASSET_SYMBOLS[asset].toLowerCase()}-${CHAIN}`,
+      pool: `${V3_FACTORY.toLowerCase()}-${asset}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
       project: 'surf-liquid',
       symbol: ASSET_SYMBOLS[asset],
@@ -289,23 +289,13 @@ const apy = async () => {
   const surfPrice = surfPriceResp.data?.coins?.[surfPriceKey]?.price || 0;
   const stakingTvl = (Number(totalStaked) / 1e18) * surfPrice;
 
-  // CreatorBid subscriptions (SURF locked in token contract)
-  const { output: subscribedBalance } = await sdk.api.abi.call({
-    target: SURF_TOKEN,
-    abi: 'function balanceOf(address) view returns (uint256)',
-    params: [SURF_TOKEN],
-    chain: CHAIN,
-  });
-  const subscriptionTvl = (Number(subscribedBalance) / 1e18) * surfPrice;
-
-  const totalSurfTvl = stakingTvl + subscriptionTvl;
-  if (totalSurfTvl > 100) {
+  if (stakingTvl > 100) {
     const stakingPool = {
       pool: `${SURF_STAKING.toLowerCase()}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
       project: 'surf-liquid',
       symbol: 'SURF',
-      tvlUsd: totalSurfTvl,
+      tvlUsd: stakingTvl,
       apyBase: 0,
       underlyingTokens: [SURF_TOKEN],
     };
@@ -313,10 +303,7 @@ const apy = async () => {
     if (stakingApr6M != null && stakingApr6M > 0) {
       stakingPool.apyReward = stakingApr6M;
       stakingPool.rewardTokens = [SURF_TOKEN];
-      stakingPool.poolMeta =
-        stakingApr12M != null
-          ? `${stakingApr6M}% APR (6M lock) / ${stakingApr12M}% APR (12M lock)`
-          : `${stakingApr6M}% APR (6M lock)`;
+      stakingPool.poolMeta = '6M / 12M lock';
     }
 
     pools.push(stakingPool);

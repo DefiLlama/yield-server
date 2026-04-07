@@ -377,6 +377,7 @@ const getVeDustPool = async (chain, prices, rewardTokensList) => {
       apyReward: totalApyReward,
       rewardTokens: rewardTokensList,
       underlyingTokens: [dustToken.output],
+      token: null,
       url: 'https://app.neverland.money',
     };
   } catch (error) {
