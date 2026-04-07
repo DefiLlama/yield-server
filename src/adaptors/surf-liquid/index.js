@@ -238,7 +238,7 @@ const apy = async () => {
     const userApy = avgMorphoApy * (1 - PERFORMANCE_FEE);
 
     pools.push({
-      pool: `${V3_FACTORY.toLowerCase()}-${asset}-${CHAIN}`,
+      pool: `surf-${asset}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
       project: 'surf-liquid',
       symbol: ASSET_SYMBOLS[asset],
