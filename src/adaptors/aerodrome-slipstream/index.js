@@ -226,7 +226,9 @@ const getGaugeApy = async () => {
   const pools = allPoolsData.map((p, i) => {
     const token0Data = allTokenData.find(({token_address}) => token_address == p.token0);
     const token1Data = allTokenData.find(({token_address}) => token_address == p.token1);
-    
+
+    if (!token0Data || !token1Data) return null;
+
     const p0 = prices[`base:${p.token0}`]?.price;
     const p1 = prices[`base:${p.token1}`]?.price;
 
@@ -260,7 +262,7 @@ const getGaugeApy = async () => {
   });
 
   const poolsApy = {};
-  for (const pool of pools.filter((p) => utils.keepFinite(p))) {
+  for (const pool of pools.filter((p) => p && utils.keepFinite(p))) {
     poolsApy[pool.pool] = pool;
   }
 
@@ -269,7 +271,12 @@ const getGaugeApy = async () => {
 
 async function main(timestamp = null) {
   const poolsApy = await getGaugeApy();
-  const poolsVolumes = await getPoolVolumes(timestamp);
+  let poolsVolumes = {};
+  try {
+    poolsVolumes = await getPoolVolumes(timestamp);
+  } catch (e) {
+    console.log('aerodrome-slipstream: subgraph query failed, skipping volume data', e.message);
+  }
 
   // left-join volumes onto APY output to avoid filtering out pools
   return Object.values(poolsApy).map((pool) => {
