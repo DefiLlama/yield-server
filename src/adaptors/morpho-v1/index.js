@@ -1,5 +1,6 @@
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const GRAPH_URL = 'https://api.morpho.org/graphql';
 const CHAINS = {
@@ -504,7 +505,14 @@ const apy = async () => {
       .values()
   );
 
-  return uniquePools.filter(Boolean);
+  return addMerklRewardApy(
+    uniquePools.filter(Boolean),
+    'morpho',
+    (p) => {
+      const match = p.pool.match(/0x[a-fA-F0-9]{40,}/);
+      return match ? match[0] : p.pool;
+    }
+  );
 };
 
 module.exports = {

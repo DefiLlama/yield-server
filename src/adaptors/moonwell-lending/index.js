@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const sdk = require('@defillama/sdk');
 const { request, gql, batchRequests } = require('graphql-request');
 const { MRD_ABI, VIEWS_ABI } = require('./abi');
@@ -732,7 +733,8 @@ const getApy = async () => {
     delete market.incentives;
   }
 
-  return [...moonbeamResults, ...baseResults, ...optimismResults];
+  const pools = [...moonbeamResults, ...baseResults, ...optimismResults];
+  return addMerklRewardApy(pools, 'moonwell');
 };
 
 module.exports = {

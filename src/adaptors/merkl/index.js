@@ -4,13 +4,58 @@ const utils = require('../utils');
 const { networks } = require('./config');
 
 // Protocols that should not be listed under Merkl
-// as they already have their own adapters.
+// as they already have their own adapters that integrate Merkl rewards.
+// All entries must be lowercase (comparison is case-insensitive).
 const protocolsBlacklist = [
   'euler',
   'crosscurve',
   'aerodrome',
   'gamma',
   'uniswap',
+  'morpho',
+  'aave',
+  'accountable',
+  'upshift',
+  'dolomite',
+  'yo',
+  'ipor',
+  'neverland',
+  'pendle',
+  'summerfinance',
+  'gearbox',
+  'curve',
+  'stake dao',
+  'stakedao',
+  'fluid',
+  'fraxlend',
+  'spectra',
+  'pancake-swap',
+  'silo',
+  'altura',
+  'quickswap',
+  'xlend',
+  'hyperswap',
+  'balancer',
+  'balancergauge',
+  'fxprotocol',
+  'kuru',
+  'beefy',
+  'monday-trade',
+  'superlend',
+  'sushi-swap',
+  'steer',
+  'termmax',
+  'yieldnest',
+  'clober',
+  'yearn',
+  'compound-v3',
+  'curvance',
+  'moonwell',
+  'satsuma',
+  'prime-vaults',
+  'hypurrfi',
+  'puffer',
+  'superform',
 ];
 
 // Allow specific pools from blacklisted protocols
@@ -110,7 +155,7 @@ const main = async () => {
       let data;
       try {
         data = await utils.getData(
-          `https://api.merkl.fr/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
+          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
         );
       } catch (err) {
         console.log('failed to fetch Merkl data on chain ' + chain);
@@ -127,9 +172,14 @@ const main = async () => {
 
     for (const pool of pools.filter(
       (x) =>
-        !x.protocol ||
-        !protocolsBlacklist.includes(x.protocol.id) ||
-        poolsWhitelist.includes(x.identifier)
+        // Filter out ERC20LOGPROCESSOR HOLD campaigns - these are "hold token X,
+        // get rewarded" promotions, not real DeFi pools. They create ghost APRs
+        // (e.g. "Hold XAUt" showing as a yield pool).
+        // Other HOLD types (IPOR_STAKING, CONVEX, etc.) are legitimate DeFi.
+        !(x.type === 'ERC20LOGPROCESSOR' && x.action === 'HOLD') &&
+        (!x.protocol ||
+          !protocolsBlacklist.includes(x.protocol.id?.toLowerCase()) ||
+          poolsWhitelist.includes(x.identifier))
     )) {
       try {
         const poolAddress = pool.identifier;
