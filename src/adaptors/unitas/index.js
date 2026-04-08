@@ -172,6 +172,10 @@ async function apyBsc() {
 
     const logs = await getLogs()
 
+    if (!logs.length) {
+        throw new Error('No RewardsReceived events found on BSC');
+    }
+
     const rewardsReceived = Number(logs[0].args.amount) / 1e18;
 
     const aprBase = ((rewardsReceived * 3 * 365) / tvlUsd) * 100;
