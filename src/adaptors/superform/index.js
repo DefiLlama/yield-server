@@ -142,7 +142,7 @@ const main = async () => {
 
       // Extract reward APY and token addresses from API data
       const tokenRewards = (vault.rewards || []).filter(
-        (r) => r.type === 'token' && r.reward_rate > 0
+        (r) => r.type === 'token' && r.reward_rate > 0 && r.address
       );
       const apyReward = tokenRewards.reduce(
         (sum, r) => sum + (r.reward_rate || 0),
