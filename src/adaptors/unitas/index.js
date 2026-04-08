@@ -198,6 +198,7 @@ async function apy() {
             tvlUsd: tvlUsdSol,
             apyBase: apyBaseSol,
             underlyingTokens: [config.solana.usdu],
+            url: "https://sol.unitas.so/transparency",
         },
         {
             pool: config.bsc.susdu,
@@ -207,11 +208,12 @@ async function apy() {
             tvlUsd: tvlUsdBsc,
             apyBase: apyBaseBsc,
             underlyingTokens: [config.bsc.usdu],
+            url: "https://evm.unitas.so/transparency",
         }
     ];
 }
 
 module.exports = {
     apy,
-    url: "https://sol.unitas.so/transparency",
+    url: "https://unitas.so/",
 };
