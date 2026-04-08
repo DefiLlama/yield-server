@@ -5,139 +5,170 @@ const PROJECT_NAME = 'superform';
 
 const API_BASE = 'https://persephone.superform.xyz/v1';
 
-// SuperVault Aggregator contract - returns all SuperVaults
-const SUPERVAULT_AGGREGATOR = '0x10AC0b33e1C4501CF3ec1cB1AE51ebfdbd2d4698';
-
 const CHAIN_MAPPING = {
   '1': 'ethereum',
-};
-
-// ERC-4626 ABI for totalAssets and asset
-const abi = {
-  totalAssets: {
-    inputs: [],
-    name: 'totalAssets',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  asset: {
-    inputs: [],
-    name: 'asset',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  decimals: {
-    inputs: [],
-    name: 'decimals',
-    outputs: [{ internalType: 'uint8', name: '', type: 'uint8' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
+  '8453': 'base',
 };
 
 const main = async () => {
-  // Fetch SuperVaults metadata from API (for APY and symbol info)
+  // Fetch SuperVaults metadata from API (for vault addresses and symbols)
   const supervaultsRes = await utils.getData(`${API_BASE}/supervaults`);
   const supervaults = supervaultsRes?.supervaults || [];
 
-  // Filter to only Ethereum SuperVaults (currently all are on Ethereum)
-  const ethSupervaults = supervaults.filter(
-    (v) => v.chain_id === '1' && v.stats_basic?.apy_snapshot_now > -100
-  );
-
-  if (ethSupervaults.length === 0) {
-    return [];
+  // Group vaults by chain
+  const vaultsByChain = {};
+  for (const v of supervaults) {
+    const chain = CHAIN_MAPPING[v.chain_id];
+    if (!chain) continue;
+    if (!vaultsByChain[chain]) vaultsByChain[chain] = [];
+    vaultsByChain[chain].push(v);
   }
 
-  const vaultAddresses = ethSupervaults.map((v) => v.address);
-
-  // Fetch on-chain data: totalAssets, asset address, and decimals
-  const [totalAssetsRes, assetRes] = await Promise.all([
-    sdk.api.abi.multiCall({
-      abi: abi.totalAssets,
-      calls: vaultAddresses.map((address) => ({ target: address })),
-      chain: 'ethereum',
-    }),
-    sdk.api.abi.multiCall({
-      abi: abi.asset,
-      calls: vaultAddresses.map((address) => ({ target: address })),
-      chain: 'ethereum',
-    }),
-  ]);
-
-  // Get unique asset addresses for decimals lookup (lowercase for consistency)
-  const assetAddresses = [
-    ...new Set(
-      assetRes.output
-        .filter((r) => r && r.output)
-        .map((r) => r.output.toLowerCase())
-    ),
-  ];
-
-  const decimalsRes = await sdk.api.abi.multiCall({
-    abi: abi.decimals,
-    calls: assetAddresses.map((address) => ({ target: address })),
-    chain: 'ethereum',
-  });
-
-  const decimalsMap = {};
-  decimalsRes.output.forEach((r) => {
-    decimalsMap[r.input.target.toLowerCase()] = r.output;
-  });
-
-  // Get token prices (use lowercase addresses)
-  const priceKeys = assetAddresses.map((a) => `ethereum:${a}`).join(',');
-  const pricesRes = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
-
-  // Normalize price keys to lowercase for lookup
-  const prices = {};
-  for (const [key, value] of Object.entries(pricesRes.coins || {})) {
-    prices[key.toLowerCase()] = value;
-  }
-
-  // Build pools
   const pools = [];
 
-  for (let i = 0; i < ethSupervaults.length; i++) {
-    const vault = ethSupervaults[i];
-    const totalAssets = totalAssetsRes.output[i]?.output;
-    const rawAsset = assetRes.output[i]?.output;
+  for (const [chain, chainVaults] of Object.entries(vaultsByChain)) {
+    const vaultAddresses = chainVaults.map((v) => v.address);
 
-    if (!totalAssets || !rawAsset) continue;
+    const now = Math.floor(Date.now() / 1000);
+    const weekAgo = now - 86400 * 7;
+    const [blockNow, blockWeekAgo] = await utils.getBlocksByTime(
+      [now, weekAgo],
+      chain
+    );
 
-    const assetAddress = rawAsset.toLowerCase();
-    const decimals = decimalsMap[assetAddress] || 18;
-    const priceKey = `ethereum:${assetAddress}`;
-    const price = prices[priceKey]?.price;
+    // Fetch on-chain data at current and 7-day-ago blocks
+    const [
+      totalAssetsNowRes,
+      totalSupplyNowRes,
+      totalAssetsWeekAgoRes,
+      totalSupplyWeekAgoRes,
+      assetRes,
+    ] = await Promise.all([
+      sdk.api.abi.multiCall({
+        abi: 'uint256:totalAssets',
+        calls: vaultAddresses.map((target) => ({ target })),
+        chain,
+        block: blockNow,
+      }),
+      sdk.api.abi.multiCall({
+        abi: 'uint256:totalSupply',
+        calls: vaultAddresses.map((target) => ({ target })),
+        chain,
+        block: blockNow,
+      }),
+      sdk.api.abi.multiCall({
+        abi: 'uint256:totalAssets',
+        calls: vaultAddresses.map((target) => ({ target })),
+        chain,
+        block: blockWeekAgo,
+      }),
+      sdk.api.abi.multiCall({
+        abi: 'uint256:totalSupply',
+        calls: vaultAddresses.map((target) => ({ target })),
+        chain,
+        block: blockWeekAgo,
+      }),
+      sdk.api.abi.multiCall({
+        abi: 'address:asset',
+        calls: vaultAddresses.map((target) => ({ target })),
+        chain,
+      }),
+    ]);
 
-    if (!price) continue;
+    // Get unique asset addresses for decimals + prices
+    const assetAddresses = [
+      ...new Set(
+        assetRes.output
+          .filter((r) => r && r.output)
+          .map((r) => r.output.toLowerCase())
+      ),
+    ];
 
-    const tvlUsd = (Number(totalAssets) / 10 ** decimals) * price;
-    if (tvlUsd <= 0) continue;
+    const decimalsRes = await sdk.api.abi.multiCall({
+      abi: 'uint8:decimals',
+      calls: assetAddresses.map((target) => ({ target })),
+      chain,
+    });
 
-    const apy = vault.stats_basic?.apy_snapshot_now;
-    if (apy === undefined || apy === null || apy < -100) continue;
+    const decimalsMap = {};
+    decimalsRes.output.forEach((r) => {
+      decimalsMap[r.input.target.toLowerCase()] = r.output;
+    });
 
-    const symbol =
-      vault.symbol || vault.assets?.[0]?.symbol || vault.friendly_name || 'UNKNOWN';
+    const priceKeys = assetAddresses.map((a) => `${chain}:${a}`).join(',');
+    const pricesRes = await utils.getData(
+      `https://coins.llama.fi/prices/current/${priceKeys}`
+    );
 
-    const pool = {
-      pool: `superform-${vault.address}-ethereum`.toLowerCase(),
-      chain: utils.formatChain('Ethereum'),
-      project: PROJECT_NAME,
-      symbol: utils.formatSymbol(symbol),
-      tvlUsd,
-      apyBase: apy,
-      underlyingTokens: [assetAddress],
-      poolMeta: 'SuperVault',
-      url: `https://app.superform.xyz/vault/1_${vault.address}`,
-    };
+    const prices = {};
+    for (const [key, value] of Object.entries(pricesRes.coins || {})) {
+      prices[key.toLowerCase()] = value;
+    }
 
-    pools.push(pool);
+    for (let i = 0; i < chainVaults.length; i++) {
+      const vault = chainVaults[i];
+      const rawAsset = assetRes.output[i]?.output;
+      if (!rawAsset) continue;
+
+      const assetsNow = Number(totalAssetsNowRes.output[i]?.output);
+      const supplyNow = Number(totalSupplyNowRes.output[i]?.output);
+      const assetsPast = Number(totalAssetsWeekAgoRes.output[i]?.output);
+      const supplyPast = Number(totalSupplyWeekAgoRes.output[i]?.output);
+
+      if (!supplyNow || !assetsNow) continue;
+
+      const assetAddress = rawAsset.toLowerCase();
+      const decimals = decimalsMap[assetAddress] || 18;
+      const price = prices[`${chain}:${assetAddress}`]?.price;
+      if (!price) continue;
+
+      const tvlUsd = (assetsNow / 10 ** decimals) * price;
+      if (tvlUsd <= 0) continue;
+
+      // APY from 7-day share price change: (priceNow / pricePast) ^ (365/7) - 1
+      let apyBase = 0;
+      if (supplyPast > 0 && assetsPast > 0) {
+        const priceNow = assetsNow / supplyNow;
+        const pricePast = assetsPast / supplyPast;
+        apyBase = (Math.pow(priceNow / pricePast, 365 / 7) - 1) * 100;
+        apyBase = Math.max(apyBase, 0);
+      }
+
+      const symbol =
+        vault.symbol ||
+        vault.assets?.[0]?.symbol ||
+        vault.friendly_name ||
+        'UNKNOWN';
+
+      // Extract reward APY and token addresses from API data
+      const tokenRewards = (vault.rewards || []).filter(
+        (r) => r.type === 'token' && r.reward_rate > 0 && r.address
+      );
+      const apyReward = tokenRewards.reduce(
+        (sum, r) => sum + (r.reward_rate || 0),
+        0
+      );
+      const rewardTokens = tokenRewards.map((r) => r.address.toLowerCase());
+
+      const poolData = {
+        pool: `superform-${vault.address}-${chain}`.toLowerCase(),
+        chain: utils.formatChain(chain),
+        project: PROJECT_NAME,
+        symbol: utils.formatSymbol(symbol),
+        tvlUsd,
+        apyBase,
+        underlyingTokens: [assetAddress],
+        poolMeta: 'SuperVault',
+        url: `https://app.superform.xyz/vault/${vault.chain_id}_${vault.address}`,
+      };
+
+      if (apyReward > 0) {
+        poolData.apyReward = apyReward;
+        poolData.rewardTokens = rewardTokens;
+      }
+
+      pools.push(poolData);
+    }
   }
 
   return pools.filter((p) => utils.keepFinite(p));
