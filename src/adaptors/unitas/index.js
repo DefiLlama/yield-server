@@ -1,15 +1,33 @@
 const axios = require('axios');
 const {aprToApy} = require("../utils");
+const sdk = require("@defillama/sdk");
+const utils = require("../utils");
 
-const SOL_RPC = 'https://api.mainnet-beta.solana.com';
+const project = 'unitas';
+const symbol = 'sUSDu';
 const STAKE_POOL = 'CFgrWjb9DYKVqf7QyQfmwjboDDkXpFHQ6292rnYxrjsa';
-const SUSDU = '9iq5Q33RSiz1WcupHAQKbHBZkpn92UxBG2HfPWAZhMCa';
-const USDU = '9ckR7pPPvyPadACDTzLwK2ZAEeUJ3qGSnzPs8bVaHrSy'; // USDu mint on Solana
 const DISTRIBUTE_ACCOUNT = "AmAcmYeJgxdHfoMSb3zwWFFPwWivADiyMozHwg5WyTtW"
 const DISTRIBUTOR_DISCRIMINATOR = "FytrVezW"
 
+const EVENTS = {
+    RewardsReceived: 'event RewardsReceived(uint256 indexed amount, uint256 newVestingUSDuAmount)',
+};
+
+const config = {
+    solana: {
+        rpc_url: 'https://api.mainnet-beta.solana.com',
+        susdu: '9iq5Q33RSiz1WcupHAQKbHBZkpn92UxBG2HfPWAZhMCa',
+        usdu: '9ckR7pPPvyPadACDTzLwK2ZAEeUJ3qGSnzPs8bVaHrSy',
+    },
+    bsc: {
+        rpc_url: 'https://bsc-dataseed.binance.org/',
+        susdu: '0x385C279445581a186a4182a5503094eBb652EC71',
+        usdu: '0xeA953eA6634d55dAC6697C436B1e81A679Db5882',
+    }
+};
+
 async function getStakePoolSize() {
-    const res = await axios.post(SOL_RPC, {
+    const res = await axios.post(config.solana.rpc_url, {
         jsonrpc: "2.0",
         id: 1,
         method: "getTokenAccountBalance",
@@ -25,7 +43,7 @@ async function getStakePoolSize() {
 }
 
 async function getSignatures() {
-    const res = await axios.post(SOL_RPC, {
+    const res = await axios.post(config.solana.rpc_url, {
         jsonrpc: "2.0",
         id: 1,
         method: "getSignaturesForAddress",
@@ -41,7 +59,7 @@ async function getSignatures() {
 }
 
 async function getTransaction(sig) {
-    const res = await axios.post(SOL_RPC, {
+    const res = await axios.post(config.solana.rpc_url, {
         jsonrpc: '2.0',
         id: 1,
         method: 'getTransaction',
@@ -105,7 +123,7 @@ async function getRewardDistribution() {
     }
 }
 
-async function apy() {
+async function apySol() {
     const tvlUsd = await getStakePoolSize()
 
     const reward = await getRewardDistribution()
@@ -114,20 +132,82 @@ async function apy() {
     const aprBase = ((reward * 3 * 365) / tvlUsd) * 100;
 
     const apyBase = aprToApy(aprBase, 52);
+
+    return [tvlUsd, apyBase]
+}
+
+async function getLogs() {
+    const currentBlock = await sdk.api.util.getLatestBlock('bsc');
+
+    const toBlock = currentBlock.number;
+
+    const fromBlock = 76579302
+
+    const logs = [];
+    for (let i = toBlock; i > fromBlock; i -= 10000) {
+        const start = i - 10000;
+        const lg = await sdk.getEventLogs({
+            target: config.bsc.susdu,
+            eventAbi: EVENTS.RewardsReceived,
+            fromBlock: start,
+            toBlock: i,
+            chain: 'bsc',
+        })
+        logs.push(...lg)
+
+        if (lg.length !== 0) {
+            break;
+        }
+    }
+
+    logs.sort((a, b) => b.blockNumber - a.blockNumber);
+
+    return logs;
+}
+
+async function apyBsc() {
+    const tvlUsd =
+        (await sdk.api.erc20.totalSupply({target: config.bsc.usdu, chain: 'bsc'})).output /
+        1e18;
+
+    const logs = await getLogs()
+
+    const rewardsReceived = Number(logs[0].args.amount) / 1e18;
+
+    const aprBase = ((rewardsReceived * 3 * 365) / tvlUsd) * 100;
+    // weekly compoounding
+    const apyBase = utils.aprToApy(aprBase, 52);
+
+    return [tvlUsd, apyBase]
+}
+
+async function apy() {
+    const [tvlUsdSol, apyBaseSol] = await apySol();
+    const [tvlUsdBsc, apyBaseBsc] = await apyBsc();
+
     return [
         {
-            pool: SUSDU,
-            symbol: 'sUSDu',
-            project: 'unitas',
+            pool: config.solana.susdu,
             chain: 'Solana',
-            tvlUsd,
-            apyBase,
-            underlyingTokens: [USDU],
+            project,
+            symbol,
+            tvlUsd: tvlUsdSol,
+            apyBase: apyBaseSol,
+            underlyingTokens: [config.solana.usdu],
         },
+        {
+            pool: config.bsc.susdu,
+            chain: 'bsc',
+            project,
+            symbol,
+            tvlUsd: tvlUsdBsc,
+            apyBase: apyBaseBsc,
+            underlyingTokens: [config.bsc.usdu],
+        }
     ];
 }
 
 module.exports = {
     apy,
-    url: "https://app.unitas.so/dashboard/apy",
+    url: "https://sol.unitas.so/transparency",
 };
