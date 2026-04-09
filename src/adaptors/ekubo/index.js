@@ -5,6 +5,7 @@ const ETHEREUM_CHAIN_ID = '0x1';
 const STARKNET_CHAIN_ID = '0x534e5f4d41494e';
 const MIN_TVL_USD = 10000;
 const Q128 = 1n << 128n;
+const Q64 = 1n << 64n;
 
 function normalizeChainId(chainId) {
   return BigInt(chainId).toString();
@@ -24,7 +25,7 @@ const CHAINS = [
 ];
 
 function normalizeTokenRef(chainId, address) {
-  return `${chainId}:${BigInt(address).toString()}`;
+  return `${normalizeChainId(chainId)}:${BigInt(address).toString()}`;
 }
 
 function getPairKey(chainId, tokenA, tokenB) {
@@ -47,16 +48,16 @@ function getLegacyPoolId(chainId, token0, token1) {
 function getPoolId(chainId, token0, token1, poolInfo) {
   return (
     getLegacyPoolId(chainId, token0, token1) ??
-    `ekubo-${chainId}-${formatNumericHex(poolInfo.core_address)}-${formatNumericHex(
-      poolInfo.pool_id,
-      64
-    )}`.toLowerCase()
+    `ekubo-${formatNumericHex(chainId)}-${formatNumericHex(
+      poolInfo.core_address
+    )}-${formatNumericHex(poolInfo.pool_id, 64)}`.toLowerCase()
   );
 }
 
 function formatNumericHex(value, size = null) {
   if (typeof value === 'string' && value.startsWith('0x')) {
-    return value.toLowerCase();
+    const hex = value.slice(2).toLowerCase();
+    return `0x${size ? hex.padStart(size, '0') : hex}`;
   }
 
   const hex = BigInt(value).toString(16);
@@ -74,10 +75,14 @@ function getPoolUrl(chainId, poolInfo) {
   )}/${formatNumericHex(poolInfo.pool_id, 64)}`;
 }
 
-function formatFeePercent(fee) {
+function formatFeePercent(chainId, fee) {
   if (fee == null) return null;
 
-  const scaledPercent = (BigInt(fee) * 10000n) / Q128;
+  const denominator =
+    normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)
+      ? Q128
+      : Q64;
+  const scaledPercent = (BigInt(fee) * 10000n) / denominator;
   const whole = scaledPercent / 100n;
   const fraction = (scaledPercent % 100n).toString().padStart(2, '0');
 
@@ -90,9 +95,9 @@ function formatDepthPercent(depthPercent) {
   return `CL range ${((depthPercent || 0) * 100).toFixed(2)}%`;
 }
 
-function getPoolMeta(poolInfo) {
+function getPoolMeta(chainId, poolInfo) {
   const parts = [
-    formatFeePercent(poolInfo.fee),
+    formatFeePercent(chainId, poolInfo.fee),
     formatDepthPercent(poolInfo.depth_percent),
   ].filter(Boolean);
 
@@ -254,7 +259,7 @@ async function apy() {
         apyBase,
         apyReward: campaignReward?.apyReward || 0,
         rewardTokens: campaignReward ? [...campaignReward.rewardTokens] : [],
-        poolMeta: getPoolMeta(topPool),
+        poolMeta: getPoolMeta(chainId, topPool),
         url: getPoolUrl(chainId, topPool),
       };
     })
