@@ -6,6 +6,7 @@ const ETHEREUM_CHAIN_ID = '0x1';
 const STARKNET_CHAIN_ID = '0x534e5f4d41494e';
 const MIN_TVL_USD = 10000;
 const TOP_POOL_REQUEST_CONCURRENCY = 5;
+const MAX_TOP_POOL_FAILURES = 3;
 const Q128 = 1n << 128n;
 const Q64 = 1n << 64n;
 
@@ -182,9 +183,11 @@ async function getChainData({ normalizedChainId }) {
   ]);
 
   const topPoolEntries = [];
+  let topPoolFailureCount = 0;
   for (const pairsBatch of chunk(pairData.topPairs, TOP_POOL_REQUEST_CONCURRENCY)) {
     const batchEntries = await Promise.all(
       pairsBatch.map(async (pair) => {
+        const pairKey = getPairKey(pair.chain_id, pair.token0, pair.token1);
         try {
           const pools = await utils.getData(
             `${API_URL}/pair/${encodeURIComponent(normalizedChainId)}/${encodeURIComponent(
@@ -195,15 +198,29 @@ async function getChainData({ normalizedChainId }) {
           if (!topPool) return null;
 
           return [
-            getPairKey(pair.chain_id, pair.token0, pair.token1),
+            pairKey,
             topPool,
           ];
         } catch (error) {
-          return null;
+          console.error(
+            `Ekubo top pool fetch failed for chain ${normalizedChainId} pair ${pairKey}: ${error.message}`
+          );
+          return { error: true, pairKey };
         }
       })
     );
-    topPoolEntries.push(...batchEntries.filter(Boolean));
+    const failedEntries = batchEntries.filter((entry) => entry?.error);
+    topPoolFailureCount += failedEntries.length;
+
+    if (topPoolFailureCount > MAX_TOP_POOL_FAILURES) {
+      throw new Error(
+        `Ekubo top pool fetch failures exceeded threshold for chain ${normalizedChainId}: ${topPoolFailureCount}`
+      );
+    }
+
+    topPoolEntries.push(
+      ...batchEntries.filter((entry) => entry && !entry.error)
+    );
   }
 
   return {
