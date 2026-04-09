@@ -1,6 +1,13 @@
 const { networks } = require('./config');
 const { getData } = require('../utils');
 
+// Adapter chain names that differ from merkl config chain names
+// Adapter chain names (after formatChain + toLowerCase) that differ from merkl config
+const CHAIN_ALIASES = {
+  'hyperliquid l1': 'hyperevm',
+  'hyperliquid': 'hyperevm',
+};
+
 exports.addMerklRewardApy = async (
   pools,
   protocolId,
@@ -42,7 +49,8 @@ exports.addMerklRewardApy = async (
 
     return pools.map(pool => {
       const poolAddress = poolAddressGetter ? poolAddressGetter(pool) : pool.pool;
-      const merklRewards = merklPoolsMap[pool.chain.toLowerCase()]?.[poolAddress.toLowerCase()];
+      const chainKey = CHAIN_ALIASES[pool.chain.toLowerCase()] || pool.chain.toLowerCase();
+      const merklRewards = merklPoolsMap[chainKey]?.[poolAddress.toLowerCase()];
 
       if (!merklRewards) {
         return pool;

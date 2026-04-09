@@ -56,6 +56,13 @@ const protocolsBlacklist = [
   'hypurrfi',
   'puffer',
   'superform',
+  'purrlend',
+  'mento',
+  'ichi',
+  'levva',
+  'yieldseeker',
+  'penpie',
+  'equilibria',
 ];
 
 // Allow specific pools from blacklisted protocols
@@ -63,6 +70,24 @@ const poolsWhitelist = [
   // Pool from Aerodrome CL: xPufETH-WETH
   '0xCDf927C0F7b81b146C0C9e9323eb5A28D1BFA183',
 ];
+
+// Merkl opportunity types that are covered by native adapters even when
+// they have no protocol.id set. These would otherwise leak through the
+// blacklist filter since it only checks protocol.id.
+const coveredTypes = new Set([
+  'MORPHOVAULT',      // MetaMorpho vaults → morpho-v1
+  'EULER',            // Euler pools → euler-v2
+  'STAKEDAO_VAULT',   // StakeDAO vaults → stake-dao
+  'CONVEX',           // Convex → convex/curve
+  'SHMON',            // shMON staking → covered by shmonad when adapter exists
+]);
+
+// Types that are not real DeFi yield pools
+const excludedTypes = new Set([
+  'ENCOMPASSING',     // Airdrop/DROP campaigns
+  'COVENANT',         // Covenant holds
+  'ERC721',           // veToken NFTs (e.g. veYND)
+]);
 
 async function getRateAngle(token) {
   const prices = await utils.getData('https://api.angle.money/v1/prices/');
@@ -177,6 +202,16 @@ const main = async () => {
         // (e.g. "Hold XAUt" showing as a yield pool).
         // Other HOLD types (IPOR_STAKING, CONVEX, etc.) are legitimate DeFi.
         !(x.type === 'ERC20LOGPROCESSOR' && x.action === 'HOLD') &&
+        // Filter out types that aren't real yield pools
+        !excludedTypes.has(x.type) &&
+        // Filter out types already covered by native adapters (no protocol ID)
+        !(coveredTypes.has(x.type) && !x.protocol) &&
+        // Note: ERC20_MAPPING HOLD pools (yie-yoUSD, wnUSDC, etc.) and
+        // ERC20_MULTI_TOKEN_CROSS_CHAIN pools (superform) are third-party wrappers
+        // around other protocol vaults — they stay in merkl as independent pools.
+        // Filter out no-protocol LEND pools — these are Morpho vaults covered by morpho-v1
+        !(x.action === 'LEND' && !x.protocol && ['ERC20LOGPROCESSOR', 'MORPHOVAULT'].includes(x.type)) &&
+        // Standard blacklist check
         (!x.protocol ||
           !protocolsBlacklist.includes(x.protocol.id?.toLowerCase()) ||
           poolsWhitelist.includes(x.identifier))
