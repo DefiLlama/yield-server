@@ -263,14 +263,19 @@ const getGaugeApy = async () => {
 
   // previous epoch end = just before current epoch started (full 7d of fees)
   // 24h ago = for 1d delta (only valid if >24h into current epoch)
-  const timestamps = [epochStart - 1];
-  if (elapsedSeconds > 86400) timestamps.push(now - 86400);
-  const historicalBlocks = await utils.getBlocksByTime(timestamps, CHAIN);
-
-  const prevEpochFees = await fetchPoolFeesAtBlock(historicalBlocks[0]);
-  const fees24hAgo = elapsedSeconds > 86400
-    ? await fetchPoolFeesAtBlock(historicalBlocks[1])
-    : null;
+  let prevEpochFees = {};
+  let fees24hAgo = null;
+  try {
+    const timestamps = [epochStart - 1];
+    if (elapsedSeconds > 86400) timestamps.push(now - 86400);
+    const historicalBlocks = await utils.getBlocksByTime(timestamps, CHAIN);
+    prevEpochFees = await fetchPoolFeesAtBlock(historicalBlocks[0]);
+    if (elapsedSeconds > 86400) {
+      fees24hAgo = await fetchPoolFeesAtBlock(historicalBlocks[1]);
+    }
+  } catch (e) {
+    console.log('Failed to fetch historical fee data, continuing without on-chain fallback:', e.message);
+  }
 
   const pools = allPoolsData.map((p, i) => {
     const token0Data = allTokenData.find(({token_address}) => token_address == p.token0);
@@ -390,9 +395,9 @@ async function main(timestamp = null) {
     const v = poolsVolumes[pool.pool];
     return {
       ...pool,
-      apyBase: v?.apyBase ?? pool.apyBase,
-      apyBase7d: v?.apyBase7d ?? pool.apyBase7d,
-      volumeUsd1d: v?.volumeUsd1d ?? pool.volumeUsd1d,
+      apyBase: Number.isFinite(v?.apyBase) ? v.apyBase : pool.apyBase,
+      apyBase7d: Number.isFinite(v?.apyBase7d) ? v.apyBase7d : pool.apyBase7d,
+      volumeUsd1d: Number.isFinite(v?.volumeUsd1d) ? v.volumeUsd1d : pool.volumeUsd1d,
       volumeUsd7d: v?.volumeUsd7d,
     };
   });
