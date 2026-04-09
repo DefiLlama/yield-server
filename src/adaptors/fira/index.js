@@ -4,12 +4,12 @@ const utils = require('../utils');
 const abiBUSD0 = require('./abiBUSD0');
 const abiLendingMarket = require('./abiLendingMarket');
 
-const CHAIN = 'ethereum';
 const PROJECT = 'fira';
 const URLS = {
   REWARD_APR_RATE: 'https://app.fira.money/api/apr/pools',
   DAPP: 'https://app.fira.money',
 };
+const CHAIN = 'ethereum';
 const BCLP_ORACLE = '0xfEAAEC9124FB007d7c44Ed704A08d24b264de921';
 const FIRA_MARKET_FACTORY = '0xBF1EfC2199ae9EE1B6f5060a45D4440157E49744';
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
@@ -53,7 +53,7 @@ const IIIRM_BORROW_RATE_VIEW_ABI =
   'function borrowRateView((address loanToken,address collateralToken,address oracle,address irm,uint256 ltv,uint256 lltv,address whitelist) marketParams,(uint128 totalSupplyAssets,uint128 totalSupplyShares,uint128 totalBorrowAssets,uint128 totalBorrowShares,uint128 lastUpdate,uint128 fee) market) view returns (uint256)';
 
 const CONFIG = {
-  ethereum: {
+  ETHEREUM: {
     USD0PP: '0x35D8949372D46B7a3D5A56006AE77B215fc69bC0',
     USD0: '0x73A15FeD60Bf67631dC6cd7Bc5B6e8da8190aCF5',
     UZRLendingMarket: '0xa428723eE8ffD87088C36121d72100B43F11fb6A',
@@ -133,7 +133,7 @@ const getRewardAprMap = async () => {
 
 const getUzrPool = async (prices) => {
   const { USD0PP, USD0, UZRLendingMarket, UZRLendingMarketId, LTV } =
-    CONFIG.ethereum;
+    CONFIG.ETHEREUM;
   const bUSD0price = prices[`${CHAIN}:${USD0PP.toLowerCase()}`]?.price ?? 0;
   const USD0price = prices[`${CHAIN}:${USD0.toLowerCase()}`]?.price ?? 0;
 
@@ -574,7 +574,7 @@ const apy = async () => {
       permitFailure: true,
     }),
     getPrices(
-      tokensForPrices.concat([CONFIG.ethereum.USD0PP, CONFIG.ethereum.USD0])
+      tokensForPrices.concat([CONFIG.ETHEREUM.USD0PP, CONFIG.ETHEREUM.USD0])
     ),
   ]);
 
