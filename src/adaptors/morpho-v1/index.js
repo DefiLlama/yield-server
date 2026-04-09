@@ -89,7 +89,7 @@ const gqlQueries = {
         skip: $skip
         orderBy: TotalAssetsUsd
         orderDirection: Desc
-        where: { chainId_in: [$chainId], whitelisted: true }
+        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
       ) {
         items {
           chain {
@@ -132,7 +132,7 @@ const gqlQueries = {
       vaultV2s(
         first: 100
         skip: $skip
-        where: { chainId_in: [$chainId], whitelisted: true }
+        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
       ) {
         items {
           address
