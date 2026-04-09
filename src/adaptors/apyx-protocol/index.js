@@ -39,7 +39,6 @@ const apy = async () => {
       symbol: 'apxUSD',
       tvlUsd,
       apyBase,
-      token: APXUSD_TOKEN,
       underlyingTokens: [APXUSD_TOKEN],
       poolMeta: 'apyUSD vault',
       url: 'https://apyx.fi',
