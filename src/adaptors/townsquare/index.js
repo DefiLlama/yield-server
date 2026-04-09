@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const chain = 'monad';
 const NATIVE_TOKEN = '0x0000000000000000000000000000000000000000';
@@ -82,7 +83,7 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
-  return poolAddresses
+  const poolsWithoutRewards = poolAddresses
     .map((poolAddr, i) => {
       const tokenAddr = tokenAddresses[i];
       const deposit = depositDataList[i];
@@ -135,6 +136,8 @@ const apy = async () => {
       };
     })
     .filter((p) => p !== null && utils.keepFinite(p));
+
+  return addMerklRewardApy(poolsWithoutRewards, 'townsquare', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {
