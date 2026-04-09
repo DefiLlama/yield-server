@@ -185,19 +185,25 @@ async function getChainData({ normalizedChainId }) {
   for (const pairsBatch of chunk(pairData.topPairs, TOP_POOL_REQUEST_CONCURRENCY)) {
     const batchEntries = await Promise.all(
       pairsBatch.map(async (pair) => {
-        const pools = await utils.getData(
-          `${API_URL}/pair/${encodeURIComponent(normalizedChainId)}/${encodeURIComponent(
-            pair.token0
-          )}/${encodeURIComponent(pair.token1)}/pools?minTvlUsd=${MIN_TVL_USD}`
-        );
+        try {
+          const pools = await utils.getData(
+            `${API_URL}/pair/${encodeURIComponent(normalizedChainId)}/${encodeURIComponent(
+              pair.token0
+            )}/${encodeURIComponent(pair.token1)}/pools?minTvlUsd=${MIN_TVL_USD}`
+          );
+          const topPool = pools?.topPools?.[0];
+          if (!topPool) return null;
 
-        return [
-          getPairKey(pair.chain_id, pair.token0, pair.token1),
-          pools.topPools[0],
-        ];
+          return [
+            getPairKey(pair.chain_id, pair.token0, pair.token1),
+            topPool,
+          ];
+        } catch (error) {
+          return null;
+        }
       })
     );
-    topPoolEntries.push(...batchEntries);
+    topPoolEntries.push(...batchEntries.filter(Boolean));
   }
 
   return {
