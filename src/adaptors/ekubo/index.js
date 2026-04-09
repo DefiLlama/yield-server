@@ -4,6 +4,7 @@ const API_URL = 'https://prod-api.ekubo.org';
 const ETHEREUM_CHAIN_ID = '0x1';
 const STARKNET_CHAIN_ID = '0x534e5f4d41494e';
 const MIN_TVL_USD = 10000;
+const Q128 = 1n << 128n;
 
 function normalizeChainId(chainId) {
   return BigInt(chainId).toString();
@@ -33,6 +34,69 @@ function getPairKey(chainId, tokenA, tokenB) {
   ].sort();
 
   return `${token0}:${token1}`;
+}
+
+function getLegacyPoolId(chainId, token0, token1) {
+  if (normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)) {
+    return `ekubo-${token0.symbol}-${token1.symbol}`.toLowerCase();
+  }
+
+  return null;
+}
+
+function getPoolId(chainId, token0, token1, poolInfo) {
+  return (
+    getLegacyPoolId(chainId, token0, token1) ??
+    `ekubo-${chainId}-${formatNumericHex(poolInfo.core_address)}-${formatNumericHex(
+      poolInfo.pool_id,
+      64
+    )}`.toLowerCase()
+  );
+}
+
+function formatNumericHex(value, size = null) {
+  if (typeof value === 'string' && value.startsWith('0x')) {
+    return value.toLowerCase();
+  }
+
+  const hex = BigInt(value).toString(16);
+  return `0x${size ? hex.padStart(size, '0') : hex}`;
+}
+
+function getPoolUrl(chainId, poolInfo) {
+  const chainPath =
+    normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)
+      ? 'starknet'
+      : 'evm';
+
+  return `https://ekubo.org/${chainPath}/charts/pool/${chainId}/${formatNumericHex(
+    poolInfo.core_address
+  )}/${formatNumericHex(poolInfo.pool_id, 64)}`;
+}
+
+function formatFeePercent(fee) {
+  if (fee == null) return null;
+
+  const scaledPercent = (BigInt(fee) * 10000n) / Q128;
+  const whole = scaledPercent / 100n;
+  const fraction = (scaledPercent % 100n).toString().padStart(2, '0');
+
+  return `${whole.toString()}.${fraction}% fee`;
+}
+
+function formatDepthPercent(depthPercent) {
+  if (depthPercent == null) return null;
+
+  return `CL range ${((depthPercent || 0) * 100).toFixed(2)}%`;
+}
+
+function getPoolMeta(poolInfo) {
+  const parts = [
+    formatFeePercent(poolInfo.fee),
+    formatDepthPercent(poolInfo.depth_percent),
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(' | ') : null;
 }
 
 function formatTokenAddress(chainId, address) {
@@ -110,9 +174,22 @@ async function getChainData({ normalizedChainId }) {
     utils.getData(`${API_URL}/campaigns?${query}`),
   ]);
 
+  const topPoolEntries = await Promise.all(
+    pairData.topPairs.map(async (pair) => {
+      const pools = await utils.getData(
+        `${API_URL}/pair/${encodeURIComponent(normalizedChainId)}/${encodeURIComponent(
+          pair.token0
+        )}/${encodeURIComponent(pair.token1)}/pools?minTvlUsd=${MIN_TVL_USD}`
+      );
+
+      return [getPairKey(pair.chain_id, pair.token0, pair.token1), pools.topPools[0]];
+    })
+  );
+
   return {
     tokens,
     pairs: pairData.topPairs,
+    topPoolsByPair: new Map(topPoolEntries.filter(([, pool]) => pool)),
     campaigns: campaigns.campaigns,
   };
 }
@@ -120,6 +197,9 @@ async function getChainData({ normalizedChainId }) {
 async function apy() {
   const results = await Promise.all(CHAINS.map(getChainData));
   const tokens = results.flatMap((result) => result.tokens);
+  const topPoolsByPair = new Map(
+    results.flatMap((result) => [...result.topPoolsByPair.entries()])
+  );
   const tokenByAddr = {};
   for (const token of tokens) {
     tokenByAddr[normalizeTokenRef(token.chain_id, token.address)] = token;
@@ -139,21 +219,26 @@ async function apy() {
       const token0 = tokenByAddr[t0Key];
       const token1 = tokenByAddr[t1Key];
       if (!token0 || !token1) return;
+      const topPool = topPoolsByPair.get(getPairKey(chainId, p.token0, p.token1));
+
+      if (!topPool) return;
 
       const tvlUsd =
-        getAmountUsd(token0, p.tvl0_total) + getAmountUsd(token1, p.tvl1_total);
+        getAmountUsd(token0, topPool.tvl0_total) +
+        getAmountUsd(token1, topPool.tvl1_total);
 
       if (tvlUsd < MIN_TVL_USD) return;
 
       const feesUsd =
-        getAmountUsd(token0, p.fees0_24h) + getAmountUsd(token1, p.fees1_24h);
+        getAmountUsd(token0, topPool.fees0_24h) +
+        getAmountUsd(token1, topPool.fees1_24h);
 
       const apyBase = (feesUsd * 100 * 365) / tvlUsd;
       const campaignReward =
         campaignRewards.get(getPairKey(chainId, p.token0, p.token1)) || null;
 
       return {
-        pool: `ekubo-${chainId}-${token0.address}-${token1.address}`.toLowerCase(),
+        pool: getPoolId(chainId, token0, token1, topPool),
         chain: utils.formatChain(
           CHAINS.find(
             (chain) => chain.normalizedChainId === normalizeChainId(chainId)
@@ -169,7 +254,8 @@ async function apy() {
         apyBase,
         apyReward: campaignReward?.apyReward || 0,
         rewardTokens: campaignReward ? [...campaignReward.rewardTokens] : [],
-        url: 'https://app.ekubo.org/charts',
+        poolMeta: getPoolMeta(topPool),
+        url: getPoolUrl(chainId, topPool),
       };
     })
     .filter((p) => p && utils.keepFinite(p))
