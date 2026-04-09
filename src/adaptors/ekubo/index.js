@@ -1,9 +1,11 @@
 const utils = require('../utils');
+const { chunk } = require('lodash');
 
 const API_URL = 'https://prod-api.ekubo.org';
 const ETHEREUM_CHAIN_ID = '0x1';
 const STARKNET_CHAIN_ID = '0x534e5f4d41494e';
 const MIN_TVL_USD = 10000;
+const TOP_POOL_REQUEST_CONCURRENCY = 5;
 const Q128 = 1n << 128n;
 const Q64 = 1n << 64n;
 
@@ -179,17 +181,24 @@ async function getChainData({ normalizedChainId }) {
     utils.getData(`${API_URL}/campaigns?${query}`),
   ]);
 
-  const topPoolEntries = await Promise.all(
-    pairData.topPairs.map(async (pair) => {
-      const pools = await utils.getData(
-        `${API_URL}/pair/${encodeURIComponent(normalizedChainId)}/${encodeURIComponent(
-          pair.token0
-        )}/${encodeURIComponent(pair.token1)}/pools?minTvlUsd=${MIN_TVL_USD}`
-      );
+  const topPoolEntries = [];
+  for (const pairsBatch of chunk(pairData.topPairs, TOP_POOL_REQUEST_CONCURRENCY)) {
+    const batchEntries = await Promise.all(
+      pairsBatch.map(async (pair) => {
+        const pools = await utils.getData(
+          `${API_URL}/pair/${encodeURIComponent(normalizedChainId)}/${encodeURIComponent(
+            pair.token0
+          )}/${encodeURIComponent(pair.token1)}/pools?minTvlUsd=${MIN_TVL_USD}`
+        );
 
-      return [getPairKey(pair.chain_id, pair.token0, pair.token1), pools.topPools[0]];
-    })
-  );
+        return [
+          getPairKey(pair.chain_id, pair.token0, pair.token1),
+          pools.topPools[0],
+        ];
+      })
+    );
+    topPoolEntries.push(...batchEntries);
+  }
 
   return {
     tokens,
