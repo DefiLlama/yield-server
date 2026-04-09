@@ -35,7 +35,7 @@ const apy = async () => {
     {
       pool: `${APYUSD_VAULT}-ethereum`.toLowerCase(),
       chain: utils.formatChain('ethereum'),
-      project: 'apyx',
+      project: 'apyx-protocol',
       symbol: 'apxUSD',
       tvlUsd,
       apyBase,
