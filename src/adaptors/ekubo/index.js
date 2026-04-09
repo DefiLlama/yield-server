@@ -1,59 +1,301 @@
 const utils = require('../utils');
+const { chunk } = require('lodash');
 
 const API_URL = 'https://prod-api.ekubo.org';
+const ETHEREUM_CHAIN_ID = '0x1';
 const STARKNET_CHAIN_ID = '0x534e5f4d41494e';
+const MIN_TVL_USD = 10000;
+const TOP_POOL_REQUEST_CONCURRENCY = 5;
+const MAX_TOP_POOL_FAILURES = 3;
+const Q128 = 1n << 128n;
+const Q64 = 1n << 64n;
 
-async function apy() {
-  const [tokens, pairData] = await Promise.all([
-    utils.getData(`${API_URL}/tokens`),
-    utils.getData(`${API_URL}/overview/pairs`),
-  ]);
+function normalizeChainId(chainId) {
+  return BigInt(chainId).toString();
+}
 
-  // Filter to Starknet tokens only and build lookup by address
-  const starknetTokens = tokens.filter(
-    (t) => t.chain_id === STARKNET_CHAIN_ID
-  );
-  const tokenByAddr = {};
-  for (const t of starknetTokens) {
-    tokenByAddr[BigInt(t.address).toString()] = t;
+const CHAINS = [
+  {
+    chainId: ETHEREUM_CHAIN_ID,
+    normalizedChainId: normalizeChainId(ETHEREUM_CHAIN_ID),
+    chain: 'ethereum',
+  },
+  {
+    chainId: STARKNET_CHAIN_ID,
+    normalizedChainId: normalizeChainId(STARKNET_CHAIN_ID),
+    chain: 'starknet',
+  },
+];
+
+function normalizeTokenRef(chainId, address) {
+  return `${normalizeChainId(chainId)}:${BigInt(address).toString()}`;
+}
+
+function getPairKey(chainId, tokenA, tokenB) {
+  const [token0, token1] = [
+    normalizeTokenRef(chainId, tokenA),
+    normalizeTokenRef(chainId, tokenB),
+  ].sort();
+
+  return `${token0}:${token1}`;
+}
+
+function getLegacyPoolId(chainId, token0, token1) {
+  if (normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)) {
+    return `ekubo-${token0.symbol}-${token1.symbol}`.toLowerCase();
   }
 
-  return pairData.topPairs
-    .filter((p) => p.chain_id === STARKNET_CHAIN_ID)
+  return null;
+}
+
+function getPoolId(chainId, token0, token1, poolInfo) {
+  return (
+    getLegacyPoolId(chainId, token0, token1) ??
+    `ekubo-${formatNumericHex(chainId)}-${formatNumericHex(
+      poolInfo.core_address
+    )}-${formatNumericHex(poolInfo.pool_id, 64)}`.toLowerCase()
+  );
+}
+
+function formatNumericHex(value, size = null) {
+  if (typeof value === 'string' && value.startsWith('0x')) {
+    const hex = value.slice(2).toLowerCase();
+    return `0x${size ? hex.padStart(size, '0') : hex}`;
+  }
+
+  const hex = BigInt(value).toString(16);
+  return `0x${size ? hex.padStart(size, '0') : hex}`;
+}
+
+function getPoolUrl(chainId, poolInfo) {
+  const chainPath =
+    normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)
+      ? 'starknet'
+      : 'evm';
+
+  return `https://ekubo.org/${chainPath}/charts/pool/${chainId}/${formatNumericHex(
+    poolInfo.core_address
+  )}/${formatNumericHex(poolInfo.pool_id, 64)}`;
+}
+
+function formatFeePercent(chainId, fee) {
+  if (fee == null) return null;
+
+  const denominator =
+    normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)
+      ? Q128
+      : Q64;
+  const scaledPercent = (BigInt(fee) * 10000n) / denominator;
+  const whole = scaledPercent / 100n;
+  const fraction = (scaledPercent % 100n).toString().padStart(2, '0');
+
+  return `${whole.toString()}.${fraction}% fee`;
+}
+
+function formatDepthPercent(depthPercent) {
+  if (depthPercent == null) return null;
+
+  return `CL range ${((depthPercent || 0) * 100).toFixed(2)}%`;
+}
+
+function getPoolMeta(chainId, poolInfo) {
+  const parts = [
+    formatFeePercent(chainId, poolInfo.fee),
+    formatDepthPercent(poolInfo.depth_percent),
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(' | ') : null;
+}
+
+function formatTokenAddress(chainId, address) {
+  if (normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)) {
+    return utils.padStarknetAddress(address);
+  }
+
+  return utils.formatAddress(address);
+}
+
+function getAmountUsd(token, amount) {
+  if (!token?.usd_price) return 0;
+
+  return (
+    (token.usd_price * Number(amount || 0)) / Math.pow(10, Number(token.decimals))
+  );
+}
+
+function isCampaignActive(campaign, now) {
+  const startTime = new Date(campaign.startTime).getTime();
+  const endTime = campaign.endTime ? new Date(campaign.endTime).getTime() : Infinity;
+
+  return startTime <= now && now < endTime;
+}
+
+function buildCampaignRewards(campaigns, tokenByKey) {
+  const now = Date.now();
+  const rewardsByPair = new Map();
+
+  for (const campaign of campaigns) {
+    if (!isCampaignActive(campaign, now)) continue;
+
+    const rewardToken = tokenByKey[normalizeTokenRef(campaign.chain_id, campaign.rewardToken)];
+    if (!rewardToken?.usd_price) continue;
+
+    for (const pair of campaign.pairs) {
+      const dailyRewardUsd = getAmountUsd(rewardToken, pair.daily_rewards);
+      if (!dailyRewardUsd) continue;
+
+      const depthUsd =
+        getAmountUsd(
+          tokenByKey[normalizeTokenRef(campaign.chain_id, pair.token0)],
+          pair.depth0
+        ) +
+        getAmountUsd(
+          tokenByKey[normalizeTokenRef(campaign.chain_id, pair.token1)],
+          pair.depth1
+        );
+
+      if (!depthUsd) continue;
+
+      const pairKey = getPairKey(campaign.chain_id, pair.token0, pair.token1);
+      const existing = rewardsByPair.get(pairKey) || {
+        apyReward: 0,
+        rewardTokens: new Set(),
+      };
+
+      existing.apyReward += (dailyRewardUsd * 365 * 100) / depthUsd;
+      existing.rewardTokens.add(
+        formatTokenAddress(campaign.chain_id, rewardToken.address)
+      );
+      rewardsByPair.set(pairKey, existing);
+    }
+  }
+
+  return rewardsByPair;
+}
+
+async function getChainData({ normalizedChainId }) {
+  const query = `chainId=${encodeURIComponent(normalizedChainId)}`;
+
+  const [tokens, pairData, campaigns] = await Promise.all([
+    utils.getData(`${API_URL}/tokens?${query}&pageSize=10000`),
+    utils.getData(`${API_URL}/overview/pairs?${query}&minTvlUsd=${MIN_TVL_USD}`),
+    utils.getData(`${API_URL}/campaigns?${query}`),
+  ]);
+
+  const topPoolEntries = [];
+  let topPoolFailureCount = 0;
+  for (const pairsBatch of chunk(pairData.topPairs, TOP_POOL_REQUEST_CONCURRENCY)) {
+    const batchEntries = await Promise.all(
+      pairsBatch.map(async (pair) => {
+        const pairKey = getPairKey(pair.chain_id, pair.token0, pair.token1);
+        try {
+          const pools = await utils.getData(
+            `${API_URL}/pair/${encodeURIComponent(normalizedChainId)}/${encodeURIComponent(
+              pair.token0
+            )}/${encodeURIComponent(pair.token1)}/pools?minTvlUsd=${MIN_TVL_USD}`
+          );
+          const topPool = pools?.topPools?.[0];
+          if (!topPool) return null;
+
+          return [
+            pairKey,
+            topPool,
+          ];
+        } catch (error) {
+          console.error(
+            `Ekubo top pool fetch failed for chain ${normalizedChainId} pair ${pairKey}: ${error.message}`
+          );
+          return { error: true, pairKey };
+        }
+      })
+    );
+    const failedEntries = batchEntries.filter((entry) => entry?.error);
+    topPoolFailureCount += failedEntries.length;
+
+    if (topPoolFailureCount > MAX_TOP_POOL_FAILURES) {
+      throw new Error(
+        `Ekubo top pool fetch failures exceeded threshold for chain ${normalizedChainId}: ${topPoolFailureCount}`
+      );
+    }
+
+    topPoolEntries.push(
+      ...batchEntries.filter((entry) => entry && !entry.error)
+    );
+  }
+
+  return {
+    tokens,
+    pairs: pairData.topPairs,
+    topPoolsByPair: new Map(topPoolEntries.filter(([, pool]) => pool)),
+    campaigns: campaigns.campaigns,
+  };
+}
+
+async function apy() {
+  const results = await Promise.all(CHAINS.map(getChainData));
+  const tokens = results.flatMap((result) => result.tokens);
+  const topPoolsByPair = new Map(
+    results.flatMap((result) => [...result.topPoolsByPair.entries()])
+  );
+  const tokenByAddr = {};
+  for (const token of tokens) {
+    tokenByAddr[normalizeTokenRef(token.chain_id, token.address)] = token;
+  }
+
+  const campaignRewards = buildCampaignRewards(
+    results.flatMap((result) => result.campaigns),
+    tokenByAddr
+  );
+
+  return results
+    .flatMap((result) => result.pairs)
     .map((p) => {
-      const t0Key = BigInt(p.token0).toString();
-      const t1Key = BigInt(p.token1).toString();
+      const chainId = p.chain_id;
+      const t0Key = normalizeTokenRef(chainId, p.token0);
+      const t1Key = normalizeTokenRef(chainId, p.token1);
       const token0 = tokenByAddr[t0Key];
       const token1 = tokenByAddr[t1Key];
       if (!token0 || !token1) return;
+      const topPool = topPoolsByPair.get(getPairKey(chainId, p.token0, p.token1));
 
-      const price0 = token0.usd_price || 0;
-      const price1 = token1.usd_price || 0;
+      if (!topPool) return;
 
       const tvlUsd =
-        (price0 * Number(p.tvl0_total)) / Math.pow(10, token0.decimals) +
-        (price1 * Number(p.tvl1_total)) / Math.pow(10, token1.decimals);
+        getAmountUsd(token0, topPool.tvl0_total) +
+        getAmountUsd(token1, topPool.tvl1_total);
 
-      if (tvlUsd < 10000) return;
+      if (tvlUsd < MIN_TVL_USD) return;
 
       const feesUsd =
-        (price0 * Number(p.fees0_24h)) / Math.pow(10, token0.decimals) +
-        (price1 * Number(p.fees1_24h)) / Math.pow(10, token1.decimals);
+        getAmountUsd(token0, topPool.fees0_24h) +
+        getAmountUsd(token1, topPool.fees1_24h);
 
       const apyBase = (feesUsd * 100 * 365) / tvlUsd;
+      const campaignReward =
+        campaignRewards.get(getPairKey(chainId, p.token0, p.token1)) || null;
 
       return {
-        pool: `ekubo-${token0.symbol}-${token1.symbol}`,
-        chain: 'Starknet',
+        pool: getPoolId(chainId, token0, token1, topPool),
+        chain: utils.formatChain(
+          CHAINS.find(
+            (chain) => chain.normalizedChainId === normalizeChainId(chainId)
+          )?.chain ?? chainId
+        ),
         project: 'ekubo',
         symbol: `${token0.symbol}-${token1.symbol}`,
-        underlyingTokens: [utils.padStarknetAddress(token0.address), utils.padStarknetAddress(token1.address)],
+        underlyingTokens: [
+          formatTokenAddress(chainId, token0.address),
+          formatTokenAddress(chainId, token1.address),
+        ],
         tvlUsd,
         apyBase,
-        url: `https://app.ekubo.org/charts/${token0.symbol}/${token1.symbol}`,
+        apyReward: campaignReward?.apyReward || 0,
+        rewardTokens: campaignReward ? [...campaignReward.rewardTokens] : [],
+        poolMeta: getPoolMeta(chainId, topPool),
+        url: getPoolUrl(chainId, topPool),
       };
     })
-    .filter((p) => !!p)
+    .filter((p) => p && utils.keepFinite(p))
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
 }
 
