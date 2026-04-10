@@ -53,13 +53,33 @@ module.exports = async function () {
   }
 
   const module = require(resolvedAdapterPath);
+  const apyFn =
+    typeof module?.apy === 'function'
+      ? module.apy
+      : typeof module?.default?.apy === 'function'
+      ? module.default.apy
+      : typeof module === 'function'
+      ? module
+      : null;
+
+  const poolsUrlCandidate =
+    module?.url ?? module?.default?.url ?? module?.poolsUrl ?? module?.default?.poolsUrl;
+
+  if (!apyFn) {
+    const exportKeys = Object.keys(module || {});
+    throw new Error(
+      `Adapter at "${resolvedAdapterPath}" does not export a valid apy function. Export keys: ${JSON.stringify(
+        exportKeys
+      )}`
+    );
+  }
 
   global.adapter = adapter;
-  const apyRaw = await module.apy(timestamp);
+  const apyRaw = await apyFn(timestamp);
   global.apy = (Array.isArray(apyRaw) ? apyRaw : []).sort(
     (a, b) => b.tvlUsd - a.tvlUsd
   );
-  global.poolsUrl = module.url;
+  global.poolsUrl = poolsUrlCandidate;
 
   const outputDir = path.resolve(__dirname, '../../.test-adapter-output');
   fs.mkdirSync(outputDir, { recursive: true });
