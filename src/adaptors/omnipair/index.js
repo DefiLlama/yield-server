@@ -156,15 +156,17 @@ const main = async () => {
       const token0Address = getAddress(pool.token0);
       const token1Address = getAddress(pool.token1);
 
-      if (!pairAddress || !token0Address || !token1Address) return null;
+      if (!pairAddress || typeof pairAddress !== 'string' || !token0Address || !token1Address) {
+        return null;
+      }
 
       return {
-        pool: `${pairAddress.toLowerCase()}-solana`,
+        pool: `${pairAddress}-solana`,
         chain: 'Solana',
         project: 'omnipair',
         symbol: buildSymbol(pool),
         tvlUsd: computeTvlUsd(pool, tokenPrices),
-        apyBase: toNumber(pool.apr?.apr),
+        apyBase: pool.apr?.apr == null ? null : toNumber(pool.apr.apr),
         underlyingTokens: [token0Address, token1Address],
       };
     })
