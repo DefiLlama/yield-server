@@ -4,6 +4,7 @@ const utils = require('../utils');
 const BALANCER_API_URL = 'https://api-v3.balancer.fi/graphql';
 const SNAPSHOT_BATCH_SIZE = 25;
 const SNAPSHOT_WINDOW_DAYS = 7;
+const VOLUME_UNAVAILABLE_SENTINEL = { unavailable: true };
 
 const query = gql`
   query GetPools($chain: GqlChain!) {
@@ -72,30 +73,41 @@ const getSnapshotsByPoolId = async (backendChain, poolIds) => {
 
   for (const batch of batches) {
     const snapshotsQuery = buildSnapshotsQuery(batch);
-    let response = {};
     try {
-      response = await request(BALANCER_API_URL, snapshotsQuery, {
+      const response = await request(BALANCER_API_URL, snapshotsQuery, {
         chain: backendChain,
+      });
+      batch.forEach((poolId, index) => {
+        const snapshots = Array.isArray(response[`snapshot_${index}`])
+          ? response[`snapshot_${index}`]
+          : [];
+        snapshotsByPoolId.set(poolId.toLowerCase(), snapshots);
       });
     } catch (error) {
       console.error(
-        `Error fetching Balancer V3 snapshots for ${backendChain}:`,
+        `Error fetching Balancer V3 snapshots for ${backendChain} (batch size ${batch.length}):`,
         error
       );
+      batch.forEach((poolId) => {
+        snapshotsByPoolId.set(
+          poolId.toLowerCase(),
+          VOLUME_UNAVAILABLE_SENTINEL
+        );
+      });
     }
-
-    batch.forEach((poolId, index) => {
-      const snapshots = Array.isArray(response[`snapshot_${index}`])
-        ? response[`snapshot_${index}`]
-        : [];
-      snapshotsByPoolId.set(poolId.toLowerCase(), snapshots);
-    });
   }
 
   return snapshotsByPoolId;
 };
 
 const getVolumeDataFromSnapshots = (snapshots) => {
+  if (snapshots === VOLUME_UNAVAILABLE_SENTINEL) {
+    return {
+      volumeUsd1dFromSnapshots: undefined,
+      volumeUsd7d: undefined,
+    };
+  }
+
   const sortedSnapshots = [...(snapshots || [])].sort(
     (a, b) => toNumber(b.timestamp) - toNumber(a.timestamp)
   );
@@ -153,11 +165,7 @@ const getV3Pools = async (backendChain, chainString) => {
         snapshotsByPoolId.get(poolId) || []
       );
       const dynamicVolume24h = Number(pool.dynamicData?.volume24h);
-      const volumeUsd1d = Number.isFinite(dynamicVolume24h)
-        ? dynamicVolume24h
-        : volumeUsd1dFromSnapshots;
-
-      return {
+      const poolData = {
         pool: pool.address,
         chain: utils.formatChain(chainString),
         project: 'balancer-v3',
@@ -167,10 +175,20 @@ const getV3Pools = async (backendChain, chainString) => {
         apyReward: stakingApr * 100,
         rewardTokens: rewardTokens,
         underlyingTokens: underlyingTokens,
-        volumeUsd1d,
-        volumeUsd7d,
         url: `https://balancer.fi/pools/${chainUrl}/v3/${pool.address}`,
       };
+
+      if (Number.isFinite(dynamicVolume24h)) {
+        poolData.volumeUsd1d = dynamicVolume24h;
+      } else if (volumeUsd1dFromSnapshots !== undefined) {
+        poolData.volumeUsd1d = volumeUsd1dFromSnapshots;
+      }
+
+      if (volumeUsd7d !== undefined) {
+        poolData.volumeUsd7d = volumeUsd7d;
+      }
+
+      return poolData;
     });
   } catch (error) {
     console.error(
