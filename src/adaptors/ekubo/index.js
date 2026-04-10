@@ -42,7 +42,7 @@ function getPairKey(chainId, tokenA, tokenB) {
 
 function getLegacyPoolId(chainId, token0, token1) {
   if (normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)) {
-    return `ekubo-${token0.symbol}-${token1.symbol}`.toLowerCase();
+    return `ekubo-${token0.symbol}-${token1.symbol}`;
   }
 
   return null;
