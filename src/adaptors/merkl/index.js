@@ -63,6 +63,7 @@ const protocolsBlacklist = [
   'yieldseeker',
   'penpie',
   'equilibria',
+  'steakhouse',
 ];
 
 // Allow specific pools from blacklisted protocols
