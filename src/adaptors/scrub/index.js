@@ -215,7 +215,7 @@ const apy = async () => {
       apyBase:          Math.round(apyBase * 100) / 100, // round to 2 dp
       underlyingTokens: [vault.stablecoin],
       poolMeta:         vault.poolMeta,
-      url:              'https://earn.scrub.money',
+      url:              'https://invest.scrub.money/',
     });
   }
 
@@ -225,5 +225,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://earn.scrub.money',
+  url: 'https://invest.scrub.money/',
 };
