@@ -10,6 +10,8 @@ const MAX_SNAPSHOT_POOLS_PER_CHAIN = 280;
 const VOLUME_UNAVAILABLE_SENTINEL = { unavailable: true };
 const API_MAX_RETRIES = 5;
 const API_RETRY_DELAY_MS = 1500;
+const API_MIN_REQUEST_INTERVAL_MS = 1200;
+const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 30000;
 const REQUEST_HEADERS = {
   'content-type': 'application/json',
   accept: 'application/json',
@@ -56,6 +58,8 @@ const chunkArray = (items, size) => {
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+let nextAllowedRequestAt = 0;
+let globalRateLimitUntil = 0;
 
 const isRateLimitedError = (error) => {
   const status = error?.response?.status;
@@ -112,10 +116,26 @@ const requestWithRetry = async (
 ) => {
   let lastError;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const waitUntil = Math.max(nextAllowedRequestAt, globalRateLimitUntil);
+    const waitMs = waitUntil - Date.now();
+    if (waitMs > 0) {
+      await sleep(waitMs);
+    }
+
+    nextAllowedRequestAt = Date.now() + API_MIN_REQUEST_INTERVAL_MS;
+
     try {
       return await request(BALANCER_API_URL, query, variables, REQUEST_HEADERS);
     } catch (error) {
       lastError = error;
+      if (isRateLimitedError(error)) {
+        const retryMs = Math.max(
+          getRetryAfterMs(error, attempt),
+          DEFAULT_RATE_LIMIT_COOLDOWN_MS
+        );
+        globalRateLimitUntil = Math.max(globalRateLimitUntil, Date.now() + retryMs);
+      }
+
       const retryable = isRetryableError(error);
       if (!retryable || attempt === maxRetries) break;
       await sleep(getRetryAfterMs(error, attempt));
