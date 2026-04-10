@@ -2,9 +2,11 @@ const { gql, request } = require('graphql-request');
 const utils = require('../utils');
 
 const BALANCER_API_URL = 'https://api-v3.balancer.fi/graphql';
-const SNAPSHOT_BATCH_SIZE = 25;
+const SNAPSHOT_BATCH_SIZE = 20;
 const SNAPSHOT_WINDOW_DAYS = 7;
 const VOLUME_UNAVAILABLE_SENTINEL = { unavailable: true };
+const API_MAX_RETRIES = 2;
+const API_RETRY_DELAY_MS = 600;
 
 const query = gql`
   query GetPools($chain: GqlChain!) {
@@ -45,6 +47,26 @@ const chunkArray = (items, size) => {
   return chunks;
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const requestWithRetry = async (
+  query,
+  variables,
+  maxRetries = API_MAX_RETRIES
+) => {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await request(BALANCER_API_URL, query, variables);
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxRetries) break;
+      await sleep(API_RETRY_DELAY_MS * (attempt + 1));
+    }
+  }
+  throw lastError;
+};
+
 const buildSnapshotsQuery = (poolIds) => {
   const aliasedFields = poolIds
     .map(
@@ -74,7 +96,7 @@ const getSnapshotsByPoolId = async (backendChain, poolIds) => {
   for (const batch of batches) {
     const snapshotsQuery = buildSnapshotsQuery(batch);
     try {
-      const response = await request(BALANCER_API_URL, snapshotsQuery, {
+      const response = await requestWithRetry(snapshotsQuery, {
         chain: backendChain,
       });
       batch.forEach((poolId, index) => {
@@ -123,72 +145,83 @@ const getVolumeDataFromSnapshots = (snapshots) => {
 
 const getV3Pools = async (backendChain, chainString) => {
   try {
-    const { poolGetPools } = await request(
-      BALANCER_API_URL,
-      query,
-      { chain: backendChain }
-    );
-    const poolIds = poolGetPools
+    const { poolGetPools } = await requestWithRetry(query, {
+      chain: backendChain,
+    });
+    const pools = Array.isArray(poolGetPools) ? poolGetPools : [];
+    const poolIds = pools
       .map((pool) => pool.address?.toLowerCase())
       .filter(Boolean);
     const snapshotsByPoolId = await getSnapshotsByPoolId(backendChain, poolIds);
 
-    return poolGetPools.map((pool) => {
-      const aprItems = pool.dynamicData.aprItems || [];
+    const chainUrl =
+      chainString === 'xdai'
+        ? 'gnosis'
+        : chainString === 'avax'
+        ? 'avalanche'
+        : chainString;
 
-      const baseApr = aprItems
-        .filter(
-          (item) => item.type === 'IB_YIELD' || item.type === 'SWAP_FEE_24H'
-        )
-        .reduce((sum, item) => sum + Number(item.apr), 0);
+    return pools.flatMap((pool) => {
+      try {
+        if (!pool?.address) return [];
+        const dynamicData = pool.dynamicData || {};
+        const aprItems = Array.isArray(dynamicData.aprItems)
+          ? dynamicData.aprItems
+          : [];
 
-      const stakingApr = aprItems
-        .filter((item) => item.type === 'STAKING')
-        .reduce((sum, item) => sum + Number(item.apr), 0);
+        const baseApr = aprItems
+          .filter(
+            (item) => item.type === 'IB_YIELD' || item.type === 'SWAP_FEE_24H'
+          )
+          .reduce((sum, item) => sum + Number(item.apr), 0);
 
-      const rewardTokens = aprItems
-        .filter((item) => item.type === 'STAKING' && item.rewardTokenAddress)
-        .map((item) => item.rewardTokenAddress);
+        const stakingApr = aprItems
+          .filter((item) => item.type === 'STAKING')
+          .reduce((sum, item) => sum + Number(item.apr), 0);
 
-      const underlyingTokens = pool.poolTokens
-        .map((token) => token.address)
-        .filter(Boolean);
+        const rewardTokens = aprItems
+          .filter((item) => item.type === 'STAKING' && item.rewardTokenAddress)
+          .map((item) => item.rewardTokenAddress);
 
-      const chainUrl =
-        chainString === 'xdai'
-          ? 'gnosis'
-          : chainString === 'avax'
-          ? 'avalanche'
-          : chainString;
-      const poolId = pool.address?.toLowerCase();
-      const { volumeUsd1dFromSnapshots, volumeUsd7d } = getVolumeDataFromSnapshots(
-        snapshotsByPoolId.get(poolId) || []
-      );
-      const dynamicVolume24h = Number(pool.dynamicData?.volume24h);
-      const poolData = {
-        pool: pool.address,
-        chain: utils.formatChain(chainString),
-        project: 'balancer-v3',
-        symbol: utils.formatSymbol(pool.symbol),
-        tvlUsd: Number(pool.dynamicData.totalLiquidity),
-        apyBase: baseApr * 100,
-        apyReward: stakingApr * 100,
-        rewardTokens: rewardTokens,
-        underlyingTokens: underlyingTokens,
-        url: `https://balancer.fi/pools/${chainUrl}/v3/${pool.address}`,
-      };
+        const underlyingTokens = (pool.poolTokens || [])
+          .map((token) => token?.address)
+          .filter(Boolean);
 
-      if (Number.isFinite(dynamicVolume24h)) {
-        poolData.volumeUsd1d = dynamicVolume24h;
-      } else if (volumeUsd1dFromSnapshots !== undefined) {
-        poolData.volumeUsd1d = volumeUsd1dFromSnapshots;
+        const poolId = pool.address.toLowerCase();
+        const { volumeUsd1dFromSnapshots, volumeUsd7d } =
+          getVolumeDataFromSnapshots(snapshotsByPoolId.get(poolId) || []);
+        const dynamicVolume24h = Number(dynamicData.volume24h);
+        const poolData = {
+          pool: pool.address,
+          chain: utils.formatChain(chainString),
+          project: 'balancer-v3',
+          symbol: utils.formatSymbol(pool.symbol || ''),
+          tvlUsd: toNumber(dynamicData.totalLiquidity),
+          apyBase: Number.isFinite(baseApr) ? baseApr * 100 : 0,
+          apyReward: Number.isFinite(stakingApr) ? stakingApr * 100 : 0,
+          rewardTokens: rewardTokens,
+          underlyingTokens: underlyingTokens,
+          url: `https://balancer.fi/pools/${chainUrl}/v3/${pool.address}`,
+        };
+
+        if (Number.isFinite(dynamicVolume24h)) {
+          poolData.volumeUsd1d = dynamicVolume24h;
+        } else if (volumeUsd1dFromSnapshots !== undefined) {
+          poolData.volumeUsd1d = volumeUsd1dFromSnapshots;
+        }
+
+        if (volumeUsd7d !== undefined) {
+          poolData.volumeUsd7d = volumeUsd7d;
+        }
+
+        return [poolData];
+      } catch (poolError) {
+        console.error(
+          `Skipping malformed Balancer V3 pool on ${chainString}:`,
+          poolError?.message || poolError
+        );
+        return [];
       }
-
-      if (volumeUsd7d !== undefined) {
-        poolData.volumeUsd7d = volumeUsd7d;
-      }
-
-      return poolData;
     });
   } catch (error) {
     console.error(
@@ -200,40 +233,26 @@ const getV3Pools = async (backendChain, chainString) => {
 };
 
 const poolsFunction = async () => {
-  const [
-    mainnetPools,
-    gnosisPools,
-    arbitrumPools,
-    optimismPools,
-    avalanchePools,
-    basePools,
-    hyperliquidPools,
-    plasmaPools,
-    monadPools,
-  
-  ] = await Promise.all([
-    getV3Pools('MAINNET', 'ethereum'),
-    getV3Pools('GNOSIS', 'xdai'),
-    getV3Pools('ARBITRUM', 'arbitrum'),
-    getV3Pools('OPTIMISM', 'optimism'),
-    getV3Pools('AVALANCHE', 'avax'),
-    getV3Pools('BASE', 'base'),
-    getV3Pools('HYPEREVM', 'hyperliquid'),
-    getV3Pools('PLASMA', 'plasma'),
-    getV3Pools('MONAD', 'monad'),
-  ]);
-
-  return [
-    ...mainnetPools,
-    ...gnosisPools,
-    ...arbitrumPools,
-    ...optimismPools,
-    ...avalanchePools,
-    ...basePools,
-    ...hyperliquidPools,
-    ...plasmaPools,
-    ...monadPools,
+  const chainConfigs = [
+    { backendChain: 'MAINNET', chainString: 'ethereum' },
+    { backendChain: 'GNOSIS', chainString: 'xdai' },
+    { backendChain: 'ARBITRUM', chainString: 'arbitrum' },
+    { backendChain: 'OPTIMISM', chainString: 'optimism' },
+    { backendChain: 'AVALANCHE', chainString: 'avax' },
+    { backendChain: 'BASE', chainString: 'base' },
+    { backendChain: 'HYPEREVM', chainString: 'hyperliquid' },
+    { backendChain: 'PLASMA', chainString: 'plasma' },
+    { backendChain: 'MONAD', chainString: 'monad' },
   ];
+
+  const allPools = [];
+  for (const { backendChain, chainString } of chainConfigs) {
+    const pools = await getV3Pools(backendChain, chainString);
+    allPools.push(...pools);
+    await sleep(100);
+  }
+
+  return allPools;
 };
 
 module.exports = {
