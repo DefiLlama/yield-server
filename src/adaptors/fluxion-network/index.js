@@ -90,6 +90,7 @@ async function apy() {
           pool.token1.id.toLowerCase(),
         ],
         poolMeta: `${Number(pool.feeTier) / 10000}%`,
+        url: `https://app.fluxion.network/pool/${pool.id}`,
         volumeUsd1d: volumeUsd1d,
         volumeUsd7d: volumeUsd7d,
       };
