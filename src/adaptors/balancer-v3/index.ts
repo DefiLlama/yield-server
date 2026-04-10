@@ -1,12 +1,20 @@
 const { gql, request } = require('graphql-request');
 const utils = require('../utils');
 
-const BALANCER_API_URL = 'https://api-v3.balancer.fi/graphql';
+const BALANCER_API_URLS = [
+  'https://api-v3.balancer.fi/graphql',
+  'https://api-v3.balancer.fi',
+];
 const SNAPSHOT_BATCH_SIZE = 20;
 const SNAPSHOT_WINDOW_DAYS = 7;
 const VOLUME_UNAVAILABLE_SENTINEL = { unavailable: true };
 const API_MAX_RETRIES = 2;
 const API_RETRY_DELAY_MS = 600;
+const REQUEST_HEADERS = {
+  'content-type': 'application/json',
+  accept: 'application/json',
+  'user-agent': 'defillama-yield-server',
+};
 
 const query = gql`
   query GetPools($chain: GqlChain!) {
@@ -34,6 +42,22 @@ const query = gql`
   }
 `;
 
+const fallbackQuery = gql`
+  query GetPoolsFallback($chain: GqlChain!) {
+    poolGetPools(
+      first: 1000
+      where: { chainIn: [$chain], protocolVersionIn: [3] }
+    ) {
+      symbol
+      address
+      dynamicData {
+        totalLiquidity
+        volume24h
+      }
+    }
+  }
+`;
+
 const toNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -55,13 +79,15 @@ const requestWithRetry = async (
   maxRetries = API_MAX_RETRIES
 ) => {
   let lastError;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await request(BALANCER_API_URL, query, variables);
-    } catch (error) {
-      lastError = error;
-      if (attempt === maxRetries) break;
-      await sleep(API_RETRY_DELAY_MS * (attempt + 1));
+  for (const apiUrl of BALANCER_API_URLS) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await request(apiUrl, query, variables, REQUEST_HEADERS);
+      } catch (error) {
+        lastError = error;
+        if (attempt === maxRetries) break;
+        await sleep(API_RETRY_DELAY_MS * (attempt + 1));
+      }
     }
   }
   throw lastError;
@@ -145,10 +171,23 @@ const getVolumeDataFromSnapshots = (snapshots) => {
 
 const getV3Pools = async (backendChain, chainString) => {
   try {
-    const { poolGetPools } = await requestWithRetry(query, {
-      chain: backendChain,
-    });
-    const pools = Array.isArray(poolGetPools) ? poolGetPools : [];
+    let pools = [];
+    try {
+      const { poolGetPools } = await requestWithRetry(query, {
+        chain: backendChain,
+      });
+      pools = Array.isArray(poolGetPools) ? poolGetPools : [];
+    } catch (fullQueryError) {
+      console.error(
+        `Balancer V3 full query failed on ${chainString}, retrying with fallback query:`,
+        fullQueryError?.message || fullQueryError
+      );
+      const { poolGetPools } = await requestWithRetry(fallbackQuery, {
+        chain: backendChain,
+      });
+      pools = Array.isArray(poolGetPools) ? poolGetPools : [];
+    }
+
     const poolIds = pools
       .map((pool) => pool.address?.toLowerCase())
       .filter(Boolean);
