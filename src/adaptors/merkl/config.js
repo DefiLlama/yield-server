@@ -14,4 +14,7 @@ exports.networks = {
   143: 'monad',
   999: 'hyperevm',
   4114: 'citrea',
+  5000: 'mantle',
+  9745: 'plasma',
+  747474: 'katana',
 };

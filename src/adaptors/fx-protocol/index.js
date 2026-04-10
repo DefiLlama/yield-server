@@ -156,10 +156,61 @@ const getGaugePoolData = async () => {
   return poolsWithTokens;
 };
 
+// f(x) leveraged position tokens with Merkl rewards
+// These are xToken contracts that represent leveraged long positions
+const { getMerklRewardsForChain } = require('../merkl/merkl-by-identifier');
+
+const FX_POSITION_TOKENS = [
+  { address: '0x6Ecfa38FeE8a5277B91eFdA204c235814F0122E8', symbol: 'xstETH', baseToken: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0' }, // wstETH
+  { address: '0xAB709e26Fa6B0A30c119D8c55B887DeD24952473', symbol: 'xWBTC', baseToken: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' }, // WBTC
+];
+
+const getPositionTokenPools = async () => {
+  const addresses = FX_POSITION_TOKENS.map((t) => t.address);
+
+  // Fetch merkl data for TVL and rewards (xToken contracts don't expose totalSupply)
+  const rewards = await getMerklRewardsForChain(addresses, 'ethereum');
+
+  // Also fetch TVL from merkl API directly
+  const axios = require('axios');
+  const { data: merklData } = await axios.get(
+    'https://api.merkl.xyz/v4/opportunities?mainProtocolId=fxprotocol&status=LIVE&items=10'
+  );
+  const merklTvl = {};
+  merklData.forEach((p) => {
+    merklTvl[p.identifier.toLowerCase()] = p.tvl || 0;
+  });
+
+  const pools = [];
+  for (const token of FX_POSITION_TOKENS) {
+    const tvlUsd = merklTvl[token.address.toLowerCase()] || 0;
+    const reward = rewards[token.address.toLowerCase()];
+    if (!tvlUsd && !reward) continue;
+
+    pools.push({
+      pool: `${token.address}-f(x)`.toLowerCase(),
+      chain: utils.formatChain('ethereum'),
+      project: 'fx-protocol',
+      symbol: utils.formatSymbol(token.symbol),
+      tvlUsd,
+      ...(reward && reward.apyReward > 0 && {
+        apyReward: reward.apyReward,
+        rewardTokens: reward.rewardTokens,
+      }),
+      underlyingTokens: [token.baseToken],
+      url: 'https://fx.aladdin.club',
+      poolMeta: 'Leveraged Position',
+    });
+  }
+
+  return pools;
+};
+
 const main = async () => {
   const rebalancedata = await getRebalancePoolData();
   const gaugeData = await getGaugePoolData();
-  const data = [].concat(rebalancedata).concat(gaugeData);
+  const positionData = await getPositionTokenPools().catch(() => []);
+  const data = [].concat(rebalancedata).concat(gaugeData).concat(positionData);
   return addMerklRewardApy(data.filter((p) => utils.keepFinite(p)), 'fxprotocol', (p) => p.pool.split('-')[0]);
 };
 
