@@ -1,15 +1,15 @@
 const { gql, request } = require('graphql-request');
 const utils = require('../utils');
 
-const BALANCER_API_URLS = [
-  'https://api-v3.balancer.fi/graphql',
-  'https://api-v3.balancer.fi',
-];
-const SNAPSHOT_BATCH_SIZE = 20;
+const BALANCER_API_URL = 'https://api-v3.balancer.fi/graphql';
+const SNAPSHOT_BATCH_SIZE = 35;
 const SNAPSHOT_WINDOW_DAYS = 7;
+const SNAPSHOT_MIN_TVL_USD = 10000;
+const SNAPSHOT_MIN_VOLUME_USD_24H = 1;
+const MAX_SNAPSHOT_POOLS_PER_CHAIN = 280;
 const VOLUME_UNAVAILABLE_SENTINEL = { unavailable: true };
-const API_MAX_RETRIES = 2;
-const API_RETRY_DELAY_MS = 600;
+const API_MAX_RETRIES = 5;
+const API_RETRY_DELAY_MS = 1500;
 const REQUEST_HEADERS = {
   'content-type': 'application/json',
   accept: 'application/json',
@@ -42,22 +42,6 @@ const query = gql`
   }
 `;
 
-const fallbackQuery = gql`
-  query GetPoolsFallback($chain: GqlChain!) {
-    poolGetPools(
-      first: 1000
-      where: { chainIn: [$chain], protocolVersionIn: [3] }
-    ) {
-      symbol
-      address
-      dynamicData {
-        totalLiquidity
-        volume24h
-      }
-    }
-  }
-`;
-
 const toNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -73,21 +57,68 @@ const chunkArray = (items, size) => {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const isRateLimitedError = (error) => {
+  const status = error?.response?.status;
+  const response = error?.response || {};
+  const message = `${error?.message || ''} ${response?.title || ''} ${
+    response?.detail || ''
+  }`.toLowerCase();
+
+  return (
+    status === 429 ||
+    response?.error_code === 1015 ||
+    response?.error_name === 'rate_limited' ||
+    response?.error_category === 'rate_limit' ||
+    message.includes('rate limit') ||
+    message.includes('rate-limited')
+  );
+};
+
+const getRetryAfterMs = (error, attempt) => {
+  const retryAfterFromBody = Number(error?.response?.retry_after);
+  const retryAfterFromHeader = Number(
+    error?.response?.headers?.get?.('retry-after')
+  );
+
+  const retryAfterMs = Number.isFinite(retryAfterFromBody)
+    ? retryAfterFromBody * 1000
+    : Number.isFinite(retryAfterFromHeader)
+    ? retryAfterFromHeader * 1000
+    : 0;
+
+  const backoffMs = API_RETRY_DELAY_MS * 2 ** attempt;
+  const jitterMs = Math.floor(Math.random() * 500);
+  return Math.max(retryAfterMs, backoffMs) + jitterMs;
+};
+
+const isRetryableError = (error) => {
+  if (isRateLimitedError(error)) return true;
+  if (error?.response?.retryable === true) return true;
+
+  const retryableCodes = new Set([
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'ENOTFOUND',
+    'EAI_AGAIN',
+    'ECONNABORTED',
+  ]);
+  return retryableCodes.has(error?.code);
+};
+
 const requestWithRetry = async (
   query,
   variables,
   maxRetries = API_MAX_RETRIES
 ) => {
   let lastError;
-  for (const apiUrl of BALANCER_API_URLS) {
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await request(apiUrl, query, variables, REQUEST_HEADERS);
-      } catch (error) {
-        lastError = error;
-        if (attempt === maxRetries) break;
-        await sleep(API_RETRY_DELAY_MS * (attempt + 1));
-      }
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await request(BALANCER_API_URL, query, variables, REQUEST_HEADERS);
+    } catch (error) {
+      lastError = error;
+      const retryable = isRetryableError(error);
+      if (!retryable || attempt === maxRetries) break;
+      await sleep(getRetryAfterMs(error, attempt));
     }
   }
   throw lastError;
@@ -118,8 +149,19 @@ const buildSnapshotsQuery = (poolIds) => {
 const getSnapshotsByPoolId = async (backendChain, poolIds) => {
   const snapshotsByPoolId = new Map();
   const batches = chunkArray(poolIds, SNAPSHOT_BATCH_SIZE);
+  let stopFurtherRequests = false;
 
   for (const batch of batches) {
+    if (stopFurtherRequests) {
+      batch.forEach((poolId) => {
+        snapshotsByPoolId.set(
+          poolId.toLowerCase(),
+          VOLUME_UNAVAILABLE_SENTINEL
+        );
+      });
+      continue;
+    }
+
     const snapshotsQuery = buildSnapshotsQuery(batch);
     try {
       const response = await requestWithRetry(snapshotsQuery, {
@@ -142,6 +184,11 @@ const getSnapshotsByPoolId = async (backendChain, poolIds) => {
           VOLUME_UNAVAILABLE_SENTINEL
         );
       });
+
+      if (isRateLimitedError(error)) {
+        // Stop sending snapshot requests on this chain once API starts rate-limiting.
+        stopFurtherRequests = true;
+      }
     }
   }
 
@@ -169,26 +216,30 @@ const getVolumeDataFromSnapshots = (snapshots) => {
   };
 };
 
+const shouldFetchSnapshotsForPool = (pool) => {
+  const dynamicData = pool?.dynamicData || {};
+  return (
+    toNumber(dynamicData.totalLiquidity) >= SNAPSHOT_MIN_TVL_USD &&
+    toNumber(dynamicData.volume24h) >= SNAPSHOT_MIN_VOLUME_USD_24H
+  );
+};
+
 const getV3Pools = async (backendChain, chainString) => {
   try {
-    let pools = [];
-    try {
-      const { poolGetPools } = await requestWithRetry(query, {
-        chain: backendChain,
-      });
-      pools = Array.isArray(poolGetPools) ? poolGetPools : [];
-    } catch (fullQueryError) {
-      console.error(
-        `Balancer V3 full query failed on ${chainString}, retrying with fallback query:`,
-        fullQueryError?.message || fullQueryError
-      );
-      const { poolGetPools } = await requestWithRetry(fallbackQuery, {
-        chain: backendChain,
-      });
-      pools = Array.isArray(poolGetPools) ? poolGetPools : [];
-    }
+    const { poolGetPools } = await requestWithRetry(query, {
+      chain: backendChain,
+    });
+    const pools = Array.isArray(poolGetPools) ? poolGetPools : [];
 
-    const poolIds = pools
+    const snapshotEligiblePools = pools
+      .filter((pool) => pool?.address && shouldFetchSnapshotsForPool(pool))
+      .sort(
+        (a, b) =>
+          toNumber(b?.dynamicData?.volume24h) - toNumber(a?.dynamicData?.volume24h)
+      )
+      .slice(0, MAX_SNAPSHOT_POOLS_PER_CHAIN);
+
+    const poolIds = snapshotEligiblePools
       .map((pool) => pool.address?.toLowerCase())
       .filter(Boolean);
     const snapshotsByPoolId = await getSnapshotsByPoolId(backendChain, poolIds);
@@ -227,8 +278,11 @@ const getV3Pools = async (backendChain, chainString) => {
           .filter(Boolean);
 
         const poolId = pool.address.toLowerCase();
+        const snapshots = snapshotsByPoolId.has(poolId)
+          ? snapshotsByPoolId.get(poolId)
+          : VOLUME_UNAVAILABLE_SENTINEL;
         const { volumeUsd1dFromSnapshots, volumeUsd7d } =
-          getVolumeDataFromSnapshots(snapshotsByPoolId.get(poolId) || []);
+          getVolumeDataFromSnapshots(snapshots);
         const dynamicVolume24h = Number(dynamicData.volume24h);
         const poolData = {
           pool: pool.address,
