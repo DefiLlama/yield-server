@@ -89,6 +89,7 @@ const query = gql`
       id
       tokensList
       totalSwapFee
+      totalSwapVolume
       totalShares
       tokens {
         address
@@ -113,6 +114,7 @@ const queryPrior = gql`
     id 
     tokensList 
     totalSwapFee 
+    totalSwapVolume
     tokens { 
       address 
       balance 
@@ -423,6 +425,11 @@ const aprFee = (el, dataNow, dataPrior, swapFeePercentage) => {
   return el;
 };
 
+const volumeDelta = (volumeNow, volumePrior) => {
+  const delta = Number(volumeNow) - Number(volumePrior);
+  return Number.isFinite(delta) && delta > 0 ? delta : 0;
+};
+
 const topLvl = async (
   chainString,
   url,
@@ -434,16 +441,27 @@ const topLvl = async (
   swapFeePercentage
 ) => {
   const [_, blockPrior] = await utils.getBlocks(chainString, null, [url]);
+  const [__, blockPrior7d] = await utils.getBlocks(
+    chainString,
+    null,
+    [url],
+    604800
+  );
   // pull data
   let dataNow = await request(url, query);
   let dataPrior = await request(
     url,
     queryPrior.replace('<PLACEHOLDER>', blockPrior)
   );
+  let dataPrior7d = await request(
+    url,
+    queryPrior.replace('<PLACEHOLDER>', blockPrior7d)
+  );
 
   // correct for missing maker symbol
   dataNow = dataNow.pools.map((el) => correctMaker(el));
   dataPrior = dataPrior.pools.map((el) => correctMaker(el));
+  dataPrior7d = dataPrior7d.pools.map((el) => correctMaker(el));
 
   // for tvl, we gonna pull token prices from our price api, which we use to calculate tvl
   // note: the subgraph already comes with usd tvl values, but sometimes they are inflated
@@ -488,6 +506,10 @@ const topLvl = async (
   // calculate reward apr
   tvlInfo = await aprLM(tvlInfo, urlGauge, queryGauge, chainString, gaugeABI);
 
+  const dataNowById = new Map(dataNow.map((pool) => [pool.id, pool]));
+  const dataPriorById = new Map(dataPrior.map((pool) => [pool.id, pool]));
+  const dataPrior7dById = new Map(dataPrior7d.map((pool) => [pool.id, pool]));
+
   // build pool objects
   return tvlInfo.map((p) => {
     const chainUrl =
@@ -496,6 +518,18 @@ const topLvl = async (
         : chainString === 'xdai'
         ? 'gnosis'
         : chainString;
+
+    const poolNow = dataNowById.get(p.id);
+    const poolPrior1d = dataPriorById.get(p.id);
+    const poolPrior7d = dataPrior7dById.get(p.id);
+    const volumeUsd1d = volumeDelta(
+      poolNow?.totalSwapVolume,
+      poolPrior1d?.totalSwapVolume
+    );
+    const volumeUsd7d = volumeDelta(
+      poolNow?.totalSwapVolume,
+      poolPrior7d?.totalSwapVolume
+    );
 
     return {
       pool: p.id,
@@ -512,6 +546,8 @@ const topLvl = async (
           : p.aprLM,
       rewardTokens: p.rewardTokens,
       underlyingTokens: p.tokensList,
+      volumeUsd1d,
+      volumeUsd7d,
       url: `https://balancer.fi/pools/${chainUrl}/v2/${p.id}`,
     };
   });
