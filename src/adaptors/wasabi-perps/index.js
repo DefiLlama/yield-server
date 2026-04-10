@@ -13,7 +13,7 @@ const apy = async () => {
     return {
       pool: `wasabi-${vault.chain}-${vault.symbol}`,
       chain: vault.chain === "mainnet" ? "Ethereum" : utils.formatChain(vault.chain),
-      project: 'wasabi',
+      project: 'wasabi-perps',
       symbol: token.symbol,
       tvlUsd: isDeprecated ? 0 : data.tvlUsd,
       apyBase: isRewardAPY ? 0 : apr * 100,
