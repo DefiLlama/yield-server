@@ -49,6 +49,18 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const toAddressString = (value) => {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && typeof value.address === 'string')
+    return value.address;
+  return null;
+};
+
+const toStringArray = (values) => {
+  if (!Array.isArray(values)) return [];
+  return values.filter((value) => typeof value === 'string');
+};
+
 const chunkArray = (items, size) => {
   const chunks = [];
   for (let i = 0; i < items.length; i += size) {
@@ -291,10 +303,11 @@ const getV3Pools = async (backendChain, chainString) => {
 
         const rewardTokens = aprItems
           .filter((item) => item.type === 'STAKING' && item.rewardTokenAddress)
-          .map((item) => item.rewardTokenAddress);
+          .map((item) => toAddressString(item.rewardTokenAddress))
+          .filter(Boolean);
 
         const underlyingTokens = (pool.poolTokens || [])
-          .map((token) => token?.address)
+          .map((token) => toAddressString(token))
           .filter(Boolean);
 
         const poolId = pool.address.toLowerCase();
@@ -312,8 +325,8 @@ const getV3Pools = async (backendChain, chainString) => {
           tvlUsd: toNumber(dynamicData.totalLiquidity),
           apyBase: Number.isFinite(baseApr) ? baseApr * 100 : 0,
           apyReward: Number.isFinite(stakingApr) ? stakingApr * 100 : 0,
-          rewardTokens: rewardTokens,
-          underlyingTokens: underlyingTokens,
+          rewardTokens: toStringArray(rewardTokens),
+          underlyingTokens: toStringArray(underlyingTokens),
           url: `https://balancer.fi/pools/${chainUrl}/v3/${pool.address}`,
         };
 
