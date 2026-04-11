@@ -53,12 +53,33 @@ module.exports = async function () {
   }
 
   const module = require(resolvedAdapterPath);
+  const apyFn =
+    typeof module?.apy === 'function'
+      ? module.apy
+      : typeof module?.default?.apy === 'function'
+      ? module.default.apy
+      : typeof module === 'function'
+      ? module
+      : null;
+
+  const poolsUrlCandidate =
+    module?.url ?? module?.default?.url ?? module?.poolsUrl ?? module?.default?.poolsUrl;
+
+  if (!apyFn) {
+    const exportKeys = Object.keys(module || {});
+    throw new Error(
+      `Adapter at "${resolvedAdapterPath}" does not export a valid apy function. Export keys: ${JSON.stringify(
+        exportKeys
+      )}`
+    );
+  }
 
   global.adapter = adapter;
-  global.apy = (await module.apy(timestamp)).sort(
+  const apyRaw = await apyFn(timestamp);
+  global.apy = (Array.isArray(apyRaw) ? apyRaw : []).sort(
     (a, b) => b.tvlUsd - a.tvlUsd
   );
-  global.poolsUrl = module.url;
+  global.poolsUrl = poolsUrlCandidate;
 
   const outputDir = path.resolve(__dirname, '../../.test-adapter-output');
   fs.mkdirSync(outputDir, { recursive: true });
@@ -68,17 +89,27 @@ module.exports = async function () {
   );
 
   if (!isFast) {
+    const adapterProject = global.apy?.[0]?.project || null;
+
     global.protocolsSlug = [
       ...new Set(
-        (await axios.get('https://api.llama.fi/protocols')).data.map(
+        (await axios.get('https://api.llama.fi/protocols')).data
+          .filter((protocol) => protocol && protocol.slug)
+          .map(
           (protocol) => protocol.slug
-        )
+          )
       ),
     ];
 
     global.uniquePoolIdentifiersDB = new Map(
       (await axios.get('https://yields.llama.fi/distinctID')).data
-        .filter((p) => p.project !== global.apy[0].project)
+        .filter(
+          (p) =>
+            p &&
+            p.pool &&
+            p.project &&
+            (adapterProject === null || p.project !== adapterProject)
+        )
         .map((p) => [p.pool, p.project])
     );
   }
