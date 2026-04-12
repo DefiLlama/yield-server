@@ -64,6 +64,7 @@ const protocolsBlacklist = [
   'penpie',
   'equilibria',
   'steakhouse',
+  'townsquare',
 ];
 
 // Allow specific pools from blacklisted protocols
