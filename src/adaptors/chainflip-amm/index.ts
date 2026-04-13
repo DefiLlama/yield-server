@@ -18,6 +18,7 @@ const getPool = async () => {
   );
 
   const boostPool = apyData.data.find((d) => d.pool === 'boost-pool-Btc');
+  if (!boostPool) return [];
 
   const btcPool = {
     pool: 'chainflip-boost-Btc',
