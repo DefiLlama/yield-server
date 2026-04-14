@@ -57,7 +57,6 @@ exports.up = (pgm) => {
 
     // Config
     reward_config: 'jsonb',
-    notes: 'text',
 
     // Fast latest-snapshot lookup (updated on each snapshot insert)
     latest_snapshot_at: 'timestamptz',
@@ -71,6 +70,9 @@ exports.up = (pgm) => {
 
   pgm.addConstraint('canary_position', 'canary_position_status_check', {
     check: "status IN ('pending', 'active', 'closed', 'error')",
+  });
+  pgm.addConstraint('canary_position', 'canary_position_health_status_check', {
+    check: "health_status IN ('healthy', 'warning', 'critical', 'unknown')",
   });
   pgm.createIndex('canary_position', ['configID']);
   pgm.createIndex('canary_position', ['status']);
@@ -151,6 +153,9 @@ exports.up = (pgm) => {
 
   pgm.addConstraint('canary_return', 'canary_return_time_window_check', {
     check: "time_window IN ('24h', '7d', '30d', '90d', 'inception')",
+  });
+  pgm.addConstraint('canary_return', 'canary_return_status_check', {
+    check: "status IN ('OK', 'WATCH', 'FLAG')",
   });
   pgm.createIndex('canary_return', ['position_id', 'time_window'], {
     unique: true,
