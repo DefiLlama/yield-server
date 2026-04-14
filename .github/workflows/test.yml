@@ -8,12 +8,17 @@ jobs:
         uses: actions/checkout@v4
       - id: file_changes
         uses: tj-actions/changed-files@v44
+
+      - name: Record PR number
+        run: |
+          mkdir -p pr-comments
+          echo "${{ github.event.number }}" > pr-comments/pr-number.txt
+
       - name: Run changes files through test script
         env:
           ALCHEMY_CONNECTION_ARBITRUM: ${{ secrets.ALCHEMY_CONNECTION_ARBITRUM }}
           ALCHEMY_CONNECTION_ETHEREUM: ${{ secrets.ALCHEMY_CONNECTION_ETHEREUM }}
           ALCHEMY_CONNECTION_POLYGON: ${{ secrets.ALCHEMY_CONNECTION_POLYGON }}
-          COMMENT_TOKEN: ${{ secrets.LLAMATESTER_TOKEN }}
         run: |
           RUN_FILES=$(
             MODIFIED="${{ steps.file_changes.outputs.modified_files }}" \
@@ -32,8 +37,8 @@ jobs:
           do
             {
               npm run test --adapter=${i} 2>&1 | tee output.txt
-              node ${{ github.workspace }}/.github/workflows/commentResult.js /home/runner/work/yield-server/yield-server/output.txt "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.number }}" ${i}
-              if grep -q "PASS src/adaptors/test.js" output.txt; then
+              node ${{ github.workspace }}/.github/workflows/commentResult.js ${{ github.workspace }}/output.txt ${{ github.workspace }}/pr-comments ${i}
+              if grep -qE "PASS\s+.*test\.js" output.txt; then
                 exit 0;
               else
                 exit 1;
@@ -43,3 +48,12 @@ jobs:
               echo ' doesnt run'
             }
           done
+
+      - name: Upload PR comments artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-comments
+          path: pr-comments/
+          if-no-files-found: ignore
+          retention-days: 1
