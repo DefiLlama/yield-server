@@ -263,6 +263,7 @@ const excludeAdaptors = [
   'hmx',
   'clave',
   'daolama',
+  'orby-network',
 ];
 
 const excludePools = [
