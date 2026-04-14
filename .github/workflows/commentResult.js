@@ -1,36 +1,5 @@
-const { readFileSync, writeFileSync, mkdirSync, existsSync } = require('fs');
+const { readFileSync, writeFileSync, mkdirSync } = require('fs');
 const path = require('path');
-
-function rawValue(val) {
-  if (val == null) return '';
-  if (Array.isArray(val)) return val.join(', ');
-  return String(val);
-}
-
-function buildPoolTable(pools) {
-  if (!pools.length) return '';
-
-  // Collect all unique keys across all pools, preserving insertion order
-  const allKeys = [];
-  const seen = new Set();
-  for (const pool of pools) {
-    for (const key of Object.keys(pool)) {
-      if (!seen.has(key)) {
-        seen.add(key);
-        allKeys.push(key);
-      }
-    }
-  }
-
-  const header = '| # | ' + allKeys.join(' | ') + ' |';
-  const sep = '|---:| ' + allKeys.map(() => '---').join(' | ') + ' |';
-  const rows = pools.map((p, i) => {
-    const cells = allKeys.map((k) => rawValue(p[k]));
-    return `| ${i} | ${cells.join(' | ')} |`;
-  });
-
-  return [header, sep, ...rows].join('\n');
-}
 
 function main() {
   const [, , log, outDir, adapter] = process.argv;
@@ -39,39 +8,16 @@ function main() {
   const passed = /PASS\s+.*test\.js/.test(file);
   const failed = /FAIL\s+.*test\.js/.test(file);
 
-  // Read pool data from JSON output (written by beforeTests.js)
-  let pools = [];
-  const jsonPath = path.resolve(
-    __dirname,
-    '../../.test-adapter-output',
-    `${adapter}.json`
-  );
-  if (existsSync(jsonPath)) {
-    try {
-      pools = JSON.parse(readFileSync(jsonPath, 'utf-8'));
-    } catch (e) {}
-  }
-
-  // Extract test summary
-  const summaryMatch = file.match(/Test Suites:[\s\S]*?Ran all test suites\./);
-  const summary = summaryMatch ? summaryMatch[0].trim() : '';
+  // Everything from "Test Suites:" onward (includes pool output from afterTests.js)
+  const summaryIndex = file.indexOf('Test Suites:');
+  if (summaryIndex === -1) return;
+  const output = file.substring(summaryIndex);
 
   let body;
   if (passed && !failed) {
-    const poolCount =
-      pools.length || (file.match(/Nb of pools: (\d+)/)?.[1] ?? '?');
-    body = `### :white_check_mark: \`${adapter}\` — ${poolCount} pool${poolCount != 1 ? 's' : ''}, all tests passed\n\n`;
-    if (pools.length) {
-      body += buildPoolTable(pools) + '\n\n';
-    }
-    if (summary) {
-      body += `<details>\n<summary>Test details</summary>\n\n\`\`\`\n${summary}\n\`\`\`\n</details>`;
-    }
+    body = `The \`${adapter}\` adapter exports pools:\n\n\`\`\`\n${output.trim()}\n\`\`\``;
   } else if (failed) {
-    const failStart = file.search(/FAIL\s/);
-    const failSection = failStart !== -1 ? file.substring(failStart) : file;
-    body = `### :x: \`${adapter}\` — tests failed\n\n`;
-    body += `\`\`\`\n${failSection.trim()}\n\`\`\``;
+    body = `Error while running \`${adapter}\` adapter:\n\n\`\`\`\n${output.trim()}\n\`\`\``;
   } else {
     return;
   }
