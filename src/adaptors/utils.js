@@ -64,10 +64,10 @@ exports.formatSymbol = (symbol) => {
     .toUpperCase();
 };
 
-exports.getData = async (url, query = null) => {
+exports.getData = async (url, query = null, headers = {}) => {
   let res;
   if (query !== null) {
-    res = await axios.post(url, query);
+    res = await axios.post(url, query, { headers });
   } else {
     res = await axios.get(url);
   }

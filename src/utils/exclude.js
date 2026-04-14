@@ -262,6 +262,8 @@ const excludeAdaptors = [
   'connext',
   'hmx',
   'clave',
+  'daolama',
+  'orby-network',
 ];
 
 const excludePools = [
@@ -2017,6 +2019,50 @@ const excludePools = [
   '0x2a1fFDd430eD6B7FCF4f8B9549154E6345BBebFB', // hyperWildcatPrivate1USDT
   '0xc7b4c17861357b8abb91f25581e7263e08dcb59c-ethereum', // aave-v3 SNX on ethereum, frozen market (0% LTV, borrowing disabled)
   '0xB2bFb52cfc40584AC4e9e2B36a5B8d6554A56e0b-Avax', // upshift UPAVAX, withdrawals only
+  // ekubo lowercase duplicates created by .toLowerCase() bug in a812c05b
+  'ekubo-strk-ekubo',
+  'ekubo-usdc-survivor',
+  'ekubo-dog-strk',
+  'ekubo-wbtc-eth',
+  'ekubo-usdc-wbtc',
+  'ekubo-usdc-usdt',
+  'ekubo-xstrk-strk',
+  'ekubo-wbtc-xwbtc',
+  'ekubo-cash-usdc.e',
+  'ekubo-eth-usdt',
+  'ekubo-usdc-ausd0',
+  'ekubo-daiv0-eth',
+  'ekubo-survivor-strk',
+  'ekubo-usdc-dai',
+  'ekubo-usdc.e-ekubo',
+  'ekubo-wbtc-mre7btc',
+  'ekubo-wsteth-legacy-eth',
+  'ekubo-usdc-ekubo',
+  'ekubo-eth-ekubo',
+  'ekubo-usdc.e-dai',
+  'ekubo-wbtc-tbtc',
+  'ekubo-wsteth-eth',
+  'ekubo-xtbtc-tbtc',
+  'ekubo-usdc-eth',
+  'ekubo-usn-susn',
+  'ekubo-wbtc-strk',
+  'ekubo-wbtc-usdc.e',
+  'ekubo-usdc-strk',
+  'ekubo-strk-eth',
+  'ekubo-usdc-cash',
+  'ekubo-eth-usdc.e',
+  'ekubo-lords-survivor',
+  'ekubo-8-eth',
+  'ekubo-usdc-mre7yield',
+  'ekubo-usdc-usdc.e',
+  'ekubo-xsbtc-solvbtc',
+  'ekubo-wbtc-solvbtc',
+  'ekubo-nums-usdc',
+  'ekubo-lords-eth',
+  'ekubo-lbtc-wbtc',
+  'ekubo-usn-usdc',
+  'ekubo-usdc.e-usdt',
+  'ekubo-strk-usdc.e',
 ];
 
 const boundaries = {
@@ -2038,12 +2084,12 @@ const getProtocolExclusionsFromApi = async () => {
     return new Set(
       (Array.isArray(response.data) ? response.data : [])
         .filter((p) => p.rugged || p.deprecated || p.deadFrom)
-        .map((p) => p.slug),
+        .map((p) => p.slug)
     );
   } catch (err) {
     console.log(
       'Failed to fetch protocol exclusions; falling back to hardcoded list',
-      err?.message || err,
+      err?.message || err
     );
     return new Set();
   }
