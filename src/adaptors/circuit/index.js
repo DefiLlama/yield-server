@@ -17,12 +17,18 @@
  */
 
 const { getData } = require("../utils");
+const axios = require("axios");
 
 const STATS_API = "https://api.circuitdao.com/protocol/stats";
+const STATUTES_API = "https://api.circuitdao.com/statutes";
 const MCAT = 1000;   // mBYC → BYC (= USD)
 
 async function apy() {
-  const data = await getData(STATS_API);
+  const [data, statutesResp] = await Promise.all([
+    getData(STATS_API),
+    axios.post(STATUTES_API, { full: false }),
+  ]);
+  const statutesData = statutesResp.data;
   if (!Array.isArray(data?.stats) || data.stats.length === 0) {
     throw new Error("Circuit stats API returned empty or invalid data");
   }
@@ -48,6 +54,14 @@ async function apy() {
       ? (projectedRevenue / undiscountedPrincipal) * 100
       : 0;
 
+  // LTV: derived from the on-chain VAULT_LIQUIDATION_RATIO_PCT statute
+  // liquidation_ratio_pct is the minimum collateral ratio (e.g. 166 means 166% collateral required)
+  // LTV = 100 / liquidation_ratio_pct
+  const liquidationRatioPct = toNum(
+    statutesData?.implemented_statutes?.VAULT_LIQUIDATION_RATIO_PCT
+  );
+  const ltv = liquidationRatioPct > 0 ? 100 / liquidationRatioPct : null;
+
   // Savings APY: annualised interest cost / undiscounted savings balance
   // undiscounted_savings_balance = savings_balance + accrued_interest (both in mBYC)
   const undiscountedSavings = toNum(s.savings_balance) + toNum(s.accrued_interest);
@@ -71,6 +85,7 @@ async function apy() {
       apyReward: 0,
       apyBaseBorrow: stabilityFeeApy,
       mintedCoin: "BYC",
+      ltv,
       poolMeta: "XCH collateral vault",
       url: "https://circuitdao.com/borrow",
     },
