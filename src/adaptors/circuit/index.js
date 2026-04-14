@@ -26,9 +26,11 @@ const MCAT = 1000;   // mBYC → BYC (= USD)
 async function apy() {
   const [data, statutesResp] = await Promise.all([
     getData(STATS_API),
-    axios.post(STATUTES_API, { full: false }),
+    axios
+      .post(STATUTES_API, { full: false }, { timeout: 10_000 })
+      .catch(() => null),
   ]);
-  const statutesData = statutesResp.data;
+  const statutesData = statutesResp?.data ?? {};
   if (!Array.isArray(data?.stats) || data.stats.length === 0) {
     throw new Error("Circuit stats API returned empty or invalid data");
   }
@@ -60,7 +62,8 @@ async function apy() {
   const liquidationRatioPct = toNum(
     statutesData?.implemented_statutes?.VAULT_LIQUIDATION_RATIO_PCT
   );
-  const ltv = liquidationRatioPct > 0 ? 100 / liquidationRatioPct : null;
+  const rawLtv = liquidationRatioPct > 0 ? 100 / liquidationRatioPct : null;
+  const ltv = rawLtv !== null && rawLtv >= 0 && rawLtv <= 1 ? rawLtv : null;
 
   // Savings APY: annualised interest cost / undiscounted savings balance
   // undiscounted_savings_balance = savings_balance + accrued_interest (both in mBYC)
