@@ -15,9 +15,11 @@ function main() {
 
   let body;
   if (passed && !failed) {
-    body = `The \`${adapter}\` adapter exports pools:\n\n\`\`\`\n${output.trim()}\n\`\`\``;
+    body = `The ${adapter} adapter exports pools:
+        \n \n ${output.replaceAll('\n', '\n    ')}`;
   } else if (failed) {
-    body = `Error while running \`${adapter}\` adapter:\n\n\`\`\`\n${output.trim()}\n\`\`\``;
+    body = `Error while running ${adapter} adapter:
+        \n \n ${output.replaceAll('\n', '\n    ')}`;
   } else {
     return;
   }
