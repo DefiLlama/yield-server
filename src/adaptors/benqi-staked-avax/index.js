@@ -68,11 +68,11 @@ const main = async () => {
 
   const apyBase =
     rate1dAgo.output > 0
-      ? ((rateNow.output - rate1dAgo.output) / rate1dAgo.output) * 365 * 100
+      ? ((rateNow.output / rate1dAgo.output) ** 365 - 1) * 100
       : 0;
   const apyBase7d =
     rate7dAgo.output > 0
-      ? ((rateNow.output - rate7dAgo.output) / rate7dAgo.output / 7) * 365 * 100
+      ? ((rateNow.output / rate7dAgo.output) ** (365 / 7) - 1) * 100
       : 0;
 
   const priceKey = `avax:${AVAX_ADDRESS}`;
