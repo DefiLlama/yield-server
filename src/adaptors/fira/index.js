@@ -96,7 +96,17 @@ const toApyPercent = (ratePerSecond) => {
   return Number.isFinite(apy) ? apy * 100 : 0;
 };
 
+const preferOnchainApy = (onchainApy, apiApy) => {
+  if (Number.isFinite(onchainApy) && onchainApy > 0) return onchainApy;
+  if (Number.isFinite(apiApy)) return apiApy;
+  return onchainApy;
+};
+
 const mapSymbolAlias = (symbol) => API_ALIASES[symbol] || symbol;
+const getBtBaseTokenSymbol = (symbol = '') => {
+  const match = String(symbol).match(/^BT-([^-]+)/i);
+  return match ? match[1].toUpperCase() : null;
+};
 
 const getSecondsToMaturity = async (bondToken) => {
   const getEndTimeAbi = abiBUSD0.find((abi) => abi.name === 'getEndTime');
@@ -347,27 +357,8 @@ const buildPool = ({
   const metadata = [];
   metadata.push(rateType);
   if (rateType === 'fixed' && maturity) {
-    metadata.push(
-      `maturity ${new Date(maturity * 1000).toISOString().slice(0, 10)}`
-    );
-    const loanUnderlyingSymbol =
-      tokenMeta[fixedRateInfo?.underlyingToken || '']?.symbol || null;
-    const collateralUnderlyingToken =
-      collateralUnderlyingByToken[collateralToken];
-    const collateralUnderlyingSymbol =
-      tokenMeta[collateralUnderlyingToken || '']?.symbol || null;
-    if (loanUnderlyingSymbol) {
-      metadata.push(
-        `loan underlying ${utils.formatSymbol(loanUnderlyingSymbol)}`
-      );
-    }
-    if (collateralUnderlyingSymbol) {
-      metadata.push(
-        `collateral underlying ${utils.formatSymbol(
-          collateralUnderlyingSymbol
-        )}`
-      );
-    }
+    const btBaseTokenSymbol = getBtBaseTokenSymbol(loanSymbolRaw);
+    metadata.push(`${collateralSymbolRaw}-${btBaseTokenSymbol}`);
   }
 
   return {
@@ -376,21 +367,18 @@ const buildPool = ({
     project: PROJECT,
     symbol: utils.formatSymbol(`${collateralSymbol}-${loanSymbol}`),
     tvlUsd,
-    apyBase:
-      aprPoolData?.apyBase === undefined
-        ? computedApyBase
-        : aprPoolData.apyBase,
-    apyBaseBorrow:
-      aprPoolData?.apyBaseBorrow === undefined
-        ? computedApyBaseBorrow
-        : aprPoolData.apyBaseBorrow,
+    apyBase: preferOnchainApy(computedApyBase, aprPoolData?.apyBase),
+    apyBaseBorrow: preferOnchainApy(
+      computedApyBaseBorrow,
+      aprPoolData?.apyBaseBorrow
+    ),
     totalSupplyUsd,
     totalBorrowUsd,
     underlyingTokens: [loanToken],
     borrowable: true,
     ltv: Number(marketParams.lltv) / 1e18,
     mintedCoin: utils.formatSymbol(loanSymbol),
-    poolMeta: aprPoolData?.poolMeta || metadata.join(' | '),
+    poolMeta: metadata.join(' | '),
     url: URLS.DAPP,
   };
 };
