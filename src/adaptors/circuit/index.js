@@ -77,7 +77,7 @@ async function apy() {
   return [
     // XCH collateral vault — borrow market
     {
-      pool: "circuit-xch-vault",
+      pool: "circuit-collateral-vault",
       project: "circuit",
       chain: "Chia",
       symbol: "XCH",
@@ -94,7 +94,7 @@ async function apy() {
     },
     // BYC savings vault — supply market
     {
-      pool: "circuit-byc-savings",
+      pool: "circuit-savings-vault",
       project: "circuit",
       chain: "Chia",
       symbol: "BYC",
