@@ -2,26 +2,21 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
-const CHAIN = 'monad';
-const PROJECT = 'mento';
+const PROJECT = 'mento-v3';
+const FPMM_FACTORY = '0xa849b475FE5a4B5C9C3280152c7a1945b907613b';
+const CHAINS = ['monad', 'celo'];
 
 // Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)
 const SWAP_TOPIC =
   '0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822';
 
-// Mento FPMM pool addresses on Monad
-const POOL_ADDRESSES = [
-  '0xD0E9c1a718D2a693d41eacd4B2696180403Ce081', // GBPm-USDm
-  '0x463c0d1F04bcd99A1efCF94AC2a75bc19Ea4A7E5', // USDC-USDm
-];
-
-const getSwapVolume7d = async (poolAddr, token0Dec, token1Dec, price0, price1) => {
+const getSwapVolume7d = async (poolAddr, chain, token0Dec, token1Dec, price0, price1) => {
   try {
     const now = Math.floor(Date.now() / 1000);
     const logs = await sdk.getEventLogs({
       target: poolAddr,
       topics: [SWAP_TOPIC],
-      chain: CHAIN,
+      chain,
       entireLog: true,
       fromTimestamp: now - 7 * 86400,
       toTimestamp: now,
@@ -43,26 +38,33 @@ const getSwapVolume7d = async (poolAddr, token0Dec, token1Dec, price0, price1) =
   }
 };
 
-const apy = async () => {
-  // Fetch pool metadata on-chain
-  const [token0s, token1s, reserves, lpFees, token0Decs, token1Decs, token0Syms, token1Syms] =
-    await Promise.all([
-      sdk.api.abi.multiCall({ calls: POOL_ADDRESSES.map((a) => ({ target: a })), chain: CHAIN, abi: 'address:token0' }),
-      sdk.api.abi.multiCall({ calls: POOL_ADDRESSES.map((a) => ({ target: a })), chain: CHAIN, abi: 'address:token1' }),
-      sdk.api.abi.multiCall({ calls: POOL_ADDRESSES.map((a) => ({ target: a })), chain: CHAIN, abi: 'function getReserves() view returns (uint256, uint256)' }),
-      sdk.api.abi.multiCall({ calls: POOL_ADDRESSES.map((a) => ({ target: a })), chain: CHAIN, abi: 'function lpFee() view returns (uint256)' }),
-      // Will be filled after we know token addresses
-      null, null, null, null,
-    ]);
+const getChainPools = async (chain) => {
+  // Fetch all pool addresses from factory
+  const { output: poolAddresses } = await sdk.api.abi.call({
+    target: FPMM_FACTORY,
+    abi: 'address[]:deployedFPMMAddresses',
+    chain,
+  });
 
-  // Get token metadata
+  if (!poolAddresses.length) return [];
+
+  const calls = poolAddresses.map((a) => ({ target: a }));
+
+  // Token metadata (decimals, symbols) is fetched separately after resolving token addresses
+  const [token0s, token1s, reserves, lpFees] = await Promise.all([
+    sdk.api.abi.multiCall({ calls, chain, abi: 'address:token0' }),
+    sdk.api.abi.multiCall({ calls, chain, abi: 'address:token1' }),
+    sdk.api.abi.multiCall({ calls, chain, abi: 'function getReserves() view returns (uint256, uint256)' }),
+    sdk.api.abi.multiCall({ calls, chain, abi: 'function lpFee() view returns (uint256)' }),
+  ]);
+
   const t0Addrs = token0s.output.map((o) => o.output);
   const t1Addrs = token1s.output.map((o) => o.output);
   const allTokens = [...new Set([...t0Addrs, ...t1Addrs])];
 
   const [decResults, symResults] = await Promise.all([
-    sdk.api.abi.multiCall({ calls: allTokens.map((a) => ({ target: a })), chain: CHAIN, abi: 'erc20:decimals' }),
-    sdk.api.abi.multiCall({ calls: allTokens.map((a) => ({ target: a })), chain: CHAIN, abi: 'erc20:symbol' }),
+    sdk.api.abi.multiCall({ calls: allTokens.map((a) => ({ target: a })), chain, abi: 'erc20:decimals' }),
+    sdk.api.abi.multiCall({ calls: allTokens.map((a) => ({ target: a })), chain, abi: 'erc20:symbol' }),
   ]);
 
   const decMap = {};
@@ -72,12 +74,11 @@ const apy = async () => {
     symMap[a.toLowerCase()] = symResults.output[i]?.output || 'UNKNOWN';
   });
 
-  // Prices
-  const coins = allTokens.map((t) => `${CHAIN}:${t}`);
+  const coins = allTokens.map((t) => `${chain}:${t}`);
   const prices = (await utils.getPrices(coins)).pricesByAddress;
 
   const result = [];
-  for (let i = 0; i < POOL_ADDRESSES.length; i++) {
+  for (let i = 0; i < poolAddresses.length; i++) {
     const t0 = t0Addrs[i];
     const t1 = t1Addrs[i];
     const [reserve0, reserve1] = reserves.output[i].output;
@@ -94,27 +95,33 @@ const apy = async () => {
     const tvl1 = price1 ? (Number(reserve1) / 10 ** dec1) * price1 : 0;
     const tvlUsd = tvl0 + tvl1;
 
-    // Base APY from 7d swap volume and LP fee
     const volume7d = await getSwapVolume7d(
-      POOL_ADDRESSES[i], dec0, dec1, price0, price1
+      poolAddresses[i], chain, dec0, dec1, price0, price1
     );
     const feeRate = lpFeeBps / 10000;
     const apyBase =
       tvlUsd > 0 ? ((volume7d * feeRate) / 7) * 365 * (100 / tvlUsd) : null;
 
     result.push({
-      pool: `${POOL_ADDRESSES[i]}-${CHAIN}`.toLowerCase(),
-      chain: utils.formatChain(CHAIN),
+      pool: `${poolAddresses[i]}-${chain}`.toLowerCase(),
+      chain: utils.formatChain(chain),
       project: PROJECT,
       symbol: `${sym0}-${sym1}`,
       tvlUsd,
       apyBase,
       underlyingTokens: [t0, t1],
-      url: `https://app.mento.org/pools/monad/${POOL_ADDRESSES[i]}`,
+      url: `https://app.mento.org/pools/${chain}/${poolAddresses[i]}`,
     });
   }
 
-  const withRewards = await addMerklRewardApy(result, 'mento', (p) =>
+  return result;
+};
+
+const apy = async () => {
+  const results = await Promise.all(CHAINS.map(getChainPools));
+  const pools = results.flat();
+
+  const withRewards = await addMerklRewardApy(pools, 'mento', (p) =>
     p.pool.split('-')[0]
   );
   return withRewards.filter((p) => utils.keepFinite(p));
