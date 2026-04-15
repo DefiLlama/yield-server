@@ -264,6 +264,7 @@ const excludeAdaptors = [
   'clave',
   'daolama',
   'orby-network',
+  'trisolaris',
 ];
 
 const excludePools = [
