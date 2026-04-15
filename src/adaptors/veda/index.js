@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const vaults = [
   {
@@ -237,7 +238,7 @@ const apy = async () => {
     }
   }
 
-  return pools;
+  return addMerklRewardApy(pools, 'veda', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {
