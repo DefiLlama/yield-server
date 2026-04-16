@@ -93,7 +93,7 @@ const apy = async () => {
     };
   }));
 
-  return addMerklRewardApy(pools, 'yieldnest', (p) => p.pool.split('-')[0]);
+  return addMerklRewardApy(pools.filter(Boolean), 'yieldnest', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = { timetravel: false, apy };
