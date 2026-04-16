@@ -4,6 +4,7 @@ const BigNumber = require('bignumber.js');
 
 const PRISM = '0x06Bb4ab600b7D22eB2c312f9bAbC22Be6a619046';
 const xPRISM = '0x12E04c932D682a2999b4582F7c9B86171B73220D';
+const USDO = '0x8238884ec9668ef77b90c6dff4d1a9f4f4823bfe';
 
 const project = 'openeden-prism';
 
@@ -73,18 +74,23 @@ const apy = async () => {
       : null;
 
   // TVL from xPRISM totalAssets (PRISM staked in the vault)
+  // PRISM targets a soft peg of 1 USDO (OpenEden's USD stablecoin backed by T-Bills).
   const [totalAssets, priceRes] = await Promise.all([
     sdk.api.abi.call({
       target: xPRISM,
       chain: 'ethereum',
       abi: 'uint256:totalAssets',
     }),
-    axios.get(`https://coins.llama.fi/prices/current/ethereum:${PRISM}`),
+    axios.get(
+      `https://coins.llama.fi/prices/current/ethereum:${PRISM},ethereum:${USDO}`
+    ),
   ]);
 
-  const prismPrice = priceRes.data.coins[`ethereum:${PRISM}`]?.price;
+  const prices = priceRes.data.coins;
+  const prismPrice =
+    prices[`ethereum:${PRISM}`]?.price ?? prices[`ethereum:${USDO}`]?.price;
   if (!Number.isFinite(prismPrice)) {
-    throw new Error(`Missing price for PRISM (${PRISM})`);
+    throw new Error(`Missing price for both PRISM and USDO`);
   }
   const tvlUsd = new BigNumber(totalAssets.output)
     .dividedBy(1e18)
