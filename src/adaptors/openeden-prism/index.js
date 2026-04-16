@@ -31,7 +31,7 @@ const getExchangeRate = async (address, block) => {
     }),
   ]);
 
-  if (totalSupply.output === '0') return new BigNumber(1);
+  if (totalSupply.output === '0') return null;
   return new BigNumber(totalAssets.output).dividedBy(totalSupply.output);
 };
 
@@ -52,19 +52,25 @@ const apy = async () => {
     getExchangeRate(xPRISM, block7daysAgo),
   ]);
 
-  const apyBase = rateNow
-    .minus(rate1dayAgo)
-    .dividedBy(rate1dayAgo)
-    .times(365)
-    .times(100)
-    .toNumber();
+  const apyBase =
+    rateNow && rate1dayAgo
+      ? rateNow
+          .minus(rate1dayAgo)
+          .dividedBy(rate1dayAgo)
+          .times(365)
+          .times(100)
+          .toNumber()
+      : null;
 
-  const apyBase7d = rateNow
-    .minus(rate7daysAgo)
-    .dividedBy(rate7daysAgo)
-    .times(365 / 7)
-    .times(100)
-    .toNumber();
+  const apyBase7d =
+    rateNow && rate7daysAgo
+      ? rateNow
+          .minus(rate7daysAgo)
+          .dividedBy(rate7daysAgo)
+          .times(365 / 7)
+          .times(100)
+          .toNumber()
+      : null;
 
   // TVL from xPRISM totalAssets (PRISM staked in the vault)
   const [totalAssets, priceRes] = await Promise.all([
@@ -76,8 +82,10 @@ const apy = async () => {
     axios.get(`https://coins.llama.fi/prices/current/ethereum:${PRISM}`),
   ]);
 
-  const prismPrice =
-    priceRes.data.coins[`ethereum:${PRISM}`]?.price || 1;
+  const prismPrice = priceRes.data.coins[`ethereum:${PRISM}`]?.price;
+  if (!Number.isFinite(prismPrice)) {
+    throw new Error(`Missing price for PRISM (${PRISM})`);
+  }
   const tvlUsd = new BigNumber(totalAssets.output)
     .dividedBy(1e18)
     .times(prismPrice)
