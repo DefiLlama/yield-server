@@ -20,7 +20,12 @@ const getBlock = async (chain, timestamp) => {
   return res.data.height;
 };
 
-const getExchangeRate = async (block) => {
+const annualizedApy = (rateNow, rateAgo, days) =>
+  rateNow == null || rateAgo == null
+    ? null
+    : ((rateNow - rateAgo) / rateAgo) * (365 / days) * 100;
+
+const getRateAndSupply = async (block) => {
   const [assets, supply] = await Promise.all([
     sdk.api.abi.call({
       target: POOL.address,
@@ -35,35 +40,28 @@ const getExchangeRate = async (block) => {
       block,
     }),
   ]);
-  if (supply.output === '0') return null;
-  return Number(assets.output) / Number(supply.output);
+  const rate =
+    supply.output === '0' ? null : Number(assets.output) / Number(supply.output);
+  return { rate, supply: supply.output };
 };
-
-const annualizedApy = (rateNow, rateAgo, days) =>
-  rateNow && rateAgo ? ((rateNow - rateAgo) / rateAgo) * (365 / days) * 100 : 0;
 
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
-  const [block1d, block7d] = await Promise.all([
+  const [blockNow, block1d, block7d] = await Promise.all([
+    getBlock(POOL.chain, now),
     getBlock(POOL.chain, now - DAY),
     getBlock(POOL.chain, now - 7 * DAY),
   ]);
 
-  const [{ pricesByAddress }, supplyRes, rateNow, rate1d, rate7d] =
-    await Promise.all([
-      utils.getPrices([`${POOL.chain}:${POOL.address}`]),
-      sdk.api.abi.call({
-        target: POOL.address,
-        chain: POOL.chain,
-        abi: 'erc20:totalSupply',
-      }),
-      getExchangeRate(),
-      getExchangeRate(block1d),
-      getExchangeRate(block7d),
-    ]);
+  const [{ pricesByAddress }, resNow, res1d, res7d] = await Promise.all([
+    utils.getPrices([`${POOL.chain}:${POOL.address}`]),
+    getRateAndSupply(blockNow),
+    getRateAndSupply(block1d),
+    getRateAndSupply(block7d),
+  ]);
 
   const price = pricesByAddress[POOL.address.toLowerCase()];
-  const supply = Number(supplyRes.output) / 1e18;
+  const supply = Number(resNow.supply) / 1e18;
 
   return [
     {
@@ -72,8 +70,8 @@ const apy = async () => {
       project,
       symbol: POOL.symbol,
       tvlUsd: supply * price,
-      apyBase: annualizedApy(rateNow, rate1d, 1),
-      apyBase7d: annualizedApy(rateNow, rate7d, 7),
+      apyBase: annualizedApy(resNow.rate, res1d.rate, 1),
+      apyBase7d: annualizedApy(resNow.rate, res7d.rate, 7),
       underlyingTokens: [POOL.underlying],
       url: `https://yield.afiprotocol.xyz/invest/${POOL.symbol}`,
     },
