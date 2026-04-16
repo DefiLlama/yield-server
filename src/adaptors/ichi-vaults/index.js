@@ -121,6 +121,7 @@ const fetchFeeAprV1 = async (subgraphUrl, vaultAddresses) => {
       // sqrtPrice is in Q96 format: price = (sqrtPrice / 2^96)^2
       let totalFees = 0;
       let latestTvl = 0;
+      let latestTs = 0;
 
       for (const e of events) {
         const sqrtPrice = Number(e.sqrtPrice) / 2 ** 96;
@@ -129,8 +130,10 @@ const fetchFeeAprV1 = async (subgraphUrl, vaultAddresses) => {
         const fee1 = Number(e.feeAmount1);
         totalFees += fee0 + (price > 0 ? fee1 / price : 0);
 
-        // Use the latest event for current TVL
-        if (!latestTvl) {
+        // Track the event with the latest timestamp for current TVL
+        const ts = Number(e.createdAtTimestamp || 0);
+        if (ts > latestTs) {
+          latestTs = ts;
           const tvl0 = Number(e.totalAmount0);
           const tvl1 = Number(e.totalAmount1);
           latestTvl = tvl0 + (price > 0 ? tvl1 / price : 0);
