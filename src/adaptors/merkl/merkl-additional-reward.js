@@ -46,7 +46,7 @@ exports.addMerklRewardApy = async (pools, protocolId, poolAddressGetter) => {
         apyReward: pool.apr,
         rewardTokens: [
           ...new Set(
-            pool.rewardsRecord?.breakdowns.map((x) => x.token.address) || []
+            pool.rewardsRecord?.breakdowns?.map((x) => x.token.address) || []
           ),
         ],
       };
