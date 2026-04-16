@@ -734,7 +734,7 @@ const getApy = async () => {
   }
 
   const pools = [...moonbeamResults, ...baseResults, ...optimismResults];
-  return addMerklRewardApy(pools, 'moonwell');
+  return addMerklRewardApy(pools, 'moonwell', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {
