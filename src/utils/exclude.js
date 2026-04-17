@@ -265,6 +265,7 @@ const excludeAdaptors = [
   'daolama',
   'orby-network',
   'trisolaris',
+  'aptin-finance-v2',
 ];
 
 const excludePools = [
