@@ -19,11 +19,6 @@ module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
   console.log(event);
 
-  // We return failed msg ids,
-  // so that only failed messages will be retried by SQS in case of min of 1 error init batch
-  // https://www.serverless.com/blog/improved-sqs-batch-error-handling-with-aws-lambda
-  const failedMessageIds = [];
-
   for (const record of event.Records) {
     const startedAt = new Date();
     let body;
@@ -47,16 +42,8 @@ module.exports.handler = async (event, context) => {
         status: 'error',
         error: formatErrorForStorage(err),
       });
-      failedMessageIds.push(record.messageId);
     }
   }
-  return {
-    batchItemFailures: failedMessageIds.map((id) => {
-      return {
-        itemIdentifier: id,
-      };
-    }),
-  };
 };
 
 const recordAdapterStats = async ({
