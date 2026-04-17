@@ -305,6 +305,10 @@ const excludeAdaptors = [
   'vaultka',
   'vela-exchange',
   'zunami-protocol',
+  'sandclock',
+  'killswitch',
+  'tarot',
+  'k9-finance-dao',
 ];
 
 const excludePools = [
