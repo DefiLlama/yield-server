@@ -309,6 +309,13 @@ const excludeAdaptors = [
   'killswitch',
   'tarot',
   'k9-finance-dao',
+  'jolt',
+  'mstable-yield',
+  'tangible-arcana',
+  'defi.money',
+  'bunni',
+  'o3-swap',
+  'stables-labs-usdx',
 ];
 
 const excludePools = [
