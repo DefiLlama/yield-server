@@ -122,24 +122,25 @@ const getMarkets = async (chain) => {
 
   if (!marketInfos.length) return [];
 
-  const queryBody = marketInfos.reduce((acc, market) => {
-    const marketAddress = (
-      market.marketTokenAddress ||
-      market.id ||
-      ''
-    ).toLowerCase();
-    if (!marketAddress) return acc;
-    return acc + marketFeesQuery(marketAddress);
-  }, '');
+  const validMarkets = marketInfos
+    .map((m) => (m.marketTokenAddress || m.id || '').toLowerCase())
+    .filter(Boolean);
 
-  const res = queryBody
-    ? await request(
-        SUBGRAPH_URL[chain],
-        gql`query M {
+  // batch into chunks of 128 markets (256 fields) to stay within the 256 root field limit
+  const BATCH_SIZE = 128;
+  let res = {};
+  for (let i = 0; i < validMarkets.length; i += BATCH_SIZE) {
+    const batch = validMarkets.slice(i, i + BATCH_SIZE);
+    const queryBody = batch.map((addr) => marketFeesQuery(addr)).join('');
+    if (!queryBody) continue;
+    const batchRes = await request(
+      SUBGRAPH_URL[chain],
+      gql`query M {
       ${queryBody}
     }`
-      )
-    : {};
+    );
+    Object.assign(res, batchRes);
+  }
 
   const tickers = (
     await fetch(TICKERS_URL[chain]).then((r) => r.json())

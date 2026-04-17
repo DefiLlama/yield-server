@@ -4,6 +4,7 @@ const utils = require('../utils');
 
 const chains = {
   polygon: {
+    chainId: 137,
     gns: '0xE5417Af564e4bFDA1c483642db72007871397896',
     staking: '0x8C74B2256fFb6705F14aDA8E86FBd654e0e2BECa',
     vaults: [
@@ -20,6 +21,7 @@ const chains = {
     ],
   },
   arbitrum: {
+    chainId: 42161,
     gns: '0x18c11FD286C5EC11c3b683Caa813B77f5163A122',
     staking: '0x7edDE7e5900633F698EaB0Dbc97DE640fC5dC015',
     vaults: [
@@ -36,6 +38,7 @@ const chains = {
     ],
   },
   base: {
+    chainId: 8453,
     gns: '0xFB1Aaba03c31EA98A3eEC7591808AcB1947ee7Ac',
     staking: '0x28efAa11199DAF45AA8fBf95f920e5bc090DCbF3',
     vaults: [
@@ -54,7 +57,9 @@ const getApy = async () => {
       try {
         const y = chains[chain];
         const data = (
-          await axios.get(`https://backend-${chain}.gains.trade/apr`)
+          await axios.get(
+            `https://backend-global.gains.trade/api/apr?chainId=${y.chainId}`
+          )
         ).data;
         const priceKeys = [y.gns, ...y.vaults.map((i) => i.underlying)].map(
           (i) => `${chain}:${i}`

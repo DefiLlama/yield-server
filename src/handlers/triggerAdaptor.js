@@ -7,6 +7,7 @@ const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
+const { upsertAdapterStats } = require('../queries/adapterStats');
 const { getYieldProject, buildInsertYieldQuery } = require('../queries/yield');
 const {
   getConfigProject,
@@ -18,27 +19,59 @@ module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
   console.log(event);
 
-  // We return failed msg ids,
-  // so that only failed messages will be retried by SQS in case of min of 1 error init batch
-  // https://www.serverless.com/blog/improved-sqs-batch-error-handling-with-aws-lambda
-  const failedMessageIds = [];
-
   for (const record of event.Records) {
+    const startedAt = new Date();
+    let body;
     try {
-      const body = JSON.parse(record.body);
+      body = JSON.parse(record.body);
       await main(body);
+      const finishedAt = new Date();
+      await recordAdapterStats({
+        adapter: body.adaptor,
+        finishedAt,
+        durationMs: finishedAt - startedAt,
+        status: 'success',
+      });
     } catch (err) {
+      const finishedAt = new Date();
       console.log(err);
-      failedMessageIds.push(record.messageId);
+      await recordAdapterStats({
+        adapter: body?.adaptor,
+        finishedAt,
+        durationMs: finishedAt - startedAt,
+        status: 'error',
+        error: formatErrorForStorage(err),
+      });
     }
   }
-  return {
-    batchItemFailures: failedMessageIds.map((id) => {
-      return {
-        itemIdentifier: id,
-      };
-    }),
-  };
+};
+
+const recordAdapterStats = async ({
+  adapter,
+  finishedAt,
+  durationMs,
+  status,
+  error = null,
+}) => {
+  if (!adapter) return;
+
+  try {
+    await upsertAdapterStats({
+      adapter,
+      last_run_at: finishedAt,
+      last_duration_ms: durationMs,
+      last_status: status,
+      last_error: error,
+    });
+  } catch (runtimeErr) {
+    console.log('failed to update adapter stats');
+    console.log(runtimeErr);
+  }
+};
+
+const formatErrorForStorage = (err) => {
+  const message = err?.stack ?? err?.message ?? String(err);
+  return message.slice(0, 4000);
 };
 
 // func for running adaptor, storing result to db
@@ -382,9 +415,8 @@ const main = async (body) => {
         ? p.rewardTokens.filter(Boolean)
         : null,
       searchTokenOverride: p.searchTokenOverride || null,
-      token: ('token' in p)
-        ? (p.token || null)
-        : (extractTokenFromPoolId(p.pool) || null),
+      token:
+        'token' in p ? p.token || null : extractTokenFromPoolId(p.pool) || null,
     };
   });
 
@@ -521,6 +553,6 @@ const insertConfigYieldTransaction = async (payload) => {
     .catch((err) => {
       // failure, ROLLBACK was executed
       console.log(err);
-      return new AppError('ConfigYield Transaction failed, rolling back', 404);
+      throw new AppError('ConfigYield Transaction failed, rolling back', 404);
     });
 };
