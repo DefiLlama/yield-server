@@ -18,9 +18,8 @@ const cliffCount = 1000; // 1,000 cliffs
 const maxSupply = 100000000; // * 1e18; //100 mil max supply
 const projectedAprTvlThr = 1e6;
 
-let extraRewardsPrices = {};
-
 const main = async () => {
+  const extraRewardsPrices = {};
   const [
     { apys: curveApys },
     { data: gauges },
@@ -262,14 +261,14 @@ const main = async () => {
     })
   ).output.map((o) => o.output);
 
-  const extraTargets = extraRewardPoolAddresses.map(
-    (addr) => addr || '0x0000000000000000000000000000000000000000'
-  );
-  const [extraPeriodFinish, extraRewardRates, extraRewardTokens] = await Promise.all(
+  const validExtras = extraRewardPoolAddresses
+    .map((addr, i) => (addr ? { addr, i } : null))
+    .filter(Boolean);
+  const [extraPfOut, extraRrOut, extraRtOut] = await Promise.all(
     ['periodFinish', 'rewardRate', 'rewardToken'].map((method) =>
       sdk.api.abi
         .multiCall({
-          calls: extraTargets.map((target) => ({ target })),
+          calls: validExtras.map(({ addr }) => ({ target: addr })),
           abi: baseRewardPoolAbi.find((x) => x.name === method),
           chain: 'ethereum',
           requery: true,
@@ -277,6 +276,14 @@ const main = async () => {
         .then((r) => r.output.map((o) => o.output))
     )
   );
+  const extraPeriodFinish = new Array(extraRewardPoolAddresses.length).fill(null);
+  const extraRewardRates = new Array(extraRewardPoolAddresses.length).fill(null);
+  const extraRewardTokens = new Array(extraRewardPoolAddresses.length).fill(null);
+  validExtras.forEach(({ i }, j) => {
+    extraPeriodFinish[i] = extraPfOut[j];
+    extraRewardRates[i] = extraRrOut[j];
+    extraRewardTokens[i] = extraRtOut[j];
+  });
 
   const uniqueExtraTokens = [
     ...new Set(extraRewardTokens.filter(Boolean).map((t) => t.toLowerCase())),
