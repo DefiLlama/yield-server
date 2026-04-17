@@ -2065,6 +2065,7 @@ const excludePools = [
   'ekubo-usn-usdc',
   'ekubo-usdc.e-usdt',
   'ekubo-strk-usdc.e',
+  '0x9e4150798b4d4532564ff00ea3c9d91142534e13-Berachain',
 ];
 
 const boundaries = {
