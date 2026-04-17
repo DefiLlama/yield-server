@@ -329,7 +329,10 @@ const getApys = async () => {
     })
   );
 
-  return await addMerklRewardApy(chainResults.flat(), 'euler');
+  return await addMerklRewardApy(chainResults.flat(), 'euler', (p) => {
+    const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
+    return match ? match[0] : p.pool;
+  });
 };
 
 module.exports = {
@@ -687,7 +690,10 @@ const getApys = async () => {
     })
   );
 
-  return await addMerklRewardApy(chainResults.flat(), 'euler');
+  return await addMerklRewardApy(chainResults.flat(), 'euler', (p) => {
+    const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
+    return match ? match[0] : p.pool;
+  });
 };
 
 module.exports = {

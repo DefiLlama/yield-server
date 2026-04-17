@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
 const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
 const gaugeABIPolygon = require('./abis/gauge_polygon.json');
@@ -593,11 +594,13 @@ const main = async () => {
     ),
   ]);
 
-  return data
+  const pools = data
     .filter((i) => i.status === 'fulfilled')
     .map((i) => i.value)
     .flat()
     .filter((p) => utils.keepFinite(p) && !excludePools.includes(p.pool));
+
+  return addMerklRewardApy(pools, 'balancer', (p) => p.pool.slice(0, 42));
 };
 
 module.exports = {

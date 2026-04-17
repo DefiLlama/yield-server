@@ -1,5 +1,6 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const PROJECT = 'hyperswap-v2';
 const CHAIN = 'hyperevm';
@@ -187,7 +188,7 @@ async function apy() {
       })
       .filter((pool) => pool !== null);
 
-    return formattedPools.filter((p) => utils.keepFinite(p));
+    return addMerklRewardApy(formattedPools.filter((p) => utils.keepFinite(p)), 'hyperswap');
   } catch (error) {
     console.error('Error in HyperSwap V2 adapter:', error);
     throw error;
