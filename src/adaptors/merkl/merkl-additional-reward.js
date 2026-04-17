@@ -10,8 +10,16 @@ const getChainAliases = (canonical) =>
 // lists sUSDp in tokens[] and would otherwise be miscredited to sUSDp
 // suppliers as apyReward.
 const BORROW_SIDE_TYPES = new Set([
+  'AAVE_BORROW',
   'AAVE_BORROWING',
+  'AAVE_NET_BORROWING',
+  'FLUIDVAULT_BORROW',
+  'FLUIDVAULT_COLLATERAL',
+  'MORPHOBORROW',
+  'MORPHOBORROW_SINGLETOKEN',
+  'MORPHOCOLLATERAL',
   'MULTILOG_DUTCH',
+  'TOWNSQUARE_COLLATERAL',
 ]);
 
 exports.addMerklRewardApy = async (
