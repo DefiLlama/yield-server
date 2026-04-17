@@ -60,7 +60,6 @@ functions:
               - AdapterQueue
               - Arn
           batchSize: 4
-          functionResponseType: ReportBatchItemFailures
     environment:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       ALCHEMY_CONNECTION_ETHEREUM: ${file(./env.js):ALCHEMY_CONNECTION_ETHEREUM}
@@ -216,55 +215,12 @@ resources:
         VisibilityTimeout: 960
         # setting this to 9hours
         MessageRetentionPeriod: 32400
-        RedrivePolicy:
-          deadLetterTargetArn:
-            Fn::GetAtt:
-              - DeadLetterQueue
-              - Arn
-          # this params is requried, otherwise cloudformation error
-          # means that after 3 failed runs, the message will be moved from the adaptor queue
-          # to the DLQ
-          maxReceiveCount: 3
-
-    # --- DLQ
-    DeadLetterQueue:
-      Type: AWS::SQS::Queue
-      Properties:
-        QueueName: ${self:service}-${self:custom.stage}-DeadLetterQueue
-        # leaving this at max, 14days, after that msg in there will be deleted
-        MessageRetentionPeriod: 1209600
 
     # --- create bucket
     BucketData:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:service}-${self:custom.stage}-data
-
-    # --- alarm stuff for DLQ
-    DlqAlarm:
-      Type: AWS::CloudWatch::Alarm
-      Properties:
-        AlarmName: ${self:service}-${self:custom.stage}-AdapterDLQ
-        AlarmDescription: There are failed messages in the dead letter queue.
-        Namespace: AWS/SQS
-        MetricName: ApproximateNumberOfMessagesVisible
-        Dimensions:
-          - Name: QueueName
-            Value: !GetAtt DeadLetterQueue.QueueName
-        Statistic: Sum
-        Period: 60
-        EvaluationPeriods: 1
-        Threshold: 0
-        ComparisonOperator: GreaterThanThreshold
-        AlarmActions:
-          - !Ref DlqAlarmEmail
-
-    DlqAlarmEmail:
-      Type: AWS::SNS::Topic
-      Properties:
-        Subscription:
-          - Endpoint: slasher125@protonmail.com
-            Protocol: email
 
 custom:
   stage: ${opt:stage, self:provider.stage}
