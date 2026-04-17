@@ -1,5 +1,18 @@
-const { networks } = require('./config');
+const { networks, chainAliases } = require('./config');
 const { getData } = require('../utils');
+
+const getChainAliases = (canonical) =>
+  chainAliases[canonical] || [canonical];
+
+// Opportunity types whose `tokens[]` array lists collateral or debt assets
+// rather than the rewarded supply asset. Token-address fallback must not
+// index these — e.g. a "Borrow USDT using sUSDp as collateral" campaign
+// lists sUSDp in tokens[] and would otherwise be miscredited to sUSDp
+// suppliers as apyReward.
+const BORROW_SIDE_TYPES = new Set([
+  'AAVE_BORROWING',
+  'MULTILOG_DUTCH',
+]);
 
 exports.addMerklRewardApy = async (
   pools,
@@ -27,16 +40,40 @@ exports.addMerklRewardApy = async (
       pageI++;
     }
 
+    const merklPoolsMap = {};
+    for (const canonical of Object.values(networks)) {
+      for (const alias of getChainAliases(canonical)) {
+        merklPoolsMap[alias] = {};
+      }
+    }
 
-    const merklPoolsMap = Object.fromEntries(Object.keys(networks).map(id => [networks[id], {}]));
     merklPools.forEach(pool => {
-      if (!networks[pool.chainId]) {
+      const canonical = networks[pool.chainId];
+      if (!canonical) {
         return;
       }
 
-      merklPoolsMap[networks[pool.chainId]][pool.identifier.toLowerCase()] = {
+      const entry = {
         apyReward: pool.apr,
         rewardTokens: [...new Set(pool.rewardsRecord?.breakdowns.map(x => x.token.address) || [])]
+      };
+      const id = pool.identifier.toLowerCase();
+      // Also index under each token address so adapters keying on a
+      // receipt/wrapper token (e.g. an aToken or vault share) can match
+      // an opportunity whose primary identifier is the underlying market.
+      // Skipped for borrow-side types where tokens[] lists collateral.
+      const tokenAddrs = BORROW_SIDE_TYPES.has(pool.type)
+        ? []
+        : (pool.tokens || [])
+            .map(t => t?.address?.toLowerCase())
+            .filter(Boolean);
+      for (const alias of getChainAliases(canonical)) {
+        merklPoolsMap[alias][id] = entry;
+        for (const addr of tokenAddrs) {
+          if (!merklPoolsMap[alias][addr]) {
+            merklPoolsMap[alias][addr] = entry;
+          }
+        }
       }
     });
 

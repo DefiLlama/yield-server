@@ -3,37 +3,10 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const poolAbi = require('./poolAbi');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const CHAIN = 'hyperliquid';
 const PROTOCOL_DATA_PROVIDER = '0xa8Ca6a4A485485910aA4023b9963Dfd2f3A5aeb0';
-const MERKL_CHAIN_ID = 999;
-
-const getMerklRewards = async () => {
-  try {
-    const { data } = await axios.get(
-      `https://api.merkl.xyz/v4/opportunities?name=purrlend&chainId=${MERKL_CHAIN_ID}&items=100`
-    );
-    const byIdentifier = {};
-    for (const o of data) {
-      if (o.status !== 'LIVE' || !o.apr) continue;
-      const id = o.identifier.toLowerCase();
-      const rewardTokens =
-        o.rewardsRecord?.breakdowns
-          ?.map((b) => b.token?.address)
-          .filter(Boolean) ||
-        o.tokens?.map((t) => t.address).filter(Boolean) ||
-        [];
-      byIdentifier[id] = {
-        type: o.type,
-        apr: o.apr,
-        rewardTokens: [...new Set(rewardTokens.map((a) => a.toLowerCase()))],
-      };
-    }
-    return byIdentifier;
-  } catch (e) {
-    return {};
-  }
-};
 
 const apy = async () => {
   const reserveTokens = (
@@ -74,6 +47,17 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const reserveTokenAddresses = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: PROTOCOL_DATA_PROVIDER,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveTokensAddresses'),
+      chain: CHAIN,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupply = (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
@@ -82,13 +66,12 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
-  const underlyingBalances = (
+  const totalBorrow = (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
-      abi: 'erc20:balanceOf',
-      calls: aTokens.map((t, i) => ({
-        target: reserveTokens[i].tokenAddress,
-        params: [t.tokenAddress],
+      abi: 'erc20:totalSupply',
+      calls: reserveTokenAddresses.map((a) => ({
+        target: a.variableDebtTokenAddress,
       })),
     })
   ).output.map((o) => o.output);
@@ -108,9 +91,7 @@ const apy = async () => {
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
 
-  const merklRewards = await getMerklRewards();
-
-  return reserveTokens
+  const pools = reserveTokens
     .map((pool, i) => {
       const frozen = poolsReservesConfigurationData[i].isFrozen;
       if (frozen) return null;
@@ -119,55 +100,34 @@ const apy = async () => {
       const price = prices[`${CHAIN}:${pool.tokenAddress}`]?.price;
       if (!price) return null;
 
-      const supply = totalSupply[i];
       const totalSupplyUsd =
-        (supply / 10 ** underlyingDecimals[i]) * price;
-
-      const currentSupply = underlyingBalances[i];
-      const tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
-      const totalBorrowUsd = totalSupplyUsd - tvlUsd;
-
-      const aTokenAddress = aTokens[i].tokenAddress.toLowerCase();
-      const underlyingAddress = pool.tokenAddress.toLowerCase();
-
-      const supplyReward = merklRewards[aTokenAddress];
-      const borrowReward = merklRewards[underlyingAddress];
-
-      const apyReward =
-        supplyReward && supplyReward.type === 'AAVE_SUPPLY'
-          ? supplyReward.apr
-          : undefined;
-      const apyRewardBorrow =
-        borrowReward && borrowReward.type !== 'AAVE_SUPPLY'
-          ? borrowReward.apr
-          : undefined;
-
-      const rewardTokens = [
-        ...(supplyReward?.rewardTokens || []),
-        ...(borrowReward?.rewardTokens || []),
-      ];
+        (totalSupply[i] / 10 ** underlyingDecimals[i]) * price;
+      const totalBorrowUsd =
+        (totalBorrow[i] / 10 ** underlyingDecimals[i]) * price;
+      const tvlUsd = totalSupplyUsd - totalBorrowUsd;
 
       return {
-        pool: `${aTokenAddress}-${CHAIN}`.toLowerCase(),
+        pool: `${aTokens[i].tokenAddress}-${CHAIN}`.toLowerCase(),
         chain: CHAIN,
         project: 'purrlend',
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (p.liquidityRate / 10 ** 27) * 100,
-        apyReward,
         underlyingTokens: [pool.tokenAddress],
-        rewardTokens: rewardTokens.length ? [...new Set(rewardTokens)] : undefined,
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-        apyRewardBorrow,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
-        url: `https://app.purrlend.io/reserve-overview/?underlyingAsset=${underlyingAddress}`,
+        url: `https://app.purrlend.io/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}`,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
       };
     })
     .filter(Boolean)
     .filter((p) => utils.keepFinite(p));
+
+  // Merkl AAVE_SUPPLY campaigns use the aToken address as identifier,
+  // so match by stripping the chain suffix from our pool id.
+  return addMerklRewardApy(pools, 'purrlend', (p) => p.pool.split(`-${CHAIN}`)[0]);
 };
 
 module.exports = {
