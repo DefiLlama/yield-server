@@ -10,43 +10,8 @@ const abis = {
     loan: 'function loan() view returns (tuple(uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256))',
 }
 
-const LOAN_ADDRESSES = {
-    monad: [
-        '0xB52fB6B4FdA374859A21988Ed48bF0DdC8d95e30', // AUSD Tauri
-    ],
-    ethereum: [
-        '0x93F0b21693Bf992417317B4074Af4eE10d4E7D3a', // AUSD Tauri
-    ],
-}
-
-const ADDRESS_TO_SYMBOL = {
-    '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a': 'AUSD',
-}
-
-const CHAIN_TO_ID = {
-    monad: 143,
-    ethereum: 1,
-}
-
 const basisPointsToPercent = (value) => Number(value) / 1e4;
 const formatAmount = (value, decimals = 18) => (value == null ? null : Number(value) / 10 ** decimals);
-
-
-async function getAddresses(loanAddresses, chain) {
-    const [vaults, assets, feeManagers] = await Promise.all([abis.vault, abis.asset, abis.feeManager].map(abi =>
-        sdk.api.abi.multiCall({
-            abi: abi,
-            calls: loanAddresses.map(loanAddress => ({ target: loanAddress })),
-            chain: chain
-        })
-    ))
-    return loanAddresses.map((_, i) => ({
-        vault: vaults.output[i].output,
-        asset: assets.output[i].output,
-        feeManager: feeManagers.output[i].output,
-    }))
-}
-
 
 async function getRawApy(loanAddresses, chain) {
     const loans = await sdk.api.abi.multiCall({
@@ -91,27 +56,38 @@ async function getTVLAndBorrow(vaults, underlyings, chain) {
 
 const apy = async () => {
     const pools = [];
+    const vaultData = await fetch("https://www.travessiacredit.com/api/vaults").then(r => r.json());
 
-    const chains = Object.keys(LOAN_ADDRESSES);
+    const chains = [...new Set(vaultData.map(v => v.chainName).filter(Boolean))];
+
     for (const chain of chains) {
-        const addresses = await getAddresses(LOAN_ADDRESSES[chain], chain);
-        const rawApy = await getRawApy(LOAN_ADDRESSES[chain], chain);
-        const performanceFees = await getPerformanceFee(addresses.map(a => a.feeManager), LOAN_ADDRESSES[chain], chain);
+        const chainId = vaultData.find(v => v.chainName === chain).chainId;
+        const addresses = vaultData.filter(v => v.chainName === chain).map(v => {
+            return {
+                vault: v.vaultAddress,
+                feeManager: v.feeManagerAddress,
+                asset: v.depositTokenAddress,
+                loan: v.loanAddress,
+            }
+        });
+        const symbols = vaultData.filter(v => v.chainName === chain).map(v => v.depositSymbol);
+        const rawApy = await getRawApy(addresses.map(a => a.loan), chain);
+        const performanceFees = await getPerformanceFee(addresses.map(a => a.feeManager), addresses.map(a => a.loan), chain);
         const tvlAndBorrow = await getTVLAndBorrow(addresses.map(a => a.vault), addresses.map(a => a.asset), chain);
 
         for (let i = 0; i < addresses.length; i++) {
             pools.push({
                 pool: `${addresses[i].vault}-${chain}`.toLowerCase(),
-                chain: chain,
+                chain: utils.formatChain(chain),
                 project: 'travessia',
-                symbol: ADDRESS_TO_SYMBOL[addresses[i].asset],
+                symbol: utils.formatSymbol(symbols[i]),
                 underlyingTokens: [addresses[i].asset],
                 tvlUsd: formatAmount(tvlAndBorrow[i].tvl, 6),
                 totalBorrowUsd: formatAmount(tvlAndBorrow[i].totalBorrowed, 6),
                 apyBase: (Number(rawApy[i]) * (1 - Number(performanceFees[i]) / 1e6)) / 1e4,
                 apyReward: 0,
                 rewardTokens: [],
-                url: `https://www.travessiacredit.com/vaults/${CHAIN_TO_ID[chain]}/tauri/${addresses[i].vault}`,
+                url: `https://www.travessiacredit.com/vaults/${chainId}/tauri/${addresses[i].vault}`,
             });
         }
     }
@@ -122,4 +98,5 @@ const apy = async () => {
 module.exports = {
     timetravel: false,
     apy,
+    url: "https://www.travessiacredit.com",
 };
