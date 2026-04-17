@@ -99,6 +99,28 @@ functions:
       # every hour at 16 past
       - schedule: cron(16 * * * ? *)
 
+  triggerTokenMetadata:
+    handler: src/handlers/triggerTokenMetadata.handler
+    description: Lambda which fetches token name, symbol and decimals
+    timeout: 900
+    events:
+      # every new hour
+      - schedule: cron(0 * * * ? *)
+    environment:
+      ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
+      XDAI_RPC: ${file(./env.js):XDAI_RPC}
+      CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
+      FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
+      OPTIMISM_RPC: ${file(./env.js):OPTIMISM_RPC}
+      AVAX_RPC: ${file(./env.js):AVAX_RPC}
+      ARBITRUM_RPC: ${file(./env.js):ARBITRUM_RPC}
+      BASE_RPC: ${file(./env.js):BASE_RPC}
+      TRON_RPC: ${file(./env.js):TRON_RPC}
+      HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
+      PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
+      STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
+      MONAD_RPC: ${file(./env.js):MONAD_RPC}
+
   # --- stats update
   triggerStat:
     handler: src/handlers/triggerStat.handler
