@@ -72,14 +72,31 @@ exports.addMerklRewardApy = async (
       // Skipped for borrow-side types where tokens[] lists collateral.
       const tokenAddrs = BORROW_SIDE_TYPES.has(pool.type)
         ? []
-        : (pool.tokens || [])
-            .map(t => t?.address?.toLowerCase())
-            .filter(Boolean);
+        : [...new Set(
+            (pool.tokens || [])
+              .map(t => t?.address?.toLowerCase())
+              .filter(Boolean),
+          )];
       for (const alias of getChainAliases(canonical)) {
         merklPoolsMap[alias][id] = entry;
         for (const addr of tokenAddrs) {
-          if (!merklPoolsMap[alias][addr]) {
+          const existing = merklPoolsMap[alias][addr];
+          if (!existing) {
             merklPoolsMap[alias][addr] = entry;
+          } else if (existing !== entry) {
+            // Multiple Merkl campaigns share this token address (e.g. a
+            // supply + boost pair on the same pool). Combine APRs and
+            // union reward tokens so no campaign silently wins the
+            // fallback match.
+            merklPoolsMap[alias][addr] = {
+              apyReward: (existing.apyReward || 0) + (entry.apyReward || 0),
+              rewardTokens: [
+                ...new Set([
+                  ...(existing.rewardTokens || []),
+                  ...(entry.rewardTokens || []),
+                ]),
+              ],
+            };
           }
         }
       }
