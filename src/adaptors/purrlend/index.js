@@ -71,7 +71,9 @@ const apy = async () => {
       chain: CHAIN,
       abi: 'erc20:totalSupply',
       calls: reserveTokenAddresses.map((a) => ({
-        target: a.variableDebtTokenAddress,
+        target:
+          a?.variableDebtTokenAddress ??
+          '0x0000000000000000000000000000000000000000',
       })),
     })
   ).output.map((o) => o.output);
@@ -93,10 +95,14 @@ const apy = async () => {
 
   const pools = reserveTokens
     .map((pool, i) => {
-      const frozen = poolsReservesConfigurationData[i].isFrozen;
-      if (frozen) return null;
-
+      const config = poolsReservesConfigurationData[i];
       const p = poolsReserveData[i];
+      const tokenAddrs = reserveTokenAddresses[i];
+      if (!config || !p || !tokenAddrs) return null;
+      if (totalSupply[i] == null || totalBorrow[i] == null) return null;
+
+      if (config.isFrozen) return null;
+
       const price = prices[`${CHAIN}:${pool.tokenAddress}`]?.price;
       if (!price) return null;
 
@@ -117,9 +123,9 @@ const apy = async () => {
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-        ltv: poolsReservesConfigurationData[i].ltv / 10000,
+        ltv: config.ltv / 10000,
         url: `https://app.purrlend.io/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}`,
-        borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        borrowable: config.borrowingEnabled,
       };
     })
     .filter(Boolean)
