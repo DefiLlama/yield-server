@@ -1,13 +1,12 @@
 const { default: axios } = require('axios');
 
 const API_BASE_URL = 'https://api.defindex.io';
-const DISCOVER_URL = `${API_BASE_URL}/vault/discover?network=mainnet`;
 const STELLAR_DECIMALS = 7;
+const START_TIMESTAMP = 1747281600;
 
 async function fetchCoinData(assets) {
   const keys = assets.map(a => `stellar:${a.toLowerCase()}`).join(',');
   const { data } = await axios.get(`https://coins.llama.fi/prices/current/${keys}`);
-  // Returns { address_lower: { price, symbol, decimals, ... } }
   return Object.entries(data.coins ?? {}).reduce((acc, [key, coin]) => {
     const address = key.split(':')[1];
     acc[address] = {
@@ -19,47 +18,43 @@ async function fetchCoinData(assets) {
   }, {});
 }
 
-async function apy() {
-  const { data } = await axios.get(DISCOVER_URL);
-  const vaults = (data?.vaults ?? []).filter(
-    v => v.apy != null && v.totalManagedFunds?.length > 0
+async function apy(timestamp = null) {
+  const ts = timestamp ?? Math.floor(Date.now() / 1000);
+
+  const { data: strategies } = await axios.get(
+    `${API_BASE_URL}/strategies/apy?timestamp=${ts}&network=mainnet`,
   );
 
-  if (vaults.length === 0) return [];
+  if (!strategies.length) return [];
 
-  const allAssets = [...new Set(vaults.flatMap(v => v.totalManagedFunds.map(f => f.asset)))];
+  const allAssets = [...new Set(strategies.map(s => s.asset))];
   const coinData = await fetchCoinData(allAssets);
 
-  return vaults.map(vault => {
-    const underlyingTokens = vault.totalManagedFunds.map(f => f.asset);
+  return strategies.flatMap(strategy => {
+    const coin = coinData[strategy.asset.toLowerCase()];
+    const decimals = coin?.decimals ?? strategy.assetDecimals ?? STELLAR_DECIMALS;
+    const price = coin?.price ?? 0;
+    const tvlUsd = Math.max(0, (Number(strategy.tvl) / 10 ** decimals) * price);
+    if (tvlUsd < 1) return [];
 
-    const tvlUsd = vault.totalManagedFunds.reduce((sum, fund) => {
-      const coin = coinData[fund.asset.toLowerCase()];
-      const price = coin?.price ?? 0;
-      const decimals = coin?.decimals ?? STELLAR_DECIMALS;
-      const amount = Number(fund.total_amount) / 10 ** decimals;
-      return sum + amount * price;
-    }, 0);
+    const symbol = coin?.symbol ?? strategy.assetSymbol ?? strategy.asset.slice(0, 6);
 
-    const symbol = vault.totalManagedFunds
-      .map(f => coinData[f.asset.toLowerCase()]?.symbol ?? f.asset.slice(0, 6))
-      .join('-');
-
-    return {
-      pool: `${vault.address}-stellar`.toLowerCase(),
+    return [{
+      pool: `${strategy.address}-stellar`.toLowerCase(),
       chain: 'Stellar',
       project: 'defindex',
       symbol,
       tvlUsd,
-      apyBase: vault.apy,
-      underlyingTokens,
-      url: `${API_BASE_URL}/vault/${vault.address}`,
-    };
+      apyBase: strategy.apy7d,
+      underlyingTokens: [strategy.asset],
+      url: `https://stellar.expert/explorer/public/contract/${strategy.address}`,
+    }];
   });
 }
 
 module.exports = {
-  timetravel: false,
+  timetravel: true,
+  start: START_TIMESTAMP,
   apy,
-  url: API_BASE_URL,
+  url: "https://www.defindex.io/strategies",
 };
