@@ -35,18 +35,12 @@ jobs:
 
           for i in $(echo $RUN_FILES | tr  -d '"[]' | tr "," "\n")
           do
-            {
-              npm run test --adapter=${i} 2>&1 | tee output.txt
-              node ${{ github.workspace }}/.github/workflows/commentResult.js ${{ github.workspace }}/output.txt ${{ github.workspace }}/pr-comments ${i}
-              if grep -qE "PASS\s+.*test\.js" output.txt; then
-                exit 0;
-              else
-                exit 1;
-              fi
-            } || {
-              echo -n $i
-              echo ' doesnt run'
-            }
+            npm run test --adapter=${i} 2>&1 | tee output.txt
+            node ${{ github.workspace }}/.github/workflows/commentResult.js /home/runner/work/yield-server/yield-server/output.txt "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.number }}" ${i}
+            if ! grep -q "PASS src/adaptors/test.js" output.txt; then
+              echo "${i} doesnt run"
+              exit 1
+            fi
           done
 
       - name: Upload PR comments artifact
