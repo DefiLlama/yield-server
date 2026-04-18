@@ -1,4 +1,5 @@
 const { default: axios } = require('axios');
+const utils = require('../utils');
 
 const API_BASE_URL = 'https://api.defindex.io';
 const STELLAR_DECIMALS = 7;
@@ -49,7 +50,7 @@ async function apy(timestamp = null) {
       underlyingTokens: [strategy.asset],
       url: `https://stellar.expert/explorer/public/contract/${strategy.address}`,
     }];
-  });
+  }).filter(p => utils.keepFinite(p));
 }
 
 module.exports = {
