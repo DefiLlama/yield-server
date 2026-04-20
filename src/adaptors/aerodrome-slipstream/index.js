@@ -18,32 +18,18 @@ const SUBGRAPH = sdk.graph.modifyEndpoint('GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr
 
 const tickWidthMappings = {1: 5, 50: 5, 100: 15, 200: 10, 2000: 2};
 
-// Fetch gauge fees for all CL pools at a historical block, keyed by lp address
+// Fetch gauge fees for all CL pools at a historical block, keyed by lp address.
+// Reuses the shared pagination helper defined below.
 async function fetchPoolFeesAtBlock(blockNumber) {
-  const chunkSize = 400;
-  let currentOffset = 1650;
-  let unfinished = true;
+  const raw = await paginatePools(blockNumber);
   const fees = {};
-  while (unfinished) {
-    const chunk = (
-      await sdk.api.abi.call({
-        target: sugar,
-        params: [chunkSize, currentOffset],
-        abi: abiSugar.find((m) => m.name === 'all'),
-        chain: 'base',
-        block: blockNumber,
-      })
-    ).output;
-    for (const p of chunk.filter(t => Number(t.type) > 0 && t.gauge != nullAddress)) {
-      fees[p.lp.toLowerCase()] = {
-        token0_fees: p.token0_fees,
-        token1_fees: p.token1_fees,
-        liquidity: p.liquidity,
-        gauge_liquidity: p.gauge_liquidity,
-      };
-    }
-    unfinished = chunk.length !== 0;
-    currentOffset += chunkSize;
+  for (const p of raw.filter((t) => Number(t.type) > 0 && t.gauge != nullAddress)) {
+    fees[p.lp.toLowerCase()] = {
+      token0_fees: p.token0_fees,
+      token1_fees: p.token1_fees,
+      liquidity: p.liquidity,
+      gauge_liquidity: p.gauge_liquidity,
+    };
   }
   return fees;
 }
@@ -141,47 +127,59 @@ async function getPoolVolumes(timestamp = null) {
   return pools;
 }
 
-const getGaugeApy = async () => {
-  const chunkSize = 400;
-  let currentOffset = 1650; // Ignore older non-Slipstream pools
-  let unfinished = true;
-  let allPoolsData = [];
+const CHUNK_SIZE = 400;
+const POOLS_START_OFFSET = 1650; // Ignore older non-Slipstream pools
 
-  while (unfinished) {
-    const poolsChunkUnfiltered = (
+// Paginate sugar.all until an empty chunk is returned. Runs chunks sequentially
+// because the end offset isn't known in advance.
+async function paginatePools(block = undefined, startOffset = POOLS_START_OFFSET) {
+  const all = [];
+  let offset = startOffset;
+  while (true) {
+    const chunk = (
       await sdk.api.abi.call({
         target: sugar,
-        params: [chunkSize, currentOffset],
+        params: [CHUNK_SIZE, offset],
         abi: abiSugar.find((m) => m.name === 'all'),
         chain: 'base',
+        block,
       })
     ).output;
-    
-    const poolsChunk = poolsChunkUnfiltered.filter(t => Number(t.type) > 0 && t.gauge != nullAddress);
-
-    unfinished = poolsChunkUnfiltered.length !== 0;
-    currentOffset += chunkSize;
-    allPoolsData.push(...poolsChunk);
+    all.push(...chunk);
+    if (chunk.length === 0) break;
+    offset += CHUNK_SIZE;
   }
+  return all;
+}
 
-  unfinished = true;
-  currentOffset = 0;
-  let allTokenData = [];
-
-  while (unfinished) {
-    const tokensChunk = (
+async function paginateTokens() {
+  const all = [];
+  let offset = 0;
+  while (true) {
+    const chunk = (
       await sdk.api.abi.call({
         target: sugar,
-        params: [chunkSize, currentOffset, sugar, []],
+        params: [CHUNK_SIZE, offset, sugar, []],
         abi: abiSugar.find((m) => m.name === 'tokens'),
         chain: 'base',
       })
     ).output;
-
-    unfinished = tokensChunk.length !== 0;
-    currentOffset += chunkSize;
-    allTokenData.push(...tokensChunk);
+    if (chunk.length === 0) break;
+    all.push(...chunk);
+    offset += CHUNK_SIZE;
   }
+  return all;
+}
+
+const getGaugeApy = async () => {
+  // pool enum and token enum are independent — run in parallel.
+  const [allPoolsRaw, allTokenData] = await Promise.all([
+    paginatePools(),
+    paginateTokens(),
+  ]);
+  const allPoolsData = allPoolsRaw.filter(
+    (t) => Number(t.type) > 0 && t.gauge != nullAddress
+  );
 
   const tokens = [
     ...new Set(
@@ -213,48 +211,55 @@ const getGaugeApy = async () => {
     prices = { ...prices, ...p };
   }
 
-  let allStakedData = [];
-  for (let pool of allPoolsData) {
-    // don't waste RPC calls if gauge has no staked liquidity
-    if (Number(pool.gauge_liquidity) == 0) {
-      allStakedData.push({'amount0': 0, 'amount1': 0});
-      continue;
-    }
+  // Precompute tick bounds; mark pools with zero gauge liquidity as skipped.
+  const ZERO = { amount0: 0, amount1: 0 };
+  const bounds = allPoolsData.map((pool) => {
+    if (Number(pool.gauge_liquidity) == 0) return null;
+    const w = tickWidthMappings[Number(pool.type)] !== undefined ? tickWidthMappings[Number(pool.type)] : 5;
+    return {
+      lowTick: Number(pool.tick) - w * Number(pool.type),
+      highTick: Number(pool.tick) + (w - 1) * Number(pool.type),
+    };
+  });
 
-    const wideTickAmount = tickWidthMappings[Number(pool.type)] !== undefined ? tickWidthMappings[Number(pool.type)] : 5;
-    const lowTick = Number(pool.tick) - (wideTickAmount * Number(pool.type));
-    const highTick = Number(pool.tick) + ((wideTickAmount - 1) * Number(pool.type));
+  // Batch 1+2: sqrtRatio at low and high ticks (parallel, permit per-call failure)
+  const sqrtRatioAbi = abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick');
+  const [lowRatios, highRatios] = await Promise.all([
+    sdk.api.abi.multiCall({
+      abi: sqrtRatioAbi,
+      calls: bounds.map((b) => ({ target: sugarHelper, params: b ? [b.lowTick] : [0] })),
+      chain: 'base',
+      permitFailure: true,
+    }),
+    sdk.api.abi.multiCall({
+      abi: sqrtRatioAbi,
+      calls: bounds.map((b) => ({ target: sugarHelper, params: b ? [b.highTick] : [0] })),
+      chain: 'base',
+      permitFailure: true,
+    }),
+  ]);
 
-    const ratioA = (
-      await sdk.api.abi.call({
-        target: sugarHelper,
-        params: [lowTick],
-        abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
-        chain: 'base',
-      })
-    ).output;
+  // Batch 3: amounts for liquidity; only call for pools where both ratios succeeded
+  const amountsAbi = abiSugarHelper.find((m) => m.name === 'getAmountsForLiquidity');
+  const amountsRes = await sdk.api.abi.multiCall({
+    abi: amountsAbi,
+    calls: allPoolsData.map((pool, i) => {
+      const rA = lowRatios.output[i]?.output;
+      const rB = highRatios.output[i]?.output;
+      if (!bounds[i] || rA == null || rB == null) {
+        return { target: sugarHelper, params: [0, 0, 0, 0] };
+      }
+      return { target: sugarHelper, params: [pool.sqrt_ratio, rA, rB, pool.gauge_liquidity] };
+    }),
+    chain: 'base',
+    permitFailure: true,
+  });
 
-    const ratioB = (
-      await sdk.api.abi.call({
-        target: sugarHelper,
-        params: [highTick],
-        abi: abiSugarHelper.find((m) => m.name === 'getSqrtRatioAtTick'),
-        chain: 'base',
-      })
-    ).output;
-
-    // fetch staked liquidity around wide set of ticks
-    const stakedAmounts = (
-      await sdk.api.abi.call({
-        target: sugarHelper,
-        params: [pool.sqrt_ratio, ratioA, ratioB, pool.gauge_liquidity],
-        abi: abiSugarHelper.find((m) => m.name === 'getAmountsForLiquidity'),
-        chain: 'base',
-      })
-    ).output;
-
-    allStakedData.push(stakedAmounts);
-  }
+  const allStakedData = allPoolsData.map((_, i) => {
+    if (!bounds[i]) return ZERO;
+    const out = amountsRes.output[i];
+    return out?.success && out.output ? out.output : ZERO;
+  });
 
   // on-chain fee fallback: fetch historical snapshots for real fee deltas
   const now = Math.floor(Date.now() / 1000);
@@ -263,15 +268,25 @@ const getGaugeApy = async () => {
 
   // previous epoch end = just before current epoch started (full 7d of fees)
   // 24h ago = for 1d delta (only valid if >24h into current epoch)
+  // Both snapshots are independent → fetch in parallel.
   let prevEpochFees = {};
   let fees24hAgo = null;
   try {
     const timestamps = [epochStart - 1];
     if (elapsedSeconds > 86400) timestamps.push(now - 86400);
     const historicalBlocks = await utils.getBlocksByTime(timestamps, CHAIN);
-    prevEpochFees = await fetchPoolFeesAtBlock(historicalBlocks[0]);
-    if (elapsedSeconds > 86400) {
-      fees24hAgo = await fetchPoolFeesAtBlock(historicalBlocks[1]);
+    const fetches = [fetchPoolFeesAtBlock(historicalBlocks[0])];
+    if (elapsedSeconds > 86400) fetches.push(fetchPoolFeesAtBlock(historicalBlocks[1]));
+    const results = await Promise.allSettled(fetches);
+    if (results[0].status === 'fulfilled') {
+      prevEpochFees = results[0].value;
+    } else {
+      console.log('Failed to fetch previous-epoch fee snapshot:', results[0].reason?.message);
+    }
+    if (results[1]?.status === 'fulfilled' && results[1].value) {
+      fees24hAgo = results[1].value;
+    } else if (results[1]?.status === 'rejected') {
+      console.log('Failed to fetch 24h fee snapshot:', results[1].reason?.message);
     }
   } catch (e) {
     console.log('Failed to fetch historical fee data, continuing without on-chain fallback:', e.message);
@@ -293,10 +308,11 @@ const getGaugeApy = async () => {
 
     const s = token0Data.symbol + '-' + token1Data.symbol;
 
-    const apyReward =
-      (((p.emissions / 1e18) * 86400 * 365 * prices[`base:${AERO}`]?.price) /
-        stakedTvlUsd) *
-      100;
+    const apyReward = stakedTvlUsd > 0
+      ? (((p.emissions / 1e18) * 86400 * 365 * prices[`base:${AERO}`]?.price) /
+          stakedTvlUsd) *
+        100
+      : 0;
 
     const url = 'https://aerodrome.finance/deposit?token0=' + p.token0 + '&token1=' + p.token1 + '&type=' + p.type.toString() + '&factory=' + p.factory;
     const poolMeta = 'CL' + p.type.toString() + ' - ' + (p.pool_fee / 10000).toString() + '%';
