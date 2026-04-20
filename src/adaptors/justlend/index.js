@@ -37,10 +37,11 @@ const getApy = async () => {
   for (const batch of chunk(tokensAddress, CONCURRENCY)) {
     marketsData.push(...(await Promise.all(batch.map(getMarketDetails))));
   }
-  const { data: rewards } = await utils.withRetry(() => getRewardApy(marketsData));
+  const { data: rewards } = await utils.withRetry(() =>
+    getRewardApy(marketsData)
+  );
 
   const pools = marketsData.map(({ data: market }) => {
-    console.log(market);
     return {
       pool: market.jtokenAddress,
       chain: utils.formatChain('tron'),
@@ -52,7 +53,11 @@ const getApy = async () => {
         100,
       apyReward: rewards[market.jtokenAddress]['USDDNEW'] * 100,
       rewardTokens: ['TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn'],
-      underlyingTokens: [market.collateralAddress === TRX_NATIVE ? WTRX : market.collateralAddress],
+      underlyingTokens: [
+        market.collateralAddress === TRX_NATIVE
+          ? WTRX
+          : market.collateralAddress,
+      ],
       apyBaseBorrow: market.borrowedAPY * 100,
       totalSupplyUsd: Number(market.depositedUSD),
       totalBorrowUsd: Number(market.borrowedUSD),
