@@ -316,6 +316,13 @@ const excludeAdaptors = [
   'bunni',
   'o3-swap',
   'stables-labs-usdx',
+  'ion-protocol',
+  'openeden-prism',
+  'granary-finance',
+  'basex',
+  'pok-vault',
+  'ion-protocol',
+  'tetu-earn',
 ];
 
 const excludePools = [
