@@ -277,9 +277,17 @@ const getGaugeApy = async () => {
     const historicalBlocks = await utils.getBlocksByTime(timestamps, CHAIN);
     const fetches = [fetchPoolFeesAtBlock(historicalBlocks[0])];
     if (elapsedSeconds > 86400) fetches.push(fetchPoolFeesAtBlock(historicalBlocks[1]));
-    const [prev, day] = await Promise.all(fetches);
-    prevEpochFees = prev;
-    if (day) fees24hAgo = day;
+    const results = await Promise.allSettled(fetches);
+    if (results[0].status === 'fulfilled') {
+      prevEpochFees = results[0].value;
+    } else {
+      console.log('Failed to fetch previous-epoch fee snapshot:', results[0].reason?.message);
+    }
+    if (results[1]?.status === 'fulfilled' && results[1].value) {
+      fees24hAgo = results[1].value;
+    } else if (results[1]?.status === 'rejected') {
+      console.log('Failed to fetch 24h fee snapshot:', results[1].reason?.message);
+    }
   } catch (e) {
     console.log('Failed to fetch historical fee data, continuing without on-chain fallback:', e.message);
   }
