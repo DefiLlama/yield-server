@@ -304,12 +304,13 @@ const buildVaultV2Pools = (earnV2, chain) =>
     });
 
 const fetchChainData = async (chainId) => {
-  const fetchPage = async (query, variables) => {
+  const fetchPage = async (query, variables, key) => {
     try {
       return await request(GRAPH_URL, query, variables);
     } catch (error) {
-      // GraphQL may return partial data alongside errors — surface it
-      if (error.response?.data) return error.response.data;
+      // GraphQL may return partial data alongside errors — surface it only
+      // when the expected key is present; otherwise fail so the chain is skipped.
+      if (error.response?.data?.[key]) return error.response.data;
       throw error;
     }
   };
@@ -318,7 +319,7 @@ const fetchChainData = async (chainId) => {
     const all = [];
     let skip = 0;
     while (true) {
-      const response = await fetchPage(query, { chainId, skip });
+      const response = await fetchPage(query, { chainId, skip }, key);
       const page = response[key];
       if (!page?.items?.length) break;
       all.push(...page.items);
