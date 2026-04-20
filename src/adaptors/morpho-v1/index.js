@@ -328,11 +328,24 @@ const fetchChainData = async (chainId) => {
     return all;
   };
 
-  const [vaults, vaultV2s, markets] = await Promise.all([
+  // Run the three dataset queries independently so a single failure doesn't
+  // discard the successful ones for this chain.
+  const datasets = ['vaults', 'vaultV2s', 'markets'];
+  const results = await Promise.allSettled([
     fetchAll(gqlQueries.metaMorphoVaults, 'vaults'),
     fetchAll(gqlQueries.vaultV2s, 'vaultV2s'),
     fetchAll(gqlQueries.marketsData, 'markets'),
   ]);
+
+  const [vaults, vaultV2s, markets] = results.map((r, i) => {
+    if (r.status === 'rejected') {
+      console.error(
+        `morpho-v1: ${datasets[i]} query failed for chainId ${chainId}: ${r.reason?.message}`
+      );
+      return [];
+    }
+    return r.value;
+  });
 
   return {
     earnV1: vaults.filter((v) => v.state !== null),
