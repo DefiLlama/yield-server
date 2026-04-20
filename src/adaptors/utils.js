@@ -94,6 +94,21 @@ exports.getData = async (url, query = null, headers = {}) => {
   return res.data;
 };
 
+// Retry helper for flaky endpoints. Only retries transient failures
+// (429 + 5xx); permanent 4xx and non-HTTP errors fail fast.
+exports.withRetry = async (fn, { retries = 3, delayMs = 500 } = {}) => {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const status = e.response?.status;
+      const retryable = status === 429 || (status >= 500 && status < 600);
+      if (i === retries || !retryable) throw e;
+      await new Promise((r) => setTimeout(r, delayMs * 2 ** i));
+    }
+  }
+};
+
 // retrive block based on unixTimestamp array
 const getBlocksByTime = async (timestamps, chainString) => {
   const chain = chainString === 'avalanche' ? 'avax' : chainString;
