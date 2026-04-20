@@ -1,11 +1,9 @@
 const axios = require('axios');
 
 const API_BASE = 'https://api.indexer.omnipair.fi/api/v1';
-
-const STABLE_ADDRESSES = new Set([
-  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
-  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', // USDT
-]);
+const MARKETS_URL = 'https://www.omnipair.fi/markets';
+const MARKET_URL_BASE = 'https://www.omnipair.fi/market';
+const DEFILLAMA_PRICES_URL = 'https://coins.llama.fi/prices/current';
 
 function toNumber(value) {
   const n = Number(value);
@@ -50,35 +48,39 @@ function buildSymbol(pool) {
   return 'unknown';
 }
 
-function isStableToken(token) {
-  const address = getAddress(token);
-  const symbol = (getSymbol(token) || '').toUpperCase();
-
-  if (address && STABLE_ADDRESSES.has(address)) return true;
-  if (symbol === 'USDC' || symbol === 'USDT') return true;
-  if (symbol.includes('USD')) return true;
-
-  return false;
+function buildPoolUrl(pairAddress) {
+  return `${MARKET_URL_BASE}/${pairAddress}`;
 }
 
-function seedTokenPrices(rawPools) {
+async function fetchDefiLlamaTokenPrices(rawPools) {
+  const addresses = Array.from(
+    new Set(
+      rawPools.flatMap((pool) => {
+        const token0Address = getAddress(pool.token0);
+        const token1Address = getAddress(pool.token1);
+        return [token0Address, token1Address].filter(Boolean);
+      })
+    )
+  );
+
+  if (!addresses.length) return {};
+
+  const coins = addresses.map((address) => `solana:${address}`).join(',');
+  const { data } = await axios.get(`${DEFILLAMA_PRICES_URL}/${coins}`, {
+    timeout: 30000,
+  });
+
+  const coinsData = data?.coins || {};
   const tokenPrices = {};
 
-  rawPools.forEach((pool) => {
-    const token0 = pool.token0;
-    const token1 = pool.token1;
+  for (const [key, value] of Object.entries(coinsData)) {
+    const address = key.replace(/^solana:/, '');
+    const price = toNumber(value?.price);
 
-    const token0Address = getAddress(token0);
-    const token1Address = getAddress(token1);
-
-    if (token0Address && isStableToken(token0)) {
-      tokenPrices[token0Address] = 1;
+    if (price > 0) {
+      tokenPrices[address] = price;
     }
-
-    if (token1Address && isStableToken(token1)) {
-      tokenPrices[token1Address] = 1;
-    }
-  });
+  }
 
   return tokenPrices;
 }
@@ -148,7 +150,8 @@ const main = async () => {
     throw new Error('Omnipair API returned no parsable pools');
   }
 
-  const tokenPrices = propagateTokenPrices(rawPools, seedTokenPrices(rawPools));
+  const defillamaPrices = await fetchDefiLlamaTokenPrices(rawPools);
+  const tokenPrices = propagateTokenPrices(rawPools, { ...defillamaPrices });
 
   const pools = rawPools
     .map((pool) => {
@@ -168,6 +171,7 @@ const main = async () => {
         tvlUsd: computeTvlUsd(pool, tokenPrices),
         apyBase: pool.apr?.apr == null ? null : toNumber(pool.apr.apr),
         underlyingTokens: [token0Address, token1Address],
+        url: buildPoolUrl(pairAddress),
       };
     })
     .filter(Boolean);
@@ -177,6 +181,6 @@ const main = async () => {
 
 module.exports = {
   timetravel: false,
-  url: 'https://docs.omnipair.fi',
+  url: MARKETS_URL,
   apy: main,
 };
