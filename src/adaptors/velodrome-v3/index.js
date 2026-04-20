@@ -71,6 +71,7 @@ const CHAINS = [
     startOffset: 630, // skip pre-Slipstream pools
     abiAll: abiSugar.find((m) => m.name === 'all'),
     allParams: (limit, offset) => [limit, offset],
+    poolSuffix: '', // preserve historical bare-address pool IDs
   },
   {
     chain: 'ink',
@@ -83,11 +84,12 @@ const CHAINS = [
     startOffset: 0,
     abiAll: abiAllV3,
     allParams: (limit, offset) => [limit, offset, 0],
+    poolSuffix: '-ink',
   },
 ];
 
 async function getApyForChain(cfg) {
-  const { chain, sugar, tokenSugar, sugarHelper, velo, veloPriceKey, startOffset, abiAll, allParams } = cfg;
+  const { chain, sugar, tokenSugar, sugarHelper, velo, veloPriceKey, startOffset, abiAll, allParams, poolSuffix } = cfg;
 
   const allPoolsData = [];
   let offset = startOffset;
@@ -218,47 +220,24 @@ async function getApyForChain(cfg) {
 
     const p0 = prices[`${chain}:${p.token0}`]?.price;
     const p1 = prices[`${chain}:${p.token1}`]?.price;
-    const r0 = Number(p.reserve0) / 10 ** Number(token0Data.decimals);
-    const r1 = Number(p.reserve1) / 10 ** Number(token1Data.decimals);
-    const s0 = Number(allStakedData[i].amount0) / 10 ** Number(token0Data.decimals);
-    const s1 = Number(allStakedData[i].amount1) / 10 ** Number(token1Data.decimals);
 
-    // If only one side priced, double it (std uniswap TVL trick).
-    let tvlUsd, stakedTvlUsd;
-    if (p0 && p1) {
-      tvlUsd = r0 * p0 + r1 * p1;
-      stakedTvlUsd = s0 * p0 + s1 * p1;
-    } else if (p0) {
-      tvlUsd = r0 * p0 * 2;
-      stakedTvlUsd = s0 * p0 * 2;
-    } else if (p1) {
-      tvlUsd = r1 * p1 * 2;
-      stakedTvlUsd = s1 * p1 * 2;
-    } else {
-      tvlUsd = 0;
-      stakedTvlUsd = 0;
-    }
+    const tvlUsd = ((p.reserve0 / (10 ** Number(token0Data.decimals))) * p0) + ((p.reserve1 / (10 ** Number(token1Data.decimals))) * p1);
 
-    const s = `${token0Data.symbol}-${token1Data.symbol}`;
+    const stakedTvlUsd = ((allStakedData[i].amount0 / (10 ** token0Data.decimals)) * p0) + ((allStakedData[i].amount1 / (10 ** token1Data.decimals)) * p1);
+
+    const s = token0Data.symbol + '-' + token1Data.symbol;
+
     const veloPrice =
       prices[`${chain}:${velo}`]?.price ||
       (veloPriceKey && prices[veloPriceKey]?.price);
-    // Guard against NaN/Infinity so `utils.keepFinite` doesn't drop the pool.
-    let apyReward = 0;
-    if (veloPrice && stakedTvlUsd > 0 && Number(p.emissions) > 0) {
-      apyReward =
-        (((Number(p.emissions) / 1e18) * 86400 * 365 * veloPrice) /
-          stakedTvlUsd) *
-        100;
-      if (!Number.isFinite(apyReward)) apyReward = 0;
-    }
+    let apyReward = (((p.emissions / 1e18) * 86400 * 365 * veloPrice) / stakedTvlUsd) * 100;
+    if (!Number.isFinite(apyReward)) apyReward = 0;
 
     const url = `https://velodrome.finance/deposit?token0=${p.token0}&token1=${p.token1}&type=${p.type.toString()}&factory=${p.factory}`;
     const poolMeta = `CL${p.type.toString()} - ${(p.pool_fee / 10000).toString()}%`;
 
     return {
-      // bare LP address preserves continuity with historical OP pool IDs.
-      pool: p.lp,
+      pool: `${p.lp}${poolSuffix || ''}`,
       chain: utils.formatChain(chain),
       project: 'velodrome-v3',
       symbol: s,
