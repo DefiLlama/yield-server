@@ -18,3 +18,12 @@ exports.networks = {
   9745: 'plasma',
   747474: 'katana',
 };
+
+// Chain name aliases for pool-matching helpers. Some protocols use a
+// different canonical chain name than the one declared in `networks`
+// for the same chainId (e.g. `hyperliquid` vs `hyperevm` on 999).
+// Helpers that index Merkl opportunities by chain should index under
+// every alias so callers can match using whichever name they prefer.
+exports.chainAliases = {
+  hyperevm: ['hyperevm', 'hyperliquid'],
+};

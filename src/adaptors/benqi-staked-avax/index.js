@@ -13,67 +13,89 @@ const abi = {
     stateMutability: 'view',
     type: 'function',
   },
+  getPooledAvaxByShares: {
+    inputs: [{ internalType: 'uint256', name: 'shareAmount', type: 'uint256' }],
+    name: 'getPooledAvaxByShares',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 };
 
-const getAvaxPrice = async () => {
-  const pricesResponse = await axios.get(
-    `https://coins.llama.fi/prices/current/avax:${AVAX_ADDRESS.toLowerCase()}`
-  );
-  return pricesResponse.data.coins[`avax:${AVAX_ADDRESS.toLowerCase()}`].price;
-};
-
-const fetchTotalPooledAvax = async () => {
-  const { output } = await sdk.api.abi.call({
-    target: SAVAX_ADDRESS,
-    chain: 'avax',
-    abi: abi.totalPooledAvax,
-  });
-  return output;
-};
-
-const fetchStakingApr = async () => {
-  const aprResponse = await axios.get(
-    'https://api.benqi.fi/liquidstaking/apr'
-  );
-  return Number(aprResponse.data.apr);
-};
-
-const convertAprToApy = (apr) => {
-  return Math.pow(1 + apr / 26, 26) - 1;
-};
-
-const calculateTvl = (totalPooledAvax, avaxPrice) => {
-  return (totalPooledAvax / 1e18) * avaxPrice;
-};
+const ONE_E18 = '1000000000000000000';
 
 const main = async () => {
-  try {
-    const [totalPooledAvax, avaxPrice, stakingApr] = await Promise.all([
-      fetchTotalPooledAvax(),
-      getAvaxPrice(),
-      fetchStakingApr(),
-    ]);
+  const now = Math.floor(Date.now() / 1000);
+  const timestamp1dAgo = now - 86400;
+  const timestamp7dAgo = now - 86400 * 7;
 
-    const tvlUsd = calculateTvl(totalPooledAvax, avaxPrice);
-    const apy = convertAprToApy(stakingApr);
+  const [totalPooledAvax, block1dAgo, block7dAgo] = await Promise.all([
+    sdk.api.abi.call({
+      target: SAVAX_ADDRESS,
+      chain: 'avax',
+      abi: abi.totalPooledAvax,
+    }),
+    axios
+      .get(`https://coins.llama.fi/block/avax/${timestamp1dAgo}`)
+      .then((r) => r.data.height),
+    axios
+      .get(`https://coins.llama.fi/block/avax/${timestamp7dAgo}`)
+      .then((r) => r.data.height),
+  ]);
 
-    return [
-      {
-        pool: SAVAX_ADDRESS,
-        chain: utils.formatChain('avalanche'),
-        project: 'benqi-staked-avax',
-        symbol: 'sAVAX',
-        tvlUsd,
-        apyBase: apy * 100,
-        underlyingTokens: [AVAX_ADDRESS],
-        searchTokenOverride: SAVAX_ADDRESS,
-        poolMeta: 'Unstaking Cooldown: 15days',
-      },
-    ];
-  } catch (error) {
-    console.error('Error fetching data:', error.message);
-    throw new Error(`Failed to fetch data: ${error.message}`);
-  }
+  const [rateNow, rate1dAgo, rate7dAgo] = await Promise.all([
+    sdk.api.abi.call({
+      target: SAVAX_ADDRESS,
+      abi: abi.getPooledAvaxByShares,
+      params: [ONE_E18],
+      chain: 'avax',
+    }),
+    sdk.api.abi.call({
+      target: SAVAX_ADDRESS,
+      abi: abi.getPooledAvaxByShares,
+      params: [ONE_E18],
+      chain: 'avax',
+      block: block1dAgo,
+    }),
+    sdk.api.abi.call({
+      target: SAVAX_ADDRESS,
+      abi: abi.getPooledAvaxByShares,
+      params: [ONE_E18],
+      chain: 'avax',
+      block: block7dAgo,
+    }),
+  ]);
+
+  const apyBase =
+    rate1dAgo.output > 0
+      ? ((rateNow.output / rate1dAgo.output) ** 365 - 1) * 100
+      : 0;
+  const apyBase7d =
+    rate7dAgo.output > 0
+      ? ((rateNow.output / rate7dAgo.output) ** (365 / 7) - 1) * 100
+      : 0;
+
+  const priceKey = `avax:${AVAX_ADDRESS}`;
+  const avaxPrice = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+  ).data.coins[priceKey]?.price;
+
+  const tvlUsd = (totalPooledAvax.output / 1e18) * avaxPrice;
+
+  return [
+    {
+      pool: SAVAX_ADDRESS,
+      chain: utils.formatChain('avalanche'),
+      project: 'benqi-staked-avax',
+      symbol: 'sAVAX',
+      tvlUsd,
+      apyBase,
+      apyBase7d,
+      underlyingTokens: [AVAX_ADDRESS],
+      searchTokenOverride: SAVAX_ADDRESS,
+      poolMeta: 'Unstaking Cooldown: 15days',
+    },
+  ];
 };
 
 module.exports = {

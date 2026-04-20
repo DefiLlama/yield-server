@@ -63,8 +63,7 @@ async function getPrice(chain, token, tokenSubstitute) {
   async function _getPrice(chain, tokenAddress) {
     const priceKey = `${chain}:${tokenAddress}`
     const { data } = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-    price = data.coins?.[priceKey]?.price ?? 0
-    return price
+    return data.coins?.[priceKey]?.price ?? 0
   }
   const price = await _getPrice(chain, token)
   if (price) {
@@ -76,15 +75,33 @@ async function getPrice(chain, token, tokenSubstitute) {
 }
 
 async function getData(chain, vault, underlying, underlyingSubstitute = undefined) {
-  const { output: totalAssetsBn } = await sdk.api.abi.call({
-    target: vault,
-    abi: abi.totalAssets,
-    chain,
-  })
+  let totalAssetsBn
+  let price
 
-  const price = await getPrice(chain, underlying, underlyingSubstitute)
+  try {
+    ;({ output: totalAssetsBn } = await sdk.api.abi.call({
+      target: vault,
+      abi: abi.totalAssets,
+      chain,
+    }))
+    price = await getPrice(chain, underlying, underlyingSubstitute)
+  } catch (error) {
+    console.warn(
+      `[avant] failed to fetch TVL data for ${vault} on ${chain}: ${error.message ?? error}`
+    )
+    return { tvlUsd: 0, apyBase: 0 }
+  }
+
+  let apyBase = 0
+  try {
+    apyBase = await computeApyBase(chain, vault)
+  } catch (error) {
+    console.warn(
+      `[avant] failed to fetch APY data for ${vault} on ${chain}: ${error.message ?? error}`
+    )
+  }
+
   const tvlUsd = (Number(totalAssetsBn) / 1e18) * price
-  const apyBase = await computeApyBase(chain, vault)
 
   return { tvlUsd, apyBase }
 }

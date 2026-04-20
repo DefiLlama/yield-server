@@ -1,15 +1,38 @@
-const { networks } = require('./config');
+const { networks, chainAliases } = require('./config');
 const { getData } = require('../utils');
 
-// Adapter chain names (after formatChain + toLowerCase) that differ from merkl config
-const CHAIN_ALIASES = {
-  'hyperliquid l1': 'hyperevm',
-  'hyperliquid': 'hyperevm',
-  'binance': 'bsc',
-  'polygon zkevm': 'polygon_zkevm',
+const getChainAliases = (canonical) =>
+  chainAliases[canonical] || [canonical];
+
+// Merkl exposes an `action` per opportunity: BORROW, LEND, POOL, HOLD, DROP.
+// BORROW campaigns reward borrowers (→ apyRewardBorrow); everything else
+// rewards holders/suppliers/LPs (→ apyReward).
+const isBorrowAction = (pool) => pool.action === 'BORROW';
+
+const mergeEntries = (a, b) => {
+  const merged = {
+    rewardTokens: [
+      ...new Set([
+        ...(a.rewardTokens || []),
+        ...(b.rewardTokens || []),
+      ]),
+    ],
+  };
+  if (a.apyReward !== undefined || b.apyReward !== undefined) {
+    merged.apyReward = (a.apyReward || 0) + (b.apyReward || 0);
+  }
+  if (a.apyRewardBorrow !== undefined || b.apyRewardBorrow !== undefined) {
+    merged.apyRewardBorrow =
+      (a.apyRewardBorrow || 0) + (b.apyRewardBorrow || 0);
+  }
+  return merged;
 };
 
-exports.addMerklRewardApy = async (pools, protocolId, poolAddressGetter) => {
+exports.addMerklRewardApy = async (
+  pools,
+  protocolId,
+  poolAddressGetter,
+) => {
   try {
     let merklPools = [];
     let pageI = 0;
@@ -30,26 +53,60 @@ exports.addMerklRewardApy = async (pools, protocolId, poolAddressGetter) => {
       pageI++;
     }
 
-    // Build reward map keyed by chain -> address
-    // Index by BOTH the merkl identifier AND all token addresses in the response
-    // This handles cases where the adapter uses a different address than merkl's identifier
-    // (e.g. aave uses aToken addresses, but merkl identifier is the market address)
-    const merklPoolsMap = Object.fromEntries(
-      Object.keys(networks).map((id) => [networks[id], {}])
-    );
+    const merklPoolsMap = {};
+    for (const canonical of Object.values(networks)) {
+      for (const alias of getChainAliases(canonical)) {
+        merklPoolsMap[alias] = {};
+      }
+    }
 
-    merklPools.forEach((pool) => {
-      if (!networks[pool.chainId]) return;
+    merklPools.forEach(pool => {
+      const canonical = networks[pool.chainId];
+      if (!canonical) {
+        return;
+      }
 
-      const chain = networks[pool.chainId];
-      const reward = {
-        apyReward: pool.apr,
-        rewardTokens: [
-          ...new Set(
-            pool.rewardsRecord?.breakdowns?.map((x) => x.token.address) || []
-          ),
-        ],
-      };
+      const isBorrow = isBorrowAction(pool);
+      const rewardTokens = [
+        ...new Set(
+          pool.rewardsRecord?.breakdowns.map(x => x.token.address) || [],
+        ),
+      ];
+      const entry = isBorrow
+        ? { apyRewardBorrow: pool.apr, rewardTokens }
+        : { apyReward: pool.apr, rewardTokens };
+      const id = pool.identifier.toLowerCase();
+      // Also index under each token address so adapters keying on a
+      // receipt/wrapper token (e.g. an aToken or vault share) can match
+      // an opportunity whose primary identifier is the underlying market.
+      // Skipped for BORROW campaigns: their tokens[] may list debt or
+      // collateral assets that don't represent the rewarded position.
+      const tokenAddrs = isBorrow
+        ? []
+        : [...new Set(
+            (pool.tokens || [])
+              .map(t => t?.address?.toLowerCase())
+              .filter(Boolean),
+          )];
+      for (const alias of getChainAliases(canonical)) {
+        const existingId = merklPoolsMap[alias][id];
+        merklPoolsMap[alias][id] = existingId
+          ? mergeEntries(existingId, entry)
+          : entry;
+        for (const addr of tokenAddrs) {
+          const existing = merklPoolsMap[alias][addr];
+          if (!existing) {
+            merklPoolsMap[alias][addr] = entry;
+          } else if (existing !== entry) {
+            // Multiple Merkl campaigns share this token address (e.g. a
+            // supply + boost pair, or a supply + borrow campaign on the
+            // same market). Combine APRs per side and union reward tokens
+            // so no campaign silently wins the fallback match.
+            merklPoolsMap[alias][addr] = mergeEntries(existing, entry);
+          }
+        }
+      }
+    });
 
       // Index by identifier (primary match)
       merklPoolsMap[chain][pool.identifier.toLowerCase()] = reward;
@@ -69,29 +126,40 @@ exports.addMerklRewardApy = async (pools, protocolId, poolAddressGetter) => {
       }
     });
 
-    return pools.map((pool) => {
-      // Skip if already has rewards
+      const updated = { ...pool };
+      let changed = false;
+
+      if (merklRewards.apyReward !== undefined && !pool.apyReward) {
+        updated.apyReward = merklRewards.apyReward;
+        changed = true;
+      }
       if (
-        pool.apyReward ||
-        (pool.rewardTokens && pool.rewardTokens.length !== 0)
+        merklRewards.apyRewardBorrow !== undefined &&
+        !pool.apyRewardBorrow
       ) {
-        return pool;
+        updated.apyRewardBorrow = merklRewards.apyRewardBorrow;
+        changed = true;
+      }
+      if (changed && merklRewards.rewardTokens?.length) {
+        updated.rewardTokens = [
+          ...new Set([
+            ...(pool.rewardTokens || []),
+            ...merklRewards.rewardTokens,
+          ]),
+        ];
       }
 
-      const poolAddress = poolAddressGetter
-        ? poolAddressGetter(pool)
-        : pool.pool;
-      const chainKey =
-        CHAIN_ALIASES[pool.chain.toLowerCase()] || pool.chain.toLowerCase();
-      const merklRewards =
-        merklPoolsMap[chainKey]?.[poolAddress.toLowerCase()];
-
-      if (!merklRewards) return pool;
-
-      return {
-        ...pool,
-        ...merklRewards,
-      };
+      if (
+        !changed &&
+        (merklRewards.apyReward !== undefined ||
+          merklRewards.apyRewardBorrow !== undefined)
+      ) {
+        console.log(
+          'pool already has matching apy reward field(s)',
+          pool.pool,
+        );
+      }
+      return changed ? updated : pool;
     });
   } catch (err) {
     console.log(`Failed to add Merkl reward apy to ${protocolId}: ${err}`);

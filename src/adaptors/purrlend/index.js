@@ -1,123 +1,141 @@
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
+
 const utils = require('../utils');
+const poolAbi = require('./poolAbi');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const CHAIN = 'hyperliquid';
-const PROJECT = 'purrlend';
-const POOL_ADDRESS = '0xb61218d3efE306f7579eE50D1a606d56bc222048';
-
-const reserveDataAbi =
-  'function getReserveData(address asset) view returns (tuple(uint256 configuration, uint128 liquidityIndex, uint128 currentLiquidityRate, uint128 variableBorrowIndex, uint128 currentVariableBorrowRate, uint128 currentStableBorrowRate, uint40 lastUpdateTimestamp, uint16 id, address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress, address interestRateStrategyAddress, uint128 accruedToTreasury, uint128 unbacked, uint128 isolationModeTotalDebt))';
-
-const RAY = 1e27;
+const PROTOCOL_DATA_PROVIDER = '0xa8Ca6a4A485485910aA4023b9963Dfd2f3A5aeb0';
 
 const apy = async () => {
-  const reservesList = (
+  const reserveTokens = (
     await sdk.api.abi.call({
-      target: POOL_ADDRESS,
+      target: PROTOCOL_DATA_PROVIDER,
+      abi: poolAbi.find((m) => m.name === 'getAllReservesTokens'),
       chain: CHAIN,
-      abi: 'function getReservesList() view returns (address[])',
     })
   ).output;
 
-  const [reserveData, symbols, decimals, aTokenSupply, debtTokenSupply] =
-    await Promise.all([
-      sdk.api.abi.multiCall({
-        calls: reservesList.map((asset) => ({
-          target: POOL_ADDRESS,
-          params: [asset],
-        })),
-        chain: CHAIN,
-        abi: reserveDataAbi,
-      }),
-      sdk.api.abi.multiCall({
-        calls: reservesList.map((asset) => ({ target: asset })),
-        chain: CHAIN,
-        abi: 'erc20:symbol',
-      }),
-      sdk.api.abi.multiCall({
-        calls: reservesList.map((asset) => ({ target: asset })),
-        chain: CHAIN,
-        abi: 'erc20:decimals',
-      }),
-      // totalSupply of aToken = total deposits
-      sdk.api.abi.multiCall({
-        calls: reservesList.map((_, i) => ({ target: null })), // placeholder, filled below
-        chain: CHAIN,
-        abi: 'erc20:totalSupply',
-      }).catch(() => null),
-      // totalSupply of variableDebtToken = total borrows
-      sdk.api.abi.multiCall({
-        calls: reservesList.map((_, i) => ({ target: null })),
-        chain: CHAIN,
-        abi: 'erc20:totalSupply',
-      }).catch(() => null),
-    ]);
+  const aTokens = (
+    await sdk.api.abi.call({
+      target: PROTOCOL_DATA_PROVIDER,
+      abi: poolAbi.find((m) => m.name === 'getAllATokens'),
+      chain: CHAIN,
+    })
+  ).output;
 
-  // Get aToken and debtToken addresses, then query their supplies
-  const aTokenAddresses = reserveData.output.map((r) => r.output.aTokenAddress);
-  const debtTokenAddresses = reserveData.output.map(
-    (r) => r.output.variableDebtTokenAddress
-  );
+  const poolsReserveData = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: PROTOCOL_DATA_PROVIDER,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveData'),
+      chain: CHAIN,
+    })
+  ).output.map((o) => o.output);
 
-  const [aSupplies, debtSupplies] = await Promise.all([
-    sdk.api.abi.multiCall({
-      calls: aTokenAddresses.map((a) => ({ target: a })),
+  const poolsReservesConfigurationData = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: PROTOCOL_DATA_PROVIDER,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveConfigurationData'),
+      chain: CHAIN,
+    })
+  ).output.map((o) => o.output);
+
+  const reserveTokenAddresses = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: PROTOCOL_DATA_PROVIDER,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveTokensAddresses'),
+      chain: CHAIN,
+    })
+  ).output.map((o) => o.output);
+
+  const totalSupply = (
+    await sdk.api.abi.multiCall({
       chain: CHAIN,
       abi: 'erc20:totalSupply',
-    }),
-    sdk.api.abi.multiCall({
-      calls: debtTokenAddresses.map((a) => ({ target: a })),
+      calls: aTokens.map((t) => ({ target: t.tokenAddress })),
+    })
+  ).output.map((o) => o.output);
+
+  const totalBorrow = (
+    await sdk.api.abi.multiCall({
       chain: CHAIN,
       abi: 'erc20:totalSupply',
-    }),
-  ]);
+      calls: reserveTokenAddresses.map((a) => ({
+        target:
+          a?.variableDebtTokenAddress ??
+          '0x0000000000000000000000000000000000000000',
+      })),
+    })
+  ).output.map((o) => o.output);
 
-  const coins = reservesList.map((a) => `${CHAIN}:${a}`);
-  const prices = (await utils.getPrices(coins)).pricesByAddress;
+  const underlyingDecimals = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      abi: 'erc20:decimals',
+      calls: aTokens.map((t) => ({ target: t.tokenAddress })),
+    })
+  ).output.map((o) => o.output);
 
-  const pools = [];
-  for (let i = 0; i < reservesList.length; i++) {
-    const asset = reservesList[i];
-    const data = reserveData.output[i].output;
-    const symbol = symbols.output[i].output;
-    const dec = Number(decimals.output[i].output);
-    const price = prices[asset.toLowerCase()];
-    if (!price) continue;
+  const priceKeys = reserveTokens
+    .map((t) => `${CHAIN}:${t.tokenAddress}`)
+    .join(',');
+  const prices = (
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
-    const totalSupply = Number(aSupplies.output[i].output) / 10 ** dec;
-    const totalBorrow = Number(debtSupplies.output[i].output) / 10 ** dec;
-    const tvlUsd = (totalSupply - totalBorrow) * price;
-    const totalSupplyUsd = totalSupply * price;
-    const totalBorrowUsd = totalBorrow * price;
+  const pools = reserveTokens
+    .map((pool, i) => {
+      const config = poolsReservesConfigurationData[i];
+      const p = poolsReserveData[i];
+      const tokenAddrs = reserveTokenAddresses[i];
+      if (!config || !p || !tokenAddrs) return null;
+      if (totalSupply[i] == null || totalBorrow[i] == null) return null;
 
-    const apyBase = (Number(data.currentLiquidityRate) / RAY) * 100;
-    const apyBaseBorrow = (Number(data.currentVariableBorrowRate) / RAY) * 100;
+      if (config.isFrozen) return null;
 
-    pools.push({
-      pool: `${data.aTokenAddress}-${CHAIN}`.toLowerCase(),
-      chain: utils.formatChain(CHAIN),
-      project: PROJECT,
-      symbol: utils.formatSymbol(symbol),
-      tvlUsd,
-      apyBase,
-      apyBaseBorrow,
-      totalSupplyUsd,
-      totalBorrowUsd,
-      underlyingTokens: [asset],
-      url: 'https://app.purrlend.io/',
-    });
-  }
+      const price = prices[`${CHAIN}:${pool.tokenAddress}`]?.price;
+      if (!price) return null;
 
-  return addMerklRewardApy(
-    pools.filter((p) => utils.keepFinite(p)),
-    'purrlend',
-    (p) => p.pool.split('-')[0]
-  );
+      const totalSupplyUsd =
+        (totalSupply[i] / 10 ** underlyingDecimals[i]) * price;
+      const totalBorrowUsd =
+        (totalBorrow[i] / 10 ** underlyingDecimals[i]) * price;
+      const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+
+      return {
+        pool: `${aTokens[i].tokenAddress}-${CHAIN}`.toLowerCase(),
+        chain: CHAIN,
+        project: 'purrlend',
+        symbol: pool.symbol,
+        tvlUsd,
+        apyBase: (p.liquidityRate / 10 ** 27) * 100,
+        underlyingTokens: [pool.tokenAddress],
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        ltv: config.ltv / 10000,
+        url: `https://app.purrlend.io/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}`,
+        borrowable: config.borrowingEnabled,
+      };
+    })
+    .filter(Boolean)
+    .filter((p) => utils.keepFinite(p));
+
+  // Merkl AAVE_SUPPLY campaigns use the aToken address as identifier,
+  // so match by stripping the chain suffix from our pool id.
+  return addMerklRewardApy(pools, 'purrlend', (p) => p.pool.split(`-${CHAIN}`)[0]);
 };
 
 module.exports = {
-  timetravel: false,
   apy,
-  url: 'https://app.purrlend.io/',
 };
