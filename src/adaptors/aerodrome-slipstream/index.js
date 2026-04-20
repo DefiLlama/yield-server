@@ -308,10 +308,11 @@ const getGaugeApy = async () => {
 
     const s = token0Data.symbol + '-' + token1Data.symbol;
 
-    const apyReward =
-      (((p.emissions / 1e18) * 86400 * 365 * prices[`base:${AERO}`]?.price) /
-        stakedTvlUsd) *
-      100;
+    const apyReward = stakedTvlUsd > 0
+      ? (((p.emissions / 1e18) * 86400 * 365 * prices[`base:${AERO}`]?.price) /
+          stakedTvlUsd) *
+        100
+      : 0;
 
     const url = 'https://aerodrome.finance/deposit?token0=' + p.token0 + '&token1=' + p.token1 + '&type=' + p.type.toString() + '&factory=' + p.factory;
     const poolMeta = 'CL' + p.type.toString() + ' - ' + (p.pool_fee / 10000).toString() + '%';
