@@ -108,23 +108,13 @@ exports.addMerklRewardApy = async (
       }
     });
 
-      // Index by identifier (primary match)
-      merklPoolsMap[chain][pool.identifier.toLowerCase()] = reward;
+    return pools.map(pool => {
+      const poolAddress = poolAddressGetter ? poolAddressGetter(pool) : pool.pool;
+      const merklRewards = merklPoolsMap[pool.chain.toLowerCase()]?.[poolAddress.toLowerCase()];
 
-      // Also index by each token address (fallback match)
-      // Catches pools where adapter uses a receipt/wrapper token address
-      // that appears in merkl's token list (e.g. aTokens, vault shares)
-      if (pool.tokens) {
-        for (const token of pool.tokens) {
-          if (token.address) {
-            const addr = token.address.toLowerCase();
-            if (!merklPoolsMap[chain][addr]) {
-              merklPoolsMap[chain][addr] = reward;
-            }
-          }
-        }
+      if (!merklRewards) {
+        return pool;
       }
-    });
 
       const updated = { ...pool };
       let changed = false;
