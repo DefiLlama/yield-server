@@ -64,6 +64,7 @@ const abiAllV3 = {
 const CHAINS = [
   {
     chain: 'optimism',
+    chainId: 10,
     sugar: '0x766133beae539ed33a7e27dfa3a840deaad88947',
     tokenSugar: '0x766133beae539ed33a7e27dfa3a840deaad88947',
     sugarHelper: '0x5Bd7E2221C2d59c99e6A9Cd18D80A5F4257D0f32',
@@ -75,6 +76,7 @@ const CHAINS = [
   },
   {
     chain: 'ink',
+    chainId: 57073,
     sugar: '0xDd1399Df41d012F58cf2035A79839892BC0A2A25',
     tokenSugar: '0xB43cc32507238E6Ad44a363D544E47de4926D9df',
     sugarHelper: '0x222ed297aF0560030136AE652d39fa40E1B72818',
@@ -89,7 +91,7 @@ const CHAINS = [
 ];
 
 async function getApyForChain(cfg) {
-  const { chain, sugar, tokenSugar, sugarHelper, velo, veloPriceKey, startOffset, abiAll, allParams, poolSuffix } = cfg;
+  const { chain, chainId, sugar, tokenSugar, sugarHelper, velo, veloPriceKey, startOffset, abiAll, allParams, poolSuffix } = cfg;
 
   const allPoolsData = [];
   let offset = startOffset;
@@ -233,7 +235,7 @@ async function getApyForChain(cfg) {
     let apyReward = (((p.emissions / 1e18) * 86400 * 365 * veloPrice) / stakedTvlUsd) * 100;
     if (!Number.isFinite(apyReward)) apyReward = 0;
 
-    const url = `https://velodrome.finance/deposit?token0=${p.token0}&token1=${p.token1}&type=${p.type.toString()}&factory=${p.factory}`;
+    const url = `https://velodrome.finance/deposit?token0=${p.token0}&token1=${p.token1}&type=${p.type.toString()}&chain0=${chainId}&chain1=${chainId}&factory=${p.factory}`;
     const poolMeta = `CL${p.type.toString()} - ${(p.pool_fee / 10000).toString()}%`;
 
     return {
