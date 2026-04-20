@@ -1,16 +1,17 @@
+const { chunk } = require('lodash');
 const utils = require('../utils');
 
 const API_URL = 'https://labc.ablesdxd.link/justlend/yieldInfos';
 const WTRX = 'TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR';
 const TRX_NATIVE = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
+const CONCURRENCY = 11;
 
-const getMarketDetails = async (tokedAddress) => {
-  const details = await utils.getData(
-    `https://labc.ablesdxd.link/justlend/markets/jtokenDetails?jtokenAddr=${tokedAddress}`
+const getMarketDetails = async (tokedAddress) =>
+  utils.withRetry(() =>
+    utils.getData(
+      `https://labc.ablesdxd.link/justlend/markets/jtokenDetails?jtokenAddr=${tokedAddress}`
+    )
   );
-
-  return details;
-};
 
 const getRewardApy = async (marketsData) => {
   const tokens = marketsData.map(
@@ -32,8 +33,11 @@ const getApy = async () => {
     ({ jtokenAddress }) => jtokenAddress
   );
 
-  const marketsData = await Promise.all(tokensAddress.map(getMarketDetails));
-  const { data: rewards } = await getRewardApy(marketsData);
+  const marketsData = [];
+  for (const batch of chunk(tokensAddress, CONCURRENCY)) {
+    marketsData.push(...(await Promise.all(batch.map(getMarketDetails))));
+  }
+  const { data: rewards } = await utils.withRetry(() => getRewardApy(marketsData));
 
   const pools = marketsData.map(({ data: market }) => {
     console.log(market);
