@@ -10,7 +10,6 @@ const abis = {
     loan: 'function loan() view returns (tuple(uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256))',
 }
 
-const basisPointsToPercent = (value) => Number(value) / 1e4;
 const formatAmount = (value, decimals = 18) => (value == null ? null : Number(value) / 10 ** decimals);
 
 async function getRawApy(loanAddresses, chain) {
@@ -32,7 +31,10 @@ async function getPerformanceFee(feeManagers, loanAddresses, chain) {
 }
 
 async function getTVLAndBorrow(vaults, underlyings, chain) {
-    const supplies = await sdk.api.abi.multiCall({ abi: 'erc20:totalSupply', calls: vaults.map(vault => ({ target: vault })), chain: chain })
+    const [supplies, decimals] = await Promise.all([
+        sdk.api.abi.multiCall({ abi: 'erc20:totalSupply', calls: vaults.map(vault => ({ target: vault })), chain: chain }),
+        sdk.api.abi.multiCall({ abi: 'erc20:decimals', calls: underlyings.map(underlying => ({ target: underlying })), chain: chain }),
+    ]);
 
     const [totalAssets, liquidity] = await Promise.all([
         sdk.api.abi.multiCall({
@@ -40,15 +42,20 @@ async function getTVLAndBorrow(vaults, underlyings, chain) {
             calls: vaults.map((vault, i) => ({ target: vault, params: [supplies.output[i].output || 0] })),
             chain: chain,
         }),
-        sdk.api.abi.multiCall({ abi: 'erc20:balanceOf', calls: vaults.map((vault, i) => ({ target: underlyings[i], params: vault })), chain: chain })
+        sdk.api.abi.multiCall({ abi: 'erc20:balanceOf', calls: vaults.map((vault, i) => ({ target: underlyings[i], params: [vault] })), chain: chain })
     ])
 
     const prices = await utils.getPrices(underlyings, chain)
 
     return vaults.map((_, i) => {
+        const price = prices.pricesByAddress[underlyings[i].toLowerCase()] ?? 0;
+        const tokenDecimals = Number(decimals.output[i].output || 18);
+        const totalAssetsUsd = formatAmount(totalAssets.output[i].output, tokenDecimals) * price;
+        const liquidityUsd = formatAmount(liquidity.output[i].output, tokenDecimals) * price;
+
         return {
-            totalBorrowed: (Number(totalAssets.output[i].output) - Number(liquidity.output[i].output)) * prices.pricesByAddress[underlyings[i].toLowerCase()],
-            tvl: (Number(totalAssets.output[i].output)) * prices.pricesByAddress[underlyings[i].toLowerCase()],
+            totalBorrowed: totalAssetsUsd - liquidityUsd,
+            tvl: totalAssetsUsd,
         }
     })
 }
@@ -71,9 +78,11 @@ const apy = async () => {
             }
         });
         const symbols = vaultData.filter(v => v.chainName === chain).map(v => v.depositSymbol);
-        const rawApy = await getRawApy(addresses.map(a => a.loan), chain);
-        const performanceFees = await getPerformanceFee(addresses.map(a => a.feeManager), addresses.map(a => a.loan), chain);
-        const tvlAndBorrow = await getTVLAndBorrow(addresses.map(a => a.vault), addresses.map(a => a.asset), chain);
+        const [rawApy, performanceFees, tvlAndBorrow] = await Promise.all([
+            getRawApy(addresses.map(a => a.loan), chain),
+            getPerformanceFee(addresses.map(a => a.feeManager), addresses.map(a => a.loan), chain),
+            getTVLAndBorrow(addresses.map(a => a.vault), addresses.map(a => a.asset), chain),
+        ]);
 
         for (let i = 0; i < addresses.length; i++) {
             pools.push({
@@ -82,8 +91,8 @@ const apy = async () => {
                 project: 'travessia',
                 symbol: utils.formatSymbol(symbols[i]),
                 underlyingTokens: [addresses[i].asset],
-                tvlUsd: formatAmount(tvlAndBorrow[i].tvl, 6),
-                totalBorrowUsd: formatAmount(tvlAndBorrow[i].totalBorrowed, 6),
+                tvlUsd: tvlAndBorrow[i].tvl,
+                totalBorrowUsd: tvlAndBorrow[i].totalBorrowed,
                 apyBase: (Number(rawApy[i]) * (1 - Number(performanceFees[i]) / 1e6)) / 1e4,
                 apyReward: 0,
                 rewardTokens: [],
