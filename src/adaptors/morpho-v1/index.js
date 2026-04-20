@@ -319,7 +319,20 @@ const fetchChainData = async (chainId) => {
     const all = [];
     let skip = 0;
     while (true) {
-      const response = await fetchPage(query, { chainId, skip }, key);
+      let response;
+      try {
+        response = await fetchPage(query, { chainId, skip }, key);
+      } catch (error) {
+        // Mid-pagination failures (e.g. upstream 504 on a later page) shouldn't
+        // discard pages we've already gathered — keep what we have and log.
+        if (all.length > 0) {
+          console.error(
+            `morpho-v1: ${key} pagination failed for chainId ${chainId} at skip=${skip} after ${all.length} items: ${error.message}`
+          );
+          return all;
+        }
+        throw error;
+      }
       const page = response[key];
       if (!page?.items?.length) break;
       all.push(...page.items);
