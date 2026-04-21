@@ -255,7 +255,7 @@ const getGaugeApy = async () => {
     // Only staked supply is eligible for the rewardRate's emissions
     let stakedSupplyRatio = 1;
     if (totalSupply[i] !== 0) {
-      stakedSupplyRatio = poolSupply[i] / totalSupply[i];
+      stakedSupplyRatio = totalSupply[i] / poolSupply[i];
     }
 
     const apyReward =
