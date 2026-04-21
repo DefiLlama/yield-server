@@ -2,6 +2,9 @@ const axios = require('axios');
 
 const API_URL = 'https://api.lista.org/api/moolah/vault/list';
 const CHAINS = ['bsc', 'ethereum'];
+const LISTA_REWARD_TOKEN = {
+  bsc: '0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46',
+};
 
 const apy = async () => {
   let pools = [];
@@ -29,9 +32,10 @@ const apy = async () => {
         underlyingTokens: [vault.asset],
         url: `https://lista.org/lending/vault/${chain}/${vault.address}?tab=vault`,
         apyReward: emissionApy * 100,
-        rewardTokens: vault.emissionEnabled
-          ? ['0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46']
-          : [], // LISTA
+        rewardTokens:
+          vault.emissionEnabled && LISTA_REWARD_TOKEN[chain]
+            ? [LISTA_REWARD_TOKEN[chain]]
+            : [], // LISTA
       };
     });
 
