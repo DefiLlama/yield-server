@@ -178,27 +178,45 @@ const paginatePools = (block = undefined, startOffset = POOLS_START_OFFSET) =>
     block,
   });
 
-const paginateTokens = () =>
-  paginateWithWaves({
-    params: (o) => [CHUNK_SIZE, o, sugar, []],
-    abiName: 'tokens',
-  });
+// Fetch ERC-20 symbol + decimals for only the token addresses we use.
+// sugar.tokens returns ~11k token tuples — we use ~374. This targeted
+// multicall fetches both fields for just those 374 addresses, saving
+// ~10k wasted tuples on every run.
+async function fetchTokenMetadata(addresses) {
+  const calls = addresses.map((target) => ({ target }));
+  const [symbolRes, decimalsRes] = await Promise.all([
+    sdk.api.abi.multiCall({
+      abi: 'string:symbol',
+      calls,
+      chain: 'base',
+      permitFailure: true,
+    }),
+    sdk.api.abi.multiCall({
+      abi: 'uint8:decimals',
+      calls,
+      chain: 'base',
+      permitFailure: true,
+    }),
+  ]);
+  const map = new Map();
+  for (let i = 0; i < addresses.length; i++) {
+    const sym = symbolRes.output[i];
+    const dec = decimalsRes.output[i];
+    if (sym?.success && dec?.success && sym.output != null && dec.output != null) {
+      map.set(addresses[i], {
+        token_address: addresses[i],
+        symbol: sym.output,
+        decimals: Number(dec.output),
+      });
+    }
+  }
+  return map;
+}
 
 const getGaugeApy = async () => {
-  // pool enum and token enum are independent — run in parallel.
-  const [allPoolsRaw, allTokenData] = await Promise.all([
-    paginatePools(),
-    paginateTokens(),
-  ]);
+  const allPoolsRaw = await paginatePools();
   const allPoolsData = allPoolsRaw.filter(
     (t) => Number(t.type) > 0 && t.gauge != nullAddress
-  );
-
-  // O(1) token metadata lookup — was Array.find on ~11k tokens called
-  // twice per active pool (~1200 finds). sugar.tokens returns duplicates
-  // across pages; last-write wins is fine.
-  const tokenByAddr = new Map(
-    allTokenData.map((t) => [t.token_address, t])
   );
 
   const tokens = [
@@ -209,6 +227,9 @@ const getGaugeApy = async () => {
         .concat(AERO)
     ),
   ];
+
+  // Fetch token metadata only for the addresses we actually use.
+  const tokenByAddr = await fetchTokenMetadata(tokens);
 
   const maxSize = 50;
   const pages = Math.ceil(tokens.length / maxSize);
