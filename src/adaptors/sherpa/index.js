@@ -52,13 +52,8 @@ async function fetchYieldData() {
     };
   } catch (error) {
     console.error('Error fetching yield data from Sherpa API:', error.message);
-    // Return zero yields on error to avoid breaking the adapter
-    return {
-      usdcApy: 0,
-      pointsApy: 0,
-      incentiveApy: 0,
-      totalRewardApy: 0,
-    };
+    // Throw error to prevent showing pools with 0% APY when API is down
+    throw new Error('Failed to fetch APY data from Sherpa API');
   }
 }
 
@@ -118,16 +113,22 @@ async function getPoolData(chain, yieldData) {
 }
 
 async function apy() {
-  // Fetch yield data once from API (applies to all chains)
-  const yieldData = await fetchYieldData();
+  try {
+    // Fetch yield data once from API (applies to all chains)
+    const yieldData = await fetchYieldData();
 
-  // Get pool data for each chain with the fetched yield data
-  const pools = await Promise.all(
-    Object.keys(chains).map((chain) => getPoolData(chain, yieldData))
-  );
+    // Get pool data for each chain with the fetched yield data
+    const pools = await Promise.all(
+      Object.keys(chains).map((chain) => getPoolData(chain, yieldData))
+    );
 
-  // Filter out null pools (errors or TVL too low)
-  return pools.filter((pool) => pool !== null);
+    // Filter out null pools (errors or TVL too low)
+    return pools.filter((pool) => pool !== null);
+  } catch (error) {
+    // If API fails, return empty array rather than showing 0% APY pools
+    console.error('Sherpa adapter failed:', error.message);
+    return [];
+  }
 }
 
 module.exports = {
