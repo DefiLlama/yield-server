@@ -141,7 +141,8 @@ async function getLogs() {
 
     const toBlock = currentBlock.number;
 
-    const fromBlock = 76579302
+    //deployment block of susdu
+    const fromBlock = 69059010
 
     const logs = [];
     for (let i = toBlock; i > fromBlock; i -= 10000) {
@@ -186,31 +187,28 @@ async function apyBsc() {
 }
 
 async function apy() {
-    const [tvlUsdSol, apyBaseSol] = await apySol();
-    const [tvlUsdBsc, apyBaseBsc] = await apyBsc();
+    const [solRes, bscRes] = await Promise.allSettled([apySol(), apyBsc()]);
 
     return [
-        {
+        solRes.status === 'fulfilled' && {
             pool: config.solana.susdu,
             chain: 'Solana',
             project,
             symbol,
-            tvlUsd: tvlUsdSol,
-            apyBase: apyBaseSol,
+            tvlUsd: solRes.value[0],
+            apyBase: solRes.value[1],
             underlyingTokens: [config.solana.usdu],
-            url: "https://sol.unitas.so/transparency",
         },
-        {
+        bscRes.status === 'fulfilled' && {
             pool: config.bsc.susdu,
             chain: 'bsc',
             project,
             symbol,
-            tvlUsd: tvlUsdBsc,
-            apyBase: apyBaseBsc,
+            tvlUsd: bscRes.value[0],
+            apyBase: bscRes.value[1],
             underlyingTokens: [config.bsc.usdu],
-            url: "https://evm.unitas.so/transparency",
         }
-    ];
+    ].filter(Boolean);
 }
 
 module.exports = {
