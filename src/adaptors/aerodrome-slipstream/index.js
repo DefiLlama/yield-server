@@ -316,13 +316,16 @@ const getGaugeApy = async () => {
   // Hard-timeout each historical fetch so a stuck archive-state RPC
   // can't consume the full 900s Lambda budget.
   const HISTORICAL_FETCH_TIMEOUT_MS = 120_000;
-  const withTimeout = (promise, ms, label) =>
-    Promise.race([
-      promise,
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
-      ),
-    ]);
+  const withTimeout = (promise, ms, label) => {
+    let timerId;
+    const timeout = new Promise((_, reject) => {
+      timerId = setTimeout(
+        () => reject(new Error(`${label} timed out after ${ms}ms`)),
+        ms
+      );
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timerId));
+  };
 
   let prevEpochFees = {};
   let fees24hAgo = null;
