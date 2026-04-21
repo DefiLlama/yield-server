@@ -97,7 +97,7 @@ async function getPoolData(chain, yieldData) {
       pool: `${SHERPA_VAULT}-${chain}`.toLowerCase(),
       chain,
       project: 'sherpa',
-      symbol: 'SherpaUSD',
+      symbol: 'shUSD',
       tvlUsd,
       apyBase: yieldData.usdcApy,
       apyReward: yieldData.totalRewardApy,
