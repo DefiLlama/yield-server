@@ -146,7 +146,7 @@ async function getLogs() {
 
     const logs = [];
     for (let i = toBlock; i > fromBlock; i -= 10000) {
-        const start = i - 10000;
+        const start = Math.max(i - 10000, fromBlock);
         const lg = await sdk.getEventLogs({
             target: config.bsc.susdu,
             eventAbi: EVENTS.RewardsReceived,
