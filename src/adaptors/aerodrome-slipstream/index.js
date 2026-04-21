@@ -68,7 +68,6 @@ const queryPrior = gql`
 }
 `;
 
-// Query _meta for visibility logging. Staleness enforcement is delegated
 const metaQuery = gql`
   {
     _meta {
@@ -91,7 +90,6 @@ async function getPoolVolumes(timestamp = null) {
         `aerodrome-slipstream: subgraph at block ${meta._meta.block.number} (${lagSec}s behind now), indexingErrors=${meta._meta.hasIndexingErrors}`
       );
     } catch (e) {
-      // non-fatal: utils.getBlocks will enforce staleness below
       console.log(
         'aerodrome-slipstream: subgraph _meta probe failed:',
         e.message
@@ -110,9 +108,7 @@ async function getPoolVolumes(timestamp = null) {
     604800
   );
 
-  // Subgraph (gated through the Arbitrum gateway) occasionally drops TLS
-  // mid-handshake — retry transient network failures so one blip doesn't
-  // force us into the much slower archive-RPC fallback path.
+  // retry transient TLS drops so one blip doesn't force the slow archive path
   let dataNow = await utils.withRetry(() =>
     request(SUBGRAPH, query.replace('<PLACEHOLDER>', block))
   );
@@ -375,9 +371,7 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
     if (out?.success && out.output) allStakedData[activeIdx[j]] = out.output;
   }
 
-  // on-chain fee fallback: fetch historical snapshots for real fee deltas.
-  // Skipped when subgraph returned volumes — those give us accurate 1d/7d
-  // APY without hammering the archive-state RPC (~240s saved per run).
+  // archive-state fee fallback; skipped when subgraph is healthy
   const now = Math.floor(Date.now() / 1000);
   const epochStart = Math.floor(now / WEEK) * WEEK;
   const elapsedSeconds = now - epochStart;
@@ -385,12 +379,7 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
   let prevEpochFees = {};
   let fees24hAgo = null;
   if (!skipHistoricalFees) {
-    // previous epoch end = just before current epoch started (full 7d of fees)
-    // 24h ago = for 1d delta (only valid if >24h into current epoch)
-    // Hard-timeout each historical fetch so a stuck archive-state RPC
-    // can't consume the full 900s Lambda budget. 180s chosen to give
-    // genuinely-slow-but-working archive RPCs room to complete without
-    // letting broken ones eat the whole invocation.
+    // bounded timeout so a stuck archive RPC can't eat the 900s budget
     const HISTORICAL_FETCH_TIMEOUT_MS = 180_000;
     const withTimeout = (promise, ms, label) => {
       let timerId;
@@ -504,7 +493,6 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
         ? Number(fees.gauge_liquidity) / Number(fees.liquidity)
         : 1;
 
-    // on-chain fee fallback using real block comparisons
     // 7d: previous epoch's full gauge fees (snapshot just before epoch reset)
     let apyBase7d = null;
     const prev = prevEpochFees[lpKey];
@@ -531,12 +519,11 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
         apyBase = ((totalFeeDelta * 365) / tvlUsd) * 100;
         if (p.pool_fee > 0) volumeUsd1d = totalFeeDelta / (p.pool_fee / 1e6);
       }
-    } else if (elapsedSeconds > 6 * 3600) {
-      // <24h into epoch: extrapolate from current epoch fees
-      // If distribute() hasn't been called yet, current gaugeFees still contain
-      // the previous epoch's fees — subtract them to isolate new accumulation
+    } else if (!skipHistoricalFees && prev && elapsedSeconds > 6 * 3600) {
+      // <24h into epoch: extrapolate. Needs `prev` to subtract pre-distribute
+      // residue from cumulative gauge fees; without it we'd overestimate APY.
       const currentFeeUsd = calcFeeUsd(p);
-      const prevFeeUsd = prev ? calcFeeUsd(prev) : 0;
+      const prevFeeUsd = calcFeeUsd(prev);
       const epochFeeUsd =
         currentFeeUsd >= prevFeeUsd
           ? currentFeeUsd - prevFeeUsd
@@ -576,12 +563,8 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
 };
 
 async function main(timestamp = null) {
-  // Run subgraph first. When it succeeds (the common case — see
-  // check-subgraph-lag.js: ~seconds lag, 100% success rate, p95 <600ms) its
-  // per-pool apyBase/apyBase7d/volume numbers are authoritative. We then
-  // skip the archive-state historical fee pagination in getGaugeApy (that
-  // path routinely burns 120s+ per snapshot on slow archive RPCs). Only
-  // when subgraph genuinely fails do we pay for the on-chain fallback.
+  // subgraph-first: when healthy it's authoritative for apyBase/7d/volume
+  // and the archive-state fee pagination is skipped (saves ~240s/run)
   let poolsVolumes = {};
   try {
     poolsVolumes = await getPoolVolumes(timestamp);
@@ -592,7 +575,15 @@ async function main(timestamp = null) {
     );
   }
 
-  const subgraphHealthy = Object.keys(poolsVolumes).length > 0;
+  // observed baseline ~500 pools; <100 → partial response, fall back
+  const MIN_HEALTHY_SUBGRAPH_POOLS = 100;
+  const subgraphPoolCount = Object.keys(poolsVolumes).length;
+  const subgraphHealthy = subgraphPoolCount >= MIN_HEALTHY_SUBGRAPH_POOLS;
+  if (!subgraphHealthy && subgraphPoolCount > 0) {
+    console.log(
+      `aerodrome-slipstream: subgraph returned only ${subgraphPoolCount} pools (<${MIN_HEALTHY_SUBGRAPH_POOLS}); falling back to archive-state path`
+    );
+  }
   const poolsApy = await getGaugeApy({ skipHistoricalFees: subgraphHealthy });
 
   // left-join volumes onto APY output to avoid filtering out pools
