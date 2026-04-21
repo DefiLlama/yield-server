@@ -123,7 +123,7 @@ async function getChainDataUSD0a(chainConfig) {
   return { supply, price };
 }
 
-async function getUsualXAPY(chain, usualXPrice) {
+async function getUsualXAPY(chain, usualXPrice, rewardsData) {
   const blacklistedBalances = await sdk.api.abi
     .multiCall({
       abi: 'erc20:balanceOf',
@@ -150,7 +150,8 @@ async function getUsualXAPY(chain, usualXPrice) {
   const usualXTVL =
     rawUsualXTVL - (blacklistedBalances?.reduce((a, b) => a + b, 0) ?? 0);
 
-  const usualXApr = await getRewardData(
+  const usualXApr = getRewardData(
+    rewardsData,
     CONFIG.USUALX_SYMBOL,
     CONFIG.USUAL_SYMBOL
   );
@@ -162,7 +163,8 @@ async function getUsualXAPY(chain, usualXPrice) {
   const usualXLockupMarketCap = usualXLockupBalance * usualXPrice;
   const usualXUnlockedMarketCap = usualxMarketCap - usualXLockupMarketCap;
 
-  const revenueSwitch = await getRewardData(
+  const revenueSwitch = getRewardData(
+    rewardsData,
     CONFIG.USUALX_LOCKUP_SYMBOL,
     CONFIG.USD0_SYMBOL
   );
@@ -180,7 +182,7 @@ async function getUsualXAPY(chain, usualXPrice) {
   };
 }
 
-async function getUsUSDSAPY(chain) {
+async function getUsUSDSAPY(chain, rewardsData) {
   const { output } = await sdk.api.abi.call({
     target: CONFIG.USUSDSPP_VAULT,
     chain: chain.toLowerCase(),
@@ -218,12 +220,14 @@ async function getUsUSDSAPY(chain) {
   const susdsPrice = await getTokenPrice('Ethereum', CONFIG.SUSDS_TOKEN);
   const usUSDSppMarketCap = susdsBalance * susdsPrice;
 
-  const baseRewards = await getRewardData(
+  const baseRewards = getRewardData(
+    rewardsData,
     CONFIG.USUSDSPP_VAULT_SYMBOL,
     CONFIG.USD0PP_SYMBOL
   );
   const baseUsUSDSApy = utils.aprToApy(baseRewards.apr, CONFIG.WEEKS_PER_YEAR);
-  const usualRewards = await getRewardData(
+  const usualRewards = getRewardData(
+    rewardsData,
     CONFIG.USUSDSPP_VAULT_SYMBOL,
     CONFIG.USUAL_SYMBOL
   );
@@ -238,21 +242,31 @@ async function getUsUSDSAPY(chain) {
   };
 }
 
-async function getRewardData(pool, reward) {
-  const { data } = await axios.get(`${CONFIG.URLS.REWARD_APR_RATE}`);
-  const apr = data[pool]?.[reward];
+// Fetched once per apy() invocation and threaded through as a parameter. The
+// upstream returns 502s intermittently — one fetch + retries is the robust
+// shape, and the explicit parameter makes the lifecycle visible at every
+// call site (no hidden module state).
+async function fetchRewardsData() {
+  const { data } = await utils.withRetry(() =>
+    axios.get(CONFIG.URLS.REWARD_APR_RATE)
+  );
+  return data;
+}
+
+function getRewardData(rewardsData, pool, reward) {
+  const apr = rewardsData[pool]?.[reward];
 
   if (!apr) {
     throw new Error(`Reward "${reward}" not found for pool "${pool}"`);
   }
 
-  return {
-    apr,
-  };
+  return { apr };
 }
 
 const apy = async () => {
-  const rewardUsd0pp = await getRewardData(
+  const rewardsData = await fetchRewardsData();
+  const rewardUsd0pp = getRewardData(
+    rewardsData,
     CONFIG.USD0PP_SYMBOL,
     CONFIG.USUAL_SYMBOL
   );
@@ -262,7 +276,8 @@ const apy = async () => {
   const arbData = await getChainDataBUSD0(CONFIG.ARBITRUM);
 
   // sUSD0 APY
-  const rewardSUsd0 = await getRewardData(
+  const rewardSUsd0 = getRewardData(
+    rewardsData,
     CONFIG.SUSD0_SYMBOL,
     CONFIG.USD0_SYMBOL
   );
@@ -270,7 +285,8 @@ const apy = async () => {
   const susd0Data = await getChainDataSUSD0(CONFIG.ETHEREUM);
 
   // USD0a APY
-  const rewardUSD0a = await getRewardData(
+  const rewardUSD0a = getRewardData(
+    rewardsData,
     CONFIG.USD0A_SYMBOL,
     CONFIG.USD0A_SYMBOL
   );
@@ -289,9 +305,9 @@ const apy = async () => {
     rawUsualXTVL,
     usualXLockupMarketCap,
     usualXUnlockedMarketCap,
-  } = await getUsualXAPY('Ethereum', usualxPrice);
+  } = await getUsualXAPY('Ethereum', usualxPrice, rewardsData);
   const { baseUsUSDSApy, usUSDSRewardApy, usUSDSppMarketCap } =
-    await getUsUSDSAPY('Ethereum');
+    await getUsUSDSAPY('Ethereum', rewardsData);
   return [
     {
       pool: CONFIG.ETHEREUM.USD0A,
