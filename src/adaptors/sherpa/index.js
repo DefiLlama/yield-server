@@ -29,7 +29,12 @@ const abi = {
   stableWrapper: 'function stableWrapper() view returns (address)',
 };
 
-// Fetch yield data from Sherpa API (applies to all chains)
+/**
+ * Fetches APY data from the Sherpa API endpoint.
+ * Returns the 7-day rolling average for base USDC yield, points yield, and Merkl incentive yield.
+ * @returns {Promise<Object>} Object containing usdcApy, pointsApy, incentiveApy, and totalRewardApy
+ * @throws {Error} When API request fails
+ */
 async function fetchYieldData() {
   try {
     // Fetch all APY data from vault snapshots endpoint
@@ -57,6 +62,12 @@ async function fetchYieldData() {
   }
 }
 
+/**
+ * Fetches pool data for a specific chain by querying on-chain TVL and combining with yield data.
+ * @param {string} chain - The blockchain network (ethereum, base, or monad)
+ * @param {Object} yieldData - APY data object from fetchYieldData()
+ * @returns {Promise<Object|null>} Pool object formatted for DefiLlama, or null if TVL < $10k or error occurs
+ */
 async function getPoolData(chain, yieldData) {
   try {
     // Get on-chain TVL data
@@ -112,6 +123,11 @@ async function getPoolData(chain, yieldData) {
   }
 }
 
+/**
+ * Main adapter function that fetches and returns all Sherpa vault pools across supported chains.
+ * Combines API-sourced yield data with on-chain TVL data for each chain.
+ * @returns {Promise<Array>} Array of pool objects, or empty array if API fails
+ */
 async function apy() {
   try {
     // Fetch yield data once from API (applies to all chains)
