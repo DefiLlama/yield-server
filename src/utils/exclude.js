@@ -323,6 +323,7 @@ const excludeAdaptors = [
   'pok-vault',
   'ion-protocol',
   'tetu-earn',
+  'blockchain-capital', // REVISIT: tokenized VC fund (Securitize BCAP). 30d-annualized APY over discrete NAV revaluations produces nonsense (e.g. 3163% when NAV jumped $22.99→$82.75). TVL ~$754M makes the misreporting high-visibility. Need longer window / NAV-based model or drop apy entirely before re-enabling.
 ];
 
 const excludePools = [
