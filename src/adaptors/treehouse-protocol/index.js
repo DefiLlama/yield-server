@@ -15,14 +15,24 @@ const convertToAssetsAbi = {
 
 const getJson = (url) => utils.withRetry(() => axios.get(url)).then((r) => r.data);
 
-const getBlock = (chain, ts) =>
-    getJson(`https://coins.llama.fi/block/${chain}/${ts}`).then((d) => d.height);
+const getBlock = async (chain, ts) => {
+    const d = await getJson(`https://coins.llama.fi/block/${chain}/${ts}`);
+    if (typeof d?.height !== 'number') {
+        throw new Error(
+            `treehouse-protocol: invalid block response for ${chain} @ ${ts}: ${JSON.stringify(d)}`
+        );
+    }
+    return d.height;
+};
 
-const getPrice = (chain, token) => {
+const getPrice = async (chain, token) => {
     const key = `${chain}:${token}`;
-    return getJson(`https://coins.llama.fi/prices/current/${key}`).then(
-        (d) => d.coins[key]?.price
-    );
+    const d = await getJson(`https://coins.llama.fi/prices/current/${key}`);
+    const price = d?.coins?.[key]?.price;
+    if (typeof price !== 'number') {
+        throw new Error(`treehouse-protocol: missing price for ${chain}:${token}`);
+    }
+    return price;
 };
 
 const rateAt = (target, chain, block) =>
@@ -91,11 +101,10 @@ const POOLS = [
 const getPool = async ({ symbol, chain, vault, underlying, underlyingApr }) => {
     const tsNow = Math.floor(Date.now() / 1000);
 
-    const [price, blockNow, blockYesterday, block7dAgo, extra] = await Promise.all([
+    const [price, blockNow, blockYesterday, extra] = await Promise.all([
         getPrice(chain, underlying),
         getBlock(chain, tsNow),
         getBlock(chain, tsNow - 86400),
-        getBlock(chain, tsNow - 86400 * 7),
         underlyingApr(),
     ]);
 
@@ -107,13 +116,19 @@ const getPool = async ({ symbol, chain, vault, underlying, underlyingApr }) => {
         ),
     ]);
 
-    // 7d read needs archive state and regularly flakes across Llama RPC
+    // 7d lookup (block + archive-state rate) regularly flakes across Llama RPC
     // providers (pruned state / CU limits); isolate so a failure nulls
     // apyBase7d instead of dropping the whole pool.
-    const rate7dAgo = await safe(
-        () => retryAny(() => rateAt(vault, chain, block7dAgo)),
-        `${symbol} 7d rate`
+    const block7dAgo = await safe(
+        () => getBlock(chain, tsNow - 86400 * 7),
+        `${symbol} 7d block`
     );
+    const rate7dAgo = block7dAgo
+        ? await safe(
+              () => retryAny(() => rateAt(vault, chain, block7dAgo)),
+              `${symbol} 7d rate`
+          )
+        : null;
 
     const n = (x) => x.output / 1e18;
     const vaultApr1d =
@@ -144,7 +159,20 @@ const apy = async () => {
             );
         }
     }
-    return results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+    const fulfilled = results.filter((r) => r.status === 'fulfilled');
+    // If every pool failed, throw so the handler records status=error in
+    // adapter_stats instead of silently recording status=success with 0 rows.
+    if (fulfilled.length === 0) {
+        const reasons = results
+            .map((r) => r.reason?.message || String(r.reason))
+            .join('; ');
+        throw new Error(`treehouse-protocol: all pool fetches failed: ${reasons}`);
+    }
+    return fulfilled.map((r) => r.value);
 };
 
-module.exports = { apy, url: 'https://www.treehouse.finance/' };
+module.exports = {
+    timetravel: false,
+    apy,
+    url: 'https://www.treehouse.finance/',
+};

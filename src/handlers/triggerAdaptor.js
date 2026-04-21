@@ -70,7 +70,7 @@ const recordAdapterStats = async ({
 };
 
 const formatErrorForStorage = (err) => {
-  const message = err?.stack ?? err?.message ?? String(err);
+  const message = err?.stack || err?.message || String(err);
   return message.slice(0, 4000);
 };
 
@@ -150,9 +150,13 @@ const main = async (body) => {
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
       protocolConfig[body.adaptor]?.category === 'Options' ||
-      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
-        body.adaptor
-      )
+      [
+        'mellow-protocol',
+        'sommelier',
+        'abracadabra',
+        'resolv',
+        'treehouse-protocol',
+      ].includes(body.adaptor)
         ? p.apyBase
         : p.apyBase < 0
         ? 0
