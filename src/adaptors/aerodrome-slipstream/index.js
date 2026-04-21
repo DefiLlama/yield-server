@@ -81,13 +81,17 @@ const metaQuery = gql`
 `;
 
 async function getPoolVolumes(timestamp = null) {
+  let probe = null;
   if (timestamp === null) {
     try {
       const meta = await utils.withRetry(() => request(SUBGRAPH, metaQuery));
-      const lagSec =
-        Math.floor(Date.now() / 1000) - Number(meta._meta.block.timestamp);
+      probe = {
+        lagSec:
+          Math.floor(Date.now() / 1000) - Number(meta._meta.block.timestamp),
+        hasIndexingErrors: !!meta._meta.hasIndexingErrors,
+      };
       console.log(
-        `aerodrome-slipstream: subgraph at block ${meta._meta.block.number} (${lagSec}s behind now), indexingErrors=${meta._meta.hasIndexingErrors}`
+        `aerodrome-slipstream: subgraph at block ${meta._meta.block.number} (${probe.lagSec}s behind now), indexingErrors=${probe.hasIndexingErrors}`
       );
     } catch (e) {
       console.log(
@@ -165,7 +169,7 @@ async function getPoolVolumes(timestamp = null) {
     };
   }
 
-  return pools;
+  return { pools, probe };
 }
 
 const CHUNK_SIZE = 400;
@@ -562,12 +566,20 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
   return poolsApy;
 };
 
+// ceiling used inside this adapter when deciding whether subgraph is fresh
+// enough to serve as authoritative. utils.getBlocks has a looser ~100 min
+// hard throw; this is tighter to keep 1d APY within ~1.4% of real time.
+const MAX_SUBGRAPH_LAG_SEC = 1200;
+// observed baseline ~500 pools; <100 → partial response, fall back
+const MIN_HEALTHY_SUBGRAPH_POOLS = 100;
+
 async function main(timestamp = null) {
   // subgraph-first: when healthy it's authoritative for apyBase/7d/volume
   // and the archive-state fee pagination is skipped (saves ~240s/run)
   let poolsVolumes = {};
+  let probe = null;
   try {
-    poolsVolumes = await getPoolVolumes(timestamp);
+    ({ pools: poolsVolumes, probe } = await getPoolVolumes(timestamp));
   } catch (e) {
     console.log(
       'aerodrome-slipstream: subgraph query failed, skipping volume data',
@@ -575,14 +587,23 @@ async function main(timestamp = null) {
     );
   }
 
-  // observed baseline ~500 pools; <100 → partial response, fall back
-  const MIN_HEALTHY_SUBGRAPH_POOLS = 100;
   const subgraphPoolCount = Object.keys(poolsVolumes).length;
-  const subgraphHealthy = subgraphPoolCount >= MIN_HEALTHY_SUBGRAPH_POOLS;
-  if (!subgraphHealthy && subgraphPoolCount > 0) {
-    console.log(
-      `aerodrome-slipstream: subgraph returned only ${subgraphPoolCount} pools (<${MIN_HEALTHY_SUBGRAPH_POOLS}); falling back to archive-state path`
-    );
+  const poolCountOk = subgraphPoolCount >= MIN_HEALTHY_SUBGRAPH_POOLS;
+  const probeOk =
+    !probe || (!probe.hasIndexingErrors && probe.lagSec <= MAX_SUBGRAPH_LAG_SEC);
+  const subgraphHealthy = poolCountOk && probeOk;
+
+  if (!subgraphHealthy) {
+    const reasons = [];
+    if (!poolCountOk && subgraphPoolCount > 0)
+      reasons.push(`only ${subgraphPoolCount} pools (<${MIN_HEALTHY_SUBGRAPH_POOLS})`);
+    if (probe?.hasIndexingErrors) reasons.push('indexing errors');
+    if (probe && probe.lagSec > MAX_SUBGRAPH_LAG_SEC)
+      reasons.push(`lag ${probe.lagSec}s (>${MAX_SUBGRAPH_LAG_SEC})`);
+    if (reasons.length)
+      console.log(
+        `aerodrome-slipstream: subgraph unhealthy (${reasons.join(', ')}); falling back to archive-state path`
+      );
   }
   const poolsApy = await getGaugeApy({ skipHistoricalFees: subgraphHealthy });
 
