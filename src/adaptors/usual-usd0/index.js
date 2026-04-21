@@ -242,21 +242,58 @@ async function getUsUSDSAPY(chain, rewardsData) {
   };
 }
 
+// Pools we depend on — used as a schema-integrity check so a broken upstream
+// returning partial data fails loudly at fetch time rather than surfacing
+// confusing per-pool errors later.
+const REQUIRED_REWARD_KEYS = [
+  'USD0PP_SYMBOL',
+  'SUSD0_SYMBOL',
+  'USD0A_SYMBOL',
+  'USUALX_SYMBOL',
+  'USUALX_LOCKUP_SYMBOL',
+  'USUSDSPP_VAULT_SYMBOL',
+];
+
 // Fetched once per apy() invocation and threaded through as a parameter. The
 // upstream returns 502s intermittently — one fetch + retries is the robust
 // shape, and the explicit parameter makes the lifecycle visible at every
-// call site (no hidden module state).
+// call site (no hidden module state). No Last-Modified / payload timestamp
+// is exposed by the upstream, so we proxy staleness via schema checks here.
 async function fetchRewardsData() {
   const { data } = await utils.withRetry(() =>
     axios.get(CONFIG.URLS.REWARD_APR_RATE)
   );
+
+  if (
+    data == null ||
+    typeof data !== 'object' ||
+    Array.isArray(data) ||
+    data.error
+  ) {
+    const preview = JSON.stringify(data).slice(0, 200);
+    throw new Error(
+      `usual-usd0: unexpected rewards payload shape (${preview})`
+    );
+  }
+
+  const missing = REQUIRED_REWARD_KEYS.filter((k) => !data[CONFIG[k]]);
+  if (missing.length) {
+    throw new Error(
+      `usual-usd0: rewards payload missing expected pools: ${missing
+        .map((k) => CONFIG[k])
+        .join(', ')}`
+    );
+  }
+
   return data;
 }
 
 function getRewardData(rewardsData, pool, reward) {
   const apr = rewardsData[pool]?.[reward];
 
-  if (!apr) {
+  // `== null` catches missing keys (null/undefined) without false-positively
+  // firing on a legitimate `0` (numeric) or `"0"` (string) APR.
+  if (apr == null) {
     throw new Error(`Reward "${reward}" not found for pool "${pool}"`);
   }
 
