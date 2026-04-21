@@ -168,7 +168,7 @@ async function getLogs() {
 
 async function apyBsc() {
     const tvlUsd =
-        (await sdk.api.erc20.totalSupply({target: config.bsc.usdu, chain: 'bsc'})).output /
+        (await sdk.api.erc20.totalSupply({target: config.bsc.susdu, chain: 'bsc'})).output /
         1e18;
 
     const logs = await getLogs()
@@ -180,7 +180,7 @@ async function apyBsc() {
     const rewardsReceived = Number(logs[0].args.amount) / 1e18;
 
     const aprBase = ((rewardsReceived * 3 * 365) / tvlUsd) * 100;
-    // weekly compoounding
+    // weekly compounding
     const apyBase = utils.aprToApy(aprBase, 52);
 
     return [tvlUsd, apyBase]
