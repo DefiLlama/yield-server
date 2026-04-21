@@ -70,7 +70,7 @@ const recordAdapterStats = async ({
 };
 
 const formatErrorForStorage = (err) => {
-  const message = err?.stack ?? err?.message ?? String(err);
+  const message = err?.stack || err?.message || String(err);
   return message.slice(0, 4000);
 };
 
