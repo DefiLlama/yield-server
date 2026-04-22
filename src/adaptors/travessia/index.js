@@ -69,34 +69,33 @@ const apy = async () => {
 
     for (const chain of chains) {
         const chainId = vaultData.find(v => v.chainName === chain).chainId;
-        const addresses = vaultData.filter(v => v.chainName === chain).map(v => {
+        const data = vaultData.filter(v => v.chainName === chain).map(v => {
             return {
                 vault: v.vaultAddress,
                 feeManager: v.feeManagerAddress,
                 asset: v.depositTokenAddress,
                 loan: v.loanAddress,
+                symbols: v.depositSymbol,
+                partner: v.partner
             }
         });
-        const symbols = vaultData.filter(v => v.chainName === chain).map(v => v.depositSymbol);
+
         const [rawApy, performanceFees, tvlAndBorrow] = await Promise.all([
-            getRawApy(addresses.map(a => a.loan), chain),
-            getPerformanceFee(addresses.map(a => a.feeManager), addresses.map(a => a.loan), chain),
-            getTVLAndBorrow(addresses.map(a => a.vault), addresses.map(a => a.asset), chain),
+            getRawApy(data.map(a => a.loan), chain),
+            getPerformanceFee(data.map(a => a.feeManager), data.map(a => a.loan), chain),
+            getTVLAndBorrow(data.map(a => a.vault), data.map(a => a.asset), chain),
         ]);
 
-        for (let i = 0; i < addresses.length; i++) {
+        for (let i = 0; i < data.length; i++) {
             pools.push({
-                pool: `${addresses[i].vault}-${chain}`.toLowerCase(),
+                pool: `${data[i].vault}-${chain}`.toLowerCase(),
                 chain: utils.formatChain(chain),
-                project: 'travessia',
-                symbol: utils.formatSymbol(symbols[i]),
-                underlyingTokens: [addresses[i].asset],
+                project: 'travessia-credit',
+                symbol: utils.formatSymbol(data[i].symbols),
+                underlyingTokens: [data[i].asset],
                 tvlUsd: tvlAndBorrow[i].tvl,
-                totalBorrowUsd: tvlAndBorrow[i].totalBorrowed,
                 apyBase: (Number(rawApy[i]) * (1 - Number(performanceFees[i]) / 1e6)) / 1e4,
-                apyReward: 0,
-                rewardTokens: [],
-                url: `https://www.travessiacredit.com/vaults/${chainId}/tauri/${addresses[i].vault}`,
+                url: `https://www.travessiacredit.com/vaults/${chainId}/${data[i].partner}/${data[i].vault}`,
             });
         }
     }
