@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const { getMerklRewardsForChain } = require('../merkl/merkl-by-identifier');
 
-const PROJECT = 'ichi-vaults';
+const PROJECT = 'ichi';
 
 // Subgraph config per chain — maps vault addresses to their subgraph
 // v2 subgraphs have pre-calculated feeApr_7d; v1 requires manual calculation
@@ -141,7 +141,7 @@ const fetchFeeAprV1 = async (subgraphUrl, vaultAddresses) => {
       }
 
       if (latestTvl > 0) {
-        const feeApr = (totalFees / 7) * 365 / latestTvl;
+        const feeApr = ((totalFees / 7) * 365) / latestTvl;
         map[addr.toLowerCase()] = feeApr * 100; // percentage
       }
     } catch {}
