@@ -289,7 +289,7 @@ const buildVaultV2Pools = (earnV2, chain) =>
       return {
         pool: `morpho-vault-v2-${vault.address}-${chain}`,
         chain,
-        project: 'morpho-v1',
+        project: 'morpho-blue',
         symbol: vault.symbol,
         // Base APY: net yield from the strategy + underlying asset, after fees,
         //           excluding explicit reward APRs.
@@ -305,91 +305,84 @@ const buildVaultV2Pools = (earnV2, chain) =>
       };
     });
 
+const fetchChainData = async (chainId) => {
+  const fetchPage = async (query, variables, key) => {
+    try {
+      return await request(GRAPH_URL, query, variables);
+    } catch (error) {
+      // GraphQL may return partial data alongside errors — surface it only
+      // when the expected key is present; otherwise fail so the chain is skipped.
+      if (error.response?.data?.[key]) return error.response.data;
+      throw error;
+    }
+  };
+
+  const fetchAll = async (query, key) => {
+    const all = [];
+    let skip = 0;
+    while (true) {
+      let response;
+      try {
+        response = await fetchPage(query, { chainId, skip }, key);
+      } catch (error) {
+        // Mid-pagination failures (e.g. upstream 504 on a later page) shouldn't
+        // discard pages we've already gathered — keep what we have and log.
+        if (all.length > 0) {
+          console.error(
+            `morpho-v1: ${key} pagination failed for chainId ${chainId} at skip=${skip} after ${all.length} items: ${error.message}`
+          );
+          return all;
+        }
+        throw error;
+      }
+      const page = response[key];
+      if (!page?.items?.length) break;
+      all.push(...page.items);
+      skip += 100;
+    }
+    return all;
+  };
+
+  // Run the three dataset queries independently so a single failure doesn't
+  // discard the successful ones for this chain.
+  const datasets = ['vaults', 'vaultV2s', 'markets'];
+  const results = await Promise.allSettled([
+    fetchAll(gqlQueries.metaMorphoVaults, 'vaults'),
+    fetchAll(gqlQueries.vaultV2s, 'vaultV2s'),
+    fetchAll(gqlQueries.marketsData, 'markets'),
+  ]);
+
+  const [vaults, vaultV2s, markets] = results.map((r, i) => {
+    if (r.status === 'rejected') {
+      console.error(
+        `morpho-v1: ${datasets[i]} query failed for chainId ${chainId}: ${r.reason?.message}`
+      );
+      return [];
+    }
+    return r.value;
+  });
+
+  return {
+    earnV1: vaults.filter((v) => v.state !== null),
+    earnV2: vaultV2s,
+    borrow: markets,
+  };
+};
+
 const apy = async () => {
   let pools = [];
 
   for (const [chain, chainId] of Object.entries(CHAINS)) {
-    // Fetch Vault V1 (MetaMorpho) data with pagination
-    let allVaults = [];
-    let skip = 0;
-    while (true) {
-      let vaults;
-      try {
-        const response = await request(GRAPH_URL, gqlQueries.metaMorphoVaults, {
-          chainId,
-          skip,
-        });
-        vaults = response.vaults;
-      } catch (error) {
-        // GraphQL may return partial data with errors (e.g., vaults with null state)
-        // Extract data from the error response if available
-        if (error.response?.data?.vaults) {
-          vaults = error.response.data.vaults;
-        } else {
-          throw error;
-        }
-      }
-
-      if (!vaults.items.length) break;
-
-      allVaults = [...allVaults, ...vaults.items];
-      skip += 100;
+    let chainData;
+    try {
+      chainData = await fetchChainData(chainId);
+    } catch (error) {
+      console.error(
+        `morpho-v1: skipping ${chain} (chainId ${chainId}): ${error.message}`
+      );
+      continue;
     }
-
-    // Fetch Vault V2 data with pagination
-    let allVaultV2s = [];
-    skip = 0;
-    while (true) {
-      let vaultV2s;
-      try {
-        const response = await request(GRAPH_URL, gqlQueries.vaultV2s, {
-          chainId,
-          skip,
-        });
-        vaultV2s = response.vaultV2s;
-      } catch (error) {
-        if (error.response?.data?.vaultV2s) {
-          vaultV2s = error.response.data.vaultV2s;
-        } else {
-          throw error;
-        }
-      }
-
-      if (!vaultV2s.items.length) break;
-
-      allVaultV2s = [...allVaultV2s, ...vaultV2s.items];
-      skip += 100;
-    }
-
-    // Fetch markets data with pagination
-    let allMarkets = [];
-    skip = 0;
-    while (true) {
-      let markets;
-      try {
-        const response = await request(GRAPH_URL, gqlQueries.marketsData, {
-          chainId,
-          skip,
-        });
-        markets = response.markets;
-      } catch (error) {
-        if (error.response?.data?.markets) {
-          markets = error.response.data.markets;
-        } else {
-          throw error;
-        }
-      }
-
-      if (!markets.items.length) break;
-
-      allMarkets = [...allMarkets, ...markets.items];
-      skip += 100;
-    }
-
-    // Filter out vaults with null state
-    const earnV1 = allVaults.filter((vault) => vault.state !== null);
-    const earnV2 = allVaultV2s;
-    const borrow = allMarkets;
+    const { earnV1, earnV2, borrow } = chainData;
 
     // Look up on-chain expiry for PT collateral tokens
     const ptMarkets = borrow.filter(
@@ -431,7 +424,7 @@ const apy = async () => {
       return {
         pool: `morpho-vault-v1-${vault.address}-${chain}`,
         chain,
-        project: 'morpho-v1',
+        project: 'morpho-blue',
         symbol: vault.symbol,
         apyBase: vault.state.apy * 100,
         tvlUsd: vault.state.totalAssetsUsd || 0,
@@ -471,7 +464,7 @@ const apy = async () => {
       return {
         pool: `morpho-blue-${market.uniqueKey}-${chain}`,
         chain,
-        project: 'morpho-v1',
+        project: 'morpho-blue',
         symbol: market.collateralAsset?.symbol,
         token: null,
         apy: 0,

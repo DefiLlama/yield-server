@@ -19,7 +19,9 @@ const SHARES = BigInt('1000000000000000000000000')  // 1e24
 const SCALE  = BigInt('1000000000000')  
 
 async function getBlockAt(ts, chain = CHAIN) {
-  const { data } = await axios.get(`https://coins.llama.fi/block/${chain}/${ts}`)
+  const { data } = await utils.withRetry(() =>
+    axios.get(`https://coins.llama.fi/block/${chain}/${ts}`)
+  )
   return { block: data.height || data.number, ts: data.timestamp || ts }
 }
 
@@ -45,7 +47,8 @@ function ratioToDaily(rNow, rPrev, secondsBigOrNum) {
 }
 
 async function computeApyBase(vault) {
-  const nowTs = Math.floor(Date.now() / 1e3)
+  // 60s safety margin so coins.llama.fi/block never 400s on "timestamp after now"
+  const nowTs = Math.floor(Date.now() / 1e3) - 60
   const WEEK = 7 * DAY
 
   const [{ block: bNow, ts: tNow }, { block: bPast, ts: tPast }] = await Promise.all([
