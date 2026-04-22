@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const IPOR_GITHUB_ADDRESSES_URL = "https://raw.githubusercontent.com/IPOR-Labs/ipor-abi/refs/heads/main/mainnet/addresses.json";
 const FUSION_API_URL = 'https://api.ipor.io/fusion/vaults';
@@ -101,7 +102,7 @@ const apy = async() => {
         )
     );
 
-    return pools;
+    return addMerklRewardApy(pools, 'ipor');
 };
 
 module.exports = {

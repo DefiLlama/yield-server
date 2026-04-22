@@ -37,19 +37,18 @@ exports.addMerklRewardApy = async (
     let merklPools = [];
     let pageI = 0;
 
-    while(true) {
+    while (true) {
       let data;
       try {
-        data = await getData(`https://api.merkl.xyz/v4/opportunities?mainProtocolId=${protocolId}&status=LIVE&items=100&page=${pageI}`);
+        data = await getData(
+          `https://api.merkl.xyz/v4/opportunities?mainProtocolId=${protocolId}&status=LIVE&items=100&page=${pageI}`
+        );
       } catch (err) {
         console.log(`failed to fetch Merkl data for ${protocolId}: ${err}`);
         break;
       }
 
-      if (data.length === 0) {
-        break;
-      }
-
+      if (data.length === 0) break;
       merklPools.push(...data);
       pageI++;
     }
@@ -154,8 +153,6 @@ exports.addMerklRewardApy = async (
     });
   } catch (err) {
     console.log(`Failed to add Merkl reward apy to ${protocolId}: ${err}`);
-
-    // If we fail to fetch Merkl data, just return the original pools
     return pools;
   }
 };

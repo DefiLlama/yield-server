@@ -1,5 +1,7 @@
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+const { getMerklRewardsForChain } = require('../merkl/merkl-by-identifier');
 
 const GRAPH_URL = 'https://api.morpho.org/graphql';
 const CHAINS = {
@@ -87,7 +89,7 @@ const gqlQueries = {
         skip: $skip
         orderBy: TotalAssetsUsd
         orderDirection: Desc
-        where: { chainId_in: [$chainId], whitelisted: true }
+        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
       ) {
         items {
           chain {
@@ -130,7 +132,7 @@ const gqlQueries = {
       vaultV2s(
         first: 100
         skip: $skip
-        where: { chainId_in: [$chainId], whitelisted: true }
+        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
       ) {
         items {
           address
@@ -497,7 +499,55 @@ const apy = async () => {
       .values()
   );
 
-  return uniquePools.filter(Boolean);
+  const filteredPools = uniquePools.filter(Boolean);
+
+  // Phase 1: fetch merkl rewards by mainProtocolId=morpho (catches tagged vaults)
+  const poolsAfterProtocol = await addMerklRewardApy(
+    filteredPools,
+    'morpho',
+    (p) => {
+      const match = p.pool.match(/0x[a-fA-F0-9]{40,}/);
+      return match ? match[0] : p.pool;
+    }
+  );
+
+  // Phase 2: for vault pools that didn't get merkl rewards, try by-identifier
+  // Many MetaMorpho vaults have merkl campaigns but aren't tagged with protocol.id=morpho
+  const vaultPrefixes = ['morpho-vault-v1-', 'morpho-vault-v2-'];
+  const unrewarded = poolsAfterProtocol.filter(
+    (p) =>
+      vaultPrefixes.some((pfx) => p.pool.startsWith(pfx)) &&
+      !p.apyReward &&
+      (!p.rewardTokens || p.rewardTokens.length === 0)
+  );
+
+  if (unrewarded.length > 0) {
+    // Group by chain and batch-query merkl
+    const byChain = {};
+    for (const p of unrewarded) {
+      const chain = p.chain.toLowerCase();
+      if (!byChain[chain]) byChain[chain] = [];
+      const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
+      if (match) byChain[chain].push({ pool: p, addr: match[0] });
+    }
+
+    for (const [chain, entries] of Object.entries(byChain)) {
+      const addrs = entries.map((e) => e.addr);
+      const rewards = await getMerklRewardsForChain(addrs, chain, {
+        batchSize: 10,
+      });
+
+      for (const entry of entries) {
+        const reward = rewards[entry.addr.toLowerCase()];
+        if (reward && reward.apyReward > 0) {
+          entry.pool.apyReward = reward.apyReward;
+          entry.pool.rewardTokens = reward.rewardTokens;
+        }
+      }
+    }
+  }
+
+  return poolsAfterProtocol;
 };
 
 module.exports = {

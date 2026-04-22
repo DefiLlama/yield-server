@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.js');
 const { keepFinite } = require('../utils.js');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const markets = [
   {
@@ -316,7 +317,7 @@ const main = async (pool) => {
 
 const apy = async () => {
   const pools = (await Promise.all(markets.map((p) => main(p)))).flat();
-  return pools.filter((i) => keepFinite(i));
+  return addMerklRewardApy(pools.filter((i) => keepFinite(i)), 'compound-v3', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {
