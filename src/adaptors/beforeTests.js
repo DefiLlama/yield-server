@@ -56,9 +56,12 @@ module.exports = async function () {
 
   global.adapter = adapter;
   const apyRaw = await module.apy(timestamp);
-  global.apy = (Array.isArray(apyRaw) ? apyRaw : []).sort(
-    (a, b) => b.tvlUsd - a.tvlUsd
-  );
+  if (!Array.isArray(apyRaw)) {
+    throw new Error(
+      `apy() must return an array from module.apy for timestamp ${timestamp}`
+    );
+  }
+  global.apy = apyRaw.sort((a, b) => b.tvlUsd - a.tvlUsd);
   global.poolsUrl = module.url;
 
   const outputDir = path.resolve(__dirname, '../../.test-adapter-output');

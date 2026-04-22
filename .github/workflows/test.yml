@@ -37,7 +37,7 @@ jobs:
           do
             {
               npm run test --adapter=${i} 2>&1 | tee output.txt
-              node ${{ github.workspace }}/.github/workflows/commentResult.js /home/runner/work/yield-server/yield-server/output.txt "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.number }}" ${i}
+              node ${{ github.workspace }}/.github/workflows/commentResult.js /home/runner/work/yield-server/yield-server/output.txt pr-comments ${i}
               if grep -q "PASS src/adaptors/test.js" output.txt; then
                 exit 0;
               else
