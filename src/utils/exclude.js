@@ -327,6 +327,8 @@ const excludeAdaptors = [
   'flex-perpetuals',
   'morpho-v0-compoundv2',
   'morpho-v0-aavev2',
+  'spookyswap-v2',
+  'perpetual-protocol',
 ];
 
 const excludePools = [
