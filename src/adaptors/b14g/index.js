@@ -180,6 +180,7 @@ const getCORERewardForBTCHolderPerDay = async (blockNumber) => {
         };
       }),
       chain: 'core',
+      permitFailure: true,
     })
   ).output
     .map((el, index) => {
@@ -190,6 +191,7 @@ const getCORERewardForBTCHolderPerDay = async (blockNumber) => {
       };
     })
     .filter((order) => {
+      if (!order.output || !Array.isArray(order.output)) return false;
       listTxHash = listTxHash.concat(order.output);
       return order.output.length > 0;
     });
@@ -226,8 +228,12 @@ const getCORERewardForBTCHolderPerDay = async (blockNumber) => {
           };
         }),
         chain: 'core',
+        permitFailure: true,
       })
-    ).output.reduce((acc, el) => acc + parseInt(el.output.amount), 0) / 1e8;
+    ).output.reduce((acc, el) => {
+      const amount = el && el.output && el.output.amount;
+      return amount ? acc + parseInt(amount) : acc;
+    }, 0) / 1e8;
   let turnRoundBlockNumber = await getTurnRoundBlockNumber(blockNumber);
 
   let rewardBTCBeforeTurnround = (
@@ -240,8 +246,12 @@ const getCORERewardForBTCHolderPerDay = async (blockNumber) => {
       }),
       block: turnRoundBlockNumber,
       chain: 'core',
+      permitFailure: true,
     })
-  ).output.reduce((acc, el) => acc + parseInt(el.output), 0);
+  ).output.reduce((acc, el) => {
+    const out = el && el.output;
+    return out ? acc + parseInt(out) : acc;
+  }, 0);
   let rewardBTCAfterTurnround = (
     await sdk.api.abi.multiCall({
       abi: {
@@ -293,7 +303,10 @@ const getCORERewardForBTCHolderPerDay = async (blockNumber) => {
       chunkSize: 20,
       permitFailure: true,
     })
-  ).output.reduce((acc, el) => acc + parseInt(el.output), 0);
+  ).output.reduce((acc, el) => {
+    const out = el && el.output;
+    return out ? acc + parseInt(out) : acc;
+  }, 0);
   return {
     reward: (rewardBTCAfterTurnround - rewardBTCBeforeTurnround) / 1e18,
     btcStake,
@@ -523,52 +536,78 @@ const getApy = async () => {
     ],
     'core'
   );
-  const wBTCVault = await getWBTCVault(
-    blockNumber,
-    price.pricesBySymbol.core,
-    price.pricesBySymbol.wbtc
-  );
-  const dualCOREVault = await getDualCOREVault(blockNumber);
-  const btcMarketplace = await getBTCMarketplace(
-    blockNumber,
-    price.pricesBySymbol.core,
-    price.pricesBySymbol.wbtc
-  );
 
-  return [
-    {
+  const results = await Promise.allSettled([
+    getDualCOREVault(blockNumber),
+    getWBTCVault(
+      blockNumber,
+      price.pricesBySymbol.core,
+      price.pricesBySymbol.wbtc
+    ),
+    getBTCMarketplace(
+      blockNumber,
+      price.pricesBySymbol.core,
+      price.pricesBySymbol.wbtc
+    ),
+  ]);
+
+  const [dualCOREResult, wBTCResult, btcMarketplaceResult] = results;
+  const pools = [];
+
+  if (dualCOREResult.status === 'fulfilled') {
+    const v = dualCOREResult.value;
+    pools.push({
       pool: `${STAKING_CONTRACT}-core`,
       project: 'b14g',
       symbol: 'CORE',
       token: DUAL_CORE_TOKEN,
-      tvlUsd: dualCOREVault.totalStake * price.pricesBySymbol.core,
-      apyBase: dualCOREVault.apy,
+      tvlUsd: v.totalStake * price.pricesBySymbol.core,
+      apyBase: v.apy,
       chain: 'core',
       url: 'https://app.b14g.xyz/vaults/core',
       underlyingTokens: ['0x0000000000000000000000000000000000000000'], // native CORE
-    },
-    {
+    });
+  } else {
+    sdk.log('b14g dualCORE vault failed', dualCOREResult.reason?.toString());
+  }
+
+  if (wBTCResult.status === 'fulfilled') {
+    const v = wBTCResult.value;
+    pools.push({
       pool: `${WBTC_VAULT_CONTRACT}-core`,
       project: 'b14g',
       symbol: 'WBTC',
-      tvlUsd: wBTCVault.totalStake * price.pricesBySymbol.wbtc,
-      apyBase: wBTCVault.apy,
+      tvlUsd: v.totalStake * price.pricesBySymbol.wbtc,
+      apyBase: v.apy,
       chain: 'core',
       url: 'https://app.b14g.xyz/vaults/core',
       underlyingTokens: [WBTC_CORE],
-    },
-    {
+    });
+  } else {
+    sdk.log('b14g WBTC vault failed', wBTCResult.reason?.toString());
+  }
+
+  if (btcMarketplaceResult.status === 'fulfilled') {
+    const v = btcMarketplaceResult.value;
+    pools.push({
       pool: `${MARKETPLACE_CONTRACT}-bitcoin`,
       project: 'b14g',
       symbol: 'BTC',
       token: null,
-      tvlUsd: btcMarketplace.totalLock * price.pricesBySymbol.wbtc,
-      apyBase: btcMarketplace.apy,
+      tvlUsd: v.totalLock * price.pricesBySymbol.wbtc,
+      apyBase: v.apy,
       chain: 'bitcoin',
       url: 'https://app.b14g.xyz/marketplace',
       underlyingTokens: ['coingecko:bitcoin'], // native BTC
-    },
-  ];
+    });
+  } else {
+    sdk.log(
+      'b14g BTC marketplace failed',
+      btcMarketplaceResult.reason?.toString()
+    );
+  }
+
+  return pools;
 };
 
 module.exports = {
