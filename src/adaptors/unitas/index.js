@@ -168,8 +168,11 @@ async function getLogs() {
 
 async function apyBsc() {
     const tvlUsd =
-        (await sdk.api.erc20.totalSupply({target: config.bsc.susdu, chain: 'bsc'})).output /
-        1e18;
+        (await sdk.api.abi.call({
+            target: config.bsc.susdu,
+            abi: 'function totalAssets() view returns (uint256)',
+            chain: 'bsc',
+        })).output / 1e18;
 
     const logs = await getLogs()
 
