@@ -317,7 +317,20 @@ const getV3Pools = async (backendChain, chainString) => {
         const { volumeUsd1dFromSnapshots, volumeUsd7d } =
           getVolumeDataFromSnapshots(snapshots);
         const dynamicVolume24h = Number(dynamicData.volume24h);
-        const poolData = {
+        const poolData: {
+          pool: string;
+          chain: string;
+          project: string;
+          symbol: string;
+          tvlUsd: number;
+          apyBase: number;
+          apyReward: number;
+          rewardTokens: string[];
+          underlyingTokens: string[];
+          url: string;
+          volumeUsd1d?: number;
+          volumeUsd7d?: number;
+        } = {
           pool: pool.address,
           chain: utils.formatChain(chainString),
           project: 'balancer-v3',
