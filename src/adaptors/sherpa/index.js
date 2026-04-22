@@ -32,7 +32,7 @@ const abi = {
 /**
  * Fetches APY data from the Sherpa API endpoint.
  * Returns the 7-day rolling average for base USDC yield, points yield, and Merkl incentive yield.
- * @returns {Promise<Object>} Object containing usdcApy, pointsApy, incentiveApy, and totalRewardApy
+ * @returns {Promise<Object>} Object containing usdcApy, pointsApy, and incentiveApy
  * @throws {Error} When API request fails
  */
 async function fetchYieldData() {
@@ -53,7 +53,6 @@ async function fetchYieldData() {
       usdcApy,
       pointsApy,
       incentiveApy,
-      totalRewardApy: pointsApy + incentiveApy,
     };
   } catch (error) {
     console.error('Error fetching yield data from Sherpa API:', error.message);
@@ -96,13 +95,16 @@ async function getPoolData(chain, yieldData) {
     }
 
     // Build pool metadata description
-    let poolMetaParts = [`USDC: ${yieldData.usdcApy.toFixed(2)}%`];
+    const poolMetaParts = [];
     if (yieldData.pointsApy > 0) {
-      poolMetaParts.push(`Points: ${yieldData.pointsApy.toFixed(2)}%`);
+      poolMetaParts.push('Sherpa Points');
     }
-    if (yieldData.incentiveApy > 0) {
-      poolMetaParts.push(`Merkl: ${yieldData.incentiveApy.toFixed(2)}%`);
+    if (chain === 'monad' && yieldData.incentiveApy > 0) {
+      poolMetaParts.push('Merkl WMON');
     }
+
+    // Only Monad chain has Merkl WMON incentives
+    const hasMonadIncentives = chain === 'monad' && yieldData.incentiveApy > 0;
 
     return {
       pool: `${SHERPA_VAULT}-${chain}`.toLowerCase(),
@@ -111,10 +113,10 @@ async function getPoolData(chain, yieldData) {
       symbol: 'shUSD',
       tvlUsd,
       apyBase: yieldData.usdcApy,
-      apyReward: yieldData.totalRewardApy,
-      rewardTokens: yieldData.incentiveApy > 0 ? [WMON_TOKEN] : [],
+      apyReward: hasMonadIncentives ? yieldData.incentiveApy : null,
+      rewardTokens: hasMonadIncentives ? [WMON_TOKEN] : [],
       underlyingTokens: [chains[chain].usdc, wrapperAddress],
-      poolMeta: poolMetaParts.join(' + '),
+      poolMeta: poolMetaParts.length > 0 ? poolMetaParts.join(' + ') : null,
       url: 'https://app.sherpa.trade/earn',
     };
   } catch (error) {
