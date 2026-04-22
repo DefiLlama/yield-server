@@ -23,10 +23,6 @@ if (process.env.npm_config_fast) {
 } else {
 
 describe(`Running ${process.env.npm_config_adapter} Test`, () => {
-  test('Adapter should return at least one pool', () => {
-    expect(apy.length).toBeGreaterThan(0);
-  });
-
   describe('Check for allowed field names', () => {
     const optionalFields = [
       'apy',
@@ -67,7 +63,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   });
 
   test("Check if link to the pool's page exist", () => {
-    const poolsLink = apy[0]?.url || poolsUrl;
+    const poolsLink = apy[0].url || poolsUrl;
     expect(typeof poolsLink).toBe('string');
   });
 
@@ -182,9 +178,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   test('All pools should have the same project field matching the adapter name and a known protocol slug', () => {
     const projectNames = [...new Set(apy.map((p) => p.project))];
     expect(projectNames).toEqual([adapter]);
-    const firstProject = apy[0]?.project;
-    expect(typeof firstProject).toBe('string');
-    expect(protocols).toContain(firstProject);
+    expect(protocols).toContain(apy[0].project);
   });
 
   describe('Check additional field data rules', () => {
