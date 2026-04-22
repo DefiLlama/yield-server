@@ -1,14 +1,8 @@
 const sdk = require('@defillama/sdk');
-const axios = require('axios');
-
-// Production API URL
-const API_BASE_URL = 'https://prod-vault-api.hedgemony.xyz';
+const { getMerklRewardsByIdentifier } = require('../merkl/merkl-by-identifier');
 
 // SherpaVault (shUSD) contract addresses - same address via CREATE2
 const SHERPA_VAULT = '0x96043804D00DCeC238718EEDaD9ac10719778380';
-
-// WMON token address on Monad (Merkl incentives)
-const WMON_TOKEN = '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A';
 
 // Chain configurations
 const chains = {
@@ -27,47 +21,87 @@ const abi = {
   totalStaked: 'function totalStaked() view returns (uint256)',
   totalPending: 'function totalPending() view returns (uint256)',
   stableWrapper: 'function stableWrapper() view returns (address)',
+  vaultState: 'function vaultState() view returns (uint16 round, uint128 totalPending)',
+  roundPricePerShare: 'function roundPricePerShare(uint256 round) view returns (uint256)',
 };
 
 /**
- * Fetches APY data from the Sherpa API endpoint.
- * Returns the 7-day rolling average for base USDC yield, points yield, and Merkl incentive yield.
- * @returns {Promise<Object>} Object containing usdcApy, pointsApy, and incentiveApy
- * @throws {Error} When API request fails
+ * Calculates 7-day rolling average APY from onchain share price history.
+ * Queries the last 7 rounds of share prices and calculates APY for each round-to-round change.
+ * @param {string} chain - The blockchain network
+ * @returns {Promise<number>} 7-day rolling average APY as a percentage
  */
-async function fetchYieldData() {
+async function calculateBaseApy(chain) {
   try {
-    // Fetch all APY data from vault snapshots endpoint
-    const snapshotsRes = await axios.get(`${API_BASE_URL}/vault-snapshots`, {
-      params: { limit: 1 }
+    // Get current round
+    const vaultState = await sdk.api.abi.call({
+      target: SHERPA_VAULT,
+      abi: abi.vaultState,
+      chain,
     });
 
-    const latestSnapshot = snapshotsRes.data[0];
+    const currentRound = vaultState.output.round;
 
-    // Extract APY breakdown from snapshot
-    const usdcApy = latestSnapshot?.apy?.base ? parseFloat(latestSnapshot.apy.base) : 0;
-    const pointsApy = latestSnapshot?.apy?.points ? parseFloat(latestSnapshot.apy.points) : 0;
-    const incentiveApy = latestSnapshot?.apy?.incentive ? parseFloat(latestSnapshot.apy.incentive) : 0;
+    // Need at least 8 rounds of history (to calculate 7 daily changes)
+    if (currentRound < 8) {
+      return 0;
+    }
 
-    return {
-      usdcApy,
-      pointsApy,
-      incentiveApy,
-    };
+    // Query share prices for last 8 rounds (to get 7 round-to-round changes)
+    const roundsToQuery = [];
+    for (let i = 0; i < 8; i++) {
+      roundsToQuery.push(currentRound - 1 - i); // -1 because roundPricePerShare is for previous round
+    }
+
+    const pricesCalls = roundsToQuery.map((round) => ({
+      target: SHERPA_VAULT,
+      params: [round],
+    }));
+
+    const pricesResults = await sdk.api.abi.multiCall({
+      abi: abi.roundPricePerShare,
+      calls: pricesCalls,
+      chain,
+    });
+
+    const prices = pricesResults.output.map((result) => Number(result.output));
+
+    // Calculate APY for each round-to-round change
+    const apys = [];
+    for (let i = 0; i < prices.length - 1; i++) {
+      const priceNew = prices[i];
+      const priceOld = prices[i + 1];
+
+      if (priceOld === 0) continue;
+
+      // Daily return = (priceNew / priceOld) - 1
+      const dailyReturn = (priceNew / priceOld) - 1;
+
+      // Annualize: ((1 + dailyReturn)^365 - 1) * 100
+      const apy = (Math.pow(1 + dailyReturn, 365) - 1) * 100;
+
+      apys.push(apy);
+    }
+
+    if (apys.length === 0) {
+      return 0;
+    }
+
+    // Return average APY
+    const averageApy = apys.reduce((sum, apy) => sum + apy, 0) / apys.length;
+    return averageApy;
   } catch (error) {
-    console.error('Error fetching yield data from Sherpa API:', error.message);
-    // Throw error to prevent showing pools with 0% APY when API is down
-    throw new Error('Failed to fetch APY data from Sherpa API');
+    console.error(`Error calculating base APY for ${chain}:`, error.message);
+    return 0;
   }
 }
 
 /**
- * Fetches pool data for a specific chain by querying on-chain TVL and combining with yield data.
+ * Fetches pool data for a specific chain by querying on-chain TVL and calculating APY.
  * @param {string} chain - The blockchain network (ethereum, base, or monad)
- * @param {Object} yieldData - APY data object from fetchYieldData()
  * @returns {Promise<Object|null>} Pool object formatted for DefiLlama, or null if TVL < $10k or error occurs
  */
-async function getPoolData(chain, yieldData) {
+async function getPoolData(chain) {
   try {
     // Get on-chain TVL data
     const calls = [
@@ -94,17 +128,8 @@ async function getPoolData(chain, yieldData) {
       return null;
     }
 
-    // Build pool metadata description
-    const poolMetaParts = [];
-    if (yieldData.pointsApy > 0) {
-      poolMetaParts.push('Sherpa Points');
-    }
-    if (chain === 'monad' && yieldData.incentiveApy > 0) {
-      poolMetaParts.push('Merkl WMON');
-    }
-
-    // Only Monad chain has Merkl WMON incentives
-    const hasMonadIncentives = chain === 'monad' && yieldData.incentiveApy > 0;
+    // Calculate base APY from onchain share price history
+    const baseApy = await calculateBaseApy(chain);
 
     return {
       pool: `${SHERPA_VAULT}-${chain}`.toLowerCase(),
@@ -112,11 +137,9 @@ async function getPoolData(chain, yieldData) {
       project: 'sherpa',
       symbol: 'shUSD',
       tvlUsd,
-      apyBase: yieldData.usdcApy,
-      apyReward: hasMonadIncentives ? yieldData.incentiveApy : null,
-      rewardTokens: hasMonadIncentives ? [WMON_TOKEN] : [],
+      apyBase: baseApy,
       underlyingTokens: [chains[chain].usdc, wrapperAddress],
-      poolMeta: poolMetaParts.length > 0 ? poolMetaParts.join(' + ') : null,
+      poolMeta: 'Sherpa Points',
       url: 'https://app.sherpa.trade/earn',
     };
   } catch (error) {
@@ -127,23 +150,41 @@ async function getPoolData(chain, yieldData) {
 
 /**
  * Main adapter function that fetches and returns all Sherpa vault pools across supported chains.
- * Combines API-sourced yield data with on-chain TVL data for each chain.
- * @returns {Promise<Array>} Array of pool objects, or empty array if API fails
+ * Calculates base APY from onchain data and adds Merkl rewards using DefiLlama helpers.
+ * @returns {Promise<Array>} Array of pool objects
  */
 async function apy() {
   try {
-    // Fetch yield data once from API (applies to all chains)
-    const yieldData = await fetchYieldData();
-
-    // Get pool data for each chain with the fetched yield data
+    // Get pool data for each chain
     const pools = await Promise.all(
-      Object.keys(chains).map((chain) => getPoolData(chain, yieldData))
+      Object.keys(chains).map((chain) => getPoolData(chain))
     );
 
     // Filter out null pools (errors or TVL too low)
-    return pools.filter((pool) => pool !== null);
+    const validPools = pools.filter((pool) => pool !== null);
+
+    // Add Merkl rewards for each pool
+    const poolsWithMerkl = await Promise.all(
+      validPools.map(async (pool) => {
+        const merklRewards = await getMerklRewardsByIdentifier(
+          SHERPA_VAULT,
+          pool.chain
+        );
+
+        if (!merklRewards) {
+          return pool;
+        }
+
+        return {
+          ...pool,
+          apyReward: merklRewards.apyReward,
+          rewardTokens: merklRewards.rewardTokens,
+        };
+      })
+    );
+
+    return poolsWithMerkl;
   } catch (error) {
-    // If API fails, return empty array rather than showing 0% APY pools
     console.error('Sherpa adapter failed:', error.message);
     return [];
   }
