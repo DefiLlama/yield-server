@@ -38,13 +38,22 @@ const RWAUSD_UNDERLYING_BASE = [
 ];
 
 async function apy() {
+  // multipli.fi endpoints 500 intermittently; retry transient failures.
   const [apyRes, statsRes, tvlRes, rwaRes] = await Promise.all([
-    axios.get('https://api.multipli.fi/multipli/v2/get-apy/'),
-    axios.get('https://api.multipli.fi/multipli/v2/platform-stats/'),
-    axios.get(
-      'https://api.multipli.fi/multipli/v1/external-aggregator/defillama/tvl/'
+    utils.withRetry(() =>
+      axios.get('https://api.multipli.fi/multipli/v2/get-apy/')
     ),
-    axios.get('https://api.multipli.fi/multipli/v1/rwausd-stats'),
+    utils.withRetry(() =>
+      axios.get('https://api.multipli.fi/multipli/v2/platform-stats/')
+    ),
+    utils.withRetry(() =>
+      axios.get(
+        'https://api.multipli.fi/multipli/v1/external-aggregator/defillama/tvl/'
+      )
+    ),
+    utils.withRetry(() =>
+      axios.get('https://api.multipli.fi/multipli/v1/rwausd-stats')
+    ),
   ]);
 
   const apyData = apyRes.data.payload;
