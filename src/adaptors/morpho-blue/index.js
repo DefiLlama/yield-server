@@ -287,7 +287,7 @@ const buildVaultV2Pools = (earnV2, chain) =>
       return {
         pool: `morpho-vault-v2-${vault.address}-${chain}`,
         chain,
-        project: 'morpho-v1',
+        project: 'morpho-blue',
         symbol: vault.symbol,
         // Base APY: net yield from the strategy + underlying asset, after fees,
         //           excluding explicit reward APRs.
@@ -422,7 +422,7 @@ const apy = async () => {
       return {
         pool: `morpho-vault-v1-${vault.address}-${chain}`,
         chain,
-        project: 'morpho-v1',
+        project: 'morpho-blue',
         symbol: vault.symbol,
         apyBase: vault.state.apy * 100,
         tvlUsd: vault.state.totalAssetsUsd || 0,
@@ -462,7 +462,7 @@ const apy = async () => {
       return {
         pool: `morpho-blue-${market.uniqueKey}-${chain}`,
         chain,
-        project: 'morpho-v1',
+        project: 'morpho-blue',
         symbol: market.collateralAsset?.symbol,
         token: null,
         apy: 0,
