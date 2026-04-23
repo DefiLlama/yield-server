@@ -37,7 +37,7 @@ const getUrl = async (req, res) => {
         AND c.project NOT IN ($<excludeProjects:csv>)
         AND c.symbol NOT LIKE '%RENBTC%'
         AND (
-            c.project IN ($<lendingProjects:csv>)
+            (c.project IN ($<lendingProjects:csv>) AND y."tvlUsd" >= 0)
             OR y."tvlUsd" >= $<tvlLB>
         )
     `;
@@ -49,8 +49,6 @@ const getUrl = async (req, res) => {
     tvlLB: exclude.boundaries.tvlUsdUI.lb,
     age: exclude.boundaries.age,
   });
-
-  console.log(response.length)
 
   if (!response) {
     return new AppError(`Couldn't get data`, 404);

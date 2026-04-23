@@ -10,7 +10,8 @@ const getYieldFiltered = async (lendingProjects = []) => {
   const conn = await connect();
 
   // -- get latest yield row per unique configID (a pool)
-  // -- keep lending projects even if latest tvlUsd is < LB
+  // -- keep lending projects even if 0 <= latest tvlUsd < LB
+  // -- drop lending projects if latest tvlUsd is negative
   // -- for all other projects, exclude if latest tvlUsd is < LB
   // -- exclude if pool age > 7days (speeds up query)
   // -- join config data
@@ -51,8 +52,9 @@ const getYieldFiltered = async (lendingProjects = []) => {
           ORDER  BY timestamp DESC
           LIMIT  1
   ) AS y
-  WHERE  c.project IN ($<lendingProjects:csv>)
+  WHERE  ((c.project IN ($<lendingProjects:csv>) AND y."tvlUsd" >= 0)
      OR  y."tvlUsd" >= $<tvlLB>
+  )
   `;
 
   const response = await conn.query(query, {

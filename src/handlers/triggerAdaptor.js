@@ -86,6 +86,7 @@ const main = async (body) => {
     await axios.get('https://api.llama.fi/config/yields?a=1')
   ).data.protocols;
   const isLendingProject = protocolConfig[body.adaptor]?.category === 'Lending';
+  const tvlLowerBound = isLendingProject ? 0 : exclude.boundaries.tvlUsdDB.lb;
 
   // ---------- prepare prior insert
   // remove potential null/undefined objects in array
@@ -111,12 +112,12 @@ const main = async (body) => {
     apyBaseInception: strToNum(p.apyBaseInception),
   }));
 
-  // filter tvl to be within DB boundaries.
-  // for lending projects we bypass the lower bound so low-liquidity pools still update in DB.
+  // Filter tvl to be within DB boundaries.
+  // Lending projects keep the lower bound at 0 so low-liquidity pools still update,
+  // while negative available-liquidity values are dropped.
   data = data.filter(
     (p) =>
-      p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub &&
-      (isLendingProject || p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb)
+      p.tvlUsd >= tvlLowerBound && p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
   );
 
   // nullify NaN, undefined or Infinity apy values
