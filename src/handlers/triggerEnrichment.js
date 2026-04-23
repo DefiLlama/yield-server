@@ -22,9 +22,16 @@ module.exports.handler = async (event, context) => {
 const main = async () => {
   console.log('START DATA ENRICHMENT');
 
+  const config = (
+    await axios.get('https://api.llama.fi/config/yields?a=1')
+  ).data.protocols;
+  const lendingProjects = Object.entries(config)
+    .filter(([, protocol]) => protocol?.category === 'Lending')
+    .map(([project]) => project);
+
   // ---------- get lastet unique pool
   console.log('\ngetting pools');
-  let data = await getYieldFiltered();
+  let data = await getYieldFiltered(lendingProjects);
   const aaveGHO = await getLatestYieldForPool(
     '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40'
   );
@@ -116,9 +123,6 @@ const main = async () => {
   if (!stablecoins.includes('aiusd')) stablecoins.push('aiusd');
 
   // get catgory data (we hardcode IL to true for options protocols)
-  const config = (
-    await axios.get('https://api.llama.fi/config/yields?a=1')
-  ).data.protocols;
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
 
   // add ML and overview plot fields
