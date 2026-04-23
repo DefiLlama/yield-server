@@ -406,8 +406,29 @@ const apy = async () => {
         }
       });
 
-      // net = including rewards, apy = baseApy
-      const rewardsApy = Math.max(vault.state.netApy - vault.state.apy, 0);
+      // Vault V1 semantics are mixed:
+      // - `apy` is the base APY before fees.
+      // - `netApy` is the total user APY, but on fee-only vaults it may just
+      //   be the fee-reduced base APY.
+      // If we can see rewards here (allocation rewards or the OP override),
+      // use fee-adjusted `apy` as base and the rest of `netApy` as rewards.
+      // Otherwise treat it as fee-only and clamp base to the lower of
+      // `apy` and `netApy`. Merkl can still add rewards later.
+      const hasKnownRewardApy =
+        additionalRewardTokens.size > 0 ||
+        vault.address.toLowerCase() ===
+          '0xc30ce6a5758786e0f640cc5f881dd96e9a1c5c59';
+      const feeAdjustedBaseApy =
+        vault.state.apy * (1 - Number(vault.state.fee || 0));
+      const baseApy = hasKnownRewardApy
+        ? Math.min(feeAdjustedBaseApy, vault.state.netApy)
+        : Math.min(vault.state.apy, vault.state.netApy);
+
+      // `netApy` is the total user APY. Once base is chosen using the mode
+      // above, the remainder is the reward component we surface separately.
+      const rewardsApy = hasKnownRewardApy
+        ? Math.max(vault.state.netApy - baseApy, 0)
+        : Math.max(vault.state.netApy - vault.state.apy, 0);
       const isNegligibleApy = isNegligible(rewardsApy, vault.state.netApy);
       let rewardTokens = isNegligibleApy ? [] : [...additionalRewardTokens];
       let apyReward = rewardTokens.length === 0 ? 0 : rewardsApy * 100;
@@ -426,7 +447,7 @@ const apy = async () => {
         chain,
         project: 'morpho-blue',
         symbol: vault.symbol,
-        apyBase: vault.state.apy * 100,
+        apyBase: baseApy * 100,
         tvlUsd: vault.state.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
         url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
