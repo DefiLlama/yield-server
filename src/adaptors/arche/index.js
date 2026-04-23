@@ -13,6 +13,9 @@ const getApy = async () => {
   });
 
   const { apr } = await utils.getData('https://arche.money/api/apy');
+  if (!Number.isFinite(apr)) {
+    throw new Error(`arche.money/api/apy returned non-finite apr: ${apr}`);
+  }
 
   return [
     {
@@ -21,9 +24,9 @@ const getApy = async () => {
       project: 'arche',
       symbol: utils.formatSymbol('arUSD'),
       tvlUsd: Number(totalAssets) / 1e6,
-      apyBase: (apr ?? 0) * 100,
-      underlyingTokens: [USDC],
-      token: VAULT.toLowerCase(),
+      apyBase: apr * 100,
+      underlyingTokens: [utils.formatAddress(USDC)],
+      token: utils.formatAddress(VAULT),
       url: 'https://arche.money',
     },
   ];
