@@ -85,6 +85,7 @@ const main = async (body) => {
   const protocolConfig = (
     await axios.get('https://api.llama.fi/config/yields?a=1')
   ).data.protocols;
+  const isLendingProject = protocolConfig[body.adaptor]?.category === 'Lending';
 
   // ---------- prepare prior insert
   // remove potential null/undefined objects in array
@@ -110,12 +111,12 @@ const main = async (body) => {
     apyBaseInception: strToNum(p.apyBaseInception),
   }));
 
-  // filter tvl to be btw lb-ub (except GHO borrow pool on aave-v3 (has a constant tvlUsd of 0 cause can't be used as collateral))
+  // filter tvl to be within DB boundaries.
+  // for lending projects we bypass the lower bound so low-liquidity pools still update in DB.
   data = data.filter(
     (p) =>
-      (p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb &&
-        p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub) ||
-      (p.project === 'aave-v3' && p.symbol === 'GHO')
+      p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub &&
+      (isLendingProject || p.tvlUsd >= exclude.boundaries.tvlUsdDB.lb)
   );
 
   // nullify NaN, undefined or Infinity apy values
