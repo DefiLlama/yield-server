@@ -329,6 +329,7 @@ const excludeAdaptors = [
   'morpho-v0-aavev2',
   'spookyswap-v2',
   'perpetual-protocol',
+  'merkl', // we track rewards in the individual adapters
 ];
 
 const excludePools = [
