@@ -78,7 +78,8 @@ const apy = async () => {
         items.reduce((acc, { apr }) => acc + (apr ?? 0), 0);
 
       const apyBase = linearNetAprWithoutExtraYields;
-      const apyReward = sumApr(incentives) + sumApr(airdrops) || null;
+      const apyReward =
+        sumApr(incentives ?? []) + sumApr(airdrops ?? []) || null;
 
       return {
         pool: `lagoon-${vault.address}-${chain}`,
