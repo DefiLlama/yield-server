@@ -143,6 +143,9 @@ const getData = async ({ chainId, address }) => {
   );
   const tvl = baseAssetAmountFormated * baseTokenPrice;
 
+  // Get the underlying token address from the mapping
+  const underlyingToken = POTION_SINGLE_STAKING_LIST[chainId][address];
+
   return {
     chain: CHAINS[chainId],
     project: PROJECT_NAME,
@@ -150,6 +153,7 @@ const getData = async ({ chainId, address }) => {
     symbol: symbol.output.replace('i', ''),
     apyBase: Number(apr),
     tvlUsd: Number(tvl),
+    underlyingTokens: [underlyingToken],
   };
 };
 

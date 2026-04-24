@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const abi = require('./abi');
 const { getRebondApy, contractCall, getLusdUsdPrice } = require('./helpers');
 const {
@@ -45,16 +45,16 @@ const getBLusdRebondStrategy = async (): Promise<ChickenBondsStrategy> => {
 
 const getBLusdLusd3CrvStrategy = async (): Promise<ChickenBondsStrategy> => {
   const curvePoolDataResponse = (
-    await superagent.get(
+    await axios.get(
       'https://api.curve.finance/api/getPools/ethereum/factory-crypto'
     )
-  ).body as PartialCurvePoolData;
+  ).data as PartialCurvePoolData;
 
   const curvePoolDetailsResponse = (
-    await superagent.get(
+    await axios.get(
       'https://api.curve.finance/api/getFactoryAPYs?version=crypto'
     )
-  ).body as PartialCurvePoolDetails;
+  ).data as PartialCurvePoolDetails;
 
   const poolData = curvePoolDataResponse.data?.poolData.find(
     (pool) => pool.id === 'factory-crypto-134'

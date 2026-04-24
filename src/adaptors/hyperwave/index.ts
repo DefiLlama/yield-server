@@ -4,7 +4,7 @@
  * accountants to fetch financial metrics across Ethereum and Hyperliquid chains.
  *
  * @author maybeYonas
- * @version 1.1.0
+ * @version 1.1.1
  */
 
 const utils = require("../utils");
@@ -16,13 +16,18 @@ const Accountant = require("./Accountant.json");
 
 const hwHLP = "0x9FD7466f987Fd4C45a5BBDe22ED8aba5BC8D72d1";
 const hwHYPE = "0x4DE03cA1F02591B717495cfA19913aD56a2f5858";
+const hwUSD = "0xa2f8Da4a55898B6c947Fa392eF8d6BFd87A4Ff77"
 
 const hwHLP_ACCOUNTANT = "0x78E3Ac5Bf48dcAF1835e7F9861542c0D43D0B03E";
 const hwHYPE_ACCOUNTANT = "0xCf9be8BF79ad26fdD7aA73f3dd5bA73eCDee2a32";
+const hwUSD_ACCOUNTANT = "0xa77F32BaDEeA2d2B7De78680C3A6d8B88C46055D";
 
 const hwHLP_UNDERLYING_USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC
 const hwHLP_UNDERLYING_USDT0 = "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb";
 const hwHYPE_UNDERLYING_WHYPE = "0x5555555555555555555555555555555555555555";
+const hwUSD_UNDERLYING_USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC
+const hwUSD_UNDERLYING_USDT0 = "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb";
+const hwUSD_UNDERLYING_USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // USDC on base
 
 interface AssetConfig {
   symbol: string;
@@ -57,6 +62,30 @@ const config: AssetConfig[] = [
     underlying: hwHYPE_UNDERLYING_WHYPE,
     decimals: 18,
     chain: "hyperliquid",
+  },
+  {
+    symbol: "hwUSD",
+    boringVault: hwUSD,
+    accountant: hwUSD_ACCOUNTANT,
+    underlying: hwUSD_UNDERLYING_USDT0,
+    decimals: 6,
+    chain: "hyperliquid",
+  },
+  {
+    symbol: "hwUSD",
+    boringVault: hwUSD,
+    accountant: hwUSD_ACCOUNTANT,
+    underlying: hwUSD_UNDERLYING_USDC,
+    decimals: 6,
+    chain: "ethereum",
+  },
+  {
+    symbol: "hwUSD",
+    boringVault: hwUSD,
+    accountant: hwUSD_ACCOUNTANT,
+    underlying: hwUSD_UNDERLYING_USDC_BASE,
+    decimals: 6,
+    chain: "base",
   },
 ];
 

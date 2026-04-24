@@ -8,6 +8,20 @@ const chainIdToNames = {
   'pacific-1': 'Sei',
 };
 
+const NEUTRON_TOKEN_MAP = {
+  'ibc/B559A80D62249C8AA07A380E2A2BEA6E5CA9A6F079C912C3A9E9B494105E4F81': 'coingecko:usd-coin',
+  'ibc/C4CFF46FD6DE35CA4CF4CE031E643C8FDC9BA4B99AE598E9B0ED98FE3A2319F9': 'coingecko:cosmos',
+  'ibc/2CB87BCE0937B1D1DFCEE79BE4501AAF3C265E923509AEAC410AD85D27F35130': 'coingecko:dydx-chain',
+  'ibc/0E293A7622DC9A6439DB60E6D234B5AF446962E27CA3AB44D0590603DFF6968E': 'coingecko:wrapped-bitcoin',
+  'ibc/773B4D0A3CD667B2275D5A4A7A2F0909C0BA0F4059C0B9181E680DDF4965DCC7': 'coingecko:celestia',
+  'ibc/F082B65C88E4B6D5EF1DB243CDA1D331D002759E938A0F5CD3FFDC5D53B3E349': 'coingecko:axlusdc',
+  'factory/neutron17sp75wng9vl2hu3sf4ky86d7smmk3wle9gkts2gmedn9x4ut3xcqa5xp34/maxbtc': 'coingecko:maxbtc',
+  'factory/neutron1k6hr0f83e7un2wjf29cspk7j69jrnskk65k3ek2nj9dztrlzpj6q00rtsa/udatom': 'coingecko:drop-staked-atom',
+  'factory/neutron1frc0p5czd9uaaymdkug2njz7dc7j65jxukp9apmt9260a8egujkspms2t2/udntrn':'coingecko:drop-staked-ntrn',
+  'untrn': 'coingecko:neutron-3',
+};
+const resolveNeutronToken = (addr) => NEUTRON_TOKEN_MAP[addr] || addr;
+
 const astroDenoms = {
   'phoenix-1':
     'terra1nsuqsk6kh58ulczatwev87ttq2z6r3pusulg9r24mfj2fvtzd4uq3exn26',
@@ -61,7 +75,7 @@ const apy = async () => {
         apyBase,
         apyReward,
         rewardTokens: getRewardTokens(pool) ?? null,
-        underlyingTokens: [pool.assets[0].address, pool.assets[1].address],
+        underlyingTokens: [resolveNeutronToken(pool.assets[0].address), resolveNeutronToken(pool.assets[1].address)],
         url: `https://app.astroport.fi/pools/${pool.poolAddress}/provide`,
       };
     });

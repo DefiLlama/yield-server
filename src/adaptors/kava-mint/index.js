@@ -1,16 +1,15 @@
 const axios = require('axios');
-const superagent = require('superagent');
 const utils = require('../utils');
 const USDX_ID = 'usdx';
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -38,6 +37,7 @@ const main = async () => {
   const parameters = parametersCall.params.collateral_params.map((e) => {
     return {
       ...convertSymbol(e.denom),
+      denom: e.denom,
       stability_fee: e.stability_fee,
       type: e.type,
       liquidation_ratio: e.liquidation_ratio,
@@ -93,6 +93,7 @@ const main = async () => {
         totalBorrowUsd: totalBorrowUsd,
         ltv: ltv,
         debtCeilingUsd: debtCeilingUsd,
+        underlyingTokens: [pool.denom].filter(Boolean),
         mintedCoin: 'USDX',
       };
     });

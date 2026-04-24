@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
@@ -32,8 +32,8 @@ const query = gql`
 const getRewardTokenApr = async (marketsData) => {
   const key = 'coingecko:scream';
   const rewardTokenPrice = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key]?.price;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key]?.price;
 
   const compSpeeds = (
     await sdk.api.abi.multiCall({

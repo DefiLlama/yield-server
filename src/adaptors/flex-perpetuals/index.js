@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 
@@ -12,12 +12,12 @@ const baseUrl = 'https://gapi.flex.trade/v1/apr-pools';
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -201,6 +201,7 @@ const apy = async () => {
     chain: 'base',
     project: 'flex-perpetuals',
     symbol: 'ETH-BTC-USDC',
+    token: addresses.FLP,
     tvlUsd: tvlUsdFlpBase.toNumber(),
     apyBase: baseFlpAprBase().toNumber(),
     apyReward: baseFlpAprReward().toNumber(),
@@ -222,6 +223,7 @@ const apy = async () => {
     chain: 'base',
     project: 'flex-perpetuals',
     symbol: 'FDX-esFDX',
+    token: addresses.FDX,
     tvlUsd: tvlUsdFdx.toNumber(),
     apyBase: baseFdxAprBase().toNumber(),
     apyReward: baseFdxAprReward().toNumber(),
@@ -246,11 +248,12 @@ const apy = async () => {
     chain: 'base',
     project: 'flex-perpetuals',
     symbol: 'StFdxLp',
+    token: addresses.AEROLP,
     tvlUsd: tvlUsdstfdxlpBase.toNumber(),
     apyBase: baseStFdxlpAprBase().toNumber(),
     apyReward: baseStFdxlpAprReward().toNumber(),
     rewardTokens: [addresses.USDC, addresses.ESFDX],
-    underlyingTokens: [addresses.STFDXLP],
+    underlyingTokens: [addresses.FDX, addresses.WETH],
     poolMeta: 'stFdxLP Staking',
     url: 'https://app.flex.trade/base/earn',
   };

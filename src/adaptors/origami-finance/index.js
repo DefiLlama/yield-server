@@ -6,15 +6,15 @@ const {
 const GRAPH_URLS = {
   ethereum: {
     chainId: 1,
-    subgraphUrl: 'https://subgraph.satsuma-prod.com/a912521dd162/templedao/origami-mainnet/api',
+    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmgzm4q1q009c5np2angrczxw/subgraphs/origami-mainnet/prod/gn',
   },
   arbitrum: {
     chainId: 42161,
-    subgraphUrl: 'https://subgraph.satsuma-prod.com/a912521dd162/templedao/origami-arbitrum/api',
+    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmgzm4q1q009c5np2angrczxw/subgraphs/origami-arbitrum/prod/gn',
   },
   berachain: {
     chainId: 80094,
-    subgraphUrl: 'https://subgraph.satsuma-prod.com/a912521dd162/templedao/origami-berachain/api',
+    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmgzm4q1q009c5np2angrczxw/subgraphs/origami-berachain/prod/gn',
   },
 }
 
@@ -77,7 +77,7 @@ function getSubgraphQuery() {
 }
 
 function vaultApy(chain, chainId, vault) {
-  isLeveraged = vault.vaultKinds.includes("Leverage");
+  let isLeveraged = vault.vaultKinds.includes("Leverage");
 
   let totalApr = 0;
   if (isLeveraged) {

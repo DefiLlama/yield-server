@@ -20,11 +20,6 @@ const chains = {
     apyEndpoint: 'https://api.kiloex.io/common/queryKiloNewVaultApyHistory',
     htokens:'https://api.kiloex.io/vault/hTokens'
   },
-  taiko: {
-    kUSDT: '0x2646E743A8F47b8d2427dBcc10f89e911f2dBBaa',
-    apyEndpoint: 'https://taikoapi.kiloex.io/common/queryKiloNewVaultApyHistory',
-    htokens:'https://taikoapi.kiloex.io/vault/hTokens'
-  },
   bsquared: {
     kUSDT: '0xB20Faa4BA0DdEbDe49299557f4F1ebB5532745e3',
     apyEndpoint: 'https://b2api.kiloex.io/common/queryKiloNewVaultApyHistory',
@@ -40,6 +35,7 @@ const chains = {
 const getApy = async () => {
   const pools = await Promise.all(
     Object.keys(chains).map(async (chain) => {
+      try {
       const y = chains[chain];
       let results = [];
 
@@ -57,12 +53,13 @@ const getApy = async () => {
                   chain,
                 })
               ).output / token.tokenPrecision;
-    
+
             results.push({
               chain,
               project: 'kiloex',
               pool: token.originToken,
               symbol: token.tokenName,
+              token: null,
               tvlUsd: balance * token.price,
               apyBase: parseFloat((apr * 100 * token.ltv /10000).toFixed(2)),
               underlyingTokens: [token.originToken],
@@ -70,7 +67,7 @@ const getApy = async () => {
         } catch(e) {
           //skip error
         }
-        
+
       }
       // if (chain === 'manta') {
       //   const stoneBalance =
@@ -101,6 +98,10 @@ const getApy = async () => {
       //   });
       // }
       return results;
+      } catch(e) {
+        console.error(`kiloex [${chain}]: ${e.message}`);
+        return [];
+      }
     })
   );
 

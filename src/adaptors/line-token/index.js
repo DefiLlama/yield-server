@@ -85,6 +85,7 @@ const apy = async () => {
       ...COMMON_DATA,
       pool: `${poolContractAddress}-${CHAIN}`.toLowerCase(),
       symbol: utils.formatSymbol(symbol),
+      underlyingTokens: [poolContractAddress],
     });
   }
 

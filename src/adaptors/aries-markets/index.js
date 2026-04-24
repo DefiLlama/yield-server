@@ -18,30 +18,40 @@ const SUPPORTED_COINS = [
 ]
 
 async function main() {
-    const aptRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${APT_PRICE_ID}`)
-    const aptPrice = aptRes['coins'][APT_PRICE_ID]['price']
-    const {result: res } = await utils.getData(`https://api-v2.ariesmarkets.xyz/reserve.current`)
-    const reserveStats = res['data']['stats']
+    let aptPrice = 0
+    try {
+        const aptRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${APT_PRICE_ID}`)
+        aptPrice = aptRes?.coins?.[APT_PRICE_ID]?.price ?? 0
+    } catch (error) {
+        console.warn(`[aries-markets] failed to fetch APT price: ${error.message ?? error}`)
+    }
+    let res
+    try {
+        ({result: res } = await utils.getData(`https://api-v2.ariesmarkets.xyz/reserve.current`))
+    } catch (error) {
+        console.warn(`[aries-markets] failed to fetch reserve stats: ${error.message ?? error}`)
+        return []
+    }
+    const reserveStats = res?.data?.stats ?? []
     const reserveStatsMap = new Map(reserveStats.map(({ key, value }) => [key, value]));
 
-    return await Promise.all(SUPPORTED_COINS.map(async (coin) => await calculateRewardApy(coin, reserveStatsMap, aptPrice)));
+    const pools = await Promise.all(
+        SUPPORTED_COINS.map(async (coin) => await calculateRewardApy(coin, reserveStatsMap, aptPrice))
+    )
+    return pools.filter(Boolean)
 }
 
 async function calculateRewardApy(coin, reserveStatsMap, aptPrice) {
     const [coinSymbol, priceId, coinDecimal, coinAddr] = coin;
     const reserveStat = reserveStatsMap.get(coinAddr);
-    const priceRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${priceId}`)
-    const coinPrice = priceRes['coins'][priceId]['price']
+    if (!reserveStat) {
+        console.warn(`[aries-markets] missing reserve stats for ${coinSymbol} (${coinAddr})`)
+        return null
+    }
 
-    const [_1, _2, remainingReward, rewardPerDay] = await utils.getData(`https://fullnode.mainnet.aptoslabs.com/v1/view`, {
-        "type_arguments": [
-          coinAddr,
-          FARMING_TYPE,
-          APT_ADDR
-        ],
-        "function": "0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3::reserve::reserve_farm_coin", 
-        "arguments": []
-      });
+    const coinPrice = await getCoinPrice(priceId, coinAddr)
+    if (!coinPrice) console.warn(`[aries-markets] missing price for ${coinSymbol} (${coinAddr})`)
+
     const [netTvl, tvlWithBorrow] = calcTvlUSD(reserveStat, coinDecimal, coinPrice);
     const interestApy = calcInterestApy(reserveStat);
     const res = {
@@ -51,33 +61,86 @@ async function calculateRewardApy(coin, reserveStatsMap, aptPrice) {
         symbol: utils.formatSymbol(coinSymbol),
         tvlUsd: netTvl,
         apyBase: interestApy,
+        underlyingTokens: [coinAddr],
     }
 
-    if (remainingReward > 0) {
-        const rewardApy = calcAptRewardApy(rewardPerDay / 1e8, aptPrice, tvlWithBorrow);
-        res['apyReward'] = rewardApy;
-        res['rewardTokens'] = [APT_ADDR];
+    try {
+        const farmingData = await utils.getData(`${NODE_URL}/view`, {
+            "type_arguments": [
+              coinAddr,
+              FARMING_TYPE,
+              APT_ADDR
+            ],
+            "function": "0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3::reserve::reserve_farm_coin", 
+            "arguments": []
+          });
+        const remainingReward = Number(farmingData?.[2] ?? 0)
+        const rewardPerDay = Number(farmingData?.[3] ?? 0)
+
+        if (remainingReward > 0 && tvlWithBorrow > 0) {
+            const rewardApy = calcAptRewardApy(rewardPerDay / 1e8, aptPrice, tvlWithBorrow);
+            res['apyReward'] = rewardApy;
+            res['rewardTokens'] = [APT_ADDR];
+        }
+    } catch (error) {
+        console.warn(`[aries-markets] failed to fetch farming rewards for ${coinSymbol}: ${error.message ?? error}`)
     }
 
     return res;
 }
 
-function calcInterestApy(data) {
-    const interestRateConfig = data["interest_rate_config"];
-    const totalLiquidity = data['total_borrowed'] + data['total_cash_available'] + data['reserve_amount'];
-    const utilizationPct = data['total_borrowed'] / totalLiquidity * 100
-    let borrowApy = 0
-    if (utilizationPct <= interestRateConfig['optimal_utilization']) {
-        borrowApy = interestRateConfig['min_borrow_rate'] + utilizationPct / interestRateConfig['optimal_utilization'] * (interestRateConfig['optimal_borrow_rate'] - interestRateConfig['min_borrow_rate'] )
-    } else {
-        borrowApy = interestRateConfig['optimal_borrow_rate'] + (utilizationPct - interestRateConfig['optimal_utilization']) / interestRateConfig['optimal_utilization'] * (interestRateConfig['max_borrow_rate'] - interestRateConfig['optimal_borrow_rate'] )
+async function getCoinPrice(priceId, coinAddr) {
+    let coinPrice = 0
+
+    try {
+        const priceRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${priceId}`)
+        coinPrice = priceRes?.coins?.[priceId]?.price ?? 0
+    } catch (error) {
+        console.warn(`[aries-markets] failed to fetch price ${priceId}: ${error.message ?? error}`)
     }
-    return borrowApy * utilizationPct * (100 - data['reserve_config']['reserve_ratio']) / 10000;
+
+    if (!coinPrice) {
+        try {
+            const aptosPriceId = `aptos:${coinAddr}`
+            const aptosPriceRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${aptosPriceId}`)
+            coinPrice = aptosPriceRes?.coins?.[aptosPriceId]?.price ?? 0
+        } catch (error) {
+            console.warn(`[aries-markets] failed to fetch aptos price for ${coinAddr}: ${error.message ?? error}`)
+        }
+    }
+    return Number(coinPrice ?? 0)
 }
 
-function calcTvlUSD(data, decimals, price) {
-    const netTvl = (data['total_cash_available'] + data['reserve_amount']) * price / (10 ** decimals);
-    const tvlwithBorrow = data['total_borrowed'] * price / (10 ** decimals) + netTvl;
+function toNumber(value) {
+    return Number(value ?? 0)
+}
+
+function calcInterestApy(data = {}) {
+    const interestRateConfig = data["interest_rate_config"] ?? {};
+    const reserveConfig = data['reserve_config'] ?? {};
+    const totalBorrowed = toNumber(data['total_borrowed'])
+    const totalCashAvailable = toNumber(data['total_cash_available'])
+    const reserveAmount = toNumber(data['reserve_amount'])
+    const optimalUtilization = toNumber(interestRateConfig['optimal_utilization'])
+    const totalLiquidity = totalBorrowed + totalCashAvailable + reserveAmount
+    if (totalLiquidity <= 0 || optimalUtilization <= 0) return 0
+
+    const utilizationPct = totalBorrowed / totalLiquidity * 100
+    let borrowApy = 0
+    if (utilizationPct <= optimalUtilization) {
+        borrowApy = toNumber(interestRateConfig['min_borrow_rate']) + utilizationPct / optimalUtilization * (toNumber(interestRateConfig['optimal_borrow_rate']) - toNumber(interestRateConfig['min_borrow_rate']) )
+    } else {
+        borrowApy = toNumber(interestRateConfig['optimal_borrow_rate']) + (utilizationPct - optimalUtilization) / optimalUtilization * (toNumber(interestRateConfig['max_borrow_rate']) - toNumber(interestRateConfig['optimal_borrow_rate']) )
+    }
+    return borrowApy * utilizationPct * (100 - toNumber(reserveConfig['reserve_ratio'])) / 10000;
+}
+
+function calcTvlUSD(data = {}, decimals, price) {
+    const totalCashAvailable = toNumber(data['total_cash_available'])
+    const reserveAmount = toNumber(data['reserve_amount'])
+    const totalBorrowed = toNumber(data['total_borrowed'])
+    const netTvl = (totalCashAvailable + reserveAmount) * price / (10 ** decimals);
+    const tvlwithBorrow = totalBorrowed * price / (10 ** decimals) + netTvl;
     return [netTvl, tvlwithBorrow]
 }
 

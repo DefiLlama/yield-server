@@ -1,6 +1,5 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const { ethers } = require('ethers');
 const { getUniqueAddresses } = require('@defillama/sdk/build/generalUtil');
 const BigNumber = require('bignumber.js');
 
@@ -13,9 +12,10 @@ const chains = {
   },
 };
 
-const SwapInterface = new ethers.utils.Interface([
-  'event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)',
-]);
+const EVENTS = {
+  PoolCreated: 'event PoolCreated(address indexed token0, address indexed token1, uint24 indexed fee, int24 tickSpacing, address pool)',
+  Swap: 'event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)',
+};
 
 const getPools = async (chain) => {
   const config = chains[chain];
@@ -23,20 +23,19 @@ const getPools = async (chain) => {
 
   const currentBlock = await sdk.api.util.getLatestBlock(chain);
 
-  const poolCreatedLogs = await sdk.api.util.getLogs({
+  const poolCreatedLogs = await sdk.getEventLogs({
     chain,
     target: config.factory,
-    topic: 'PoolCreated(address,address,uint24,int24,address)',
-    keys: [],
+    eventAbi: EVENTS.PoolCreated,
     fromBlock: config.fromBlock,
     toBlock: currentBlock.number,
   });
 
-  const pools = poolCreatedLogs.output.map((log) => ({
-    token0: '0x' + log.topics[1].slice(-40),
-    token1: '0x' + log.topics[2].slice(-40),
-    address: '0x' + log.data.slice(-40),
-    fee: BigInt(log.topics[3]),
+  const pools = poolCreatedLogs.map((log) => ({
+    token0: log.args.token0,
+    token1: log.args.token1,
+    address: log.args.pool,
+    fee: BigInt(log.args.fee),
   }));
 
   const tokens = getUniqueAddresses(
@@ -104,26 +103,22 @@ const getPools = async (chain) => {
       continue;
     }
 
-    const swapLogs = await sdk.api.util.getLogs({
+    const swapLogs = await sdk.getEventLogs({
       chain,
       target: pool.address,
-      topic: '',
-      topics: [SwapInterface.getEventTopic('Swap')],
-      keys: [],
+      eventAbi: EVENTS.Swap,
       fromBlock: currentBlock.number - (24 * 3600) / config.blockTime,
       toBlock: currentBlock.number,
     });
 
-    const parsedSwapLogs = swapLogs.output.map(
-      (log) => SwapInterface.parseLog(log).args
-    );
+    const parsedSwapLogs = swapLogs.map((log) => log.args);
 
     const totalFee0 = parsedSwapLogs
-      .map((log) => log.amount0.toBigInt())
+      .map((log) => BigInt(log.amount0))
       .filter((x) => x > 0n)
       .reduce((sum, x) => sum + (x * pool.fee) / 1_000_000n, 0n);
     const totalFee1 = parsedSwapLogs
-      .map((log) => log.amount1.toBigInt())
+      .map((log) => BigInt(log.amount1))
       .filter((x) => x > 0n)
       .reduce((sum, x) => sum + (x * pool.fee) / 1_000_000n, 0n);
 
@@ -139,11 +134,11 @@ const getPools = async (chain) => {
     const feeValue = feeValue0.plus(feeValue1);
 
     const totalVolume0 = parsedSwapLogs
-      .map((log) => log.amount0.toBigInt())
+      .map((log) => BigInt(log.amount0))
       .filter((x) => x > 0n)
       .reduce((sum, x) => sum + x, 0n);
     const totalVolume1 = parsedSwapLogs
-      .map((log) => log.amount1.toBigInt())
+      .map((log) => BigInt(log.amount1))
       .filter((x) => x > 0n)
       .reduce((sum, x) => sum + x, 0n);
 

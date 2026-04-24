@@ -1,5 +1,5 @@
 const { default: BigNumber } = require('bignumber.js');
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
@@ -149,16 +149,23 @@ const getApy = async () => {
     .join(',')
     .toLowerCase();
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
+  ).data.coins;
+
+  const davosPrice = prices[`polygon:${DAVOS.toLowerCase()}`]?.price;
+  const wmaticPrice = prices[`polygon:${WMATIC.toLowerCase()}`]?.price;
+
+  if (!davosPrice || !wmaticPrice) {
+    console.warn('Missing prices for davos-protocol:', { davosPrice, wmaticPrice });
+    return [];
+  }
 
   const baseRata = baseRataCall.duty;
   const normalizRate = new BigNumber(baseRata).dividedBy(RAY);
   BigNumber.config({ POW_PRECISION: 100 });
   const stabilityFee = normalizRate.pow(SECONDS_PER_YEAR).minus(1);
   const totalSupplyUsd =
-    (Number(davosTotalSupply) / 1e18) *
-    prices[`polygon:${DAVOS.toLowerCase()}`].price;
+    (Number(davosTotalSupply) / 1e18) * davosPrice;
   const liquidationRatio = new BigNumber(spot.mat).div(1e27);
   return [
     {
@@ -168,15 +175,14 @@ const getApy = async () => {
       chain: 'polygon',
       apy: 0,
       tvlUsd:
-        (Number(collateral) / 1e18) *
-        prices[`polygon:${WMATIC.toLowerCase()}`].price,
+        (Number(collateral) / 1e18) * wmaticPrice,
       apyBaseBorrow: stabilityFee.toNumber() * 100,
       totalSupplyUsd:
-        (Number(collateral) / 1e18) *
-        prices[`polygon:${WMATIC.toLowerCase()}`].price,
+        (Number(collateral) / 1e18) * wmaticPrice,
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / Number(liquidationRatio.toNumber()),
       mintedCoin: 'DUSD',
+      underlyingTokens: [WMATIC],
     },
     {
       pool: sDAVOS,
@@ -189,8 +195,8 @@ const getApy = async () => {
         .times(100)
         .toNumber(),
       tvlUsd:
-        (Number(dMATICTotalSupply) / 1e18) *
-        prices[`polygon:${DAVOS.toLowerCase()}`].price,
+        (Number(dMATICTotalSupply) / 1e18) * davosPrice,
+      underlyingTokens: [DAVOS],
     },
   ];
 };

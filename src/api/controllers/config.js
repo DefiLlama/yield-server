@@ -1,19 +1,54 @@
+const axios = require('axios');
 const validator = require('validator');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
+const exclude = require('../../utils/exclude');
 
-// get pool urls
+// get pool urls (filtered to only include pools that appear in /pools response)
 const getUrl = async (req, res) => {
+  const protocolConfig = (
+    await axios.get('https://api.llama.fi/config/yields?a=1')
+  ).data.protocols;
+  const lendingProjects = Object.entries(protocolConfig)
+    .filter(([, protocol]) => protocol?.category === 'Lending')
+    .map(([project]) => project);
+
   const query = `
     SELECT
-        config_id,
-        url
+        c.config_id,
+        c.url
     FROM
-        config
+        config c
+    CROSS JOIN LATERAL (
+        SELECT
+            y."tvlUsd"
+        FROM
+            yield y
+        WHERE
+            y."configID" = c.config_id
+            AND y.timestamp >= NOW() - INTERVAL '$<age> DAY'
+        ORDER BY
+            y.timestamp DESC
+        LIMIT 1
+    ) y
+    WHERE
+        c.pool NOT IN ($<excludePools:csv>)
+        AND c.project NOT IN ($<excludeProjects:csv>)
+        AND c.symbol NOT LIKE '%RENBTC%'
+        AND (
+            (c.project IN ($<lendingProjects:csv>) AND y."tvlUsd" >= 0)
+            OR y."tvlUsd" >= $<tvlLB>
+        )
     `;
 
-  const response = await conn.query(query);
+  const response = await conn.query(query, {
+    excludePools: exclude.excludePools,
+    excludeProjects: exclude.excludeAdaptors,
+    lendingProjects,
+    tvlLB: exclude.boundaries.tvlUsdUI.lb,
+    age: exclude.boundaries.age,
+  });
 
   if (!response) {
     return new AppError(`Couldn't get data`, 404);

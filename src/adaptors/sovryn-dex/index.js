@@ -26,7 +26,7 @@ const getApy = async () => {
     Object.keys(tokensPool).map(async (k) => {
       var symbol = String(tokensPool[k]);
       var pool_id = String(k.toLowerCase());
-      var tvlUsd = await getTvl(tvlAmm, 1, pool_id);
+      var { tvlUsd, assets } = await getTvl(tvlAmm, 1, pool_id);
       var apyData = amm_pools_data[k].data;
       var apyDataArray = apyData[Object.keys(apyData)[0]];
       var apy = apyDataArray[apyDataArray.length - 1];
@@ -40,6 +40,7 @@ const getApy = async () => {
         apyReward: Number(apy.APY_fees_pc),
         url: 'https://alpha.sovryn.app/yield-farm',
         rewardTokens: ['0xefc78fc7d48b64958315949279ba181c2114abbd'],
+        underlyingTokens: assets,
       });
     })
   );
@@ -66,6 +67,7 @@ const getApy = async () => {
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
         url: 'https://alpha.sovryn.app/lend',
+        underlyingTokens: [asset],
       });
     })
   );
@@ -97,11 +99,12 @@ const getTvl = async (tvl, type, id) => {
       Object.entries(tvl).map(async (k) => {
         if (k[1].contract == id) {
           tvlData.push(k[1].balanceUsd);
+          assets.push(k[1].asset);
         }
       })
     );
     const tvlPoolUsd = Number(tvlData[0]) + Number(tvlData[1]);
-    return tvlPoolUsd;
+    return { tvlUsd: tvlPoolUsd, assets };
   }
   else {
     await Promise.all(

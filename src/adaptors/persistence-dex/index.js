@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js').default;
 
@@ -56,10 +56,10 @@ async function apy() {
     'https://api.dex.persistence.one/v1/graphql',
     query
   );
-  const res = await superagent.get(
+  const res = await axios.get(
     'https://api.persistence.one/pstake/stkatom/apr'
   );
-  const pstakeApr = Number(res.text) * 100;
+  const pstakeApr = Number(res.data) * 100;
   let stakingApr = 0;
 
   const pools = {};
@@ -79,6 +79,7 @@ async function apy() {
       url: `https://app.dexter.zone/pools/${p.poolContractAddress}`,
       apyReward: 0,
       rewardTokens: [],
+      underlyingTokens: [p.poolAssets[0].identifier, p.poolAssets[1].identifier],
     };
 
     if (p.poolId === 1) {

@@ -6,12 +6,39 @@ const chainMapping = {
   BCH: 'bitcoincash',
   BNB: 'binance',
   DOGE: 'doge',
-  LTC: 'litecoin', 
+  LTC: 'litecoin',
   TERRA: 'terra',
   GAIA: 'cosmos',
-  AVAX: 'avalanche', 
+  AVAX: 'avalanche',
   BASE: 'base',
   XRP: 'ripple'
+};
+
+// Native assets without contract addresses - use coingecko IDs
+const nativeCoingeckoMapping = {
+  'BTC.BTC': 'coingecko:bitcoin',
+  'BCH.BCH': 'coingecko:bitcoin-cash',
+  'DOGE.DOGE': 'coingecko:dogecoin',
+  'LTC.LTC': 'coingecko:litecoin',
+  'GAIA.ATOM': 'coingecko:cosmos',
+  'ETH.ETH': 'coingecko:ethereum',
+  'AVAX.AVAX': 'coingecko:avalanche-2',
+  'XRP.XRP': 'coingecko:ripple',
+  'BASE.ETH': 'coingecko:ethereum',
+};
+
+const resolveUnderlying = (asset, chain) => {
+  // Native assets (BTC.BTC, DOGE.DOGE, etc.) - use coingecko
+  if (nativeCoingeckoMapping[asset]) return nativeCoingeckoMapping[asset];
+
+  // EVM tokens: CHAIN.TOKEN-0xAddress -> extract address (lowercased)
+  const parts = asset.split('-');
+  if (parts.length > 1 && parts[parts.length - 1].startsWith('0X')) {
+    return parts[parts.length - 1].toLowerCase();
+  }
+
+  // Fallback to raw asset notation
+  return asset;
 };
 
 const buildPool = (entry, runePrice) => {
@@ -30,6 +57,8 @@ const buildPool = (entry, runePrice) => {
     symbol: utils.formatSymbol(symbol),
     tvlUsd: balanceAsset + balanceRune,
     apy: Number(entry.poolAPY) * 100,
+    // Resolve underlying: native assets use coingecko, EVM tokens extract address
+    underlyingTokens: [resolveUnderlying(entry.asset, chain)],
   };
 
   return newObj;

@@ -1,6 +1,6 @@
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 const {
   utils: { formatEther },
@@ -69,13 +69,13 @@ const getApy = async (pool) => {
 
 const getPricesByAddresses = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .map((address) => `${chain}:${address}`)
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   return Object.entries(prices).reduce(
     (acc, [name, price]) => ({

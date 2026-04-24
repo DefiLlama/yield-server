@@ -34,6 +34,7 @@ const vaultData = async () => {
           symbol: vaultSymbol.output,
           tvlUsd: usdBalance,
           apy: vaultApyQuery.apy, // 14 days apy
+          underlyingTokens: tokens,
         };
         pools.push(pool);
       } catch (error) {

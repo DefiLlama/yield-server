@@ -88,6 +88,7 @@ async function main() {
           ((pool.poolSupply - pool.totalDebt) * coinPrice) /
           10 ** pool['token']['decimals'],
         apyBase: pool.supplyApy + pool.stakingApr,
+        underlyingTokens: [coinAddr],
       };
 
       if (pool.incentiveSupplyApy > 0) {

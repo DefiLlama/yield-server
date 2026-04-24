@@ -31,7 +31,21 @@ const apy = async (timestamp) => {
     underlyingTokens: ['0x788D96f655735f52c676A133f4dFC53cEC614d4A'],
   };
 
-  return [sdusdSonicVault].concat([sdusdFraxtalVault]);
+  const sdusdEthereum = await utils.getERC4626Info(
+    '0x7CB20517776636eD76b68EdB3D99DCce356ABf02',
+    'ethereum',
+    timestamp
+  );
+  const { tvl: sdusdEthereumTVL, ...restSdusdEthereum } = sdusdEthereum;
+  const sdusdEthereumVault = {
+    ...restSdusdEthereum,
+    project: 'dtrinity-dusd',
+    symbol: `sDUSD`,
+    tvlUsd: sdusdEthereumTVL / 1e18,
+    underlyingTokens: ['0x07fFf99e1664d9B116fbC158c0E99785F81cA236'],
+  };
+
+  return [sdusdSonicVault, sdusdFraxtalVault, sdusdEthereumVault];
 };
 
 module.exports = {

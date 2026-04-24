@@ -52,6 +52,7 @@ const main = async () => {
     apy: +makerApy,
     symbol: `AVAX-hUSD-USDC`,
     tvlUsd: vammAvaxBalance + vammHusdBalance,
+    underlyingTokens: [WAVAX, HUSD],
   };
 
   const {
@@ -69,6 +70,7 @@ const main = async () => {
     apy: +hifApy,
     symbol: 'USDC',
     tvlUsd: +husdBalance.output,
+    underlyingTokens: [HUSD],
   };
 
   const allPools = [avaxMakerPool, hifPool];

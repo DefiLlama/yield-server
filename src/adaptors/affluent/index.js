@@ -4,6 +4,21 @@ const AFFLUENT_MULTIPLY_VAULT_API_URL = "https://api.affluent.org/v2/api/strateg
 const AFFLUENT_LENDING_VAULT_API_URL = "https://api.affluent.org/v2/api/sharevaults";
 const AFFLUENT_ASSETS_API_URL = "https://api.affluent.org/v2/api/assets";
 
+// The /sharevaults list endpoint is broken (returns 500), but individual vault
+// endpoints still work. Hardcode known lending vault addresses as fallback.
+const LENDING_VAULTS = [
+    {
+        address: "EQADQ6JcK0NMuNM5uwCcS9bjcn2RTvcxYIZjNlhIhywUrfBN",
+        underlying: "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c",
+        symbol: "TON",
+    },
+    {
+        address: "EQAGtgnr1G0XDilGURcOB3pUhl-Lo__J-TaJP0K4ey8cuSaW",
+        underlying: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
+        symbol: "USDT",
+    },
+];
+
 const nowSec = () => Math.floor(Date.now() / 1000);
 
 const getAPY = async () => {
@@ -46,21 +61,20 @@ async function getStrategyVaultsMapped(assetMap) {
             symbol: assetSymbolString,
             tvl: v.tvl,
             netApy: v.netApy,
+            underlyingTokens: assetKeys,
         });
     });
 }
 
 async function getShareVaultList() {
     const res = await fetch(AFFLUENT_LENDING_VAULT_API_URL);
-    if (!res.ok) {
-        throw new Error(`Share list API error: HTTP ${res.status} ${res.statusText}`);
+    if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+            return data;
+        }
     }
-
-    const data = await res.json();
-    if (!Array.isArray(data)) {
-        throw new Error("Share list: Unexpected response shape (not an array)");
-    }
-    return data;
+    return LENDING_VAULTS;
 }
 
 async function getShareVaultPoint(address, ts = nowSec()) {
@@ -84,13 +98,14 @@ async function getShareVaultsMapped(assetMap) {
             const netApy = typeof p?.apy === "number" ? p.apy : undefined;
             const tvl = p?.tvl;
 
-            const underlyingSymbol = v?.underlying ? (assetMap[v.underlying] || v.underlying) : undefined;
+            const underlyingSymbol = v?.underlying ? (assetMap[v.underlying] || v.underlying) : v.symbol;
 
             return mapToOutput({
                 address: v.address,
                 symbol: underlyingSymbol,
                 tvl,
                 netApy,
+                underlyingTokens: v.underlying ? [v.underlying] : undefined,
             });
         })
     );
@@ -147,7 +162,7 @@ function toNumberOr0(v) {
     return 0;
 }
 
-function mapToOutput({ address, symbol, tvl, netApy }) {
+function mapToOutput({ address, symbol, tvl, netApy, underlyingTokens }) {
     const pool = `${address}-TON`;
     const project = "affluent";
     const apyBase = netApy;
@@ -159,5 +174,6 @@ function mapToOutput({ address, symbol, tvl, netApy }) {
         symbol: String(symbol ?? ""),
         tvlUsd: toNumberOr0(tvl),
         ...(apyBase !== undefined ? { apyBase } : {}),
+        ...(underlyingTokens ? { underlyingTokens } : {}),
     };
 }

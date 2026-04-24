@@ -14,7 +14,7 @@ const fetch = async () => {
     symbol: 'VENOM',
     tvlUsd: BigNumber(data.tvl).div(1e9).multipliedBy(price).toNumber(),
     rewardTokens: ['0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e'],
-    underlyingTokens: ['0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e'],
+    underlyingTokens: ['coingecko:venom'],
     apyBase: BigNumber(data.apy).multipliedBy(100).toNumber()
   }];
 };

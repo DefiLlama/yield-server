@@ -1,8 +1,9 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const gaugeABIEthereum = require('./abis/gauge_ethereum.json');
 const gaugeABIArbitrum = require('./abis/gauge_arbitrum.json');
 const gaugeABIPolygon = require('./abis/gauge_polygon.json');
@@ -286,8 +287,8 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   // get BAL price
   const balKey = `ethereum:${BAL}`.toLowerCase();
   const balPrice = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${balKey}`)
-  ).body.coins[balKey].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${balKey}`)
+  ).data.coins[balKey].price;
 
   // add LM rewards if available to each pool in data
   for (const pool of liquidityGauges) {
@@ -368,8 +369,8 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
         // get cg price of reward token
         const key = `${chainString}:${add}`.toLowerCase();
         const price = (
-          await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-        ).body.coins[key]?.price;
+          await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+        ).data.coins[key]?.price;
 
         // call reward data
         const { rate, period_finish } = (
@@ -468,8 +469,8 @@ const topLvl = async (
       .replaceAll('/', '');
     pricesA = [
       ...pricesA,
-      (await superagent.get(`https://coins.llama.fi/prices/current/${keys}`))
-        .body.coins,
+      (await axios.get(`https://coins.llama.fi/prices/current/${keys}`))
+        .data.coins,
     ];
   }
   let tokenPriceList = {};
@@ -502,6 +503,7 @@ const topLvl = async (
       chain: utils.formatChain(chainString),
       project: 'balancer-v2',
       symbol: utils.formatSymbol(p.symbol),
+      token: p.id.slice(0, 42).toLowerCase(),
       tvlUsd: p.tvl,
       apyBase: p.aprFee,
       apyReward:
@@ -592,11 +594,13 @@ const main = async () => {
     ),
   ]);
 
-  return data
+  const pools = data
     .filter((i) => i.status === 'fulfilled')
     .map((i) => i.value)
     .flat()
     .filter((p) => utils.keepFinite(p) && !excludePools.includes(p.pool));
+
+  return addMerklRewardApy(pools, 'balancer', (p) => p.pool.slice(0, 42));
 };
 
 module.exports = {

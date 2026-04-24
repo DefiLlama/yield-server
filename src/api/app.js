@@ -5,13 +5,16 @@ const { Redis } = require("ioredis");
 const redis = new Redis(process.env.REDIS_URL);
 
 const yieldRoutes = require('./routes/yield');
+const holderRoutes = require('./routes/holders');
 const config = require('./routes/config');
 const median = require('./routes/median');
 const perp = require('./routes/perp');
 const enriched = require('./routes/enriched');
 const lsd = require('./routes/lsd');
+const pools = require('./routes/pools');
 const { getCacheDates } = require('../utils/headers');
-const risk = require('./routes/risk');
+const volatility = require('./routes/volatility');
+const tokenAddress = require('./routes/tokenAddress');
 
 const app = express();
 app.use(require('morgan')('dev'));
@@ -42,9 +45,12 @@ async function redisCache (req, res, next) {
     next()
   }
 }
+
+app.use('/', [volatility, holderRoutes, tokenAddress]);
+
 app.use(redisCache)
 
-app.use('/', [yieldRoutes, config, median, perp, enriched, lsd, risk]);
+app.use('/', [yieldRoutes, config, median, perp, enriched, lsd, pools]);
 
 function errorHandler (err, req, res, next) {
   console.log(err)

@@ -93,6 +93,7 @@ const main = async (timestamp = null) => {
       tvlUsd: javlisTvl,
       apyBase: meta.yieldJavlisVault.apy,
       url: 'https://app.leveragex.trade/x-vault/xJAVLIS',
+      underlyingTokens: [ADDRESSES.base.JAVLIS],
     },
     {
       pool: `LEVERAGEX-${ADDRESSES.base.LeverageXJAVVault}-base`.toLowerCase(),
@@ -103,6 +104,7 @@ const main = async (timestamp = null) => {
       tvlUsd: javTvl,
       apyBase: meta.yieldJavVault.apy,
       url: 'https://app.leveragex.trade/x-vault/xJAV',
+      underlyingTokens: [ADDRESSES.base.JAV],
     },
     {
       pool: `LEVERAGEX-${ADDRESSES.base.LeverageXLLPPool}-base`.toLowerCase(),
@@ -113,6 +115,7 @@ const main = async (timestamp = null) => {
       tvlUsd: llpTvl,
       apyBase: meta.yield.apy,
       url: 'https://app.leveragex.trade/llppool',
+      underlyingTokens: [ADDRESSES.base.USDC, ADDRESSES.base.wETH, ADDRESSES.base.cbBTC],
     },
   ];
 };

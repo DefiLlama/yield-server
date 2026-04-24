@@ -68,7 +68,7 @@ const apy = async () => {
       tvlUsd: totalSupply * price,
       apyBase: apr7d,
       apyBase7d: apr7d,
-      underlyingTokens: [weth],
+      underlyingTokens: ['0xe44fd7fcb2b1581822d0c862b68222998a0c299a'],
     },
   ];
 };

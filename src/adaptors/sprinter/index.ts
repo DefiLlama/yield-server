@@ -12,6 +12,7 @@ const HUB_CONTRACT_ADDRESS = "0xa593A9bBBc65be342FF610a01e96da2EB8539FF2";
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const INITIAL_DATE = '2025-06-17T00:00:00';
 const USDC_DECIMALS = 6;
+const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
 const DataQuery = gql`
     query DataQuery($from: BigInt = "", $to: BigInt = "") {
@@ -67,6 +68,7 @@ async function apy() {
     symbol: utils.formatSymbol("USDC"),
     tvlUsd: Number(formatUnits(lastDepositProfit.totalAssets, USDC_DECIMALS)),
     apy: rate * 100,
+    underlyingTokens: [USDC_BASE],
   }];
 }
 

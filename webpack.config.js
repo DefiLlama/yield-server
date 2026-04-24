@@ -20,12 +20,12 @@ module.exports = {
     mainFields: ['main'],
     extensions: ['.js', '.ts', '.json'],
     alias: {
-      'bignumber.js$': 'bignumber.js/bignumber.js',
       'node-fetch$': 'node-fetch/lib/index.js',
     },
   },
   plugins: [
     // pg optionally requires pg-native; ignore it -> webpack doesn't fail when the native addon isn't installed
     new webpack.IgnorePlugin({ resourceRegExp: /^pg-native$/ }),
+    new webpack.IgnorePlugin({ resourceRegExp: /^pg-cloudflare$/ }),
   ],
 };

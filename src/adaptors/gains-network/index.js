@@ -4,14 +4,10 @@ const utils = require('../utils');
 
 const chains = {
   polygon: {
+    chainId: 137,
     gns: '0xE5417Af564e4bFDA1c483642db72007871397896',
     staking: '0x8C74B2256fFb6705F14aDA8E86FBd654e0e2BECa',
     vaults: [
-      {
-        symbol: 'DAI',
-        pool: '0x91993f2101cc758D0dEB7279d41e880F7dEFe827',
-        underlying: '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063',
-      },
       {
         symbol: 'WETH',
         pool: '0x1544E1fF1a6f6Bdbfb901622C12bb352a43464Fb',
@@ -25,14 +21,10 @@ const chains = {
     ],
   },
   arbitrum: {
+    chainId: 42161,
     gns: '0x18c11FD286C5EC11c3b683Caa813B77f5163A122',
     staking: '0x7edDE7e5900633F698EaB0Dbc97DE640fC5dC015',
     vaults: [
-      {
-        symbol: 'DAI',
-        pool: '0xd85E038593d7A098614721EaE955EC2022B9B91B',
-        underlying: '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1',
-      },
       {
         symbol: 'WETH',
         pool: '0x5977A9682D7AF81D347CFc338c61692163a2784C',
@@ -46,6 +38,7 @@ const chains = {
     ],
   },
   base: {
+    chainId: 8453,
     gns: '0xFB1Aaba03c31EA98A3eEC7591808AcB1947ee7Ac',
     staking: '0x28efAa11199DAF45AA8fBf95f920e5bc090DCbF3',
     vaults: [
@@ -64,7 +57,9 @@ const getApy = async () => {
       try {
         const y = chains[chain];
         const data = (
-          await axios.get(`https://backend-${chain}.gains.trade/apr`)
+          await axios.get(
+            `https://backend-global.gains.trade/api/apr?chainId=${y.chainId}`
+          )
         ).data;
         const priceKeys = [y.gns, ...y.vaults.map((i) => i.underlying)].map(
           (i) => `${chain}:${i}`

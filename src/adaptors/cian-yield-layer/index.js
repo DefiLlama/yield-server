@@ -63,14 +63,21 @@ const main = async () => {
       let symbolSplit = p.symbol.split('-');
       symbolSplit = symbolSplit.length > 1 ? symbolSplit[1] : symbolSplit[0];
       const symbol = symbolSplit.replace(/ *\([^)]*\) */g, '');
-      // extract content within () -> meta data
-      const poolMeta = /\(([^)]+)\)/.exec(symbolSplit)[1];
+      // extract content within () -> meta data; handle case where no parentheses exist
+      const poolMetaMatch = /\(([^)]+)\)/.exec(symbolSplit);
+      const poolMeta = poolMetaMatch ? poolMetaMatch[1] : "";
+
+      // Filter out zero addresses from underlyingTokens
+      const filteredUnderlyingTokens = p.underlyingTokens
+        ?.filter(t => t && t !== '0x0000000000000000000000000000000000000000')
+        || undefined;
 
       return {
         ...p,
         symbol,
         poolMeta,
         project: 'cian-yield-layer',
+        underlyingTokens: filteredUnderlyingTokens?.length > 0 ? filteredUnderlyingTokens : undefined,
       };
     });
 };

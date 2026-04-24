@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const abi = require('./abis.json');
 const utils = require('../utils')
 
@@ -93,8 +93,8 @@ const poolInfo = async (chain) => {
 const getPrices = async (chain, addresses) => {
   const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
   const prices = (
-    await superagent.get('https://coins.llama.fi/prices/current/' + uri)
-  ).body.coins;
+    await axios.get('https://coins.llama.fi/prices/current/' + uri)
+  ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({

@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 
 const chainNames = {
   1: 'Ethereum',
@@ -21,14 +21,14 @@ const formatString = (inputArray) =>
 const fetchData = async (chainId) => {
   try {
     const {
-      body: { data },
-    } = await superagent
-      .get('https://api.nayms.com/opportunity/public')
-      .accept('application/json')
-      .set({
+      data: { data },
+    } = await axios.get('https://api.nayms.com/opportunity/public', {
+      headers: {
+        Accept: 'application/json',
         'X-Nayms-Network-Id': chainId.toString(),
         Origin: 'https://app.nayms.com',
-      });
+      },
+    });
 
     return data
       .filter(({ cellStatus }) => cellStatus !== 'CLOSED')
@@ -55,9 +55,13 @@ const fetchData = async (chainId) => {
         })
       );
   } catch (err) {
+    const responseData =
+      typeof err.response?.data === 'string'
+        ? err.response.data
+        : JSON.stringify(err.response?.data ?? {});
     throw new Error(
       `Network response was not ok: ${err.status ?? 'unknown'} - ${
-        err.response?.text ?? err.message ?? 'No response text'
+        responseData || err.message || 'No response text'
       }`
     );
   }

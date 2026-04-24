@@ -1,5 +1,5 @@
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const SUBGRAPH_URL =
   'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-production';
@@ -8,14 +8,11 @@ const CHAIN_NAME = 'Ethereum';
 const getData = async (url, query = null) => {
   let res;
   if (query !== null) {
-    res = await superagent
-      .post(url)
-      .send(query)
-      .set('Content-Type', 'application/json');
+    res = await axios.post(url, query);
   } else {
-    res = await superagent.get(url);
+    res = await axios.get(url);
   }
-  return res.body;
+  return res.data;
 };
 
 const wsdQuery = `
@@ -34,6 +31,7 @@ const pools = [
     symbol: 'SDL', // Stake.link token
     address: '0xa95c5ebb86e0de73b4fb8c47a45b792cfea28c23', // SDL token contract address
     priceId: 'stake-link', // CoinGecko ID for SDL token
+    underlying: '0xa95c5ebb86e0de73b4fb8c47a45b792cfea28c23', // SDL itself is the underlying
   },
 ];
 
@@ -47,7 +45,7 @@ const fetchPrice = async (tokenId) => {
 
 const fetchPool = async (pool) => {
   try {
-    const { symbol, address, priceId } = pool;
+    const { symbol, address, priceId, underlying } = pool;
 
     const price = await fetchPrice(priceId);
 
@@ -85,6 +83,7 @@ const fetchPool = async (pool) => {
       symbol,
       tvlUsd: tvl,
       apyBase: apy,
+      underlyingTokens: [underlying],
     };
   } catch (error) {
     console.error(

@@ -1,3 +1,4 @@
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const {
   formatChain,
   formatSymbol,
@@ -44,6 +45,7 @@ const networkMapping = {
   1313161554: 'aurora',
   1666600000: 'harmony',
   146: 'sonic',
+  143: 'monad',
 };
 
 const extractePoolMetaDate = (string) => {
@@ -164,7 +166,7 @@ const main = async () => {
     }
   }
 
-  return removeDuplicates(data);
+  return addMerklRewardApy(removeDuplicates(data), 'beefy', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {
