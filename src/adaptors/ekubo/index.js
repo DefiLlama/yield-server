@@ -85,7 +85,8 @@ function formatFeePercent(chainId, fee) {
     normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)
       ? Q128
       : Q64;
-  const scaledPercent = (BigInt(fee) * 10000n) / denominator;
+  const scaledPercent =
+    (BigInt(fee) * 10000n + denominator / 2n) / denominator;
   const whole = scaledPercent / 100n;
   const fraction = (scaledPercent % 100n).toString().padStart(2, '0');
 
@@ -121,6 +122,10 @@ function getAmountUsd(token, amount) {
   return (
     (token.usd_price * Number(amount || 0)) / Math.pow(10, Number(token.decimals))
   );
+}
+
+function getLiquidityUsd(token0, token1, amount0, amount1) {
+  return getAmountUsd(token0, amount0) + getAmountUsd(token1, amount1);
 }
 
 function isCampaignActive(campaign, now) {
@@ -194,12 +199,12 @@ async function getChainData({ normalizedChainId }) {
               pair.token0
             )}/${encodeURIComponent(pair.token1)}/pools?minTvlUsd=${MIN_TVL_USD}`
           );
-          const topPool = pools?.topPools?.[0];
-          if (!topPool) return null;
+          const topPools = pools?.topPools || [];
+          if (topPools.length === 0) return null;
 
           return [
             pairKey,
-            topPool,
+            topPools,
           ];
         } catch (error) {
           console.error(
@@ -226,7 +231,7 @@ async function getChainData({ normalizedChainId }) {
   return {
     tokens,
     pairs: pairData.topPairs,
-    topPoolsByPair: new Map(topPoolEntries.filter(([, pool]) => pool)),
+    topPoolsByPair: new Map(topPoolEntries.filter(([, pools]) => pools?.length)),
     campaigns: campaigns.campaigns,
   };
 }
@@ -256,45 +261,62 @@ async function apy() {
       const token0 = tokenByAddr[t0Key];
       const token1 = tokenByAddr[t1Key];
       if (!token0 || !token1) return;
-      const topPool = topPoolsByPair.get(getPairKey(chainId, p.token0, p.token1));
-
-      if (!topPool) return;
-
-      const tvlUsd =
-        getAmountUsd(token0, topPool.tvl0_total) +
-        getAmountUsd(token1, topPool.tvl1_total);
-
-      if (tvlUsd < MIN_TVL_USD) return;
-
-      const feesUsd =
-        getAmountUsd(token0, topPool.fees0_24h) +
-        getAmountUsd(token1, topPool.fees1_24h);
-
-      const apyBase = (feesUsd * 100 * 365) / tvlUsd;
       const campaignReward =
         campaignRewards.get(getPairKey(chainId, p.token0, p.token1)) || null;
+      const topPools = topPoolsByPair.get(getPairKey(chainId, p.token0, p.token1));
 
-      return {
-        pool: getPoolId(chainId, token0, token1, topPool),
-        chain: utils.formatChain(
-          CHAINS.find(
-            (chain) => chain.normalizedChainId === normalizeChainId(chainId)
-          )?.chain ?? chainId
-        ),
-        project: 'ekubo',
-        symbol: `${token0.symbol}-${token1.symbol}`,
-        underlyingTokens: [
-          formatTokenAddress(chainId, token0.address),
-          formatTokenAddress(chainId, token1.address),
-        ],
-        tvlUsd,
-        apyBase,
-        apyReward: campaignReward?.apyReward || 0,
-        rewardTokens: campaignReward ? [...campaignReward.rewardTokens] : [],
-        poolMeta: getPoolMeta(chainId, topPool),
-        url: getPoolUrl(chainId, topPool),
-      };
+      if (!topPools?.length) return [];
+
+      return topPools
+        .map((topPool) => {
+          const tvlUsd = getLiquidityUsd(
+            token0,
+            token1,
+            topPool.tvl0_total,
+            topPool.tvl1_total
+          );
+
+          if (tvlUsd < MIN_TVL_USD) return null;
+
+          const feesUsd = getLiquidityUsd(
+            token0,
+            token1,
+            topPool.fees0_24h,
+            topPool.fees1_24h
+          );
+          const depthUsd = getLiquidityUsd(
+            token0,
+            token1,
+            topPool.depth0,
+            topPool.depth1
+          );
+
+          const apyBase = (feesUsd * 100 * 365) / (depthUsd || tvlUsd);
+
+          return {
+            pool: getPoolId(chainId, token0, token1, topPool),
+            chain: utils.formatChain(
+              CHAINS.find(
+                (chain) => chain.normalizedChainId === normalizeChainId(chainId)
+              )?.chain ?? chainId
+            ),
+            project: 'ekubo',
+            symbol: `${token0.symbol}-${token1.symbol}`,
+            underlyingTokens: [
+              formatTokenAddress(chainId, token0.address),
+              formatTokenAddress(chainId, token1.address),
+            ],
+            tvlUsd,
+            apyBase,
+            apyReward: campaignReward?.apyReward || 0,
+            rewardTokens: campaignReward ? [...campaignReward.rewardTokens] : [],
+            poolMeta: getPoolMeta(chainId, topPool),
+            url: getPoolUrl(chainId, topPool),
+          };
+        })
+        .filter(Boolean);
     })
+    .flat()
     .filter((p) => p && utils.keepFinite(p))
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
 }
