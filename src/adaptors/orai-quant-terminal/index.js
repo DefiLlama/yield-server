@@ -42,10 +42,6 @@ const POOLS_CONFIG = [
   },
 ];
 
-function isPlaceholderAddress(address) {
-  return typeof address !== 'string' || /x{6,}/.test(address);
-}
-
 function toQueryPath(queryMsg) {
   return encodeURIComponent(
     Buffer.from(JSON.stringify(queryMsg)).toString('base64')
@@ -62,7 +58,7 @@ async function queryContract({ contract, queryMsg }) {
 async function queryVaultStats(contract, vaultAddress) {
   const queryMsg =
     { get_vault_stats: { vault_address: vaultAddress.toLowerCase() } };
-  return await queryContract({ contract, queryMsg });
+  return queryContract({ contract, queryMsg });
 }
 
 function extractFirstNumber(payload, depth = 0) {
@@ -106,12 +102,6 @@ function normalizeApyPercent(value) {
 }
 
 async function buildPoolData(config) {
-  if (
-    isPlaceholderAddress(config.statsContract) ||
-    isPlaceholderAddress(config.vaultAddress)
-  )
-    return null;
-
   const vaultStatsData = await queryVaultStats(
     config.statsContract,
     config.vaultAddress
@@ -120,27 +110,10 @@ async function buildPoolData(config) {
   const tvlSource = vaultStatsData?.tvl ?? vaultStatsData;
   const apySource = vaultStatsData?.apy ?? vaultStatsData;
 
-  const tvlRaw =
-    extractNumericByKeys(tvlSource, [
-      'tvl_usd',
-      'total_value_locked_usd',
-      'total_tvl_usd',
-      'usd',
-      'amount_usd',
-      'tvl',
-    ]) ?? extractFirstNumber(tvlSource);
+  const tvlRaw = extractNumericByKeys(tvlSource, ['tvl']) ?? extractFirstNumber(tvlSource);
   const tvlUsd = tvlRaw / 1e6;
 
-  const apyRaw =
-    extractNumericByKeys(apySource, [
-      'apy',
-      'apr',
-      'current_apy',
-      'vault_apy',
-      'strategy_apy',
-      'apy_percent',
-      'apr_percent',
-    ]) ?? extractFirstNumber(apySource);
+  const apyRaw = extractNumericByKeys(apySource, ['apy']) ?? extractFirstNumber(apySource);
 
   const apy = normalizeApyPercent(apyRaw);
 
