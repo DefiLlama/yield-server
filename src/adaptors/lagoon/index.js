@@ -93,6 +93,7 @@ const apy = async () => {
         url: `https://app.lagoon.finance/vault/${vault.chain.id}/${vault.address}`,
       };
     });
+    _pools = _pools.filter(Boolean);
     pools = pools.concat(_pools);
   }
 
