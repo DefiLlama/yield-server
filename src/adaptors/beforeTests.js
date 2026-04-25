@@ -55,9 +55,13 @@ module.exports = async function () {
   const module = require(resolvedAdapterPath);
 
   global.adapter = adapter;
-  global.apy = (await module.apy(timestamp)).sort(
-    (a, b) => b.tvlUsd - a.tvlUsd
-  );
+  const apyRaw = await module.apy(timestamp);
+  if (!Array.isArray(apyRaw)) {
+    throw new Error(
+      `apy() must return an array from module.apy for timestamp ${timestamp}`
+    );
+  }
+  global.apy = apyRaw.sort((a, b) => b.tvlUsd - a.tvlUsd);
   global.poolsUrl = module.url;
 
   const outputDir = path.resolve(__dirname, '../../.test-adapter-output');
@@ -68,17 +72,27 @@ module.exports = async function () {
   );
 
   if (!isFast) {
+    const adapterProject = global.apy?.[0]?.project || null;
+
     global.protocolsSlug = [
       ...new Set(
-        (await axios.get('https://api.llama.fi/protocols')).data.map(
+        (await axios.get('https://api.llama.fi/protocols')).data
+          .filter((protocol) => protocol && protocol.slug)
+          .map(
           (protocol) => protocol.slug
-        )
+          )
       ),
     ];
 
     global.uniquePoolIdentifiersDB = new Map(
       (await axios.get('https://yields.llama.fi/distinctID')).data
-        .filter((p) => p.project !== global.apy[0].project)
+        .filter(
+          (p) =>
+            p &&
+            p.pool &&
+            p.project &&
+            (adapterProject === null || p.project !== adapterProject)
+        )
         .map((p) => [p.pool, p.project])
     );
   }
