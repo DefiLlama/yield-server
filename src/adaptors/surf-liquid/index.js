@@ -2,8 +2,8 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 
+// V2/V3 Base constants
 const CHAIN = 'base';
-
 const V2_FACTORY = '0x1D283b668F947E03E8ac8ce8DA5505020434ea0E';
 const V3_FACTORY = '0xf1d64dee9f8e109362309a4bfbb523c8e54fa1aa';
 const V3_DEPLOY_FROM_BLOCK = 38856207;
@@ -27,10 +27,168 @@ const ZERO_ADDR = '0x0000000000000000000000000000000000000000';
 
 const PERFORMANCE_FEE = 0.1; // 10% on earned yield
 
+// V4 constants — same addresses on all chains
+const V4_FACTORY = '0x8fa50DeA8DB10987D7d22ac092001c3613C18779';
+const V4_REGISTRY = '0x98A0DeF9C959Ec934Df02141291303819369f271';
+const V4_FROM_BLOCKS = {
+  base: 43800000,
+  ethereum: 22200000,
+  arbitrum: 445000000,
+  polygon: 71000000,
+};
+const V4_CHAINS = ['ethereum', 'arbitrum', 'polygon', 'base'];
+
+async function fetchV4ChainPools(chain) {
+  const fromBlock = V4_FROM_BLOCKS[chain];
+
+  // Get current and 24h-ago blocks for APY computation
+  const now = Math.floor(Date.now() / 1000);
+  const dayAgo = now - 86400;
+  const [blockNow, blockPast] = await utils.getBlocksByTime([now, dayAgo], chain);
+
+  // Enumerate user vaults
+  const vaultLogs = await sdk.getEventLogs({
+    target: V4_FACTORY,
+    fromBlock,
+    toBlock: blockNow,
+    chain,
+    eventAbi:
+      'event VaultDeployed(address indexed vaultAddress, address indexed owner, bytes32 salt)',
+  });
+  const userVaults = vaultLogs.map((l) => l.args.vaultAddress);
+  if (userVaults.length === 0) return [];
+
+  // Get allowed assets from registry
+  const { output: assets } = await sdk.api.abi.call({
+    target: V4_REGISTRY,
+    abi: 'function getAllowedAssets() view returns (address[])',
+    chain,
+  });
+  if (!assets || assets.length === 0) return [];
+
+  // Fetch prices for all assets
+  const priceKeys = assets.map((a) => `${chain}:${a}`).join(',');
+  const priceResp = await axios.get(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
+  );
+  const coinData = priceResp.data?.coins || {};
+
+  const pools = [];
+
+  for (const asset of assets) {
+    const priceKey = `${chain}:${asset}`;
+    const price = coinData[priceKey]?.price || 0;
+    const decimals = coinData[priceKey]?.decimals || 18;
+    const symbol = coinData[priceKey]?.symbol || asset.slice(0, 6);
+
+    // Get active Morpho vault per user vault (for APY weighting)
+    const { output: morphoResults } = await sdk.api.abi.multiCall({
+      abi: 'function assetToVault(address) view returns (address)',
+      calls: userVaults.map((vault) => ({ target: vault, params: [asset] })),
+      chain,
+    });
+
+    const uniqueMorpho = [
+      ...new Set(
+        morphoResults
+          .map((r) => r.output)
+          .filter((v) => v && v !== ZERO_ADDR)
+      ),
+    ];
+
+    if (uniqueMorpho.length === 0) continue;
+
+    // Compute APY from Morpho vault share price changes (24h window)
+    const [nowAssets, nowSupply, pastAssets, pastSupply] = await Promise.all([
+      sdk.api.abi.multiCall({
+        abi: 'uint256:totalAssets',
+        calls: uniqueMorpho.map((t) => ({ target: t })),
+        chain,
+        block: blockNow,
+      }),
+      sdk.api.abi.multiCall({
+        abi: 'uint256:totalSupply',
+        calls: uniqueMorpho.map((t) => ({ target: t })),
+        chain,
+        block: blockNow,
+      }),
+      sdk.api.abi.multiCall({
+        abi: 'uint256:totalAssets',
+        calls: uniqueMorpho.map((t) => ({ target: t })),
+        chain,
+        block: blockPast,
+      }),
+      sdk.api.abi.multiCall({
+        abi: 'uint256:totalSupply',
+        calls: uniqueMorpho.map((t) => ({ target: t })),
+        chain,
+        block: blockPast,
+      }),
+    ]);
+
+    const morphoApyMap = {};
+    for (let i = 0; i < uniqueMorpho.length; i++) {
+      const aNow = Number(nowAssets.output[i].output || '0');
+      const sNow = Number(nowSupply.output[i].output || '0');
+      const aPast = Number(pastAssets.output[i].output || '0');
+      const sPast = Number(pastSupply.output[i].output || '0');
+      if (sNow <= 0 || sPast <= 0) continue;
+      const priceNow = aNow / sNow;
+      const pricePast = aPast / sPast;
+      const apy = pricePast > 0 ? Math.pow(priceNow / pricePast, 365) - 1 : 0;
+      morphoApyMap[uniqueMorpho[i].toLowerCase()] = Math.max(apy, 0);
+    }
+
+    // Get underlying asset value per user vault (TVL)
+    const { output: tvlResults } = await sdk.api.abi.multiCall({
+      abi: 'function getAssetVaultAssets(address) view returns (uint256)',
+      calls: userVaults.map((vault) => ({ target: vault, params: [asset] })),
+      chain,
+    });
+
+    let totalTvlUsd = 0;
+    let weightedApy = 0;
+
+    for (let i = 0; i < userVaults.length; i++) {
+      const amount = BigInt(tvlResults[i].output || '0');
+      if (amount === 0n) continue;
+
+      const tvlUsd = (Number(amount) / 10 ** decimals) * price;
+      totalTvlUsd += tvlUsd;
+
+      const morphoAddr = morphoResults[i].output;
+      if (morphoAddr && morphoAddr !== ZERO_ADDR) {
+        const apy = morphoApyMap[morphoAddr.toLowerCase()] || 0;
+        weightedApy += apy * tvlUsd;
+      }
+    }
+
+    if (totalTvlUsd < 100) continue;
+
+    const avgApy = totalTvlUsd > 0 ? weightedApy / totalTvlUsd : 0;
+    const userApy = avgApy * (1 - PERFORMANCE_FEE);
+
+    pools.push({
+      pool: `surf-v4-${asset.toLowerCase()}-${chain}`,
+      chain: utils.formatChain(chain),
+      project: 'surf-liquid',
+      symbol,
+      tvlUsd: totalTvlUsd,
+      apyBase: userApy * 100,
+      underlyingTokens: [asset],
+    });
+  }
+
+  return pools;
+}
+
 const apy = async () => {
+  // =====================================================================
+  // V2/V3 Base pools
+  // =====================================================================
+
   // --- Step 1: Discover Surf Liquid vault addresses ---
 
-  // V2 vaults from factory
   const { output: totalV2 } = await sdk.api.abi.call({
     target: V2_FACTORY,
     abi: 'uint256:getTotalVaults',
@@ -47,7 +205,6 @@ const apy = async () => {
   });
   const v2Vaults = v2Infos.map((info) => info.output[0]);
 
-  // V3 vaults from factory deploy events
   const currentBlock = (await sdk.api.util.getLatestBlock(CHAIN)).number;
   const v3Logs = await sdk.getEventLogs({
     target: V3_FACTORY,
@@ -61,7 +218,6 @@ const apy = async () => {
 
   // --- Step 2: Get current Morpho vaults per asset ---
 
-  // V2 vaults -> currentVault() (USDC only)
   const { output: v2MorphoResults } = await sdk.api.abi.multiCall({
     abi: 'address:currentVault',
     calls: v2Vaults.map((target) => ({ target })),
@@ -202,7 +358,7 @@ const apy = async () => {
     prices[asset] = priceResp.data?.coins?.[key]?.price || 0;
   }
 
-  // --- Step 6: Build yield pools per asset ---
+  // --- Step 6: Build V2/V3 yield pools per asset ---
 
   const pools = [];
 
@@ -248,7 +404,7 @@ const apy = async () => {
     });
   }
 
-  // --- Step 7: SURF Staking pool (APR from on-chain) ---
+  // --- Step 7: SURF Staking pool ---
 
   const [
     { output: totalStaked },
@@ -307,6 +463,20 @@ const apy = async () => {
     }
 
     pools.push(stakingPool);
+  }
+
+  // =====================================================================
+  // V4 pools — all chains (Base, Ethereum, Arbitrum, Polygon)
+  // =====================================================================
+
+  const v4Results = await Promise.allSettled(
+    V4_CHAINS.map((chain) => fetchV4ChainPools(chain))
+  );
+
+  for (const result of v4Results) {
+    if (result.status === 'fulfilled') {
+      pools.push(...result.value);
+    }
   }
 
   return pools;
