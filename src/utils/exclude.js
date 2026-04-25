@@ -330,6 +330,7 @@ const excludeAdaptors = [
   'spookyswap-v2',
   'perpetual-protocol',
   'merkl', // we track rewards in the individual adapters
+  'purrlend',
 ];
 
 const excludePools = [
