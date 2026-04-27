@@ -85,11 +85,13 @@ const { gql } = require('graphql-request');
       plugin
       id
       token0 {
+        id
         decimals
         name
         symbol
       }
       token1 {
+        id
         decimals
         name
         symbol

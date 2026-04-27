@@ -216,7 +216,7 @@ const poolsFunction = async () => {
     underlyingAssetPrices
   );
   const poolsWithApy = await getPoolApy(poolsWithBalances);
-  const result = poolsWithApy.map(({ address, symbol, tvlUsd, apy }) => {
+  const result = poolsWithApy.map(({ address, symbol, tvlUsd, apy, underlyingAsset }) => {
     return {
       pool: `${address}-arbitrum`.toLowerCase(),
       chain: 'Arbitrum',
@@ -226,6 +226,7 @@ const poolsFunction = async () => {
       apy,
       poolMeta:
         "Strategy's lock duration is aligned with market opportunities, verifable onchain.",
+      underlyingTokens: [underlyingAsset],
     };
   });
   return result;

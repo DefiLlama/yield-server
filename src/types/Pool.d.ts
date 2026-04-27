@@ -8,6 +8,8 @@ export interface Pool {
   apyReward?: number;
   rewardTokens?: Array<string>;
   underlyingTokens?: Array<string>;
+  searchTokenOverride?: string;
+  token?: string;
   poolMeta?: string;
   url?: string;
   // optional lending protocol specific fields:

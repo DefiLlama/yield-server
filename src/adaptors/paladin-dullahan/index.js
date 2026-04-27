@@ -1,7 +1,7 @@
 const ethers = require('ethers');
 const abi = require('./abi');
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 
 /////////////////////////// Constants ///////////////////////////
 
@@ -61,8 +61,8 @@ function binomialApproximatedRayPow(base, exp) {
 const getPrices = async (address) => {
   const token = `ethereum:${address.toLowerCase()}`;
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${token}`)
-  ).body.coins[token];
+    await axios.get(`https://coins.llama.fi/prices/current/${token}`)
+  ).data.coins[token];
 
   return {
     price: prices.price,
@@ -72,7 +72,7 @@ const getPrices = async (address) => {
 };
 
 const getDefiLLamaPools = async (project, chain) => {
-  const pools = (await superagent.get('https://yields.llama.fi/pools')).body
+  const pools = (await axios.get('https://yields.llama.fi/pools')).data
     .data;
   return pools.filter(
     (pool) =>

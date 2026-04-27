@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { uniqBy, sumBy } = require('lodash');
 
 const { poolByProvider } = require('./SmartYield.js');
@@ -7,8 +7,8 @@ const { underlyingBalance, totalUnRedeemed } = require('./IProvider.js');
 const getAssetUsdPrice = async (chain, asset) => {
   const key = `${chain.name}:${asset}`.toLowerCase();
   const assetPriceUSD = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).body.coins[key].price;
+    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
+  ).data.coins[key].price;
 
   return assetPriceUSD;
 };

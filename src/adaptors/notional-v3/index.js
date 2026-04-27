@@ -1,6 +1,6 @@
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
@@ -116,10 +116,10 @@ const query = gql`
 async function getUSDPrice(chain, address) {
   // price of base token in USD terms
   const key = `${chain}:${address}`;
-  const priceRes = await superagent.get(
+  const priceRes = await axios.get(
     `https://coins.llama.fi/prices/current/${key}`
   );
-  const price = priceRes.body.coins[key];
+  const price = priceRes.data.coins[key];
   return price ? price.price : 0;
 }
 
@@ -380,9 +380,21 @@ const getPools = async (chain) => {
 };
 
 const main = async () => {
-  return Object.keys(SUBGRAPHS).reduce(async (acc, chain) => {
-    return [...(await acc), ...(await getPools(chain))];
-  }, Promise.resolve([]));
+  const chains = Object.keys(SUBGRAPHS);
+  const results = await Promise.allSettled(
+    chains.map((chain) => getPools(chain))
+  );
+
+  return results.reduce((acc, result, index) => {
+    if (result.status === 'fulfilled') {
+      return acc.concat(result.value);
+    }
+    console.error(
+      `Notional-v3 subgraph request failed for ${chains[index]}:`,
+      result.reason
+    );
+    return acc;
+  }, []);
 };
 
 module.exports = {

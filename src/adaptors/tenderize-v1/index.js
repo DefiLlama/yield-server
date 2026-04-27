@@ -43,6 +43,7 @@ const topLvl = async (endpoint, chain, apyResponse) => {
         tenderizers.find((v) => v.id === config.id).TVL
       ),
       apy: Number.parseFloat(apyResponse[config.id.toLowerCase()].apy),
+      underlyingTokens: [config.steak],
     });
   }
 

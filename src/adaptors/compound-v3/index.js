@@ -1,8 +1,9 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.js');
 const { keepFinite } = require('../utils.js');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const markets = [
   {
@@ -184,8 +185,8 @@ const main = async (pool) => {
     ...tokens.map((t) => `${pool.chain}:${t}`),
   ].join(',');
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
   const collateralDecimalsRes = await sdk.api.abi.multiCall({
     abi: 'erc20:decimals',
@@ -254,6 +255,7 @@ const main = async (pool) => {
     symbol: symbols[i],
     chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
     project: 'compound-v3',
+    token: null,
     tvlUsd: collateralTotalSupplyUsd[i],
     apy: 0,
     underlyingTokens: [t],
@@ -315,7 +317,7 @@ const main = async (pool) => {
 
 const apy = async () => {
   const pools = (await Promise.all(markets.map((p) => main(p)))).flat();
-  return pools.filter((i) => keepFinite(i));
+  return addMerklRewardApy(pools.filter((i) => keepFinite(i)), 'compound-v3', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

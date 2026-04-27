@@ -42,6 +42,8 @@ const getApy = async () => {
     poolInfos.filter(e => e.totalApr !== '0').map((item) => {
         rewardTokens.push(item.token)
     });
+    // ZCX token on Polygon
+    const ZCX_POLYGON = '0x1bd06b96dd42ada85fdd0795f3b4a79db914add5';
     return [{
           pool: polygonStakingAddr,
           chain: utils.formatChain('polygon'),
@@ -49,7 +51,8 @@ const getApy = async () => {
           symbol: 'ZCX',
           tvlUsd: Number(tvl) * price[ZCX] / 1e18,
           apyReward: data.apr,
-          rewardTokens: rewardTokens
+          rewardTokens: rewardTokens,
+          underlyingTokens: [ZCX_POLYGON],
     }]
 }
 

@@ -4,13 +4,68 @@ const utils = require('../utils');
 const { networks } = require('./config');
 
 // Protocols that should not be listed under Merkl
-// as they already have their own adapters.
+// as they already have their own adapters that integrate Merkl rewards.
+// All entries must be lowercase (comparison is case-insensitive).
 const protocolsBlacklist = [
   'euler',
   'crosscurve',
   'aerodrome',
   'gamma',
   'uniswap',
+  'morpho',
+  'aave',
+  'accountable',
+  'upshift',
+  'dolomite',
+  'yo',
+  'ipor',
+  'neverland',
+  'pendle',
+  'summerfinance',
+  'gearbox',
+  'curve',
+  'stake dao',
+  'stakedao',
+  'fluid',
+  'fraxlend',
+  'spectra',
+  'pancake-swap',
+  'silo',
+  'altura',
+  'quickswap',
+  'xlend',
+  'hyperswap',
+  'balancer',
+  'balancergauge',
+  'fxprotocol',
+  'kuru',
+  'beefy',
+  'monday-trade',
+  'superlend',
+  'sushi-swap',
+  'steer',
+  'termmax',
+  'yieldnest',
+  'clober',
+  'yearn',
+  'compound-v3',
+  'curvance',
+  'moonwell',
+  'satsuma',
+  'prime-vaults',
+  'hypurrfi',
+  'puffer',
+  'superform',
+  'purrlend',
+  'mento',
+  'ichi',
+  'levva',
+  'yieldseeker',
+  'penpie',
+  'equilibria',
+  'steakhouse',
+  'townsquare',
+  'veda',
 ];
 
 // Allow specific pools from blacklisted protocols
@@ -19,10 +74,97 @@ const poolsWhitelist = [
   '0xCDf927C0F7b81b146C0C9e9323eb5A28D1BFA183',
 ];
 
+// Merkl opportunity types that are covered by native adapters even when
+// they have no protocol.id set. These would otherwise leak through the
+// blacklist filter since it only checks protocol.id.
+const coveredTypes = new Set([
+  'MORPHOVAULT',      // MetaMorpho vaults → morpho-v1
+  'EULER',            // Euler pools → euler-v2
+  'STAKEDAO_VAULT',   // StakeDAO vaults → stake-dao
+  'CONVEX',           // Convex → convex/curve
+  'SHMON',            // shMON staking → covered by shmonad when adapter exists
+]);
+
+// Types that are not real DeFi yield pools
+const excludedTypes = new Set([
+  'ENCOMPASSING',     // Airdrop/DROP campaigns
+  'COVENANT',         // Covenant holds
+  'ERC721',           // veToken NFTs (e.g. veYND)
+]);
+
 async function getRateAngle(token) {
   const prices = await utils.getData('https://api.angle.money/v1/prices/');
   const price = prices.filter((p) => p.token == token)[0]?.rate;
   return price;
+}
+
+function cleanSymbol(symbol) {
+  if (!symbol) return '';
+
+  // Patterns to strip from the beginning of symbols
+  // Aave tokens: aEth, aArb, aBsc, aOpt, aPol, aAva, aGno, etc.
+  // Variable debt: variableDebtEth, variableDebtArb, etc.
+  // Stable debt: stableDebtEth, stableDebtArb, etc.
+  // Horizon market: variableDebtHorRwa, aHorRwa
+  // Other prefixes: steak, gt, vbgt
+  const prefixPatterns = [
+    /^variableDebt[A-Z][a-z]*(?:Rwa)?/i, // variableDebtEth, variableDebtHorRwa, etc.
+    /^stableDebt[A-Z][a-z]*(?:Rwa)?/i, // stableDebtEth, stableDebtHorRwa, etc.
+    /^a[A-Z][a-z]+(?:Rwa)?(?=[A-Z])/, // aEth, aArb, aBsc, aHorRwa (followed by uppercase = token name)
+    //    /^steak(?=[A-Z])/i,                    // steakUSDC -> USDC
+    //    /^gt(?=[A-Z])/i,                       // gtWETH -> WETH
+    //    /^vbgt(?=[A-Z])/i,                     // vbgtWETH -> WETH
+  ];
+
+  for (const pattern of prefixPatterns) {
+    if (pattern.test(symbol)) {
+      return symbol.replace(pattern, '');
+    }
+  }
+
+  return symbol;
+}
+
+function getUnderlyingTokens(pool) {
+  const tokens = pool.tokens || [];
+  if (tokens.length <= 1) return tokens.map((t) => t.address);
+
+  const breakdowns = pool.tvlRecord?.breakdowns || [];
+  if (breakdowns.length > 0) {
+    const breakdownIds = new Set(breakdowns.map((b) => String(b.identifier)));
+
+    // Match by token ID first
+    let matched = tokens.filter((t) => breakdownIds.has(String(t.id)));
+
+    // Fallback: match by address (CLAMM pools use addresses as identifiers)
+    if (matched.length === 0) {
+      const breakdownAddrs = new Set(
+        breakdowns.map((b) => String(b.identifier).toLowerCase())
+      );
+      matched = tokens.filter((t) =>
+        breakdownAddrs.has(t.address.toLowerCase())
+      );
+    }
+
+    if (matched.length > 0) {
+      // If all matched tokens are unverified (receipt/debt) but verified exist, prefer verified
+      const allUnverified = matched.every((t) => !t.verified);
+      const verified = tokens.filter((t) => t.verified);
+      if (allUnverified && verified.length > 0)
+        return verified.map((t) => t.address);
+      return matched.map((t) => t.address);
+    }
+
+    // Breakdowns existed but didn't match any tokens
+    // (e.g. gauge pools where breakdown tracks LP token, not components)
+    return tokens.map((t) => t.address);
+  }
+
+  // No breakdowns at all - use verified filter as last resort
+  const verified = tokens.filter((t) => t.verified);
+  return verified.length > 0
+    ? verified.map((t) => t.address)
+    : tokens.map((t) => t.address);
 }
 
 // function getting all the data from the Angle API
@@ -41,7 +183,7 @@ const main = async () => {
       let data;
       try {
         data = await utils.getData(
-          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE,PAST&items=100&page=${pageI}`
+          `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&status=LIVE&items=100&page=${pageI}`
         );
       } catch (err) {
         console.log('failed to fetch Merkl data on chain ' + chain);
@@ -58,14 +200,46 @@ const main = async () => {
 
     for (const pool of pools.filter(
       (x) =>
-        !x.protocol ||
-        !protocolsBlacklist.includes(x.protocol.id) ||
-        poolsWhitelist.includes(x.identifier)
+        // Filter out ERC20LOGPROCESSOR HOLD campaigns - these are "hold token X,
+        // get rewarded" promotions, not real DeFi pools. They create ghost APRs
+        // (e.g. "Hold XAUt" showing as a yield pool).
+        // Other HOLD types (IPOR_STAKING, CONVEX, etc.) are legitimate DeFi.
+        !(x.type === 'ERC20LOGPROCESSOR' && x.action === 'HOLD') &&
+        // Filter out types that aren't real yield pools
+        !excludedTypes.has(x.type) &&
+        // Filter out types already covered by native adapters (no protocol ID)
+        !(coveredTypes.has(x.type) && !x.protocol) &&
+        // Note: ERC20_MAPPING HOLD pools (yie-yoUSD, wnUSDC, etc.) and
+        // ERC20_MULTI_TOKEN_CROSS_CHAIN pools (superform) are third-party wrappers
+        // around other protocol vaults — they stay in merkl as independent pools.
+        // Filter out no-protocol LEND pools — these are Morpho vaults covered by morpho-v1
+        !(x.action === 'LEND' && !x.protocol && ['ERC20LOGPROCESSOR', 'MORPHOVAULT'].includes(x.type)) &&
+        // Standard blacklist check
+        (!x.protocol ||
+          !protocolsBlacklist.includes(x.protocol.id?.toLowerCase()) ||
+          poolsWhitelist.includes(x.identifier))
     )) {
       try {
         const poolAddress = pool.identifier;
 
-        let symbol = pool.tokens.map((x) => x.symbol).join('-');
+        const tokenSymbols = pool.tokens.map((x) => x.symbol);
+        // For POOL/STAKE, filter out the LP/vault token (address = pool identifier)
+        // so symbol shows the underlying pair (e.g. "cbBTC-tBTC" not "STEERAV267-cbBTC-tBTC")
+        // Only treat as multi-token if 2+ underlying tokens remain after filtering;
+        // single-token POOL/STAKE (vaults, gauges) are effectively single-asset deposits
+        const isPoolStake = ['POOL', 'STAKE'].includes(pool.action);
+        const underlyingSymbols = isPoolStake
+          ? pool.tokens
+              .filter(
+                (t) => t.address.toLowerCase() !== poolAddress.toLowerCase()
+              )
+              .map((t) => cleanSymbol(t.symbol))
+              .filter(Boolean)
+          : [];
+        const isMultiAsset = underlyingSymbols.length >= 2;
+        let symbol = isMultiAsset
+          ? underlyingSymbols.join('-')
+          : cleanSymbol(tokenSymbols[tokenSymbols.length - 1]) || '';
 
         if (!symbol.length) {
           symbol = (
@@ -77,7 +251,67 @@ const main = async () => {
           ).output;
         }
 
-        const underlyingTokens = pool.tokens.map((x) => x.address);
+        // For HOLD pools where the pool address (vault) isn't in the tokens list,
+        // the symbol may reflect the underlying rather than the vault itself.
+        // Resolve the vault's on-chain symbol for accurate representation.
+        const tokenAddresses = new Set(
+          pool.tokens.map((t) => t.address.toLowerCase())
+        );
+        if (
+          pool.action === 'HOLD' &&
+          !tokenAddresses.has(poolAddress.toLowerCase())
+        ) {
+          try {
+            const vaultSymbol = (
+              await sdk.api.abi.call({
+                target: poolAddress,
+                chain,
+                abi: 'erc20:symbol',
+              })
+            ).output;
+            if (vaultSymbol) symbol = vaultSymbol;
+          } catch {}
+        }
+
+        let underlyingTokens = getUnderlyingTokens(pool);
+
+        // For ERC-4626 vault pools where the only underlying is the vault itself,
+        // resolve to the actual asset via on-chain asset()
+        if (
+          underlyingTokens.length === 1 &&
+          underlyingTokens[0].toLowerCase() === poolAddress.toLowerCase()
+        ) {
+          try {
+            const result = await sdk.api.abi.call({
+              target: poolAddress,
+              chain,
+              abi: 'address:asset',
+            });
+            if (result.output) underlyingTokens = [result.output];
+          } catch {}
+        }
+
+        // For Aave-type borrow pools, token list may only contain aTokens/debtTokens
+        // Resolve to actual underlying asset via on-chain UNDERLYING_ASSET_ADDRESS()
+        if (pool.type === 'AAVE_NET_BORROWING' && underlyingTokens.length > 0) {
+          try {
+            const resolved = await Promise.all(
+              underlyingTokens.map(async (addr) => {
+                try {
+                  const result = await sdk.api.abi.call({
+                    target: addr,
+                    chain,
+                    abi: 'address:UNDERLYING_ASSET_ADDRESS',
+                  });
+                  return result.output;
+                } catch {
+                  return addr;
+                }
+              })
+            );
+            underlyingTokens = [...new Set(resolved)];
+          } catch {}
+        }
 
         const tvlUsd = pool.tvl;
 
@@ -85,16 +319,34 @@ const main = async () => {
           pool.rewardsRecord?.breakdowns.map((x) => x.token.address) || [];
         const apyReward = pool.apr;
 
+        const action = pool.action || null;
+        // For multi-asset POOL/STAKE, tokens are in the symbol — no vault name needed
+        // For single-asset POOL/STAKE (vaults/gauges), show vault name like LEND/HOLD
+        const firstToken = tokenSymbols[0] || null;
+        const vaultName =
+          !isMultiAsset && tokenSymbols.length > 1 && firstToken !== symbol
+            ? firstToken
+            : null;
+        const poolMetaParts = [action, vaultName].filter(Boolean);
+        const poolMeta =
+          poolMetaParts.length > 0 ? poolMetaParts.join(' - ') : null;
+
+        const poolType = pool.type || 'UNKNOWN';
+        const merklChain = chain === 'avax' ? 'avalanche' : chain;
+        const poolUrl = `https://app.merkl.xyz/opportunities/${merklChain}/${poolType}/${poolAddress}`;
+
         const poolData = {
           pool: `${poolAddress}-merkl`,
           chain: chain,
           project: project,
-          poolMeta: pool.status === 'PAST' ? 'past' : undefined,
+          poolMeta: poolMeta,
           symbol: symbol,
+          token: null,
           tvlUsd: tvlUsd ?? 0,
           apyReward: apyReward ?? 0,
           rewardTokens: [...new Set(rewardTokens)],
           underlyingTokens: underlyingTokens,
+          url: poolUrl,
         };
         poolsData.push(poolData);
       } catch {}
@@ -102,12 +354,6 @@ const main = async () => {
   }
   return utils.removeDuplicates(poolsData.filter((p) => utils.keepFinite(p)));
 };
-
-/*
-main().then((data) => {
-  console.log(data);
-});
-*/
 
 module.exports = {
   timetravel: false,

@@ -36,6 +36,7 @@ const poolsFunction = async () => {
     symbol: utils.formatSymbol('staking'),
     tvlUsd: totalStaked * price,
     apy: apyData.apy['365'],
+    underlyingTokens: [minto],
   };
 
   return [pool];

@@ -120,7 +120,7 @@ const formatSingleSidedVaultPool = (vault) => {
     poolMeta: `${tokenSymbol} Vault`,
     tvlUsd: Number(vault?.tvlBreakdown?.usd?.totalAssets || 0),
     apyBase: vault?.apr ? Number(vault.apr) : 0,  // apr is already in percentage
-    underlyingTokens: vault?.depositTokenMint ? [vault.depositTokenMint] : [],
+    underlyingTokens: vault?.depositTokenMint ? [vault.depositTokenMint] : undefined,
     url: 'https://sendit.fun/earn'
   };
 };

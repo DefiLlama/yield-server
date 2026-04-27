@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
@@ -29,12 +29,12 @@ const SECONDS_PER_DAY = 86400;
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -163,6 +163,7 @@ const getApy = async () => {
   );
 
   const pools = allMarkets.map((market, i) => {
+    const symbol = underlyingSymbols[i] || AVAX.symbol;
     const token = underlyingTokens[i] || AVAX.address;
     const decimals = Number(underlyingDecimals[i]) || AVAX.decimals;
     const totalSupplyUsd =
@@ -215,7 +216,7 @@ const getApy = async () => {
       pool: market,
       chain: utils.formatChain('avalanche'),
       project: 'benqi-lending',
-      symbol: underlyingSymbols[i] || AVAX.symbol,
+      symbol,
       tvlUsd,
       apyBase,
       apyReward: qiApy + avaxApy,
@@ -229,6 +230,7 @@ const getApy = async () => {
       apyBaseBorrow,
       apyRewardBorrow: Number.isFinite(apyRewardBorrow) ? apyRewardBorrow : 0,
       ltv: marketsInfo[i].collateralFactorMantissa / 10 ** 18,
+      url: `https://app.benqi.fi/lending/core/${symbol.toLowerCase()}`,
     };
   });
 
@@ -238,5 +240,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://app.benqi.fi/markets',
+  url: 'https://app.benqi.fi/lending',
 };

@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const env = require('../../../env');
@@ -373,10 +373,10 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
     const sushi = `${chainString}:${SUSHI[chainString]?.toLowerCase()}`;
     coins = [...coins, sushi];
     const tokensUsd = (
-      await superagent.get(
+      await axios.get(
         `https://coins.llama.fi/prices/current/${coins.join(',').toLowerCase()}`
       )
-    ).body.coins;
+    ).data.coins;
 
     // for mc1: calc sushi per year in usd
     if (chainString === 'ethereum') {

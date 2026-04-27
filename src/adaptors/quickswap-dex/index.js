@@ -1,12 +1,10 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const url = sdk.graph.modifyEndpoint(
-  'FnbpmBoXSidpFCghB5oxEb7XBUyGsSmyyXs9p8t3esvF'
-);
-const sushiPolygon = sdk.graph.modifyEndpoint(
-  '8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP'
+  'FUWdkXWpi8JyhAnhKL5pZcVshpxuaUQG8JHMDqNCxjPd'
 );
 
 const query = gql`
@@ -58,19 +56,23 @@ const buildPool = (entry, chainString) => {
   return newObj;
 };
 
+// Polygon indexers on the decentralized network can lag the one serving _meta
+// by a few hundred blocks. Back off so any caught-up indexer can satisfy the
+// pinned-block query instead of tripping "bad indexers: Unavailable".
+const INDEXER_LAG_BUFFER = 300;
+
 const topLvl = async (chainString, timestamp, url, version) => {
-  const [block, blockPrior] = await utils.getBlocks(
+  let [block, blockPrior] = await utils.getBlocks(
     chainString,
     timestamp,
-    // this is a hack, cause the above url has the wrong prefix so we cannot use it
-    // note(!) not sure if i should keep this, or just remove quickswap from timetravel
-    [sushiPolygon]
+    [url]
   );
+  block -= INDEXER_LAG_BUFFER;
 
   const [_, blockPrior7d] = await utils.getBlocks(
     chainString,
     timestamp,
-    [sushiPolygon],
+    [url],
     604800
   );
 
@@ -101,7 +103,8 @@ const topLvl = async (chainString, timestamp, url, version) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('polygon', timestamp, url, 'v2')]);
-  return data.flat().filter((p) => utils.keepFinite(p) && p.tvlUsd < 5e6);
+  const pools = data.flat().filter((p) => utils.keepFinite(p) && p.tvlUsd < 5e6);
+  return addMerklRewardApy(pools, 'quickswap');
 };
 
 module.exports = {

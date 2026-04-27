@@ -1,23 +1,68 @@
-const superagent = require('superagent');
+const axios = require('axios');
 
-exports.getVaultReward = async (url) => {
-  const response = (await superagent.get(url)).body;
-
-  // Check if data exists and is an array
-  if (!response || !Array.isArray(response)) {
-    return new Map();
+/**
+ * Gets the APR for a campaign with fallbacks.
+ * Priority: campaign.apr > Opportunity.apr > params.distributionSettings.apr
+ * Mirrors the backend's getCampaignApr logic so rewards survive Merkl recomputation windows.
+ */
+const getCampaignApr = (campaign) => {
+  if (typeof campaign.apr === 'number' && campaign.apr > 0) {
+    return campaign.apr;
   }
 
-  // Filter only live opportunities with valid APR and create a Map
+  const oppApr = Number(campaign.Opportunity?.apr);
+  if (oppApr > 0) {
+    return oppApr;
+  }
+
+  const paramsApr =
+    campaign.params?.distributionMethodParameters?.distributionSettings?.apr;
+  if (paramsApr) {
+    const parsed = Number(paramsApr);
+    if (parsed > 0) return parsed < 1 ? parsed * 100 : parsed;
+  }
+
+  return 0;
+};
+
+exports.getVaultReward = async (url) => {
+  // Paginate through all Merkl campaigns
+  const PAGE_SIZE = 100;
+  const MAX_PAGES = 200;
+  const allCampaigns = [];
+  let page = 0;
+
+  while (page < MAX_PAGES) {
+    const separator = url.includes('?') ? '&' : '?';
+    const paginatedUrl = `${url}${separator}items=${PAGE_SIZE}${page > 0 ? `&page=${page}` : ''}`;
+    const response = (await axios.get(paginatedUrl, { timeout: 10_000 })).data;
+
+    if (!response || !Array.isArray(response) || response.length === 0) break;
+
+    allCampaigns.push(...response);
+    if (response.length < PAGE_SIZE) break;
+    page++;
+  }
+
+  // Match by vault address (via Opportunity.identifier).
+  // When multiple campaigns exist for the same vault, keep the one with the highest APR.
   const vaultRewardMap = new Map();
 
-  response
+  allCampaigns
     .filter(
-      (opportunity) =>
-        opportunity.status === 'LIVE' && typeof opportunity.apr === 'number'
+      (campaign) =>
+        getCampaignApr(campaign) > 0 &&
+        campaign.Opportunity?.identifier &&
+        campaign.Opportunity.identifier.trim() !== ''
     )
-    .forEach((opportunity) => {
-      vaultRewardMap.set(opportunity.identifier.toLowerCase(), opportunity);
+    .forEach((campaign) => {
+      const key = campaign.Opportunity.identifier.toLowerCase();
+      const apr = getCampaignApr(campaign);
+      const existing = vaultRewardMap.get(key);
+      const existingApr = existing ? getCampaignApr(existing) : 0;
+      if (apr > existingApr) {
+        vaultRewardMap.set(key, { ...campaign, apr });
+      }
     });
 
   return vaultRewardMap;

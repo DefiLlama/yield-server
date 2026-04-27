@@ -3,7 +3,7 @@ const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const { getProvider } = require('@defillama/sdk/build/general');
 const { default: BigNumber } = require('bignumber.js');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const WINK_TOKEN_ADDRESS = '0x8c3441E7B9aA8A30a542DDE048dd067DE2802E9B'
 
@@ -34,12 +34,12 @@ async function getPrices(chain, addresses) {
             (address) => `${chain}:${address}`
     );
     return (
-        await superagent.get(
+        await axios.get(
             `https://coins.llama.fi/prices/current/${priceKeys
                 .join(',')
                 .toLowerCase()}`
         )
-    ).body.coins;
+    ).data.coins;
 }
 
 const getRebaserTopic = async () => {
@@ -157,7 +157,8 @@ const poolsFunction = async () => {
         tvlUsd: new BigNumber(lockWinkBalance).times(winkData?.price).div(1e18).toNumber(),
         apyReward: await getLockWinkApy(fromBlock, toBlock, lockWinkBalance),
         rewardTokens: [WINK_TOKEN_ADDRESS],
-        poolMeta: '3 to 24 months lock'
+        poolMeta: '3 to 24 months lock',
+        underlyingTokens: [WINK_TOKEN_ADDRESS],
     }, {
         pool: LOCK_USDW_ADDRESS,
         chain: utils.formatChain(chain),
@@ -166,7 +167,8 @@ const poolsFunction = async () => {
         tvlUsd: new BigNumber(lockUsdwBalance).times(usdwData?.price).div(1e18).toNumber(),
         apyReward: await getLockUsdwApy(),
         rewardTokens: [USDW_TOKEN_ADDRESS],
-        poolMeta: '3 to 24 months lock'
+        poolMeta: '3 to 24 months lock',
+        underlyingTokens: [USDW_TOKEN_ADDRESS],
     }, {
         pool: S_USDW_ADDRESS,
         chain: utils.formatChain(chain),
@@ -175,7 +177,8 @@ const poolsFunction = async () => {
         tvlUsd: new BigNumber(susdwBalance).times(usdwData?.price).div(1e18).toNumber(),
         apyReward: await getSusdwApy(),
         rewardTokens: [USDW_TOKEN_ADDRESS],
-        poolMeta: 'Liquid staking'
+        poolMeta: 'Liquid staking',
+        underlyingTokens: [USDW_TOKEN_ADDRESS],
     }]
 };
 

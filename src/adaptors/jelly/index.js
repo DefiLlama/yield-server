@@ -56,6 +56,8 @@ const getPools = async () => {
         symbol: `${token0.symbol}-${token1.symbol}`,
         poolName,
         poolId,
+        token0Address: token0.tokenId,
+        token1Address: token1.tokenId,
       };
     })
   );
@@ -87,6 +89,7 @@ const buildPool = (entry) => {
     poolMeta: entry.poolName,
     tvlUsd: parseInt(entry.tvl, 10),
     apy: parseFloat(entry.apy),
+    underlyingTokens: [entry.token0Address, entry.token1Address].filter(Boolean),
   };
   return newObj;
 };

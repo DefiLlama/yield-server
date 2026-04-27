@@ -154,6 +154,7 @@ async function main() {
       tvlUsd: tvlUsdStakeAni,
       apyReward: aprANIReward,
       rewardTokens: [aniCoinName],
+      underlyingTokens: [aniCoinName],
       poolMeta: 'Stake ANI',
     },
     {
@@ -165,6 +166,7 @@ async function main() {
       apyBase: apyLPCoinBase,
       apyReward: aprLPCoinReward,
       rewardTokens: [aniCoinName],
+      underlyingTokens: [aptCoinName, aniCoinName],
     },
     {
       pool: `${STAKING_ADDRESS}-APT-zUSDC-aptos`,
@@ -175,6 +177,7 @@ async function main() {
       apyBase: apyLPCoinAPTzUDSCBase,
       apyReward: aprLPCoinAPTzUDSCReward,
       rewardTokens: [aniCoinName],
+      underlyingTokens: [aptCoinName, zusdcCoinName],
     },
   ];
 }

@@ -1,6 +1,5 @@
 const axios = require('axios');
 const ethers = require('ethers');
-const superagent = require('superagent');
 const {
   chainSupported,
   ethereumRefUnderlyingTokenAddress,
@@ -35,10 +34,10 @@ const main = async () => {
   for (const [symbol, vaultInfo] of Object.entries(resp.eachYpoolVault)) {
     const refAddr = ethereumRefUnderlyingTokenAddress(symbol);
     const key = `ethereum:${refAddr}`;
-    const priceRes = await superagent.get(
+    const priceRes = await axios.get(
       `https://coins.llama.fi/prices/current/${key}`
     );
-    const tokenPrice = priceRes.body.coins[key].price;
+    const tokenPrice = priceRes.data.coins[key].price;
     for (const chainId of vaultInfo.supportedChains) {
       if (!chainSupported(chainId)) {
         continue;

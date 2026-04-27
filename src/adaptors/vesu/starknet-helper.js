@@ -1,8 +1,6 @@
 const { Contract, validateAndParseAddress, number, hash, uint256, } = require('starknet')
 const axios = require('axios')
 
-const STARKNET_RPC = 'https://starknet-mainnet.public.blastapi.io'
-
 function formCallBody({ abi, target, params = [] }, id = 0) {
   if ((params || params === 0) && !Array.isArray(params))
     params = [params]
@@ -116,7 +114,7 @@ function parseOutput(result, abi) {
 async function call({ abi, target, params = [] } = {}) {
   const callBody = formCallBody({ abi, target, params })
   
-  const { data } = await axios.post(STARKNET_RPC, callBody)
+  const { data } = await axios.post(process.env.STARKNET_RPC, callBody)
   
   if (data.error) {
     throw new Error(`RPC Error: ${data.error.message}`)

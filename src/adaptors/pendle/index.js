@@ -2,6 +2,14 @@ const utils = require('../utils');
 const axios = require('axios');
 const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+
+const UNRESOLVABLE_TOKENS = {
+  '0xae8fc9288685516d2eca717056ca69303b348752': 'coingecko:universal-btc',
+  '0x53176cadd446700fa6b89f840357ac586d7e33db': 'coingecko:universal-btc',
+  '0x846350bb944c9f9924d4feca0f948b73e5af5a57': 'coingecko:universal-btc',
+};
+const resolveToken = (addr) => UNRESOLVABLE_TOKENS[addr?.toLowerCase()] || addr;
 
 const chains = {
   1: {
@@ -21,6 +29,7 @@ const chains = {
     chainSlug: 'bnbchain',
     PENDLE: '0xb3ed0a426155b79b898849803e3b36552f7ed507',
     ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+    // disabledVolume: true,
   },
   10: {
     chainName: 'optimism',
@@ -44,6 +53,25 @@ const chains = {
     chainName: 'mantle',
     chainSlug: 'mantle',
     PENDLE: '0xd27b18915e7acc8fd6ac75db6766a80f8d2f5729',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+  },
+  999: {
+    chainName: 'hyperliquid',
+    chainSlug: 'hyperliquid',
+    PENDLE: '0xD6Eb81136884713E843936843E286FD2a85A205A',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+    disabledVolume: true,
+  },
+  80094: {
+    chainName: 'berachain',
+    chainSlug: 'berachain',
+    PENDLE: '0xFf9c599D51C407A45D631c6e89cB047Efb88AeF6',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+  },
+  9745: {
+    chainName: 'plasma',
+    chainSlug: 'plasma',
+    PENDLE: '0x17Bac5F906c9A0282aC06a59958D85796c831f24',
     ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
   },
 };
@@ -143,8 +171,11 @@ async function fetchPoolsVolumes(chain, pools, routers) {
       data: log.data,
     });
 
+    const market = utils.formatAddress(event.args.market);
+    if (!markets[market]) return null;
+
     let netTokenAmount = Number(event.args.netTokenAmount);
-    if (event.name === 'AddLiquiditySingleToken' || eventname === 'RemoveLiquiditySingleToken') {
+    if (event.name === 'AddLiquiditySingleToken' || event.name === 'RemoveLiquiditySingleToken') {
       netTokenAmount = netTokenAmount / 2;
     }
 
@@ -152,11 +183,11 @@ async function fetchPoolsVolumes(chain, pools, routers) {
       tx: log.transactionHash, // for debug purpose
       address: utils.formatAddress(log.address),
       blockNumber: Number(log.blockNumber),
-      market: utils.formatAddress(event.args.market),
+      market,
       token: utils.formatAddress(event.args.token),
       tokenAmount: netTokenAmount,
     }
-  })
+  }).filter(Boolean)
 
   const tokens = {}
   for (const event of events) {
@@ -186,8 +217,8 @@ async function fetchPoolsVolumes(chain, pools, routers) {
 
   for (const event of events) {
     if (!tokens[event.token]) {
-      console.log(event);
-      process.exit(0);
+      console.warn(`Token not found for event.token: ${event.token}`);
+      continue;
     }
     if (!markets[event.market]) {
       console.warn(`Market not found for event.market: ${event.market}`);
@@ -213,7 +244,7 @@ async function fetchPoolsVolumes(chain, pools, routers) {
 
 async function poolApys(chainId, pools) {
   // support swap volumes on pool
-  const poolWithVolumes = await fetchPoolsVolumes(chains[chainId].chainName, pools, chains[chainId].ROUTERS)
+  const poolWithVolumes = chains[chainId].disabledVolume ? pools : await fetchPoolsVolumes(chains[chainId].chainName, pools, chains[chainId].ROUTERS)
 
   return poolWithVolumes.map((p) => ({
     pool: p.address,
@@ -224,7 +255,7 @@ async function poolApys(chainId, pools) {
     apyBase: (p.details.aggregatedApy - p.details.pendleApy) * 100,
     apyReward: p.details.pendleApy * 100,
     rewardTokens: [chains[chainId].PENDLE],
-    underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address],
+    underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address].map(resolveToken),
     volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
     volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
     poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
@@ -240,7 +271,7 @@ function ptApys(chainId, pools) {
     symbol: utils.formatSymbol(p.name),
     tvlUsd: p.details.liquidity,
     apyBase: p.details.impliedApy * 100,
-    underlyingTokens: [splitId(p.underlyingAsset).address],
+    underlyingTokens: [splitId(p.underlyingAsset).address].map(resolveToken),
     poolMeta: `For buying PT-${p.name}-${expiryToText(p.expiry)}`,
     url: `https://app.pendle.finance/trade/markets/${p.address}/swap?view=pt&chain=${chains[chainId].chainSlug}&py=output`,
   }));
@@ -273,7 +304,7 @@ async function apy() {
     })
   );
 
-  return poolsFiltered;
+  return addMerklRewardApy(poolsFiltered, 'pendle');
 }
 
 module.exports = {

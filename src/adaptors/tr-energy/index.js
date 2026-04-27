@@ -27,7 +27,7 @@ async function apy() {
   const tvlUsd = Number((tvlTrx * trxPrice['coingecko:tron'].price).toFixed(2));
 
   // APY  (profit_percent + static_percent) * percent_cef
-  const baseApy = Number(((cfg.profit_percent + cfg.static_percent) * cfg.percent_cef * 100).toFixed(2));
+  const baseApy = Number(((cfg.profit_percent + cfg.static_percent) * 100).toFixed(2));
   
   return [
     {
@@ -37,7 +37,7 @@ async function apy() {
       symbol: "TRX",
       tvlUsd,
       apyBase: baseApy,
-      underlyingTokens: ["TRX"],
+      underlyingTokens: ["TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR"],
       url: "https://tr.energy",
     },
   ];

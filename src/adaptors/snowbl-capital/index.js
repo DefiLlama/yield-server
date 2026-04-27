@@ -13,7 +13,7 @@ const apy = async (timestamp) => {
     {
       ...rest,
       project: 'snowbl-capital',
-      symbol: 'sSnowbl',
+      symbol: 'USDC',
       tvlUsd: tvl / 1e6,
       underlyingTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'],
       poolMeta: 'Snowbl Capital USDC Vault',

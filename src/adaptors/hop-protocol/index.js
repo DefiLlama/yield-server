@@ -19,7 +19,7 @@ const getApy = async () => {
     const tokenPools = data.pools[token];
     const chains = Object.keys(tokenPools).filter((c) => !['nova'].includes(c));
 
-    for (chain of chains) {
+    for (const chain of chains) {
       const config = coreConfig[token][chain];
       const poolAddress = config?.l2SaddleSwap;
       const tokenAddress = config?.l2CanonicalToken;
@@ -98,7 +98,7 @@ const getApy = async () => {
         apyBase: tokenPools[chain].apy * 100,
         apyReward,
         rewardTokens: apyReward > 0 ? stakingRewardAddresses : [],
-        underlyingTokens: [tokenAddress, hopTokenAddress],
+        underlyingTokens: [tokenAddress],
         tvlUsd,
         url: `https://app.hop.exchange/#/pool?token=${token}`,
       });

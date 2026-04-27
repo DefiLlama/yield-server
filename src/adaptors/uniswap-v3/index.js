@@ -304,7 +304,7 @@ const topLvl = async (
       const chain = chainString === 'ethereum' ? 'mainnet' : chainString;
 
       const feeTier = Number(poolMeta.replace('%', '')) * 10000;
-      const url = `https://app.uniswap.org/#/add/${token0}/${token1}/${feeTier}?chain=${chain}`;
+      const url = `https://app.uniswap.org/positions/create/v3?currencyA=${token0}&currencyB=${token1}&chain=${chain}&fee={"feeAmount":${feeTier}}`;
 
       let symbol = p.symbol;
       if (
@@ -366,7 +366,8 @@ const main = async (timestamp = null) => {
             '0x0c6d9d0f82ed2e0b86c4d3e9a9febf95415d1b76',
             '0xc809d13e9ea08f296d3b32d4c69d46ff90f73fd8',
           ].includes(p.pool)
-      ),
+      )
+      .filter((p) => !(p.tvlUsd > 1e7 && p.volumeUsd1d < 10)),
     'uniswap'
   );
   return pools;

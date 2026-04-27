@@ -1,8 +1,9 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
-const superagent = require('superagent');
+const axios = require('axios');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const { EstimatedFees } = require('./estimateFee');
 const { getCakeAprs, CAKE, chainIds } = require('./cakeReward');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
@@ -312,10 +313,10 @@ const topLvl = async (
 
 const main = async (timestamp = null) => {
   const stablecoins = (
-    await superagent.get(
+    await axios.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
-  ).body.peggedAssets.map((s) => s.symbol.toLowerCase());
+  ).data.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
@@ -342,7 +343,7 @@ const main = async (timestamp = null) => {
     }
   }
 
-  return data
+  const pools = data
     .flat()
     .filter((p) => utils.keepFinite(p))
     .map((p) => {
@@ -362,6 +363,8 @@ const main = async (timestamp = null) => {
       }
       return p;
     });
+
+  return addMerklRewardApy(pools, 'pancake-swap');
 };
 
 module.exports = {

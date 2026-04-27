@@ -20,6 +20,7 @@ const getApy = async () => {
             symbol: utils.formatSymbol('APETH'),
             tvlUsd: tvl,
             apy: apy.data.apy,
+            underlyingTokens: [ETH],
         },
     ];
 };

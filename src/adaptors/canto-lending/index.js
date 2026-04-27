@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const abi = require('./abis.json');
 
 const utils = require('../utils');
@@ -8,6 +8,7 @@ const unitroller = '0x5E23dC409Fc2F832f83CEc191E245A191a4bCc5C';
 const WCANTO = '0x826551890Dc65655a0Aceca109aB11AbDbD7a07B';
 
 const getOutput = ({ output }) => output.map(({ output }) => output);
+const getUsdPrice = (price) => price?.usd;
 
 const poolInfo = async (chain) => {
   const allMarkets = await sdk.api.abi.call({
@@ -124,6 +125,8 @@ const poolInfo = async (chain) => {
 };
 
 const unwrapLP = async (chain, lpTokens) => {
+  if (lpTokens.length === 0) return {};
+
   const [token0, token1, getReserves, totalSupply, symbol] = await Promise.all(
     ['token0', 'token1', 'getReserves', 'totalSupply', 'symbol'].map((method) =>
       sdk.api.abi.multiCall({
@@ -167,12 +170,25 @@ const unwrapLP = async (chain, lpTokens) => {
   });
 
   lpMarkets.map((token, i) => {
-    token.lpPrice =
-      ((getReserves[i]._reserve0 / token0Decimals[i]) *
-        token0Price[token0[i].toLowerCase()].usd +
-        (getReserves[i]._reserve1 / token1Decimals[i]) *
-          token1Price[token1[i].toLowerCase()].usd) /
-      (totalSupply[i] / 1e18);
+    const reserve0Usd =
+      (getReserves[i]._reserve0 / token0Decimals[i]) *
+      getUsdPrice(token0Price[token0[i].toLowerCase()]);
+    const reserve1Usd =
+      (getReserves[i]._reserve1 / token1Decimals[i]) *
+      getUsdPrice(token1Price[token1[i].toLowerCase()]);
+    const lpSupply = totalSupply[i] / 1e18;
+
+    if (!Number.isFinite(lpSupply) || lpSupply === 0) {
+      token.lpPrice = undefined;
+    } else if (Number.isFinite(reserve0Usd) && Number.isFinite(reserve1Usd)) {
+      token.lpPrice = (reserve0Usd + reserve1Usd) / lpSupply;
+    } else if (Number.isFinite(reserve0Usd)) {
+      token.lpPrice = (reserve0Usd * 2) / lpSupply;
+    } else if (Number.isFinite(reserve1Usd)) {
+      token.lpPrice = (reserve1Usd * 2) / lpSupply;
+    } else {
+      token.lpPrice = undefined;
+    }
   });
 
   const lpPrices = {};
@@ -184,13 +200,15 @@ const unwrapLP = async (chain, lpTokens) => {
 };
 
 const getPrices = async (chain, addresses) => {
+  if (addresses.length === 0) return {};
+
   const priceKeys = addresses
     .map((a) => `${chain}:${a.toLowerCase()}`)
     .join(',');
 
   const prices = (
-    await superagent.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).body.coins;
+    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  ).data.coins;
 
   return Object.entries(prices).reduce((acc, [k, v]) => {
     acc[k.replace(`${chain}:`, '')] = { usd: v.price };
@@ -217,9 +235,9 @@ function calculateTvl(cash, borrows, reserves, price, decimals) {
 }
 
 const getApy = async () => {
-  const wCantoPrice = (await getPrices('canto', [WCANTO]))[
-    WCANTO.toLowerCase()
-  ];
+  const wCantoUsd = getUsdPrice(
+    (await getPrices('canto', [WCANTO]))[WCANTO.toLowerCase()]
+  );
 
   const yieldPools = (await poolInfo('canto')).yieldMarkets.map((pool, i) => {
     const totalSupplyUsd = calculateTvl(
@@ -238,17 +256,13 @@ const getApy = async () => {
     );
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
     const apyBase = calculateApy(pool.supplyRate);
-    const apyReward = calculateApy(
-      pool.compSupplySpeeds,
-      wCantoPrice.usd,
-      totalSupplyUsd
-    );
+    const apyReward = Number.isFinite(wCantoUsd)
+      ? calculateApy(pool.compSupplySpeeds, wCantoUsd, totalSupplyUsd)
+      : null;
     const apyBaseBorrow = calculateApy(pool.borrowRate);
-    const apyRewardBorrow = calculateApy(
-      pool.compBorrowSpeeds,
-      wCantoPrice.usd,
-      totalBorrowUsd
-    );
+    const apyRewardBorrow = Number.isFinite(wCantoUsd)
+      ? calculateApy(pool.compBorrowSpeeds, wCantoUsd, totalBorrowUsd)
+      : null;
     const ltv = parseInt(pool.collateralFactor) / 1e18;
 
     const readyToExport = exportFormatter(

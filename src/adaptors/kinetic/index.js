@@ -1,4 +1,4 @@
-const superagent = require('superagent');
+const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { Web3, eth } = require('web3');
 const sdk = require('@defillama/sdk');
@@ -50,12 +50,12 @@ const SECONDS_PER_DAY = 86400;
 
 const getPrices = async (addresses) => {
   const prices = (
-    await superagent.get(
+    await axios.get(
       `https://coins.llama.fi/prices/current/${addresses
         .join(',')
         .toLowerCase()}`
     )
-  ).body.coins;
+  ).data.coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -164,13 +164,12 @@ const getApy = async (comptroller) => {
     cToken
   );
 
-  const tempMarkets = allMarkets.filter(m => m.toLocaleLowerCase() != C_ETH_MARKET.toLocaleLowerCase())
-
-  let underlyingTokens = await multiCallMarkets(
-    tempMarkets,
+  // Call underlying() on all markets - native FLR markets return null
+  let underlyingTokens = (await multiCallMarkets(
+    allMarkets,
     'underlying',
     cToken
-  );
+  )).map(t => t ?? FLR.address);
 
   let underlyingSymbols = await multiCallMarkets(
     underlyingTokens,
@@ -183,12 +182,6 @@ const getApy = async (comptroller) => {
     'decimals',
     cToken
   );
-
-  if(underlyingTokens.length != allMarkets.length){
-    underlyingTokens = underlyingTokens.concat([FLR.address]);
-    underlyingSymbols = underlyingSymbols.concat('FLR');
-    underlyingDecimals = underlyingDecimals.concat(18);
-  }
 
   const prices = await getPrices(
     underlyingTokens.concat([FLR.address, JOULE.address]).map((token) => 'flare:' + token)

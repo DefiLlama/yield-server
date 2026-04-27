@@ -338,6 +338,19 @@ var CHAIN_CONFIGS = {
     EXCLUDED_POOLS: {
       '0x1dc0f3359a254f876b37906cfc1000a35ce2d717': 'USDT V3 Broken',
     },
+    // Ethereum KPK (PoolQuotaKeeper) pools that need manual configuration
+    POOLS: {
+      '0xa9d17f6d3285208280a1fd9b94479c62e0aaba64': {
+        symbol: 'wstETH',
+        underlying: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0', // wstETH
+        name: 'kpk wstETH',
+      },
+      '0x9396dcbf78fc526bb003665337c5e73b699571ef': {
+        symbol: 'ETH',
+        underlying: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
+        name: 'kpk ETH',
+      },
+    },
   },
   plasma: {
     ADDRESS_PROVIDER_V3: null, // Plasma uses individual pool approach
@@ -349,7 +362,17 @@ var CHAIN_CONFIGS = {
       '0x76309A9a56309104518847BbA321c261B7B4a43f': {
         symbol: 'dUSDT0',
         underlying: '0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb', // USDT0 deposit token
-        name: 'USDT0 Lending Pool',
+        name: 'Invariant USDT0',
+      },
+      '0x53e4e9b8766969c43895839cc9c673bb6bc8ac97': {
+        symbol: 'USDT0 v3',
+        underlying: '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb', // USDT0
+        name: 'Edge UltraYield',
+      },
+      '0xb74760fd26400030620027dd29d19d74d514700e': {
+        symbol: 'hyperGearboxUSDT',
+        underlying: '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb', // USDT0
+        name: 'Hyperithm Gearbox USDT',
       },
     },
   },
@@ -389,6 +412,34 @@ var CHAIN_CONFIGS = {
         symbol: 'USDC.E',
         underlying: '0xad11a8BEb98bbf61dbb1aa0F6d6F2ECD87b35afA', // USDC.E
         name: 'USDC.E Lending Pool',
+      },
+    },
+  },
+  monad: {
+    ADDRESS_PROVIDER_V3: null,
+    GEAR_TOKEN: null,
+    REWARD_TOKEN: '0x34752948b0dc28969485df2066ffe86d5dc36689'.toLowerCase(), // MON
+    chainName: 'Monad',
+    POOLS: {
+      '0x6b343f7b797f1488aa48c49d540690f2b2c89751': {
+        symbol: 'dUSDC',
+        underlying: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', // USDC
+        name: 'USDC Pool',
+      },
+      '0x34752948b0dc28969485df2066ffe86d5dc36689': {
+        symbol: 'dMON',
+        underlying: '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A', // MON
+        name: 'MON Pool',
+      },
+      '0x164a35f31e4e0f6c45d500962a6978d2cbd5a16b': {
+        symbol: 'dUSDT0',
+        underlying: '0xe7cd86e13AC4309349F30B3435a9d337750fC82D', // USDT0
+        name: 'USDT0 Pool',
+      },
+      '0xc4173359087ce643235420b7bc610d9b0cf2b82d': {
+        symbol: 'edgeAUSD',
+        underlying: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', // AUSD
+        name: 'AUSD Pool',
       },
     },
   },
@@ -451,6 +502,7 @@ function getPoolUrl(chain, poolAddress) {
     etlk: '42793',
     lisk: '1135',
     hemi: '43111',
+    monad: '143',
   };
 
   const chainId = chainIds[chain];
@@ -471,12 +523,18 @@ const MERKL_CONFIGS = {
       '0x05A811275fE9b4DE503B3311F51edF6A856D936e', // USDT
       '0x4d56c9cBa373AD39dF69Eb18F076b7348000AE09', // GHO
       '0x72CCB97cbdC40f8fb7FFA42Ed93AE74923547200', // wstETH (with Merkl rewards)
+      '0xa9d17f6d3285208280a1fd9b94479c62e0aaba64', // KPK wstETH
+      '0x9396dcbf78fc526bb003665337c5e73b699571ef', // KPK ETH
     ],
   },
   plasma: {
     chainId: 9745,
-    poolId: '0x76309A9a56309104518847BbA321c261B7B4a43f',
     rewardToken: '0x6100e367285b01f48d07953803a2d8dca5d19873', // WXPL
+    pools: [
+      '0x76309A9a56309104518847BbA321c261B7B4a43f', // Invariant USDT0 (existing)
+      '0xB74760FD26400030620027DD29D19d74D514700e', // Hyperithm Gearbox
+      '0x53E4e9b8766969c43895839CC9c673bb6bC8Ac97', // Edge UltraYield
+    ],
   },
   etlk: {
     chainId: 42793,
@@ -492,6 +550,16 @@ const MERKL_CONFIGS = {
     chainId: 43111,
     poolId: '0x614eB485DE3c6C49701b40806AC1B985ad6F0A2f',
     rewardToken: '0xad11a8BEb98bbf61dbb1aa0F6d6F2ECD87b35afA', // USDC.E
+  },
+  monad: {
+    chainId: 143,
+    rewardToken: '0x34752948b0dc28969485df2066ffe86d5dc36689', // MON
+    pools: [
+      '0x6b343f7b797f1488aa48c49d540690f2b2c89751', // USDC Pool
+      '0x34752948b0dc28969485df2066ffe86d5dc36689', // MON Pool
+      '0x164a35f31e4e0f6c45d500962a6978d2cbd5a16b', // USDT0 Pool
+      '0xc4173359087ce643235420b7bc610d9b0cf2b82d', // AUSD Pool
+    ],
   },
 };
 
@@ -713,8 +781,20 @@ async function getPlasmaPoolsV3(chain) {
 
 async function getPoolsV3(chain) {
   // Handle non-registry chains using the individual pool approach
-  if (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') {
+  if (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi' || chain === 'monad') {
     return await getPlasmaPoolsV3(chain);
+  }
+
+  const chainConfig = CHAIN_CONFIGS[chain];
+
+  // Check if there are manual pools configured for this chain
+  const manualPools = chainConfig?.POOLS || {};
+  const hasManualPools = Object.keys(manualPools).length > 0;
+
+  // If there are manual pools, fetch them using the Plasma approach
+  let manualPoolsData = [];
+  if (hasManualPools) {
+    manualPoolsData = await getPlasmaPoolsV3(chain);
   }
 
   // Original Ethereum implementation with registry
@@ -762,7 +842,6 @@ async function getPoolsV3(chain) {
       },
     };
   }
-  const chainConfig = CHAIN_CONFIGS[chain];
   const dc300 = await call({
     abi: abis_default.getAddressOrRevert,
     target: chainConfig.ADDRESS_PROVIDER_V3,
@@ -785,7 +864,7 @@ async function getPoolsV3(chain) {
     })),
     chain,
   });
-  return pools
+  const registryPools = pools
     .map((pool, i) => ({
       pool: pool.addr,
       name: pool.name,
@@ -801,15 +880,31 @@ async function getPoolsV3(chain) {
       ...farmingPoolsData[pool.addr],
     }))
     .filter(({ pool }) => {
-      const chainConfig = CHAIN_CONFIGS[chain];
       const excludedPools = chainConfig?.EXCLUDED_POOLS || {};
       return !excludedPools[pool.toLowerCase()];
     });
+
+  // Merge registry pools with manual pools, with manual pools taking precedence
+  if (hasManualPools) {
+    const poolMap = new Map();
+    // Add registry pools first
+    for (const pool of registryPools) {
+      poolMap.set(pool.pool.toLowerCase(), pool);
+    }
+    // Add or override with manual pools
+    for (const pool of manualPoolsData) {
+      const key = pool.pool.toLowerCase();
+      poolMap.set(key, { ...(poolMap.get(key) || {}), ...pool });
+    }
+    return Array.from(poolMap.values());
+  }
+
+  return registryPools;
 }
 async function getTokensData(chain, pools) {
   // For non-registry chains, we need to use known token addresses for pricing
   let tokens;
-  if (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') {
+  if (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi' || chain === 'monad') {
     tokens = pools.map((p) => p.underlyingForPrice || p.underlying);
   } else {
     tokens = pools.map((p) => p.underlying);
@@ -907,7 +1002,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
     const underlying = pool.underlying.toLowerCase();
     const poolAddr = pool.pool.toLowerCase();
     // For non-registry chains, use the underlyingForPrice token for pricing
-    const priceToken = (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') && pool.underlyingForPrice ?
+    const priceToken = (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi' || chain === 'monad') && pool.underlyingForPrice ?
       pool.underlyingForPrice.toLowerCase() : underlying;
     const underlyingPrice = tokens[priceToken]?.price || 0;
     const daoFee = Number(daoFees[poolAddr] ?? 0);
@@ -915,7 +1010,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
     // Calculate TVL and borrowing data using the same logic for all chains
     let totalSupplyUsd, totalBorrowUsd, tvlUsd;
 
-    if (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') {
+    if (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi' || chain === 'monad') {
       // Use proper Gearbox calculation for non-registry chains with real borrowing data
       totalSupplyUsd = calculateTvl(
         pool.availableLiquidity,
@@ -947,7 +1042,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       tvlUsd = totalSupplyUsd - totalBorrowUsd;
     }
 
-    const dieselPrice = (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') ?
+    const dieselPrice = (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi' || chain === 'monad') ?
       Number(underlyingPrice) / WAD : // For non-registry chains, use simpler calculation
       (Number(underlyingPrice) * Number(pool.dieselRate)) / RAY;
     const supplyInfo = {
@@ -1001,7 +1096,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       url: getPoolUrl(chain, pool.pool),
       // daoFee here is taken from last cm connected to this pool. in theory, it can be different for different CMs
       // in practice, it's 25% for v3 cms and 50% for v2 cms
-      apyBaseBorrow: (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi') ?
+      apyBaseBorrow: (chain === 'plasma' || chain === 'etlk' || chain === 'lisk' || chain === 'hemi' || chain === 'monad') ?
         // For non-registry chains, use base interest rate directly (no DAO fees initially)
         (Number(pool.baseInterestRate) / 1e27) * 100 :
         ((daoFee + PERCENTAGE_FACTOR) *
@@ -1015,7 +1110,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
   });
 }
 async function getApy() {
-  const supportedChains = ['ethereum', 'plasma', 'etlk', 'lisk', 'hemi'];
+  const supportedChains = ['ethereum', 'plasma', 'etlk', 'lisk', 'hemi', 'monad'];
   const allPools = [];
 
   console.log(`🚀 Fetching Gearbox data for chains: ${supportedChains.join(', ')}`);

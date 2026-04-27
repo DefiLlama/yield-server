@@ -1,5 +1,4 @@
 const axios = require('axios');
-const superagent = require('superagent');
 const { get } = require('lodash');
 const sdk = require('@defillama/sdk');
 
@@ -59,7 +58,7 @@ const VAULTS = [
     accountant: '0x00da610F7b9bc42fa2EF2D4BA312f8cD95131fA2',
     symbol: 'aiBTC',
     underlyingToken: '0x152b9d0FdC40C096757F570A51E494bd4b943E50',
-    rateDecimals: 6,
+    rateDecimals: 8,
   },
   {
     chainId: '43114',
@@ -82,11 +81,11 @@ const getPrices = async (chain, addresses) => {
   }
 
   const priceKeys = addresses.map((address) => `${chain}:${address}`).join(',');
-  const response = await superagent.get(
+  const response = await axios.get(
     `https://coins.llama.fi/prices/current/${priceKeys.toLowerCase()}`
   );
 
-  const prices = response.body.coins || {};
+  const prices = response.data.coins || {};
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({

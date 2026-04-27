@@ -20,6 +20,7 @@ const apy = async () => {
         symbol: "urLRT",
         tvlUsd: (await axios.get(`https://coins.llama.fi/prices/current/${underlyingToken}`)).data.coins[`${underlyingToken}`]?.price * mellowVault.totalSupply,
         apy: mellowVault.apy,
+        underlyingTokens: [mellowVault.strategyAssets[0].denom],
     }
   ];
 };

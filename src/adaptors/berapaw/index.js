@@ -108,7 +108,7 @@ const getLpApr = async (stakingTvlUsd) => {
 
 const getVaultsFromApi = async () => {
     const query = {
-        operationName: "GetVaults",
+        operationName: "DefillamaGetVaults",
         variables: {
             orderBy: "apr",
             orderDirection: "desc",
@@ -117,7 +117,7 @@ const getVaultsFromApi = async () => {
                 includeNonWhitelisted: false,
             },
         },
-        query: `query GetVaults($where: GqlRewardVaultFilter, $pageSize: Int, $skip: Int, $orderBy: GqlRewardVaultOrderBy = bgtCapturePercentage, $orderDirection: GqlRewardVaultOrderDirection = desc, $search: String) {
+        query: `query DefillamaGetVaults($where: GqlRewardVaultFilter, $pageSize: Int, $skip: Int, $orderBy: GqlRewardVaultOrderBy = bgtCapturePercentage, $orderDirection: GqlRewardVaultOrderDirection = desc, $search: String) {
             polGetRewardVaults(
                 where: $where
                 first: $pageSize
@@ -170,7 +170,9 @@ const getVaultsFromApi = async () => {
         }`
     };
 
-    const response = await utils.getData('https://api.berachain.com/', query);
+    const response = await utils.getData('https://api.berachain.com/', query, {
+        'x-graphql-client-name': 'Defillama.yield-server',
+    });
     return response.data.polGetRewardVaults.vaults;
 };
 
@@ -225,15 +227,24 @@ const getPoolData = async () => {
             lbgtApr = bgtApr * (lbgtPrice / beraPrice);
         }
 
+        // Try to resolve ERC-4626 asset for vault-type staking tokens
+        let underlying = vault.stakingToken.address;
+        try {
+            const asset = await callContract(vault.stakingToken.address, 'address:asset');
+            if (asset && asset !== '0x0000000000000000000000000000000000000000') {
+                underlying = asset;
+            }
+        } catch {}
+
         pools.push({
             pool: vault.vaultAddress,
             chain: 'berachain',
             project: 'berapaw',
             symbol: vault.stakingToken.symbol,
-            tvlUsd: parseFloat(vault.dynamicData.tvl),
+            tvlUsd: parseFloat(vault.dynamicData?.tvl || 0),
             apyReward: lbgtApr,
             rewardTokens: [ADDRESSES.LBGT],
-            underlyingTokens: [vault.stakingToken.address],
+            underlyingTokens: [underlying],
             url: 'https://www.berapaw.com/vaults',
         });
     }

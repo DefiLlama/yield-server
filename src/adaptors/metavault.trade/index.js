@@ -81,6 +81,7 @@ async function getPoolMvx(
     symbol: utils.formatSymbol('MVX'),
     tvlUsd: tvlMvx,
     apy: apyFee + apyInflation,
+    underlyingTokens: pChain === 'polygon' ? [polygonMvxAddress] : undefined,
   };
 }
 
@@ -105,6 +106,11 @@ async function getPoolMvlp(
     symbol: utils.formatSymbol('MVLP'),
     tvlUsd: parseFloat(pTvl),
     apy: apyFee + apyInflation,
+    underlyingTokens: pChain === 'polygon' ? [
+      '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // USDC.e
+      '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', // WETH
+      '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6', // WBTC
+    ] : undefined,
   };
 }
 
@@ -118,8 +124,8 @@ const getPools = async () => {
     `https://coins.llama.fi/prices/current/${priceKeys}`
   );
   const priceData = {
-    mvx: priceDataRes['coingecko:metavault-trade'],
-    matic: priceDataRes['coingecko:matic-network'],
+    mvx: priceDataRes['coingecko:metavault-trade'] || { price: 0 },
+    matic: priceDataRes['coingecko:matic-network'] || { price: 0 },
   };
 
   const polygonStakedMvx = await getAdjustedAmount(

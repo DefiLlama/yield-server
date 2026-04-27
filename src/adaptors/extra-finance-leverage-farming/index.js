@@ -1,5 +1,5 @@
 const { request } = require('graphql-request');
-const superagent = require('superagent');
+const axios = require('axios');
 const BigNumber = require('bignumber.js');
 
 const utils = require('../utils');
@@ -105,8 +105,8 @@ async function getPoolsData() {
       : tokenAddresses;
 
     const prices = (
-      await superagent.get(`https://coins.llama.fi/prices/current/${coins}`)
-    ).body.coins;
+      await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
+    ).data.coins;
 
     function addLendPools() {
       const formattedLendingPools = formatLendingPoolwithRewards(

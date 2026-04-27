@@ -39,7 +39,7 @@ const getV3Pools = async (backendChain, chainString) => {
 
       const baseApr = aprItems
         .filter(
-          (item) => item.type === 'SWAP_FEE_24H' || item.type === 'IB_YIELD'
+          (item) => item.type === 'IB_YIELD' || item.type === 'SWAP_FEE_24H'
         )
         .reduce((sum, item) => sum + Number(item.apr), 0);
 
@@ -55,7 +55,12 @@ const getV3Pools = async (backendChain, chainString) => {
         .map((token) => token.address)
         .filter(Boolean);
 
-      const chainUrl = chainString === 'xdai' ? 'gnosis' : chainString;
+      const chainUrl =
+        chainString === 'xdai'
+          ? 'gnosis'
+          : chainString === 'avax'
+          ? 'avalanche'
+          : chainString;
 
       return {
         pool: pool.address,
@@ -89,6 +94,7 @@ const poolsFunction = async () => {
     basePools,
     hyperliquidPools,
     plasmaPools,
+    monadPools,
   ] = await Promise.all([
     getV3Pools('MAINNET', 'ethereum'),
     getV3Pools('GNOSIS', 'xdai'),
@@ -98,6 +104,7 @@ const poolsFunction = async () => {
     getV3Pools('BASE', 'base'),
     getV3Pools('HYPEREVM', 'hyperliquid'),
     getV3Pools('PLASMA', 'plasma'),
+    getV3Pools('MONAD', 'monad'),
   ]);
 
   return [
@@ -109,6 +116,7 @@ const poolsFunction = async () => {
     ...basePools,
     ...hyperliquidPools,
     ...plasmaPools,
+    ...monadPools,
   ];
 };
 

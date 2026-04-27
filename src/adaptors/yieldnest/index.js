@@ -1,4 +1,5 @@
 const { request, gql } = require('graphql-request');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const yieldnestGatewayUrl = 'https://gateway.yieldnest.finance/api/v1/graphql';
 const yieldnestRestakePoolBaseUrl = 'https://app.yieldnest.finance/restake/';
@@ -37,13 +38,30 @@ query lrt($chainId: Int!, $token: TOKENS!) {
   }
 }`
 
+const FALLBACK_UNDERLYING = {
+  ynETHx: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
+  ynETH: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
+  ynRWAx: ['coingecko:usd-coin'],
+  ynLSDe: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
+  ynUSDx: ['coingecko:usd-coin'],
+  ynBNBx: ['0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'],
+  STAK: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
+  YND: ['coingecko:yieldnest'],
+  veYND: ['coingecko:yieldnest'],
+  sdYND: ['coingecko:yieldnest'],
+  ynBNB: ['0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'],
+  ynBTCk: ['coingecko:bitcoin'],
+  ynBfBTCk: ['coingecko:bitcoin'],
+};
+
 const getUnderlyingAssets = async (chainId, token) => {
   try {
     const data = await request(yieldnestGatewayUrl, yieldnestUnderlyingAssetsQuery, { chainId, token });
-
-    return data.getAPRLRT.underlyingAssets.map((asset) => asset.address);
+    const assets = data.getAPRLRT.underlyingAssets.map((asset) => asset.address);
+    if (assets.length > 0) return assets;
+    return FALLBACK_UNDERLYING[token] || [];
   } catch (error) {
-    return [];
+    return FALLBACK_UNDERLYING[token] || [];
   }
 }
 
@@ -67,6 +85,7 @@ const apy = async () => {
       chain: chain,
       project: 'yieldnest',
       symbol: symbol,
+      ...(symbol === 'veYND' && { token: '0x23d2923e15f5cce8a131cb37f0c7bcc5cad15639' }),
       tvlUsd: tvl,
       apy: apy,
       underlyingTokens: underlyingAssets,
@@ -74,7 +93,7 @@ const apy = async () => {
     };
   }));
 
-  return pools;
+  return addMerklRewardApy(pools.filter(Boolean), 'yieldnest', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = { timetravel: false, apy };

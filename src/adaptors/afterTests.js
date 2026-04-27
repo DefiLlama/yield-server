@@ -11,5 +11,4 @@ module.exports = function () {
       "This adapter contains some pools with <10k TVL, these pools won't be shown in DefiLlama"
     );
   }
-  process.exit(0);
 };
