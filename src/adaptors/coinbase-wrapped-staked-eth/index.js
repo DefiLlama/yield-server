@@ -47,6 +47,7 @@ const getApy = async () => {
       symbol: 'cbeth',
       tvlUsd: tvl * ethPrice,
       apyBase: apr,
+      pricePerShare: Number(exchangeRates[0].output) / 1e18,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: token,
     },

@@ -198,6 +198,7 @@ const getVaultData = async (vaultConfig) => {
     poolMeta: 'Milk Vault',
     apyBase: apy1d,
     apyBase7d: apy7d,
+    pricePerShare: currentRateNormalized,
     underlyingTokens: [vaultConfig.underlyingToken],
     tvlUsd: tvlUsd,
   };

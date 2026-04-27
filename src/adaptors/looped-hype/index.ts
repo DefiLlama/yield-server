@@ -128,6 +128,7 @@ const apy = async () => {
     tvlUsd,
     apyBase: apy1d,
     apyBase7d: apy7d,
+    pricePerShare: Number(currentRate) / scalingFactor,
     underlyingTokens: [UNDERLYING],
   };
 

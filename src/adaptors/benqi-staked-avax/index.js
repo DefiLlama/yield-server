@@ -91,6 +91,7 @@ const main = async () => {
       tvlUsd,
       apyBase,
       apyBase7d,
+      pricePerShare: Number(rateNow.output) / 1e18,
       underlyingTokens: [AVAX_ADDRESS],
       searchTokenOverride: SAVAX_ADDRESS,
       poolMeta: 'Unstaking Cooldown: 15days',

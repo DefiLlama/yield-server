@@ -1,5 +1,9 @@
 const axios = require('axios');
-const { getStakePoolInfo, calcSolanaLstApy } = require('../utils');
+const {
+  getStakePoolInfo,
+  calcSolanaLstApy,
+  solanaLstPricePerShare,
+} = require('../utils');
 
 const JAGSOL_MINT = 'jag58eRBC1c88LaAsRPspTMvoKJPbnzw9p9fREzHqyV';
 const STAKE_POOL = 'jagEdDepWUgexiu4jxojcRWcVKKwFqgZBBuAoGu2BxM';
@@ -17,6 +21,7 @@ const apy = async () => {
   if (!solPrice) throw new Error('Unable to fetch SOL price');
 
   const apyBase = calcSolanaLstApy(stakePool);
+  const pricePerShare = solanaLstPricePerShare(stakePool);
 
   const feePct = stakePool.epochFee
     ? `${((stakePool.epochFee.numerator / stakePool.epochFee.denominator) * 100).toFixed(0)}% epoch fee`
@@ -30,6 +35,7 @@ const apy = async () => {
       symbol: 'jagSOL',
       tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
+      pricePerShare,
       underlyingTokens: [SOL],
       searchTokenOverride: JAGSOL_MINT,
       poolMeta: feePct,

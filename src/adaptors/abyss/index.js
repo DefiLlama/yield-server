@@ -215,6 +215,7 @@ const main = async () => {
         symbol: utils.formatSymbol(vault.symbol),
         tvlUsd,
         apyBase,
+        pricePerShare: Number.isFinite(er) && er > 0 ? er : null,
         underlyingTokens: [vault.assetType],
       });
     } catch (e) {

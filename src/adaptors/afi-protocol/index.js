@@ -72,6 +72,7 @@ const apy = async () => {
       tvlUsd: supply * price,
       apyBase: annualizedApy(resNow.rate, res1d.rate, 1),
       apyBase7d: annualizedApy(resNow.rate, res7d.rate, 7),
+      pricePerShare: resNow.rate,
       underlyingTokens: [POOL.underlying],
       url: `https://yield.afiprotocol.xyz/invest/${POOL.symbol}`,
     },

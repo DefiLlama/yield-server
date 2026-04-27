@@ -91,6 +91,7 @@ const apy = async () => {
       tvlUsd: tvlSupply * rateNowNum,
       apyBase,
       apyBase7d,
+      pricePerShare: rateNowNum,
       underlyingTokens: [config[chain]],
     };
   });

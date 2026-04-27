@@ -151,6 +151,7 @@ const apy = async () => {
         tvlUsd,
         apyBase,
         apyBase7d,
+        pricePerShare: rateNow.toNumber(),
         underlyingTokens: [tokenAddress],
         url: 'https://app.openeden.com/usdo',
       };

@@ -1,5 +1,9 @@
 const axios = require('axios');
-const { getStakePoolInfo, calcSolanaLstApy } = require('../utils');
+const {
+  getStakePoolInfo,
+  calcSolanaLstApy,
+  solanaLstPricePerShare,
+} = require('../utils');
 
 const ADRASOL_MINT = 'sctmY8fJucsJatwHz6P48RuWBBkdBMNmSMuBYrWFdrw';
 const STAKE_POOL = '2XhsHdwf4ZDpp2JhpTqPovoVy3L2Atfp1XkLqFMwGP4Y';
@@ -17,6 +21,7 @@ const apy = async () => {
   if (!solPrice) throw new Error('Unable to fetch SOL price');
 
   const apyBase = calcSolanaLstApy(stakePool);
+  const pricePerShare = solanaLstPricePerShare(stakePool);
 
   const feePct = stakePool.epochFee
     ? `${((stakePool.epochFee.numerator / stakePool.epochFee.denominator) * 100).toFixed(1)}% epoch fee`
@@ -30,6 +35,7 @@ const apy = async () => {
       symbol: 'adraSOL',
       tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
+      pricePerShare,
       underlyingTokens: [SOL],
       searchTokenOverride: ADRASOL_MINT,
       poolMeta: feePct,

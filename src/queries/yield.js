@@ -343,6 +343,7 @@ const buildInsertYieldQuery = (payload) => {
     { name: 'totalSupplyUsd', def: null },
     { name: 'totalBorrowUsd', def: null },
     { name: 'debtCeilingUsd', def: null },
+    { name: 'pricePerShare', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   return pgp.helpers.insert(payload, cs);

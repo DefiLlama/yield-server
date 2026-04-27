@@ -48,7 +48,8 @@ const apy = async () => {
   const calcApy = (rates) => {
     const apyBase = ((rates[0].output - rates[1].output) / rates[1].output) * 365 * 100;
     const apyBase7d = ((rates[0].output - rates[2].output) / rates[2].output / 7) * 365 * 100;
-    return { apyBase, apyBase7d };
+    const pricePerShare = Number(rates[0].output) / 1e18;
+    return { apyBase, apyBase7d, pricePerShare };
   };
 
   return [

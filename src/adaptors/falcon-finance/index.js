@@ -83,7 +83,15 @@ async function getData(vault, underlying) {
   const tvlUsd = (Number(totalAssetsBn) / 1e18) * price
   const apyBase = await computeApyBase(vault)
 
-  return { tvlUsd, apyBase }
+  const { output: pricePerShareBn } = await sdk.api.abi.call({
+    target: vault,
+    abi: abi.convertToAssets,
+    params: ['1000000000000000000'],
+    chain: CHAIN,
+  })
+  const pricePerShare = Number(pricePerShareBn) / 1e18
+
+  return { tvlUsd, apyBase, pricePerShare }
 }
 
 async function apy() {
@@ -100,6 +108,7 @@ async function apy() {
       symbol: 'sUSDf',
       tvlUsd: sUSDfData.tvlUsd,
       apyBase: sUSDfData.apyBase,
+      pricePerShare: sUSDfData.pricePerShare,
       underlyingTokens: [USDf],
       poolMeta: 'ERC-4626: USDf → sUSDf',
       url: 'https://app.falcon.finance/earn/classic',
@@ -111,6 +120,7 @@ async function apy() {
       symbol: 'sFF',
       tvlUsd: sFFData.tvlUsd,
       apyBase: sFFData.apyBase,
+      pricePerShare: sFFData.pricePerShare,
       underlyingTokens: [FF],
       poolMeta: 'ERC-4626: FF → sFF',
       url: 'https://app.falcon.finance/earn/classic',

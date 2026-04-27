@@ -89,7 +89,7 @@ async function getData(chain, vault, underlying, underlyingSubstitute = undefine
     console.warn(
       `[avant] failed to fetch TVL data for ${vault} on ${chain}: ${error.message ?? error}`
     )
-    return { tvlUsd: 0, apyBase: 0 }
+    return { tvlUsd: 0, apyBase: 0, pricePerShare: null }
   }
 
   let apyBase = 0
@@ -101,9 +101,32 @@ async function getData(chain, vault, underlying, underlyingSubstitute = undefine
     )
   }
 
-  const tvlUsd = (Number(totalAssetsBn) / 1e18) * price
+  // Shares are 18-dec; underlying varies (avETH 18, avUSD/avBTC may not be).
+  let assetDecimals = 18
+  try {
+    const { output: dec } = await sdk.api.abi.call({
+      target: underlying,
+      abi: 'erc20:decimals',
+      chain,
+    })
+    const parsed = Number(dec)
+    if (Number.isFinite(parsed) && parsed > 0) assetDecimals = parsed
+  } catch (_) {}
 
-  return { tvlUsd, apyBase }
+  let pricePerShare = null
+  try {
+    const { output } = await sdk.api.abi.call({
+      target: vault,
+      abi: abi.convertToAssets,
+      params: [SHARES.toString()],
+      chain,
+    })
+    pricePerShare = (Number(output) * 10 ** (18 - assetDecimals)) / 1e18
+  } catch (_) {}
+
+  const tvlUsd = (Number(totalAssetsBn) / 10 ** assetDecimals) * price
+
+  return { tvlUsd, apyBase, pricePerShare }
 }
 
 module.exports = {

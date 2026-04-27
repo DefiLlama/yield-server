@@ -44,7 +44,7 @@ async function getApy() {
         chain: "base",
       })).output;
 
-      const { tvl, apyBase, ...rest } = vaultInfos[index];
+      const { tvl, apyBase, pricePerShare } = vaultInfos[index];
 
       const tvlUsd = referenceAssetAddress == USDC.address ? tvl : (await sdk.api.abi.call({
         abi: 'function tokenValueInQuoteAsset(address base, uint256 amount, address quote) view returns (uint256 value)',
@@ -64,6 +64,7 @@ async function getApy() {
         symbol: utils.formatSymbol(referenceAssetSymbol),
         tvlUsd: tvlUsd / 10 ** USDC.decimals,
         apyBase,
+        pricePerShare,
         url: `https://singularityfinance.ai/vaults/${vault.vault}:8453`,
         underlyingTokens: [referenceAssetAddress],
       };
@@ -133,6 +134,7 @@ async function multiGetERC4626Infos(
       chain,
       tvl: allTotalAssets[index],
       apyBase: apy(allPriceNow[index], allPriceYesterday[index]),
+      pricePerShare: Number(allPriceNow[index]) / Number(assetUnit),
     }))
   );
 };

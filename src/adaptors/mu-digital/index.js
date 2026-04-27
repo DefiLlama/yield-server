@@ -368,6 +368,7 @@ const getMuBondPool = async (
       symbol: formatSymbol(symbolRes),
       tvlUsd,
       apyBase,
+      pricePerShare: price.isFinite() && price.gt(0) ? price.toNumber() : null,
       url,
       underlyingTokens: [aznd],
     };
@@ -419,12 +420,15 @@ const getERC4626InfoSafe = async (vault, chain, timestamp, assetUnit) => {
     ]);
     const priceNowBN = new BigNumber(priceNow.output);
     const priceYesterdayBN = new BigNumber(priceYesterday.output);
+    const pricePerShare = priceNowBN.isZero()
+      ? null
+      : priceNowBN.div(new BigNumber(assetUnit)).toNumber();
     if (priceNowBN.isZero() || priceYesterdayBN.isZero()) {
-      return { tvl: tvl.output, apyBase: 0 };
+      return { tvl: tvl.output, apyBase: 0, pricePerShare };
     }
     const ratio = priceNowBN.div(priceYesterdayBN);
     const apy = annualizeRatio(ratio, getDaysInYear(safeTimestamp));
-    return { tvl: tvl.output, apyBase: apy };
+    return { tvl: tvl.output, apyBase: apy, pricePerShare };
   } catch (error) {
     return null;
   }
@@ -473,6 +477,7 @@ const getVaultData = async (
       symbol: formatSymbol(vaultSymbolRes),
       tvlUsd,
       apyBase: erc4626Info?.apyBase ?? 0,
+      pricePerShare: erc4626Info?.pricePerShare ?? null,
       underlyingTokens: [asset],
       poolMeta: 'loAZND Vault',
       url,

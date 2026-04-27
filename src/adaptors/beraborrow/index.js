@@ -96,6 +96,7 @@ async function calcErc4626PoolApy(vault, prices) {
     apyBase,
     apyBase7d,
     apyReward: 0,
+    pricePerShare: sharePriceNow.isFinite() ? sharePriceNow.toNumber() : null,
     poolMeta: vaultMeta[vault].name,
     url: 'https://app.beraborrow.com/vault',
   };

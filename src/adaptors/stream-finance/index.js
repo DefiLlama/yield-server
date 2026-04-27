@@ -88,13 +88,13 @@ const getTokenPrice = async (priceKey, amount, decimals) => {
 const getVaultAPY = async (vaultAddress, chain) => {
   const vaultState = await getContractData(vaultAddress, 'vaultState', chain);
   const currRound = vaultState.round;
-  
+
   // Look at last 7 rounds to get a weekly average
   const numRoundsToAnalyze = 7;
   const startRound = Math.max(1, currRound - numRoundsToAnalyze);
-  
+
   let pricePerShareValues = [];
-  
+
   // Collect price per share for each round
   for (let round = startRound; round < currRound; round++) {
     try {
@@ -109,12 +109,12 @@ const getVaultAPY = async (vaultAddress, chain) => {
       console.error(`Error fetching price per share for round ${round}:`, error.message);
     }
   }
-  
+
   if (pricePerShareValues.length < 2) {
     console.warn('Not enough price data to calculate APY');
-    return 0;
+    return { apy: 0, latestPricePerShare: null };
   }
-  
+
   // Calculate daily yield rates
   const dailyYields = [];
   for (let i = 1; i < pricePerShareValues.length; i++) {
@@ -125,21 +125,27 @@ const getVaultAPY = async (vaultAddress, chain) => {
       dailyYields.push(dailyYield);
     }
   }
-  
+
   if (dailyYields.length === 0) {
     console.warn('No valid yield rates calculated');
-    return 0;
+    return { apy: 0, latestPricePerShare: null };
   }
-  
+
   // Calculate average daily yield
   const avgDailyYield = dailyYields.reduce((sum, yieldRate) => sum + yieldRate, 0) / dailyYields.length;
-  
+
   // Convert to APY using compound interest formula
   // APY = (1 + r)^n - 1, where r is the periodic rate and n is number of periods
   const periodsPerYear = 365; // Daily compounding
   const apy = (Math.pow(1 + avgDailyYield, periodsPerYear) - 1) * 100;
-  
-  return Number.isFinite(apy) ? Number(apy.toFixed(2)) : 0;
+
+  const latestPricePerShare =
+    pricePerShareValues[pricePerShareValues.length - 1];
+
+  return {
+    apy: Number.isFinite(apy) ? Number(apy.toFixed(2)) : 0,
+    latestPricePerShare,
+  };
 };
 
 const getVaultTVL = async (chain, vaultType, vaultDecimals) => {
@@ -162,8 +168,11 @@ const main = async () => {
         const vaultDecimals = VAULT_DECIMALS[vaultAddress];
         const underlyingTicker = mapToUnderlying(utils.formatSymbol(vaultType));
         const tvlUSD = await getVaultTVL(chain, vaultType, vaultDecimals);
-        const apy = await getVaultAPY(vaultAddress, chain);
-        
+        const { apy, latestPricePerShare } = await getVaultAPY(
+          vaultAddress,
+          chain
+        );
+
         if (tvlUSD !== undefined && apy !== undefined) {
           pools.push({
             pool: `${vaultAddress}-${chain}`,
@@ -172,6 +181,10 @@ const main = async () => {
             symbol: underlyingTicker,
             tvlUsd: Number(tvlUSD.toFixed(2)),
             apyBase: Number(apy.toFixed(2)),
+            pricePerShare:
+              latestPricePerShare != null
+                ? Number(latestPricePerShare) / 10 ** vaultDecimals
+                : null,
             underlyingTokens: [ADDRESSES[chain].underlyingTokens[vaultType]],
             poolMeta: utils.formatSymbol(vaultType)
           });
