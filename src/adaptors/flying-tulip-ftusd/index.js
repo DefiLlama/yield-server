@@ -44,13 +44,19 @@ const CHAIN_LABEL = {
 };
 
 const apy = async () => {
-  const ftPriceKey = `ethereum:${FT}`;
-  const ftPriceResp = await axios.get(
-    `https://coins.llama.fi/prices/current/${ftPriceKey}`
-  );
-  const ftPrice = ftPriceResp.data.coins[ftPriceKey]?.price;
-  if (!ftPrice || ftPrice <= 0) {
-    throw new Error('Could not resolve FT price from coins.llama.fi');
+  // FT price is fetched best effort. If coins.llama.fi misses or returns 0
+  // the adapter still reports TVL with apyReward = 0 instead of dropping
+  // both pools entirely.
+  let ftPrice = 0;
+  try {
+    const ftPriceKey = `ethereum:${FT}`;
+    const resp = await axios.get(
+      `https://coins.llama.fi/prices/current/${ftPriceKey}`
+    );
+    const candidate = resp.data?.coins?.[ftPriceKey]?.price;
+    if (typeof candidate === 'number' && candidate > 0) ftPrice = candidate;
+  } catch (_) {
+    ftPrice = 0;
   }
 
   const pools = [];
@@ -87,7 +93,14 @@ const apy = async () => {
     for (const log of logs) {
       totalRewardWei += BigInt(log.args.rewardAmount.toString());
     }
-    const rewardFt = Number(totalRewardWei) / 1e18;
+    // Scale wei down to FT in the BigInt domain first to keep precision.
+    // 30 days of rewards on Ethereum is on the order of 1e22 wei, well above
+    // the 2^53 safe integer limit, so a direct Number(totalRewardWei) cast
+    // would lose several digits and skew the APY.
+    const FT_DECIMALS = 18n;
+    const PRECISION = 6n; // 1e6 FT-units of precision in the final number
+    const scaled = totalRewardWei / 10n ** (FT_DECIMALS - PRECISION);
+    const rewardFt = Number(scaled) / Number(10n ** PRECISION);
     const rewardUsd = rewardFt * ftPrice;
 
     let apyReward = 0;
