@@ -6,11 +6,13 @@ const { tableName: configTableName } = require('./config');
 const tableName = 'yield';
 
 // get last DB entry per unique pool (with exclusion; this is what we use in enrichment handler)
-const getYieldFiltered = async () => {
+const getYieldFiltered = async (lendingProjects = []) => {
   const conn = await connect();
 
   // -- get latest yield row per unique configID (a pool)
-  // -- exclude if tvlUsd is < LB
+  // -- keep lending projects even if 0 <= latest tvlUsd < LB
+  // -- drop lending projects if latest tvlUsd is negative
+  // -- for all other projects, exclude if latest tvlUsd is < LB
   // -- exclude if pool age > 7days (speeds up query)
   // -- join config data
   const query = `
@@ -46,14 +48,17 @@ const getYieldFiltered = async () => {
           SELECT *
           FROM   $<yieldTable:name>
           WHERE  "configID" = c.config_id
-            AND "tvlUsd" >= $<tvlLB>
             AND  timestamp >= NOW() - INTERVAL '$<age> DAY'
           ORDER  BY timestamp DESC
           LIMIT  1
   ) AS y
+  WHERE  ((c.project IN ($<lendingProjects:csv>) AND y."tvlUsd" >= 0)
+     OR  y."tvlUsd" >= $<tvlLB>
+  )
   `;
 
   const response = await conn.query(query, {
+    lendingProjects,
     tvlLB: exclude.boundaries.tvlUsdUI.lb,
     age: exclude.boundaries.age,
     yieldTable: tableName,

@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const {
   poolAbi,
@@ -182,7 +183,7 @@ const keepFinite = (p) => {
 const apy = async () => {
   const pools = await getApy();
 
-  return pools.filter((p) => keepFinite(p));
+  return addMerklRewardApy(pools.filter((p) => keepFinite(p)), 'superlend', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

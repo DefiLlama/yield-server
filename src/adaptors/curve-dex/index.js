@@ -2,6 +2,7 @@ const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const {
   API_CORE_BASE_URL,
@@ -458,11 +459,13 @@ const main = async () => {
     '0x0f9cb53Ebe405d49A0bbdBD291A65Ff571bC83e1-ethereum',
     '0x7f90122BF0700F9E7e1F688fe926940E8839F353-xdai',
   ];
-  return defillamaPooldata.map((p) => ({
+  const pools = defillamaPooldata.map((p) => ({
     ...p,
     apyReward: correct.includes(p.pool) ? null : p.apyReward,
     rewardTokens: correct.includes(p.pool) ? [] : p.rewardTokens,
   }));
+
+  return addMerklRewardApy(pools, 'curve', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

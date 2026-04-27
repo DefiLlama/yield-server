@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const PROJECT_NAME = 'superform';
 
@@ -173,7 +174,7 @@ const main = async () => {
     }
   }
 
-  return pools.filter((p) => utils.keepFinite(p));
+  return addMerklRewardApy(pools.filter((p) => utils.keepFinite(p)), 'superform');
 };
 
 module.exports = {

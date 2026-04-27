@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const chains = {
   ethereum: 1,
@@ -70,13 +71,13 @@ const getApy = async () => {
     })
   );
 
-  return (
-    data
-      .flat()
-      .filter((p) => utils.keepFinite(p))
-      // old usdc vault
-      .filter((p) => p.pool !== '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9')
-  );
+  const pools = data
+    .flat()
+    .filter((p) => utils.keepFinite(p))
+    // old usdc vault
+    .filter((p) => p.pool !== '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9');
+
+  return addMerklRewardApy(pools, 'yearn');
 };
 
 module.exports = {
