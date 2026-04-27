@@ -82,5 +82,5 @@ const apy = async (timestamp = null) => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://shapeswap.com/',
+  url: 'https://shapeswap.xyz/',
 };
