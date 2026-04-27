@@ -2246,7 +2246,8 @@ const boundaries = {
   // we only get pools for the UI with a tvlUsd of minimum $10k and max ($20 billion)
   tvlUsdUI: { lb: 10000, ub: 2e10 },
   // we only get pools for the UI with a maximum apy of 1million %
-  apy: { lb: 0, ub: 1e6 },
+  // lb is symmetric so opt-in adapters (eg options, restaking depegs) with negative apy survive the filter
+  apy: { lb: -1e6, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old
   age: 7,
 };

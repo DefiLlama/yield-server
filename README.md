@@ -102,6 +102,7 @@ module.exports = {
   timetravel: false,
   apy: apy, // Main function, returns pools
   url: 'https://example.com/pools', // Link to page with pools (Only required if you do not provide url's for each pool)
+  allowNegativeApy: false, // optional, set to true if pool can legitimately have negative apy (eg loss-bearing strategies, options writing)
 };
 ```
 
