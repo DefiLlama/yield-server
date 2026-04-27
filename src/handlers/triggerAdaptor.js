@@ -147,18 +147,17 @@ const main = async (body) => {
 
   // in case of negative apy values (cause of bug, or else we set those to 0)
   // note: for options apyBase can be negative
+  // adapters can also opt-in via `module.exports.allowNegativeApy = true`
+  const allowNegativeApy =
+    protocolConfig[body.adaptor]?.category === 'Options' ||
+    project.allowNegativeApy === true ||
+    ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
+      body.adaptor
+    );
   data = data.map((p) => ({
     ...p,
-    apy: p.apy < 0 ? 0 : p.apy,
-    apyBase:
-      protocolConfig[body.adaptor]?.category === 'Options' ||
-      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
-        body.adaptor
-      )
-        ? p.apyBase
-        : p.apyBase < 0
-        ? 0
-        : p.apyBase,
+    apy: allowNegativeApy ? p.apy : p.apy < 0 ? 0 : p.apy,
+    apyBase: allowNegativeApy ? p.apyBase : p.apyBase < 0 ? 0 : p.apyBase,
     apyReward: p.apyReward < 0 ? 0 : p.apyReward,
     apyBaseBorrow: p.apyBaseBorrow < 0 ? 0 : p.apyBaseBorrow,
     apyRewardBorrow: p.apyRewardBorrow < 0 ? 0 : p.apyRewardBorrow,
