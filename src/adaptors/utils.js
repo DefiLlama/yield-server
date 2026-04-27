@@ -155,7 +155,8 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('exchange-v3-zksync/version/latest') ||
     url.includes('balancer-base-v2/version/latest') ||
     url.includes('horizondex') ||
-    url.includes('swopfi-units')
+    url.includes('swopfi-units') ||
+    url.includes('swap.w3us.site')
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(
