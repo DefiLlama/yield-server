@@ -38,11 +38,13 @@ const getV3Pools = async (backendChain, chainString) => {
       const aprItems = pool.dynamicData.aprItems || [];
 
       const baseApr = aprItems
-        .filter((item) => item.type === 'SWAP_FEE' || item.type === 'IB_YIELD')
+        .filter(
+          (item) => item.type === 'SWAP_FEE_24H' || item.type === 'IB_YIELD'
+        )
         .reduce((sum, item) => sum + Number(item.apr), 0);
 
       const stakingApr = aprItems
-        .filter((item) => item.type === 'STAKING')
+        .filter((item) => item.type === 'STAKING' || item.type === 'MERKL')
         .reduce((sum, item) => sum + Number(item.apr), 0);
 
       const rewardTokens = aprItems
