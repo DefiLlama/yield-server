@@ -331,6 +331,10 @@ const excludeAdaptors = [
   'perpetual-protocol',
   'merkl', // we track rewards in the individual adapters
   'purrlend',
+  'ramses-legacy',
+  'atrix',
+  'taiga-acala',
+  'taiga-karura',
 ];
 
 const excludePools = [
