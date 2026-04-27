@@ -72,7 +72,7 @@ const apy = async (timestamp = null) => {
         apyBase,
         underlyingTokens: [p.token0.id, p.token1.id],
         poolMeta: `${Number(p.feeTier) / 1e4}%`,
-        url: `https://shapeswap.com/pool/${p.id}`,
+        url: `https://info.shapeswap.xyz/home#/pools/${p.id}`,
         volumeUsd1d,
       };
     })
