@@ -48,12 +48,16 @@ function getLegacyPoolId(chainId, token0, token1) {
   return null;
 }
 
-function getPoolId(chainId, token0, token1, poolInfo) {
+function getCanonicalPoolId(chainId, poolInfo) {
+  return `ekubo-${formatNumericHex(chainId)}-${formatNumericHex(
+    poolInfo.core_address
+  )}-${formatNumericHex(poolInfo.pool_id, 64)}`.toLowerCase();
+}
+
+function getPoolId(chainId, token0, token1, poolInfo, poolIndex) {
   return (
-    getLegacyPoolId(chainId, token0, token1) ??
-    `ekubo-${formatNumericHex(chainId)}-${formatNumericHex(
-      poolInfo.core_address
-    )}-${formatNumericHex(poolInfo.pool_id, 64)}`.toLowerCase()
+    (poolIndex === 0 ? getLegacyPoolId(chainId, token0, token1) : null) ??
+    getCanonicalPoolId(chainId, poolInfo)
   );
 }
 
@@ -268,7 +272,7 @@ async function apy() {
       if (!topPools?.length) return [];
 
       return topPools
-        .map((topPool) => {
+        .map((topPool, poolIndex) => {
           const tvlUsd = getLiquidityUsd(
             token0,
             token1,
@@ -294,7 +298,7 @@ async function apy() {
           const apyBase = (feesUsd * 100 * 365) / (depthUsd || tvlUsd);
 
           return {
-            pool: getPoolId(chainId, token0, token1, topPool),
+            pool: getPoolId(chainId, token0, token1, topPool, poolIndex),
             chain: utils.formatChain(
               CHAINS.find(
                 (chain) => chain.normalizedChainId === normalizeChainId(chainId)
