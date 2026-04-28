@@ -84,7 +84,6 @@ const apy = async () => {
       symbol: market.collateralAssetName + '-' + market.lenderAssetName,
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase: marketApy,
-      ...(Number(lenderAssetExchangeRate[i]) / 1e18 > 0 && { pricePerShare: Number(lenderAssetExchangeRate[i]) / 1e18 }),
       underlyingTokens: [market.lenderAssetAddress],
       totalSupplyUsd: totalSupplyUsd,
       totalBorrowUsd: totalBorrowUsd,

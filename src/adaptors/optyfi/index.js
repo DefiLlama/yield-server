@@ -88,10 +88,7 @@ async function getTVL(chainName, tokenAddress, decimals) {
   const tvl = BigNumber(convertedPricePerFullShare)
     .multipliedBy(BigNumber(totalSupply))
     .div(`1e${decimals}`);
-  return {
-    tvl: Number(tvl),
-    pricePerShare: Number(convertedPricePerFullShare),
-  };
+  return Number(tvl);
 }
 
 const main = async () => {
@@ -117,7 +114,7 @@ const main = async () => {
   const pools = [];
   for (let i = 0; i < filteredVaults.length; i++) {
     const vault = filteredVaults[i];
-    const { tvl, pricePerShare } = await getTVL(
+    const tvl = await getTVL(
       vault.chain.chain_name,
       vault.vault_token.address,
       vault.vault_token.decimals
@@ -151,7 +148,6 @@ const main = async () => {
       symbol: opSymbol[0],
       tvlUsd,
       apyBase,
-      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: [vault.vault_underlying_token.address],
       url: `https://app.opty.fi/vault/${vault.vault_token.address}`,
       poolMeta: opSymbol[1],

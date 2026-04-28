@@ -83,7 +83,7 @@ const poolsFunction = async () => {
       symbol: utils.formatSymbol("sAID"),
       tvlUsd,
       apyBase,
-      pricePerShare: navNow > 0 ? navNow : null,
+      ...(navNow > 0 && { pricePerShare: navNow }),
       underlyingTokens: [AID_TOKEN],
       poolMeta: "30d withdrawal cycle",
     },

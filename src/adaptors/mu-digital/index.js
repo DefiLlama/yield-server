@@ -368,7 +368,6 @@ const getMuBondPool = async (
       symbol: formatSymbol(symbolRes),
       tvlUsd,
       apyBase,
-      ...(price.isFinite() && price.gt(0) && { pricePerShare: price.toNumber() }),
       url,
       underlyingTokens: [aznd],
     };
@@ -387,7 +386,13 @@ const getMuBondPool = async (
   }
 };
 
-const getERC4626InfoSafe = async (vault, chain, timestamp, assetUnit) => {
+const getERC4626InfoSafe = async (
+  vault,
+  chain,
+  timestamp,
+  assetUnit,
+  assetDecimals
+) => {
   try {
     const latest = await sdk.api.util.getLatestBlock(chain);
     const now = timestamp || Math.floor(Date.now() / MS_PER_SECOND);
@@ -420,9 +425,15 @@ const getERC4626InfoSafe = async (vault, chain, timestamp, assetUnit) => {
     ]);
     const priceNowBN = new BigNumber(priceNow.output);
     const priceYesterdayBN = new BigNumber(priceYesterday.output);
+    // convertToAssets returns asset amounts in native decimals; rescale to
+    // 18-dec share units so pricePerShare is comparable across vaults.
+    const decimalScale = new BigNumber(10).pow(18 - Number(assetDecimals));
     const pricePerShare = priceNowBN.isZero()
       ? null
-      : priceNowBN.div(new BigNumber(assetUnit)).toNumber();
+      : priceNowBN
+          .div(new BigNumber(assetUnit))
+          .times(decimalScale)
+          .toNumber();
     if (priceNowBN.isZero() || priceYesterdayBN.isZero()) {
       return { tvl: tvl.output, apyBase: 0, pricePerShare };
     }
@@ -459,7 +470,7 @@ const getVaultData = async (
 
     const assetDecimals = await getErc20Decimals(asset, chain);
     const erc4626Info =
-      (await getERC4626InfoSafe(vault, chain, timestamp, assetUnit)) ||
+      (await getERC4626InfoSafe(vault, chain, timestamp, assetUnit, assetDecimals)) ||
       (await sdk.api.abi
         .call({
           target: vault,

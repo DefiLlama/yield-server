@@ -199,7 +199,7 @@ const apy = async () => {
   }, 0);
   const cncApy = (cncUsdPerYear / totalTvl) * 100;
 
-  return pools_.map((pool_, i) => {
+  return pools_.map((pool_) => {
     const tvlUsd = pool_.totalUnderlying * pool_.price;
     return {
       pool: `conic-${pool_.symbol}-ethereum`.toLowerCase(),
@@ -211,7 +211,6 @@ const apy = async () => {
       underlyingTokens: [pool_.underlying],
       apyBase: pool_.baseApy,
       apyReward: pool_.crvApy + cncApy,
-      ...(bnToNum(exchangeRate[i]) > 0 && { pricePerShare: bnToNum(exchangeRate[i]) }),
     };
   });
 };

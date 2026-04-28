@@ -97,7 +97,6 @@ const apyChain = async (chain) => {
     let symbol = vault.symbol.replace('-THETA', '').slice(1);
     symbol = symbol.includes('yvUSDC') ? 'USDC' : symbol;
 
-    const latestPps = perf[perf.length - 1]?.pricePerShare;
     return {
       pool: vault.id,
       project: 'ribbon',
@@ -105,10 +104,6 @@ const apyChain = async (chain) => {
       symbol,
       tvlUsd: price * (vault.totalBalance / 10 ** vault.underlyingDecimals),
       apyBase: apy,
-      pricePerShare:
-        latestPps != null
-          ? Number(latestPps) / 10 ** vault.underlyingDecimals
-          : null,
       underlyingTokens: [vault.underlyingAsset],
       poolMeta: vault.name.includes('Put') ? 'Put-Selling' : 'Covered-Call',
       il7d,

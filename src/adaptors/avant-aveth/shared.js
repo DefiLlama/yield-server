@@ -89,7 +89,7 @@ async function getData(chain, vault, underlying, underlyingSubstitute = undefine
     console.warn(
       `[avant] failed to fetch TVL data for ${vault} on ${chain}: ${error.message ?? error}`
     )
-    return { tvlUsd: 0, apyBase: 0, pricePerShare: null }
+    return { tvlUsd: 0, apyBase: 0 }
   }
 
   let apyBase = 0
@@ -113,7 +113,7 @@ async function getData(chain, vault, underlying, underlyingSubstitute = undefine
     if (Number.isFinite(parsed) && parsed > 0) assetDecimals = parsed
   } catch (_) {}
 
-  let pricePerShare = null
+  let pricePerShare
   try {
     const { output } = await sdk.api.abi.call({
       target: vault,
@@ -126,7 +126,7 @@ async function getData(chain, vault, underlying, underlyingSubstitute = undefine
 
   const tvlUsd = (Number(totalAssetsBn) / 10 ** assetDecimals) * price
 
-  return { tvlUsd, apyBase, pricePerShare }
+  return { tvlUsd, apyBase, ...(pricePerShare > 0 && { pricePerShare }) }
 }
 
 module.exports = {

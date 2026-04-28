@@ -40,8 +40,11 @@ const getRateAndSupply = async (block) => {
       block,
     }),
   ]);
+  // afiUSD shares are 18-dec, underlying USDC is 6-dec — scale to human ratio.
   const rate =
-    supply.output === '0' ? null : Number(assets.output) / Number(supply.output);
+    supply.output === '0'
+      ? null
+      : Number(assets.output) / 1e6 / (Number(supply.output) / 1e18);
   return { rate, supply: supply.output };
 };
 
