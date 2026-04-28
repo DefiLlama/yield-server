@@ -1,5 +1,6 @@
 const utils = require('../utils');
 const axios = require('axios');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const api = (chainId) =>
   `https://api.spectra.finance/v1/${chains[chainId].slug}/pools?source=defillama`;
@@ -158,7 +159,7 @@ async function apy() {
     .filter((i) => utils.keepFinite(i)) // skip pools with no TVL (e.g. missing price)
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
 
-  return apys;
+  return addMerklRewardApy(apys, 'spectra', (p) => p.pool.split('-')[0]);
 }
 
 module.exports = {

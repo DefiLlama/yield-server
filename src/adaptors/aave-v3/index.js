@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const poolAbi = require('./poolAbi');
 const { aaveStakedTokenDataProviderAbi } = require('./abi');
 
@@ -305,12 +306,14 @@ const apy = async () => {
 
   const stkghoPool = await stkGho();
 
-  return pools
+  const result = pools
     .filter((i) => i.status === 'fulfilled')
     .map((i) => i.value)
     .flat()
     .concat([stkghoPool])
     .filter((p) => utils.keepFinite(p));
+
+  return addMerklRewardApy(result, 'aave', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

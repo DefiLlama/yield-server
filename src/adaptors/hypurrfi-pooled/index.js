@@ -2,6 +2,7 @@ const axios = require("axios");
 const sdk = require("@defillama/sdk");
 
 const utils = require("../utils");
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const poolAbi = require("./poolAbi");
 
 // HypurrFi Pooled Lending (Aave V3 fork) on Hyperliquid L1
@@ -144,7 +145,7 @@ const apy = async () => {
     .filter(Boolean)
     .filter((p) => utils.keepFinite(p));
 
-  return pools;
+  return addMerklRewardApy(pools, 'hypurrfi', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

@@ -17,6 +17,18 @@ const Addresses = {
     jrNUSD: '0xFC807058A352b61aEef6A38e2D0fC3990225E772',
     underlying: '0xE556ABa6fe6036275Ec1f87eda296BE72C811BCE', // NUSD
   },
+  mhyper: {
+    cdo: '0x39C7E67b25fB14eAec8717B20664C2E35327e6cf',
+    srmHYPER: '0x627EA69929212916Ec57B1b26d2E1a19F6129B53',
+    jrmHYPER: '0xEb205d26E9E605Ec82d1C0d652E00037C278714b',
+    underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
+  },
+  mm1usd: {
+    cdo: '0x613D1790d9BA381D27B4071C04380Db8ED120E5f',
+    srmM1USD: '0xCcEd21d609CaC4A272d0c01a8FF4de9cEBc40d60',
+    jrmM1USD: '0xf7eB8dfec75C42D2d2247FE76Ccaedc59f821688',
+    underlying: '0xCc5C22C7A6BCC25e66726AeF011dDE74289ED203', // MM1USD
+  },
 };
 
 const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
@@ -95,6 +107,10 @@ const apy = async () => {
       loadPool('ethena', 'jrUSDe'),
       loadPool('neutrl', 'srNUSD'),
       loadPool('neutrl', 'jrNUSD'),
+      loadPool('mhyper', 'srmHYPER'),
+      loadPool('mhyper', 'jrmHYPER'),
+      loadPool('mm1usd', 'srmM1USD'),
+      loadPool('mm1usd', 'jrmM1USD'),
     ]);
   } catch (error) {
     console.error('Error fetching APYs:', error);

@@ -32,10 +32,18 @@ exports.formatChain = (chain) => {
       chain.toLowerCase() === 'era' ||
       chain.toLowerCase() === 'zksync')
   )
-    return 'zkSync Era';
+    return 'ZKsync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
-  if (chain && chain.toLowerCase() === 'real') return 're.al';
-  if (chain && chain.toLowerCase() === 'plume_mainnet') return 'Plume Mainnet';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'real' || chain.toLowerCase() === 're.al')
+  )
+    return 're.al';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'plume_mainnet' || chain.toLowerCase() === 'plume')
+  )
+    return 'Plume Mainnet';
   if (chain && chain.toLowerCase() === 'megaeth') return 'MegaETH';
   if (chain && chain.toLowerCase() === 'ripple') return 'XRPL';
   if (
@@ -44,6 +52,18 @@ exports.formatChain = (chain) => {
       chain.toLowerCase() === 'hyperliquid')
   )
     return 'Hyperliquid L1';
+  if (chain && chain.toLowerCase() === 'core') return 'CORE';
+  if (chain && chain.toLowerCase() === 'cronos_zkevm') return 'Cronos zkEVM';
+  if (chain && chain.toLowerCase() === 'echelon_initia')
+    return 'Echelon Initia';
+  if (chain && chain.toLowerCase() === 'fuel-ignition') return 'Fuel Ignition';
+  if (chain && chain.toLowerCase() === 'icp') return 'ICP';
+  if (chain && chain.toLowerCase() === 'mainnet') return 'Ethereum';
+  if (chain && chain.toLowerCase() === 'op_bnb') return 'Opbnb';
+  if (chain && chain.toLowerCase() === 'optimism') return 'OP Mainnet';
+  if (chain && chain.toLowerCase() === 'ton') return 'TON';
+  if (chain && chain.toLowerCase() === 'zklink') return 'zkLink Nova';
+
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -64,14 +84,29 @@ exports.formatSymbol = (symbol) => {
     .toUpperCase();
 };
 
-exports.getData = async (url, query = null) => {
+exports.getData = async (url, query = null, headers = {}) => {
   let res;
   if (query !== null) {
-    res = await axios.post(url, query);
+    res = await axios.post(url, query, { headers });
   } else {
     res = await axios.get(url);
   }
   return res.data;
+};
+
+// Retry helper for flaky endpoints. Only retries transient failures
+// (429 + 5xx); permanent 4xx and non-HTTP errors fail fast.
+exports.withRetry = async (fn, { retries = 3, delayMs = 500 } = {}) => {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const status = e.response?.status;
+      const retryable = status === 429 || (status >= 500 && status < 600);
+      if (i === retries || !retryable) throw e;
+      await new Promise((r) => setTimeout(r, delayMs * 2 ** i));
+    }
+  }
 };
 
 // retrive block based on unixTimestamp array

@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');
 const ethers = require('ethers');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const utils = require('../utils');
 
@@ -361,7 +362,7 @@ const main = async () => {
     }
   }
 
-  return markets;
+  return addMerklRewardApy(markets, 'silo', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

@@ -5,6 +5,7 @@ const BEX_URL = 'https://hub.berachain.com';
 const CHAIN = 'Berachain';
 const PROJECT = 'bex';
 const BGT_ADDRESS = '0x656b95E550C07a9ffe548bd4085c72418Ceb1dba';
+const MAX_POOL_TVL_USD = 10_000_000;
 
 async function getPoolData() {
   const allPools = await getPools();
@@ -39,17 +40,20 @@ async function getPoolData() {
 async function filterPools(pools) {
   // const poolMustHaveApr = (pool) => pool.dynamicData.aprItems.length > 0;
   const poolMustHaveRewardVault = (pool) => pool.rewardVault !== null;
+  const poolMustBeBelowMaxTvl = (pool) =>
+    Number(pool.dynamicData.totalLiquidity) <= MAX_POOL_TVL_USD;
 
   return {
     poolGetPools: pools.poolGetPools
       // .filter(poolMustHaveApr)
-      .filter(poolMustHaveRewardVault),
+      .filter(poolMustHaveRewardVault)
+      .filter(poolMustBeBelowMaxTvl),
   };
 }
 
 async function getPools() {
   const query = gql`
-    query GetPoolData {
+    query DefillamaGetPoolData {
       poolGetPools(
         orderBy: totalLiquidity
         orderDirection: desc
@@ -78,7 +82,15 @@ async function getPools() {
       }
     }
   `;
-  return await request(BEX_API_URL, query);
+  return await request(
+    BEX_API_URL,
+    query,
+    {},
+    {
+      // this is just for analytics purposes
+      'x-graphql-client-name': 'Defillama.yield-server',
+    }
+  );
 }
 
 module.exports = {

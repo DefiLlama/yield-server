@@ -24,6 +24,12 @@ const CHAIN_IDS = {
   manta: 169,
   sei: 1329,
   monad: 143,
+  celo: 42220,
+  citrea: 4114,
+  bob: 60808,
+  berachain: 80094,
+  polygon_zkevm: 1101,
+  hyperevm: 999,
 };
 
 /**

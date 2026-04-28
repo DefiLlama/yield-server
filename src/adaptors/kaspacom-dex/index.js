@@ -3,9 +3,13 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const BACKEND_API_URL = 'https://api-defi.kaspa.com/dex';
-const CHAIN = 'kasplex';
 const FEE_RATE = 0.01;
 const DAY_IN_SECONDS = 86400;
+
+const CHAINS = [
+  { chain: 'kasplex', network: undefined },
+  { chain: 'igra', network: 'igra' },
+];
 
 const fetchKasPrice = async () => {
   try {
@@ -28,33 +32,30 @@ const fetchKasPrice = async () => {
   return 0;
 };
 
-const fetchPairs = async () => {
-  return await utils.getData(
-    BACKEND_API_URL + '/graph-pairs'
-  )
+const fetchPairs = async (network) => {
+  const param = network ? `?network=${network}` : '';
+  return await utils.getData(BACKEND_API_URL + '/graph-pairs' + param);
 };
 
-const fetchPairDayData = async (pairIds) => {
+const fetchPairDayData = async (pairIds, network) => {
   if (pairIds.length === 0) return { daily: {}, weekly: {} };
 
   const now = Math.floor(Date.now() / 1000);
   const startDay = now - DAY_IN_SECONDS;
   const startWeek = now - 7 * DAY_IN_SECONDS;
 
-  // Fetch 1-day and 7-day volume data in parallel
-  const dailyUrl = `${BACKEND_API_URL}/most-traded/pairs?minDate=${startDay}`;
-  const weeklyUrl = `${BACKEND_API_URL}/most-traded/pairs?minDate=${startWeek}`;
+  const networkParam = network ? `&network=${network}` : '';
+  const dailyUrl = `${BACKEND_API_URL}/most-traded/pairs?minDate=${startDay}${networkParam}`;
+  const weeklyUrl = `${BACKEND_API_URL}/most-traded/pairs?minDate=${startWeek}${networkParam}`;
 
   const [dailyResponse, weeklyResponse] = await Promise.all([
     utils.getData(dailyUrl).catch(() => ({ pairs: [] })),
     utils.getData(weeklyUrl).catch(() => ({ pairs: [] })),
   ]);
 
-  // Extract pairs array from response
   const dailyPairs = Array.isArray(dailyResponse?.pairs) ? dailyResponse.pairs : [];
   const weeklyPairs = Array.isArray(weeklyResponse?.pairs) ? weeklyResponse.pairs : [];
 
-  // Build volume maps from responses
   const daily = {};
   const weekly = {};
 
@@ -77,7 +78,7 @@ const fetchPairDayData = async (pairIds) => {
   return { daily, weekly };
 };
 
-const buildPools = (pairs, volumeData, kasPrice) => {
+const buildPools = (pairs, volumeData, kasPrice, chain) => {
   const { daily, weekly } = volumeData;
 
   return pairs
@@ -104,8 +105,8 @@ const buildPools = (pairs, volumeData, kasPrice) => {
       );
 
       return {
-        pool: `${pair.id}-${CHAIN}`,
-        chain: CHAIN,
+        pool: `${pair.id}-${chain}`,
+        chain,
         project: 'kaspacom-dex',
         symbol,
         tvlUsd,
@@ -121,15 +122,26 @@ const buildPools = (pairs, volumeData, kasPrice) => {
 };
 
 const apy = async () => {
-  const [pairs, kasPrice] = await Promise.all([fetchPairs(), fetchKasPrice()]);
-  if (!pairs.length || !Number.isFinite(kasPrice) || kasPrice <= 0) {
-    return [];
+  const kasPrice = await fetchKasPrice();
+  if (!Number.isFinite(kasPrice) || kasPrice <= 0) return [];
+
+  const allPools = [];
+
+  for (const { chain, network } of CHAINS) {
+    try {
+      const pairs = await fetchPairs(network);
+      if (!pairs.length) continue;
+
+      const pairIds = pairs.map((pair) => pair.id.toLowerCase());
+      const volumeData = await fetchPairDayData(pairIds, network);
+      const pools = buildPools(pairs, volumeData, kasPrice, chain);
+      allPools.push(...pools);
+    } catch (error) {
+      console.log(`Failed to fetch ${chain} pools:`, error.message);
+    }
   }
 
-  const pairIds = pairs.map((pair) => pair.id.toLowerCase());
-  const volumeData = await fetchPairDayData(pairIds);
-
-  return buildPools(pairs, volumeData, kasPrice);
+  return allPools;
 };
 
 module.exports = {
@@ -137,4 +149,3 @@ module.exports = {
   apy,
   url: 'https://defi.kaspa.com',
 };
-	

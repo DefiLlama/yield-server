@@ -18,9 +18,8 @@ const cliffCount = 1000; // 1,000 cliffs
 const maxSupply = 100000000; // * 1e18; //100 mil max supply
 const projectedAprTvlThr = 1e6;
 
-let extraRewardsPrices = {};
-
 const main = async () => {
+  const extraRewardsPrices = {};
   const [
     { apys: curveApys },
     { data: gauges },
@@ -217,6 +216,7 @@ const main = async () => {
       calls: withCvxTvl.map((pool) => ({ target: pool.crvRewards })),
       abi: baseRewardPoolAbi.find((x) => x.name === 'rewardRate'),
       chain: 'ethereum',
+      requery: true,
     })
   ).output.map((o) => o.output);
 
@@ -225,6 +225,7 @@ const main = async () => {
       calls: withCvxTvl.map((pool) => ({ target: pool.crvRewards })),
       abi: baseRewardPoolAbi.find((x) => x.name === 'periodFinish'),
       chain: 'ethereum',
+      requery: true,
     })
   ).output.map((o) => o.output);
 
@@ -233,8 +234,85 @@ const main = async () => {
       calls: withCvxTvl.map((pool) => ({ target: pool.crvRewards })),
       abi: baseRewardPoolAbi.find((x) => x.name === 'extraRewardsLength'),
       chain: 'ethereum',
+      requery: true,
     })
   ).output.map((o) => o.output);
+
+  // batch-fetch extra-reward info. doing this per-pool with single sdk.api.abi.call
+  // previously made 4 sequential RPC calls per extra reward across ~200 pools; any
+  // one returning null from all fallback RPCs would abort the whole adapter run.
+  const extraRewardCalls = [];
+  withCvxTvl.forEach((pool, idx) => {
+    const len = Number(extraRewardsLength[idx] || 0);
+    for (let i = 0; i < len; i++) {
+      extraRewardCalls.push({ poolIdx: idx, extraIdx: i, crvRewards: pool.crvRewards });
+    }
+  });
+
+  const extraRewardPoolAddresses = (
+    await sdk.api.abi.multiCall({
+      calls: extraRewardCalls.map(({ crvRewards, extraIdx }) => ({
+        target: crvRewards,
+        params: extraIdx,
+      })),
+      abi: baseRewardPoolAbi.find((x) => x.name === 'extraRewards'),
+      chain: 'ethereum',
+      requery: true,
+    })
+  ).output.map((o) => o.output);
+
+  const validExtras = extraRewardPoolAddresses
+    .map((addr, i) => (addr ? { addr, i } : null))
+    .filter(Boolean);
+  const [extraPfOut, extraRrOut, extraRtOut] = await Promise.all(
+    ['periodFinish', 'rewardRate', 'rewardToken'].map((method) =>
+      sdk.api.abi
+        .multiCall({
+          calls: validExtras.map(({ addr }) => ({ target: addr })),
+          abi: baseRewardPoolAbi.find((x) => x.name === method),
+          chain: 'ethereum',
+          requery: true,
+        })
+        .then((r) => r.output.map((o) => o.output))
+    )
+  );
+  const extraPeriodFinish = new Array(extraRewardPoolAddresses.length).fill(null);
+  const extraRewardRates = new Array(extraRewardPoolAddresses.length).fill(null);
+  const extraRewardTokens = new Array(extraRewardPoolAddresses.length).fill(null);
+  validExtras.forEach(({ i }, j) => {
+    extraPeriodFinish[i] = extraPfOut[j];
+    extraRewardRates[i] = extraRrOut[j];
+    extraRewardTokens[i] = extraRtOut[j];
+  });
+
+  const uniqueExtraTokens = [
+    ...new Set(extraRewardTokens.filter(Boolean).map((t) => t.toLowerCase())),
+  ].filter((t) => extraRewardsPrices[t] === undefined);
+  if (uniqueExtraTokens.length) {
+    try {
+      const { pricesByAddress } = await utils.getPrices(uniqueExtraTokens, 'ethereum');
+      uniqueExtraTokens.forEach((t) => {
+        extraRewardsPrices[t] = pricesByAddress[t] ?? 0;
+      });
+    } catch {
+      uniqueExtraTokens.forEach((t) => (extraRewardsPrices[t] = 0));
+    }
+  }
+
+  const stEthRewards = '0x0A760466E1B4621579a82a39CB56Dda2F4E70f03';
+  const poolExtraRewards = {};
+  extraRewardCalls.forEach(({ poolIdx, crvRewards }, i) => {
+    const pf = extraPeriodFinish[i];
+    const rate = extraRewardRates[i];
+    const token = extraRewardTokens[i];
+    if (pf == null || rate == null || !token) return;
+    const isFinished = Date.now() > Number(pf) * 1000;
+    if (isFinished && crvRewards !== stEthRewards) return;
+    (poolExtraRewards[poolIdx] ||= []).push({
+      extraRewardRate: Number(rate) / 1e18,
+      token,
+    });
+  });
 
   const cvxSupply =
     (
@@ -260,60 +338,7 @@ const main = async () => {
       const isFinished = new Date() > periodFinish[idx] * 1000;
       const rate = rewardRates[idx] / 10 ** 18;
 
-      const extraRewards = [];
-      for (let i = 0; i < extraRewardsLength[idx]; i++) {
-        const extraRewardPoolAddress = (
-          await sdk.api.abi.call({
-            target: pool.crvRewards,
-            abi: baseRewardPoolAbi.find((x) => x.name === 'extraRewards'),
-            params: [i],
-            chain: 'ethereum',
-          })
-        ).output;
-        const periodFinish = (
-          await sdk.api.abi.call({
-            target: extraRewardPoolAddress,
-            abi: baseRewardPoolAbi.find((x) => x.name === 'periodFinish'),
-            chain: 'ethereum',
-          })
-        ).output;
-        const isFinished = new Date() > periodFinish * 1000;
-        // stETH rewards contract address
-        if (
-          isFinished &&
-          pool.crvRewards !== '0x0A760466E1B4621579a82a39CB56Dda2F4E70f03'
-        )
-          continue;
-        const extraRewardRate =
-          (
-            await sdk.api.abi.call({
-              target: extraRewardPoolAddress,
-              abi: baseRewardPoolAbi.find((x) => x.name === 'rewardRate'),
-              chain: 'ethereum',
-            })
-          ).output / 1e18;
-        const token = (
-          await sdk.api.abi.call({
-            target: extraRewardPoolAddress,
-            abi: baseRewardPoolAbi.find((x) => x.name === 'rewardToken'),
-            chain: 'ethereum',
-          })
-        ).output;
-        if (!extraRewardsPrices[token.toLowerCase()]) {
-          try {
-            const price = (
-              await utils.getData(
-                `https://coins.llama.fi/prices/current/ethereum:${token.toLowerCase()}`
-              )
-            ).coins;
-            extraRewardsPrices[token.toLowerCase()] =
-              price[`ethereum:${token.toLowerCase()}`].price;
-          } catch {
-            extraRewardsPrices[token.toLowerCase()] = 0;
-          }
-        }
-        extraRewards.push({ extraRewardRate, token });
-      }
+      const extraRewards = poolExtraRewards[idx] || [];
 
       const extraRewardsApr = extraRewards.map((extra) => {
         const usdPerYear =

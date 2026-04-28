@@ -1,5 +1,7 @@
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+const { getMerklRewardsForChain } = require('../merkl/merkl-by-identifier');
 
 const GRAPH_URL = 'https://api.morpho.org/graphql';
 const CHAINS = {
@@ -87,7 +89,7 @@ const gqlQueries = {
         skip: $skip
         orderBy: TotalAssetsUsd
         orderDirection: Desc
-        where: { chainId_in: [$chainId], whitelisted: true }
+        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
       ) {
         items {
           chain {
@@ -130,7 +132,7 @@ const gqlQueries = {
       vaultV2s(
         first: 100
         skip: $skip
-        where: { chainId_in: [$chainId], whitelisted: true }
+        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
       ) {
         items {
           address
@@ -287,7 +289,7 @@ const buildVaultV2Pools = (earnV2, chain) =>
       return {
         pool: `morpho-vault-v2-${vault.address}-${chain}`,
         chain,
-        project: 'morpho-v1',
+        project: 'morpho-blue',
         symbol: vault.symbol,
         // Base APY: net yield from the strategy + underlying asset, after fees,
         //           excluding explicit reward APRs.
@@ -303,91 +305,84 @@ const buildVaultV2Pools = (earnV2, chain) =>
       };
     });
 
+const fetchChainData = async (chainId) => {
+  const fetchPage = async (query, variables, key) => {
+    try {
+      return await request(GRAPH_URL, query, variables);
+    } catch (error) {
+      // GraphQL may return partial data alongside errors — surface it only
+      // when the expected key is present; otherwise fail so the chain is skipped.
+      if (error.response?.data?.[key]) return error.response.data;
+      throw error;
+    }
+  };
+
+  const fetchAll = async (query, key) => {
+    const all = [];
+    let skip = 0;
+    while (true) {
+      let response;
+      try {
+        response = await fetchPage(query, { chainId, skip }, key);
+      } catch (error) {
+        // Mid-pagination failures (e.g. upstream 504 on a later page) shouldn't
+        // discard pages we've already gathered — keep what we have and log.
+        if (all.length > 0) {
+          console.error(
+            `morpho-v1: ${key} pagination failed for chainId ${chainId} at skip=${skip} after ${all.length} items: ${error.message}`
+          );
+          return all;
+        }
+        throw error;
+      }
+      const page = response[key];
+      if (!page?.items?.length) break;
+      all.push(...page.items);
+      skip += 100;
+    }
+    return all;
+  };
+
+  // Run the three dataset queries independently so a single failure doesn't
+  // discard the successful ones for this chain.
+  const datasets = ['vaults', 'vaultV2s', 'markets'];
+  const results = await Promise.allSettled([
+    fetchAll(gqlQueries.metaMorphoVaults, 'vaults'),
+    fetchAll(gqlQueries.vaultV2s, 'vaultV2s'),
+    fetchAll(gqlQueries.marketsData, 'markets'),
+  ]);
+
+  const [vaults, vaultV2s, markets] = results.map((r, i) => {
+    if (r.status === 'rejected') {
+      console.error(
+        `morpho-v1: ${datasets[i]} query failed for chainId ${chainId}: ${r.reason?.message}`
+      );
+      return [];
+    }
+    return r.value;
+  });
+
+  return {
+    earnV1: vaults.filter((v) => v.state !== null),
+    earnV2: vaultV2s,
+    borrow: markets,
+  };
+};
+
 const apy = async () => {
   let pools = [];
 
   for (const [chain, chainId] of Object.entries(CHAINS)) {
-    // Fetch Vault V1 (MetaMorpho) data with pagination
-    let allVaults = [];
-    let skip = 0;
-    while (true) {
-      let vaults;
-      try {
-        const response = await request(GRAPH_URL, gqlQueries.metaMorphoVaults, {
-          chainId,
-          skip,
-        });
-        vaults = response.vaults;
-      } catch (error) {
-        // GraphQL may return partial data with errors (e.g., vaults with null state)
-        // Extract data from the error response if available
-        if (error.response?.data?.vaults) {
-          vaults = error.response.data.vaults;
-        } else {
-          throw error;
-        }
-      }
-
-      if (!vaults.items.length) break;
-
-      allVaults = [...allVaults, ...vaults.items];
-      skip += 100;
+    let chainData;
+    try {
+      chainData = await fetchChainData(chainId);
+    } catch (error) {
+      console.error(
+        `morpho-v1: skipping ${chain} (chainId ${chainId}): ${error.message}`
+      );
+      continue;
     }
-
-    // Fetch Vault V2 data with pagination
-    let allVaultV2s = [];
-    skip = 0;
-    while (true) {
-      let vaultV2s;
-      try {
-        const response = await request(GRAPH_URL, gqlQueries.vaultV2s, {
-          chainId,
-          skip,
-        });
-        vaultV2s = response.vaultV2s;
-      } catch (error) {
-        if (error.response?.data?.vaultV2s) {
-          vaultV2s = error.response.data.vaultV2s;
-        } else {
-          throw error;
-        }
-      }
-
-      if (!vaultV2s.items.length) break;
-
-      allVaultV2s = [...allVaultV2s, ...vaultV2s.items];
-      skip += 100;
-    }
-
-    // Fetch markets data with pagination
-    let allMarkets = [];
-    skip = 0;
-    while (true) {
-      let markets;
-      try {
-        const response = await request(GRAPH_URL, gqlQueries.marketsData, {
-          chainId,
-          skip,
-        });
-        markets = response.markets;
-      } catch (error) {
-        if (error.response?.data?.markets) {
-          markets = error.response.data.markets;
-        } else {
-          throw error;
-        }
-      }
-
-      if (!markets.items.length) break;
-
-      allMarkets = [...allMarkets, ...markets.items];
-      skip += 100;
-    }
-
-    // Filter out vaults with null state
-    const earnV1 = allVaults.filter((vault) => vault.state !== null);
-    const earnV2 = allVaultV2s;
-    const borrow = allMarkets;
+    const { earnV1, earnV2, borrow } = chainData;
 
     // Look up on-chain expiry for PT collateral tokens
     const ptMarkets = borrow.filter(
@@ -411,8 +406,29 @@ const apy = async () => {
         }
       });
 
-      // net = including rewards, apy = baseApy
-      const rewardsApy = Math.max(vault.state.netApy - vault.state.apy, 0);
+      // Vault V1 semantics are mixed:
+      // - `apy` is the base APY before fees.
+      // - `netApy` is the total user APY, but on fee-only vaults it may just
+      //   be the fee-reduced base APY.
+      // If we can see rewards here (allocation rewards or the OP override),
+      // use fee-adjusted `apy` as base and the rest of `netApy` as rewards.
+      // Otherwise treat it as fee-only and clamp base to the lower of
+      // `apy` and `netApy`. Merkl can still add rewards later.
+      const hasKnownRewardApy =
+        additionalRewardTokens.size > 0 ||
+        vault.address.toLowerCase() ===
+          '0xc30ce6a5758786e0f640cc5f881dd96e9a1c5c59';
+      const feeAdjustedBaseApy =
+        vault.state.apy * (1 - Number(vault.state.fee || 0));
+      const baseApy = hasKnownRewardApy
+        ? Math.min(feeAdjustedBaseApy, vault.state.netApy)
+        : Math.min(vault.state.apy, vault.state.netApy);
+
+      // `netApy` is the total user APY. Once base is chosen using the mode
+      // above, the remainder is the reward component we surface separately.
+      const rewardsApy = hasKnownRewardApy
+        ? Math.max(vault.state.netApy - baseApy, 0)
+        : Math.max(vault.state.netApy - vault.state.apy, 0);
       const isNegligibleApy = isNegligible(rewardsApy, vault.state.netApy);
       let rewardTokens = isNegligibleApy ? [] : [...additionalRewardTokens];
       let apyReward = rewardTokens.length === 0 ? 0 : rewardsApy * 100;
@@ -429,9 +445,9 @@ const apy = async () => {
       return {
         pool: `morpho-vault-v1-${vault.address}-${chain}`,
         chain,
-        project: 'morpho-v1',
+        project: 'morpho-blue',
         symbol: vault.symbol,
-        apyBase: vault.state.apy * 100,
+        apyBase: baseApy * 100,
         tvlUsd: vault.state.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
         url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
@@ -469,7 +485,7 @@ const apy = async () => {
       return {
         pool: `morpho-blue-${market.uniqueKey}-${chain}`,
         chain,
-        project: 'morpho-v1',
+        project: 'morpho-blue',
         symbol: market.collateralAsset?.symbol,
         token: null,
         apy: 0,
@@ -504,7 +520,55 @@ const apy = async () => {
       .values()
   );
 
-  return uniquePools.filter(Boolean);
+  const filteredPools = uniquePools.filter(Boolean);
+
+  // Phase 1: fetch merkl rewards by mainProtocolId=morpho (catches tagged vaults)
+  const poolsAfterProtocol = await addMerklRewardApy(
+    filteredPools,
+    'morpho',
+    (p) => {
+      const match = p.pool.match(/0x[a-fA-F0-9]{40,}/);
+      return match ? match[0] : p.pool;
+    }
+  );
+
+  // Phase 2: for vault pools that didn't get merkl rewards, try by-identifier
+  // Many MetaMorpho vaults have merkl campaigns but aren't tagged with protocol.id=morpho
+  const vaultPrefixes = ['morpho-vault-v1-', 'morpho-vault-v2-'];
+  const unrewarded = poolsAfterProtocol.filter(
+    (p) =>
+      vaultPrefixes.some((pfx) => p.pool.startsWith(pfx)) &&
+      !p.apyReward &&
+      (!p.rewardTokens || p.rewardTokens.length === 0)
+  );
+
+  if (unrewarded.length > 0) {
+    // Group by chain and batch-query merkl
+    const byChain = {};
+    for (const p of unrewarded) {
+      const chain = p.chain.toLowerCase();
+      if (!byChain[chain]) byChain[chain] = [];
+      const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
+      if (match) byChain[chain].push({ pool: p, addr: match[0] });
+    }
+
+    for (const [chain, entries] of Object.entries(byChain)) {
+      const addrs = entries.map((e) => e.addr);
+      const rewards = await getMerklRewardsForChain(addrs, chain, {
+        batchSize: 10,
+      });
+
+      for (const entry of entries) {
+        const reward = rewards[entry.addr.toLowerCase()];
+        if (reward && reward.apyReward > 0) {
+          entry.pool.apyReward = reward.apyReward;
+          entry.pool.rewardTokens = reward.rewardTokens;
+        }
+      }
+    }
+  }
+
+  return poolsAfterProtocol;
 };
 
 module.exports = {

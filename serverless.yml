@@ -60,7 +60,6 @@ functions:
               - AdapterQueue
               - Arn
           batchSize: 4
-          functionResponseType: ReportBatchItemFailures
     environment:
       ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
       ALCHEMY_CONNECTION_ETHEREUM: ${file(./env.js):ALCHEMY_CONNECTION_ETHEREUM}
@@ -98,6 +97,28 @@ functions:
     events:
       # every hour at 16 past
       - schedule: cron(16 * * * ? *)
+
+  triggerTokenMetadata:
+    handler: src/handlers/triggerTokenMetadata.handler
+    description: Lambda which fetches token name, symbol and decimals
+    timeout: 900
+    events:
+      # every new hour
+      - schedule: cron(0 * * * ? *)
+    environment:
+      ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
+      XDAI_RPC: ${file(./env.js):XDAI_RPC}
+      CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
+      FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
+      OPTIMISM_RPC: ${file(./env.js):OPTIMISM_RPC}
+      AVAX_RPC: ${file(./env.js):AVAX_RPC}
+      ARBITRUM_RPC: ${file(./env.js):ARBITRUM_RPC}
+      BASE_RPC: ${file(./env.js):BASE_RPC}
+      TRON_RPC: ${file(./env.js):TRON_RPC}
+      HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
+      PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
+      STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
+      MONAD_RPC: ${file(./env.js):MONAD_RPC}
 
   # --- stats update
   triggerStat:
@@ -194,55 +215,12 @@ resources:
         VisibilityTimeout: 960
         # setting this to 9hours
         MessageRetentionPeriod: 32400
-        RedrivePolicy:
-          deadLetterTargetArn:
-            Fn::GetAtt:
-              - DeadLetterQueue
-              - Arn
-          # this params is requried, otherwise cloudformation error
-          # means that after 3 failed runs, the message will be moved from the adaptor queue
-          # to the DLQ
-          maxReceiveCount: 3
-
-    # --- DLQ
-    DeadLetterQueue:
-      Type: AWS::SQS::Queue
-      Properties:
-        QueueName: ${self:service}-${self:custom.stage}-DeadLetterQueue
-        # leaving this at max, 14days, after that msg in there will be deleted
-        MessageRetentionPeriod: 1209600
 
     # --- create bucket
     BucketData:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:service}-${self:custom.stage}-data
-
-    # --- alarm stuff for DLQ
-    DlqAlarm:
-      Type: AWS::CloudWatch::Alarm
-      Properties:
-        AlarmName: ${self:service}-${self:custom.stage}-AdapterDLQ
-        AlarmDescription: There are failed messages in the dead letter queue.
-        Namespace: AWS/SQS
-        MetricName: ApproximateNumberOfMessagesVisible
-        Dimensions:
-          - Name: QueueName
-            Value: !GetAtt DeadLetterQueue.QueueName
-        Statistic: Sum
-        Period: 60
-        EvaluationPeriods: 1
-        Threshold: 0
-        ComparisonOperator: GreaterThanThreshold
-        AlarmActions:
-          - !Ref DlqAlarmEmail
-
-    DlqAlarmEmail:
-      Type: AWS::SNS::Topic
-      Properties:
-        Subscription:
-          - Endpoint: slasher125@protonmail.com
-            Protocol: email
 
 custom:
   stage: ${opt:stage, self:provider.stage}
