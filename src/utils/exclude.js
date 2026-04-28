@@ -335,6 +335,8 @@ const excludeAdaptors = [
   'atrix',
   'taiga-acala',
   'taiga-karura',
+  'unizen',
+  'koalaswap',
 ];
 
 const excludePools = [
