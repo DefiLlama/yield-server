@@ -6,6 +6,11 @@ const BASE_ASSET_ORACLES = {
     chain: 'ethereum',
     decimals: 8,
   }, // BTC/USD on Ethereum
+  ETH: {
+    address: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+    chain: 'ethereum',
+    decimals: 8,
+  }, // ETH/USD on Ethereum
   SOL: {
     address: '0x4ffC43a60e009B551865A93d232E33Fce9f01507',
     chain: 'ethereum',
@@ -100,11 +105,13 @@ const contractAddresses = {
     mHyperETH: {
       address: getAddress('0x5a42864b14C0C8241EF5ab62Dae975b163a2E0C1'),
       dataFeed: getAddress('0xbD560c1E87752717C34912D128168BfE26021EA2'),
+      denomination: 'ETH',
       url: 'https://midas.app/mhypereth',
     },
     mHyperBTC: {
       address: getAddress('0xC8495EAFf71D3A563b906295fCF2f685b1783085'),
       dataFeed: getAddress('0xb75B82b2012138815d1A2c4aB5B8b987da043157'),
+      denomination: 'BTC',
       url: 'https://midas.app/mhyperbtc',
     },
     mPortofino: {
@@ -221,7 +228,7 @@ const contractAddresses = {
       url: 'https://midas.app/mmev',
     },
   },
-  etherlink: {
+  etlk: {
     mTBILL: {
       address: getAddress('0xDD629E5241CbC5919847783e6C96B2De4754e438'),
       dataFeed: getAddress('0x2bDC9c452a4F52DfFD92B0cad371aCbCaeabf918'),

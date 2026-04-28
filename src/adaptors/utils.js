@@ -46,6 +46,9 @@ exports.formatChain = (chain) => {
     return 'Plume Mainnet';
   if (chain && chain.toLowerCase() === 'megaeth') return 'MegaETH';
   if (chain && chain.toLowerCase() === 'ripple') return 'XRPL';
+  if (chain && chain.toLowerCase() === 'xrplevm') return 'XRPL EVM';
+  if (chain && chain.toLowerCase() === 'etlk') return 'Etherlink';
+  if (chain && chain.toLowerCase() === 'rsk') return 'Rootstock';
   if (
     chain &&
     (chain.toLowerCase() === 'hyperevm' ||
