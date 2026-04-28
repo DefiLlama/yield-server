@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const url = sdk.graph.modifyEndpoint(
   'FUWdkXWpi8JyhAnhKL5pZcVshpxuaUQG8JHMDqNCxjPd'
@@ -102,7 +103,8 @@ const topLvl = async (chainString, timestamp, url, version) => {
 
 const main = async (timestamp = null) => {
   const data = await Promise.all([topLvl('polygon', timestamp, url, 'v2')]);
-  return data.flat().filter((p) => utils.keepFinite(p) && p.tvlUsd < 5e6);
+  const pools = data.flat().filter((p) => utils.keepFinite(p) && p.tvlUsd < 5e6);
+  return addMerklRewardApy(pools, 'quickswap');
 };
 
 module.exports = {

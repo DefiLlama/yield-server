@@ -3,6 +3,7 @@ const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
 const CommonAbi = require('./abis/Common.json');
 const reBalanceAbi = require('./abis/reBalance.json');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const ALADDIN_API_BASE_URL = 'https://api.aladdin.club/';
 
@@ -159,7 +160,7 @@ const main = async () => {
   const rebalancedata = await getRebalancePoolData();
   const gaugeData = await getGaugePoolData();
   const data = [].concat(rebalancedata).concat(gaugeData);
-  return data.filter((p) => utils.keepFinite(p));
+  return addMerklRewardApy(data.filter((p) => utils.keepFinite(p)), 'fxprotocol', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

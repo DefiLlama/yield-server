@@ -2,6 +2,7 @@ const utils = require('../utils');
 const axios = require('axios');
 const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const UNRESOLVABLE_TOKENS = {
   '0xae8fc9288685516d2eca717056ca69303b348752': 'coingecko:universal-btc',
@@ -303,7 +304,7 @@ async function apy() {
     })
   );
 
-  return poolsFiltered;
+  return addMerklRewardApy(poolsFiltered, 'pendle');
 }
 
 module.exports = {

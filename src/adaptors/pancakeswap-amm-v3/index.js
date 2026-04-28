@@ -3,6 +3,7 @@ const { request, gql } = require('graphql-request');
 const axios = require('axios');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const { EstimatedFees } = require('./estimateFee');
 const { getCakeAprs, CAKE, chainIds } = require('./cakeReward');
 const { checkStablecoin } = require('../../handlers/triggerEnrichment');
@@ -342,7 +343,7 @@ const main = async (timestamp = null) => {
     }
   }
 
-  return data
+  const pools = data
     .flat()
     .filter((p) => utils.keepFinite(p))
     .map((p) => {
@@ -362,6 +363,8 @@ const main = async (timestamp = null) => {
       }
       return p;
     });
+
+  return addMerklRewardApy(pools, 'pancake-swap');
 };
 
 module.exports = {
