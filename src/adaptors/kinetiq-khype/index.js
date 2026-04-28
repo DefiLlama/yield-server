@@ -86,7 +86,7 @@ const getSkntqPool = async (block1dAgo, block7dAgo, kntqPrice) => {
     searchTokenOverride: skntq,
     apyBase,
     apyBase7d,
-    pricePerShare: curr.div(1e18).toNumber(),
+    ...(curr.gt(0) && { pricePerShare: curr.div(1e18).toNumber() }),
     tvlUsd,
     url: 'https://kinetiq.xyz/kntq',
   };
@@ -150,7 +150,7 @@ const getKhypePool = async (block1dAgo, block7dAgo, hypePrice) => {
     underlyingTokens: [whype],
     apyBase,
     apyBase7d,
-    pricePerShare: curr.div(1e18).toNumber(),
+    ...(curr.gt(0) && { pricePerShare: curr.div(1e18).toNumber() }),
     tvlUsd,
     url: 'https://kinetiq.xyz/stake-hype',
   };

@@ -456,7 +456,7 @@ const getApy = async () => {
         token: DUAL_CORE_TOKEN,
         tvlUsd: v.totalStake * corePrice,
         apyBase: v.apy,
-        pricePerShare: v.pricePerShare,
+        ...(v.pricePerShare > 0 && { pricePerShare: v.pricePerShare }),
         chain: 'core',
         url: 'https://app.b14g.xyz/vaults/core',
         underlyingTokens: [CORE_NATIVE],

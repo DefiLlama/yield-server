@@ -149,7 +149,7 @@ const getPoolsForChain = async (chain) => {
         tvlUsd,
         apyBase: Number(apyBase.toFixed(2)),
         apyBase7d: Number(apyBase7d.toFixed(2)),
-        pricePerShare: currentSharePrice && currentSharePrice > 0 ? currentSharePrice : null,
+        ...(currentSharePrice > 0 && { pricePerShare: currentSharePrice }),
         underlyingTokens: [token.address],
         poolMeta: token.name,
       });

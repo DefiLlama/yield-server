@@ -187,7 +187,7 @@ const apy = async () => {
       symbol: 'shMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
-      pricePerShare: Number(shareValueNow) / 1e18,
+      ...(Number(shareValueNow) / 1e18 > 0 && { pricePerShare: Number(shareValueNow) / 1e18 }),
       underlyingTokens: [WMON],
       searchTokenOverride: SHMONAD_CONTRACT,
     },

@@ -181,10 +181,10 @@ const main = async () => {
             symbol: underlyingTicker,
             tvlUsd: Number(tvlUSD.toFixed(2)),
             apyBase: Number(apy.toFixed(2)),
-            pricePerShare:
-              latestPricePerShare != null
-                ? Number(latestPricePerShare) / 10 ** vaultDecimals
-                : null,
+            ...(latestPricePerShare != null &&
+              Number(latestPricePerShare) / 10 ** vaultDecimals > 0 && {
+                pricePerShare: Number(latestPricePerShare) / 10 ** vaultDecimals,
+              }),
             underlyingTokens: [ADDRESSES[chain].underlyingTokens[vaultType]],
             poolMeta: utils.formatSymbol(vaultType)
           });

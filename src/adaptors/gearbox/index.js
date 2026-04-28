@@ -1091,7 +1091,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       tvlUsd: Number(tvlUsd) || 0,
       apyBase: (Number(pool.supplyRate) / 1e27) * 100,
       apyReward: apyRewardTotal,
-      pricePerShare: pool.dieselRate ? Number(pool.dieselRate) / RAY : null,
+      ...(Number(pool.dieselRate) / RAY > 0 && { pricePerShare: Number(pool.dieselRate) / RAY }),
       underlyingTokens: [pool.underlying],
       rewardTokens: [...rewardTokens, ...extraRewardTokens],
       url: getPoolUrl(chain, pool.pool),

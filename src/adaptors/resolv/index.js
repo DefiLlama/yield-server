@@ -99,7 +99,7 @@ const rlpPool = async () => {
       project: 'resolv',
       tvlUsd: tvl,
       apyBase: aprBase * 100,
-      pricePerShare: price,
+      ...(price > 0 && { pricePerShare: price }),
       underlyingTokens: [USR],
     };
   } catch (error) {

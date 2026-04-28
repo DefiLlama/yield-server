@@ -35,7 +35,7 @@ const apy = async () => {
       symbol: 'laineSOL',
       tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
-      pricePerShare,
+      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: [SOL],
       searchTokenOverride: LAINESOL_MINT,
       poolMeta: feePct,

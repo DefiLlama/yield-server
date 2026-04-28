@@ -125,7 +125,7 @@ async function calcErc4626PoolApy(vault, prices) {
     apyBase,
     apyBase7d,
     apyReward: 15, // QUARTZ will be airdropped to depositors of Amber, Opal and Emerald vaults
-    pricePerShare: sharePriceNow.isFinite() ? sharePriceNow.toNumber() : null,
+    ...(sharePriceNow.isFinite() && sharePriceNow.gt(0) && { pricePerShare: sharePriceNow.toNumber() }),
     poolMeta: vaultMeta[vault].name,
     url: 'https://app.sandclock.org/',
   };

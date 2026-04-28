@@ -35,7 +35,7 @@ const apy = async () => {
       symbol: 'jagSOL',
       tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
-      pricePerShare,
+      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: [SOL],
       searchTokenOverride: JAGSOL_MINT,
       poolMeta: feePct,

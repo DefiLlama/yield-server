@@ -159,7 +159,7 @@ const main = async () => {
         tvlUsd,
         apyBase,
         // SuperVault shares are 18-dec; assets in own decimals.
-        pricePerShare: priceNow * 10 ** (18 - decimals),
+        ...(priceNow * 10 ** (18 - decimals) > 0 && { pricePerShare: priceNow * 10 ** (18 - decimals) }),
         underlyingTokens: [assetAddress],
         poolMeta: 'SuperVault',
         url: `https://app.superform.xyz/vault/${vault.chain_id}_${vault.address}`,

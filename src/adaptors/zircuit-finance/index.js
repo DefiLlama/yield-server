@@ -86,7 +86,7 @@ async function apy() {
       tvlUsd,
       apyBase,
       // rNow is in asset decimals; shares are 18-dec.
-      pricePerShare: rNow / 10 ** dec,
+      ...(rNow / 10 ** dec > 0 && { pricePerShare: rNow / 10 ** dec }),
       underlyingTokens: [vault.underlying],
       url: 'https://finance.zircuit.com',
     };

@@ -368,7 +368,7 @@ const getMuBondPool = async (
       symbol: formatSymbol(symbolRes),
       tvlUsd,
       apyBase,
-      pricePerShare: price.isFinite() && price.gt(0) ? price.toNumber() : null,
+      ...(price.isFinite() && price.gt(0) && { pricePerShare: price.toNumber() }),
       url,
       underlyingTokens: [aznd],
     };
@@ -477,7 +477,7 @@ const getVaultData = async (
       symbol: formatSymbol(vaultSymbolRes),
       tvlUsd,
       apyBase: erc4626Info?.apyBase ?? 0,
-      pricePerShare: erc4626Info?.pricePerShare ?? null,
+      ...(Number.isFinite(erc4626Info?.pricePerShare) && erc4626Info.pricePerShare > 0 && { pricePerShare: erc4626Info.pricePerShare }),
       underlyingTokens: [asset],
       poolMeta: 'loAZND Vault',
       url,

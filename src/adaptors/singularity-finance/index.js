@@ -64,7 +64,7 @@ async function getApy() {
         symbol: utils.formatSymbol(referenceAssetSymbol),
         tvlUsd: tvlUsd / 10 ** USDC.decimals,
         apyBase,
-        pricePerShare,
+        ...(pricePerShare > 0 && { pricePerShare }),
         url: `https://singularityfinance.ai/vaults/${vault.vault}:8453`,
         underlyingTokens: [referenceAssetAddress],
       };

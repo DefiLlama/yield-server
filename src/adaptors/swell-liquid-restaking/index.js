@@ -59,7 +59,7 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apr1d,
       apyBase7d: apr7d,
-      pricePerShare: rate,
+      ...(rate > 0 && { pricePerShare: rate }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: rswETH,
     },

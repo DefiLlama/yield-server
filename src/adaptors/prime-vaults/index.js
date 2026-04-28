@@ -256,8 +256,10 @@ const apy = async () => {
         apyBase,
         apyReward,
         rewardTokens,
-        pricePerShare:
-          Number(currentRate) / 10 ** (vault.decimals ?? 18),
+        ...(Number(currentRate) / 10 ** (vault.decimals ?? 18) > 0 && {
+          pricePerShare:
+            Number(currentRate) / 10 ** (vault.decimals ?? 18),
+        }),
         underlyingTokens: [vault.underlyingToken],
         url: vault.url,
       });

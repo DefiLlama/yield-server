@@ -48,7 +48,7 @@ const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
       tvlUsd: (totalAssets.output / 1e18) * tokenPrice,
       apyBase,
       apyBase7d,
-      pricePerShare: Number(priceNow.output) / 1e18,
+      ...(Number(priceNow.output) / 1e18 > 0 && { pricePerShare: Number(priceNow.output) / 1e18 }),
       underlyingTokens: [USDm],
       url: 'https://bootstrap.avon.xyz/megavault/4326',
     },

@@ -35,7 +35,7 @@ const apy = async () => {
       symbol: 'adraSOL',
       tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
-      pricePerShare,
+      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: [SOL],
       searchTokenOverride: ADRASOL_MINT,
       poolMeta: feePct,

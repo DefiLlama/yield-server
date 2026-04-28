@@ -267,7 +267,7 @@ const apy = async () => {
         tvlUsd: tvlUsd,
         apyBase: apr1d,
         apyBase7d: apr7d,
-        pricePerShare: Number(currentRate) / 10 ** chainConfig.decimals,
+        ...(Number(currentRate) / 10 ** chainConfig.decimals > 0 && { pricePerShare: Number(currentRate) / 10 ** chainConfig.decimals }),
         underlyingTokens: [chainConfig.underlying],
       };
     }),

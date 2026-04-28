@@ -74,7 +74,7 @@ async function getPoolData(chain, chainConfig) {
       symbol: 'schUSD',
       tvlUsd,
       apyBase,
-      pricePerShare: priceNow / 1e18,
+      ...(priceNow / 1e18 > 0 && { pricePerShare: priceNow / 1e18 }),
       underlyingTokens: [chainConfig.chUSD],
       url: 'https://app.chateau.capital',
     };

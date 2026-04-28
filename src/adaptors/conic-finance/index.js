@@ -211,7 +211,7 @@ const apy = async () => {
       underlyingTokens: [pool_.underlying],
       apyBase: pool_.baseApy,
       apyReward: pool_.crvApy + cncApy,
-      pricePerShare: bnToNum(exchangeRate[i]),
+      ...(bnToNum(exchangeRate[i]) > 0 && { pricePerShare: bnToNum(exchangeRate[i]) }),
     };
   });
 };

@@ -124,7 +124,7 @@ async function getPoolsData(poolConfig, chain) {
       tvlUsd: round(tvlUsd),
       apyBase: Number(apyBase),
       apyBaseBorrow: Number(apyBaseBorrow),
-      pricePerShare: exchangeRate,
+      ...(exchangeRate > 0 && { pricePerShare: exchangeRate }),
       totalSupplyUsd: round(totalSupplyUsd),
       totalBorrowUsd: round(totalBorrowUsd),
       ltv: round(ltv),

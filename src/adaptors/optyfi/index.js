@@ -151,7 +151,7 @@ const main = async () => {
       symbol: opSymbol[0],
       tvlUsd,
       apyBase,
-      pricePerShare,
+      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: [vault.vault_underlying_token.address],
       url: `https://app.opty.fi/vault/${vault.vault_token.address}`,
       poolMeta: opSymbol[1],

@@ -158,7 +158,7 @@ const fetchPoolsForToken = async (tokenKey, unit) => {
     symbol: meta.symbol,
     tvlUsd: tvlUsd[chain],
     apyBase: apyResult.apy,
-    pricePerShare: apyResult.currentPrice,
+    ...(apyResult.currentPrice > 0 && { pricePerShare: apyResult.currentPrice }),
     underlyingTokens: meta.getUnderlyingTokens(chain),
     url: meta.url,
   }));

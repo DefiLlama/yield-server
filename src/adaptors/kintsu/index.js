@@ -114,7 +114,7 @@ const chainApy = async (chain) => {
       symbol: symbol.output,
       tvlUsd: tvlUsd,
       apyBase: apyBase,
-      pricePerShare: Number(shareValueNow) / 1e18,
+      ...(Number(shareValueNow) / 1e18 > 0 && { pricePerShare: Number(shareValueNow) / 1e18 }),
       underlyingTokens: [WMON],
       searchTokenOverride: vaults[chain],
     },

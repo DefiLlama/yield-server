@@ -180,7 +180,7 @@ const apy = async () =>
               pool: `${market}-${chain}`.toLowerCase(),
               apyBase: aprToApy(apr),
               apyBaseBorrow: aprToApy(borrowAPR),
-              pricePerShare: shareValue / 1e18,
+              ...(shareValue / 1e18 > 0 && { pricePerShare: shareValue / 1e18 }),
               totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / baseUnit,
               totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / baseUnit,
               rewardTokens,

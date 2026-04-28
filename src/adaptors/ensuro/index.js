@@ -72,7 +72,7 @@ const getApy = async () => {
         poolMeta: etk.name,
         tvlUsd: tsNow.output / 1e6,
         apyBase: apy,
-        pricePerShare: Number(csNow.output) / 1e27,
+        ...(Number(csNow.output) / 1e27 > 0 && { pricePerShare: Number(csNow.output) / 1e27 }),
         url: `https://app.ensuro.co/eTokens/${etk.address}`,
         underlyingTokens: [addressBook.polygon.usdc],
       };

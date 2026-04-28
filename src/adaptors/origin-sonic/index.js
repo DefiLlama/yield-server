@@ -57,7 +57,7 @@ const apy = async () => {
             symbol,
             underlyingTokens: [SONIC],
             apyBase: apr,
-            pricePerShare: Number(exchangeRateToday.output) / 1e18,
+            ...(Number(exchangeRateToday.output) / 1e18 > 0 && { pricePerShare: Number(exchangeRateToday.output) / 1e18 }),
             tvlUsd: (tvl * sonicPrice),
         },
     ];
