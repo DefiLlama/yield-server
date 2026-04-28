@@ -83,13 +83,16 @@ async function getData(vault, underlying) {
   const tvlUsd = (Number(totalAssetsBn) / 1e18) * price
   const apyBase = await computeApyBase(vault)
 
-  const { output: pricePerShareBn } = await sdk.api.abi.call({
-    target: vault,
-    abi: abi.convertToAssets,
-    params: ['1000000000000000000'],
-    chain: CHAIN,
-  })
-  const pricePerShare = Number(pricePerShareBn) / 1e18
+  let pricePerShare
+  try {
+    const { output: pricePerShareBn } = await sdk.api.abi.call({
+      target: vault,
+      abi: abi.convertToAssets,
+      params: ['1000000000000000000'],
+      chain: CHAIN,
+    })
+    pricePerShare = Number(pricePerShareBn) / 1e18
+  } catch (_) {}
 
   return { tvlUsd, apyBase, pricePerShare }
 }
