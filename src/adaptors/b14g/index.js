@@ -376,7 +376,11 @@ const getDualCOREVault = async (blockNumber) => {
   const apy =
     ((currentExchangeRate.output / exchangeRateYesterday.output) ** 365 - 1) *
     100;
-  return { apy, totalStake: totalStake.output / 1e18 };
+  return {
+    apy,
+    totalStake: totalStake.output / 1e18,
+    pricePerShare: Number(currentExchangeRate.output) / 1e18,
+  };
 };
 
 const getBTCMarketplace = async (blockNumber, corePrice, btcPrice) => {
@@ -452,6 +456,7 @@ const getApy = async () => {
         token: DUAL_CORE_TOKEN,
         tvlUsd: v.totalStake * corePrice,
         apyBase: v.apy,
+        ...(v.pricePerShare > 0 && { pricePerShare: v.pricePerShare }),
         chain: 'core',
         url: 'https://app.b14g.xyz/vaults/core',
         underlyingTokens: [CORE_NATIVE],

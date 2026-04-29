@@ -105,6 +105,7 @@ async function apy() {
       symbol: 'SVT',
       tvlUsd,
       apyBase,
+      ...(priceNow.isFinite() && priceNow.gt(0) && { pricePerShare: priceNow.toNumber() }),
       underlyingTokens: [SPARK_DAI, AAVE_LUSD, SCRVUSD],
       poolMeta: 'Spark/Aave/Curve stablecoin yield aggregator',
       url: 'https://stva.io',

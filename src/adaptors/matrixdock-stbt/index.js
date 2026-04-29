@@ -119,6 +119,7 @@ const getPoolsForChain = async (chain) => {
       // Calculate APY from share price growth (rebasing mechanism)
       let apyBase = 0;
       let apyBase7d = 0;
+      let currentSharePrice = null;
 
       try {
         const sharePricePromises = [getSharePrice(token.address, chain)];
@@ -126,7 +127,7 @@ const getPoolsForChain = async (chain) => {
         if (block7d) sharePricePromises.push(getSharePrice(token.address, chain, block7d));
 
         const sharePrices = await Promise.all(sharePricePromises);
-        const currentSharePrice = sharePrices[0];
+        currentSharePrice = sharePrices[0];
         const sharePrice30d = block30d ? sharePrices[1] : null;
         const sharePrice7d = block7d ? sharePrices[block30d ? 2 : 1] : null;
 
@@ -148,6 +149,7 @@ const getPoolsForChain = async (chain) => {
         tvlUsd,
         apyBase: Number(apyBase.toFixed(2)),
         apyBase7d: Number(apyBase7d.toFixed(2)),
+        ...(currentSharePrice > 0 && { pricePerShare: currentSharePrice }),
         underlyingTokens: [token.address],
         poolMeta: token.name,
       });

@@ -68,6 +68,7 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apr1d,
       apyBase7d: apr7d,
+      ...(Number(currentRate) / 1e18 > 0 && { pricePerShare: Number(currentRate) / 1e18 }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: earnETH,
     },
