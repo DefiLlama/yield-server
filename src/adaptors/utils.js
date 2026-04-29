@@ -48,7 +48,9 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'ripple') return 'XRPL';
   if (chain && chain.toLowerCase() === 'xrplevm') return 'XRPL EVM';
   if (chain && chain.toLowerCase() === 'etlk') return 'Etherlink';
-  if (chain && chain.toLowerCase() === 'rsk') return 'Rootstock';
+  if (chain && chain.toLowerCase() === 'rsk') return 'RSK';
+  if (chain && chain.toLowerCase() === '0g') return '0G';
+  if (chain && chain.toLowerCase() === 'tac') return 'TAC';
   if (
     chain &&
     (chain.toLowerCase() === 'hyperevm' ||
