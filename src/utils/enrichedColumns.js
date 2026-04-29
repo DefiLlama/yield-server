@@ -3,6 +3,8 @@ const poolsResponseColumns = [
   'project',
   'symbol',
   'tvlUsd',
+  'type',
+  'duration',
   'apyBase',
   'apyReward',
   'apy',

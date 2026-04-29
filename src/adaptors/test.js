@@ -8,6 +8,13 @@ const baseFields = {
 const adapter = global.adapter;
 const apy = global.apy;
 const poolsUrl = global.poolsUrl;
+const poolTypes = [
+  'VARIABLE_RATE_LENDING',
+  'FIXED_RATE_LENDING',
+  'YIELD_FARMING',
+  'CONCENTRATED_LIQUIDITY',
+  'OTHER',
+];
 
 const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
 const protocols = global.protocolsSlug;
@@ -36,6 +43,8 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'apyRewardBorrow',
       'totalSupplyUsd',
       'totalBorrowUsd',
+      'type',
+      'duration',
       'ltv',
       'borrowable',
       'borrowFactor',
@@ -191,6 +200,14 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       totalBorrowUsd: {
         type: 'number',
       },
+      type: {
+        type: 'string',
+        values: poolTypes,
+      },
+      duration: {
+        type: 'number',
+        min: 0,
+      },
       ltv: {
         min: 0,
         max: 1,
@@ -203,6 +220,11 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
           if (rule.type !== undefined) {
             test(`${field} field of pool with id ${pool.pool} should be a ${rule.type}`, () => {
               expect(typeof pool[field]).toBe(rule.type);
+            });
+          }
+          if (rule.values !== undefined) {
+            test(`${field} field of pool with id ${pool.pool} should be one of the allowed values`, () => {
+              expect(rule.values).toContain(pool[field]);
             });
           }
           if (rule.max !== undefined && rule.min !== undefined) {
