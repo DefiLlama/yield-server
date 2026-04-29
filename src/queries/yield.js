@@ -33,6 +33,7 @@ const getYieldFiltered = async (lendingProjects = []) => {
       c."poolMeta",
       c."underlyingTokens",
       c."rewardTokens",
+      c.token              AS "poolTokenAddress",
       y."tvlUsd",
       y.apy,
       y."apyBase",
