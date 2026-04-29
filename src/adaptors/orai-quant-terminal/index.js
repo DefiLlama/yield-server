@@ -31,15 +31,7 @@ const POOLS_CONFIG = [
     poolMeta: 'XAU Alpha Vault',
     underlyingTokens: [],
     url: "https://quant.orai.io/vault-v2/0x5424293637cc59ad7580ad1cac46e28d4801a587",
-  },
-  {
-    statsContract: 'orai1rzfk6fd6d5zhm77cshdtr0vsuyu0qe0dg36evysklx8n6q8h38psxywppw',
-    vaultAddress: '0xE730aB590559d931c41590d6951f12dBDe273cCA',
-    symbol: 'USDC',
-    poolMeta: 'Delta Neutral Vault',
-    underlyingTokens: [],
-    url: "https://quant.orai.io/vault-v2/0xe730ab590559d931c41590d6951f12dbde273cca",
-  },
+  }
 ];
 
 function toQueryPath(queryMsg) {
@@ -97,8 +89,8 @@ function extractNumericByKeys(payload, keys) {
 function normalizeApyPercent(value) {
   if (!Number.isFinite(value)) return null;
   if (value < 0) return null;
-  // If contract reports ratio (e.g. 0.1234), convert to percentage.
-  return value <= 1 ? value * 100 : value;
+  // Assume APY is already percent; only tiny values are treated as ratio inputs.
+  return value < 0.01 ? value * 100 : value;
 }
 
 async function buildPoolData(config) {
@@ -134,8 +126,10 @@ async function buildPoolData(config) {
 }
 
 async function apy() {
-  const pools = await Promise.all(POOLS_CONFIG.map(buildPoolData));
-  return pools.filter(Boolean);
+  const settledPools = await Promise.allSettled(POOLS_CONFIG.map(buildPoolData));
+  return settledPools
+    .filter((result) => result.status === 'fulfilled' && result.value)
+    .map((result) => result.value);
 }
 
 module.exports = {
