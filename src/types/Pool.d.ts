@@ -17,5 +17,9 @@ export interface Pool {
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
+  debtCeilingUsd?: number;
   ltv?: number; // btw [0, 1]
+  borrowable?: boolean;
+  mintedCoin?: string;
+  borrowFactor?: number;
 }
