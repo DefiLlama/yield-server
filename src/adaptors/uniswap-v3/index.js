@@ -41,6 +41,8 @@ const query = gql`
       totalValueLockedToken0
       totalValueLockedToken1
       volumeUSD
+      volumeToken0
+      volumeToken1
       feeTier
       token0 {
         symbol
@@ -61,6 +63,8 @@ const queryPrior = gql`
     pools( first: 1000 orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
       id 
       volumeUSD 
+      volumeToken0
+      volumeToken1
     }
   }
 `;
