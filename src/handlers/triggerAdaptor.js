@@ -111,6 +111,7 @@ const main = async (body) => {
     apyRewardFake: strToNum(p.apyRewardFake),
     apyRewardBorrowFake: strToNum(p.apyRewardBorrowFake),
     apyBaseInception: strToNum(p.apyBaseInception),
+    pricePerShare: strToNum(p.pricePerShare),
   }));
 
   // Filter tvl to be within DB boundaries.
@@ -140,6 +141,10 @@ const main = async (body) => {
       ? p.apyBaseInception
       : null,
     duration: Number.isFinite(p.duration) ? p.duration : null,
+    pricePerShare:
+      Number.isFinite(p.pricePerShare) && p.pricePerShare > 0
+        ? p.pricePerShare
+        : null,
   }));
 
   // remove pools where all 3 apy related fields are null
@@ -423,6 +428,10 @@ const main = async (body) => {
       searchTokenOverride: p.searchTokenOverride || null,
       token:
         'token' in p ? p.token || null : extractTokenFromPoolId(p.pool) || null,
+      pricePerShare:
+        p.pricePerShare !== null && p.pricePerShare !== undefined
+          ? +p.pricePerShare.toFixed(precision)
+          : null,
     };
   });
 

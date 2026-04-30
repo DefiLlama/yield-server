@@ -289,6 +289,10 @@ const main = async () => {
       const apyBase = apyBaseBorrow
         .multipliedBy(new BigNumber(totalBorrows[index].amount))
         .div(new BigNumber(totalAssets[index].amount));
+      const assetShares = new BigNumber(totalAssets[index].shares);
+      const pricePerShare = assetShares.gt(0)
+        ? new BigNumber(totalAssets[index].amount).div(assetShares).toNumber()
+        : null;
       return {
         pool: vaultAddress,
         project: 'fraxlend',
@@ -296,6 +300,7 @@ const main = async () => {
         chain: 'ethereum',
         apyBase: apyBase.toNumber(),
         tvlUsd: tvlUsd.toNumber(),
+        pricePerShare,
         // borrow fields
         apyBaseBorrow: apyBaseBorrow.toNumber(),
         totalSupplyUsd: tvlUsd.toNumber(),

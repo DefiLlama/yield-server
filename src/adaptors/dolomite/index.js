@@ -213,6 +213,7 @@ async function apy() {
               tvlUsd: supplyUsds[i] - borrowUsds[i],
               apyBase: supplyInterestRateApys[i],
               apyReward: 0,
+              ...(Number(indices[i].supply) / 1e18 > 0 && { pricePerShare: Number(indices[i].supply) / 1e18 }),
               underlyingTokens: [tokens[i]],
               rewardTokens: [],
               apyBaseBorrow: borrowInterestRateApys[i],

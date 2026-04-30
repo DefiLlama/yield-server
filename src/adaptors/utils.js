@@ -46,6 +46,11 @@ exports.formatChain = (chain) => {
     return 'Plume Mainnet';
   if (chain && chain.toLowerCase() === 'megaeth') return 'MegaETH';
   if (chain && chain.toLowerCase() === 'ripple') return 'XRPL';
+  if (chain && chain.toLowerCase() === 'xrplevm') return 'XRPL EVM';
+  if (chain && chain.toLowerCase() === 'etlk') return 'Etherlink';
+  if (chain && chain.toLowerCase() === 'rsk') return 'RSK';
+  if (chain && chain.toLowerCase() === '0g') return '0G';
+  if (chain && chain.toLowerCase() === 'tac') return 'TAC';
   if (
     chain &&
     (chain.toLowerCase() === 'hyperevm' ||
@@ -521,7 +526,7 @@ exports.getERC4626Info = async (
         .then((r) => r.data.height)
     )
   );
-  const [tvl, priceNow, priceYesterday] = await Promise.all([
+  const [tvl, priceNow, priceYesterday, asset] = await Promise.all([
     sdk.api.abi.call({
       target: address,
       block: blockNow,
@@ -542,13 +547,35 @@ exports.getERC4626Info = async (
       params: [assetUnit],
       chain: chain,
     }),
+    sdk.api.abi
+      .call({
+        target: address,
+        abi: 'address:asset',
+        chain: chain,
+      })
+      .catch(() => null),
   ]);
   const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
+  let assetDecimals = 18;
+  if (asset && asset.output) {
+    try {
+      const decRes = await sdk.api.abi.call({
+        target: asset.output,
+        abi: 'erc20:decimals',
+        chain,
+      });
+      const parsed = Number(decRes.output);
+      if (Number.isFinite(parsed) && parsed > 0) assetDecimals = parsed;
+    } catch (_) {}
+  }
+  const pricePerShare =
+    (Number(priceNow.output) * 10 ** (18 - assetDecimals)) / Number(assetUnit);
   return {
     pool: address,
     chain,
     tvl: tvl.output,
     apyBase: apy,
+    pricePerShare,
   };
 };
 
@@ -658,6 +685,14 @@ exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl = 'https://api.mainne
     epochFee,
     epochsPerYear,
   };
+};
+
+// Current pricePerShare (lamports per pool token) for SPL Stake Pool LSTs
+exports.solanaLstPricePerShare = (stakePoolInfo) => {
+  const { totalLamports, poolTokenSupply } = stakePoolInfo || {};
+  if (!totalLamports || !poolTokenSupply) return null;
+  const pps = Number(totalLamports) / Number(poolTokenSupply);
+  return Number.isFinite(pps) && pps > 0 ? pps : null;
 };
 
 // On-chain single-epoch APY for SPL Stake Pool LSTs

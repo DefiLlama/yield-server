@@ -749,8 +749,40 @@ async function getPlasmaPoolsV3(chain) {
       underlyingTokens = poolAddresses.map(() => null);
     }
 
+    // Best-effort real share price via ERC-4626 convertToAssets. Pools that
+    // don't expose it (e.g. some Plasma-style custom pools) fall back to the
+    // 1:1 placeholder via permitFailure.
+    const resolvedUnderlyings = poolAddresses.map((addr, i) => {
+      const config = chainConfig.POOLS[addr];
+      return underlyingTokens[i] || config?.underlying || addr;
+    });
+    const [shareToAssets, underlyingDecimalsRaw] = await Promise.all([
+      multiCall({
+        abi: 'function convertToAssets(uint256 shares) view returns (uint256)',
+        calls: poolAddresses.map((target, i) => ({
+          target,
+          params: [Math.pow(10, decimalsData[i]).toString()],
+        })),
+        chain,
+        permitFailure: true,
+      }),
+      multiCall({
+        abi: abis_default.decimals,
+        calls: resolvedUnderlyings.map((target) => ({ target })),
+        chain,
+        permitFailure: true,
+      }),
+    ]);
+
     const pools = poolAddresses.map((poolAddr, i) => {
       const config = chainConfig.POOLS[poolAddr];
+      const ulDec = Number(underlyingDecimalsRaw[i]);
+      const sharePriceRaw = shareToAssets[i] != null ? Number(shareToAssets[i]) : null;
+      const computedPricePerShare =
+        sharePriceRaw && Number.isFinite(ulDec) && ulDec > 0
+          ? sharePriceRaw / Math.pow(10, ulDec)
+          : null;
+
       return {
         pool: poolAddr,
         addr: poolAddr,
@@ -766,7 +798,11 @@ async function getPlasmaPoolsV3(chain) {
         availableLiquidity: Number(availableLiquidities[i]),
         totalBorrowed: Number(totalBorrowedAmounts[i]),
         baseInterestRate: Number(baseInterestRates[i]),
-        dieselRate: Math.pow(10, 27), // Default 1:1 rate for Plasma
+        dieselRate: Math.pow(10, 27), // 1:1 placeholder used by TVL math
+        // Real share price when available; otherwise flag the dieselRate as a placeholder.
+        ...(computedPricePerShare > 0
+          ? { computedPricePerShare }
+          : { dieselRateIsPlaceholder: true }),
         withdrawFee: 0,
       };
     });
@@ -1091,6 +1127,13 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       tvlUsd: Number(tvlUsd) || 0,
       apyBase: (Number(pool.supplyRate) / 1e27) * 100,
       apyReward: apyRewardTotal,
+      // Prefer real on-chain share price when getPlasmaPoolsV3 fetched it via
+      // convertToAssets; otherwise fall through to dieselRate when it isn't a placeholder.
+      ...(pool.computedPricePerShare > 0
+        ? { pricePerShare: pool.computedPricePerShare }
+        : !pool.dieselRateIsPlaceholder && Number(pool.dieselRate) / RAY > 0
+        ? { pricePerShare: Number(pool.dieselRate) / RAY }
+        : {}),
       underlyingTokens: [pool.underlying],
       rewardTokens: [...rewardTokens, ...extraRewardTokens],
       url: getPoolUrl(chain, pool.pool),

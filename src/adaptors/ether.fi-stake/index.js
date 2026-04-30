@@ -131,6 +131,7 @@ const apy = async () => {
       apyBase: apr1d,
       apyBase7d: apr7d,
       apyReward: restakingApy,
+      ...(Number(weETHRates[0].output) / 1e18 > 0 && { pricePerShare: Number(weETHRates[0].output) / 1e18 }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: weETH,
       rewardTokens: [lrt2],
@@ -144,6 +145,8 @@ const apy = async () => {
       tvlUsd: eBTCTvlUsd,
       apyBase: eBTCApyBase,
       apyBase7d: eBTCApyBase7d,
+      // eBTC is 8-dec; accountant returns rate in share decimals.
+      ...(eBTCRateCurrent / 1e8 > 0 && { pricePerShare: eBTCRateCurrent / 1e8 }),
       underlyingTokens: [LBTC, WBTC],
       searchTokenOverride: eBTC,
       url: 'https://ether.fi/app/ebtc',

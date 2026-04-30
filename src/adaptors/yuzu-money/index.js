@@ -110,7 +110,8 @@ const calculateTvlByToken = async (tokenKey) => {
 };
 
 /**
- * Calculate APY based on redemption price appreciation over reference period
+ * Returns { apy, currentPrice } — currentPrice is the redemption price used
+ * as pricePerShare (drops on loss events, e.g. yzPP).
  */
 const calculateApy = async (chain, token, underlyingAssetUnit) => {
   const currentBlock = await sdk.api.util.getLatestBlock(chain);
@@ -128,15 +129,15 @@ const calculateApy = async (chain, token, underlyingAssetUnit) => {
     !Number.isFinite(currentPrice) ||
     startPrice <= 0
   ) {
-    return 0;
+    return { apy: 0, currentPrice: Number.isFinite(currentPrice) ? currentPrice : null };
   }
 
   const appreciationRatio = currentPrice / startPrice;
-  return (
+  const apy =
     (Math.pow(appreciationRatio, YEAR_IN_DAYS / APY_REFERENCE_PERIOD_IN_DAYS) -
       1) *
-    100
-  );
+    100;
+  return { apy, currentPrice };
 };
 
 /**
@@ -145,7 +146,7 @@ const calculateApy = async (chain, token, underlyingAssetUnit) => {
 const fetchPoolsForToken = async (tokenKey, unit) => {
   const meta = TOKEN_META[tokenKey];
 
-  const [tvlUsd, apyBase] = await Promise.all([
+  const [tvlUsd, apyResult] = await Promise.all([
     calculateTvlByToken(tokenKey),
     calculateApy('plasma', yuzuConfig.plasma[tokenKey], unit),
   ]);
@@ -156,7 +157,8 @@ const fetchPoolsForToken = async (tokenKey, unit) => {
     project: 'yuzu-money',
     symbol: meta.symbol,
     tvlUsd: tvlUsd[chain],
-    apyBase,
+    apyBase: apyResult.apy,
+    ...(apyResult.currentPrice > 0 && { pricePerShare: apyResult.currentPrice }),
     underlyingTokens: meta.getUnderlyingTokens(chain),
     url: meta.url,
   }));

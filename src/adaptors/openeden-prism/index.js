@@ -106,6 +106,7 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       apyBase7d,
+      ...(rateNow && rateNow.gt(0) && { pricePerShare: rateNow.toNumber() }),
       underlyingTokens: [PRISM],
       url: 'https://app.openeden.com/prism?chain=mainnet',
     },

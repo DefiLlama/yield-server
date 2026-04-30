@@ -100,6 +100,7 @@ const gqlQueries = {
           symbol
           asset {
             address
+            decimals
           }
           state {
             totalAssets
@@ -442,6 +443,18 @@ const apy = async () => {
         apyReward = rewardsApy * 100;
       }
 
+      // MetaMorpho shares are always 18-dec; assets aren't. Match Morpho UI.
+      const assetDecimals = Number(vault.asset.decimals);
+      const totalAssetsRaw = Number(vault.state.totalAssets);
+      const totalSupplyRaw = Number(vault.state.totalSupply);
+      const pricePerShare =
+        Number.isFinite(totalAssetsRaw) &&
+        Number.isFinite(totalSupplyRaw) &&
+        Number.isFinite(assetDecimals) &&
+        totalSupplyRaw > 0
+          ? (totalAssetsRaw / totalSupplyRaw) * 10 ** (18 - assetDecimals)
+          : null;
+
       return {
         pool: `morpho-vault-v1-${vault.address}-${chain}`,
         chain,
@@ -449,6 +462,7 @@ const apy = async () => {
         symbol: vault.symbol,
         apyBase: baseApy * 100,
         tvlUsd: vault.state.totalAssetsUsd || 0,
+        pricePerShare,
         underlyingTokens: [vault.asset.address],
         url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
         apyReward,

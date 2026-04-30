@@ -13,6 +13,7 @@ export interface Pool {
   duration?: number;
   apyBase?: number;
   apyReward?: number;
+  pricePerShare?: number;
   rewardTokens?: Array<string>;
   underlyingTokens?: Array<string>;
   searchTokenOverride?: string;
