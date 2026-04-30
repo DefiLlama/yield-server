@@ -163,6 +163,7 @@ const main = async () => {
         tvlUsd: data.tvlUsd,
         apyBase,
         apyBase7d,
+        ...(currentPrices[key] > 0 && { pricePerShare: currentPrices[key] / 1e6 }),
         poolMeta: data.name || undefined,
         url: 'https://app.gauntlet.xyz/vaults/gtusda',
         underlyingTokens: [USDC[chain]],

@@ -4,7 +4,6 @@ const ss = require('simple-statistics');
 const utils = require('../utils/s3');
 const {
   getYieldFiltered,
-  getLatestYieldForPool,
   getYieldOffset,
   getYieldAvg30d,
   getYieldLendBorrow,
@@ -32,10 +31,6 @@ const main = async () => {
   // ---------- get lastet unique pool
   console.log('\ngetting pools');
   let data = await getYieldFiltered(lendingProjects);
-  const aaveGHO = await getLatestYieldForPool(
-    '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40'
-  );
-  data = [...data, ...aaveGHO];
 
   const excludedProjects = await getExcludedAdaptors();
   data = data.filter((p) => !excludedProjects.has(p.project));

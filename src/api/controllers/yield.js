@@ -16,7 +16,8 @@ const getYieldHistory = async (req, res) => {
               "apyBase",
               "apyReward",
               "il7d",
-              "apyBase7d"
+              "apyBase7d",
+              "pricePerShare"
           FROM
               yield
           WHERE
@@ -60,7 +61,8 @@ const getYieldHistoryHourly = async (req, res) => {
               "apyBase",
               "apyReward",
               "il7d",
-              "apyBase7d"
+              "apyBase7d",
+              "pricePerShare"
           FROM
               yield
           WHERE

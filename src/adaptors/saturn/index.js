@@ -89,6 +89,8 @@ const main = async () => {
       tvlUsd,
       apyBase,
       apyBase7d,
+      // USDat is 6-dec; sUSDat shares are 18-dec.
+      ...(Number(rateNow.output) / 1e6 > 0 && { pricePerShare: Number(rateNow.output) / 1e6 }),
       underlyingTokens: [USDAT_ADDRESS],
     },
   ];

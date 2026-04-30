@@ -85,6 +85,8 @@ async function apy() {
       symbol: utils.formatSymbol(symbol),
       tvlUsd,
       apyBase,
+      // rNow is in asset decimals; shares are 18-dec.
+      ...(rNow / 10 ** dec > 0 && { pricePerShare: rNow / 10 ** dec }),
       underlyingTokens: [vault.underlying],
       url: 'https://finance.zircuit.com',
     };

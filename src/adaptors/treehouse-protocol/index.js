@@ -145,6 +145,7 @@ const getPool = async ({ symbol, chain, vault, underlying, underlyingApr }) => {
         underlyingTokens: [underlying],
         apyBase: vaultApr1d + extra.apr1d,
         apyBase7d: vaultApr7d !== null ? vaultApr7d + extra.apr7d : null,
+        ...(n(rateNow) > 0 && { pricePerShare: n(rateNow) }),
         tvlUsd: n(totalAssets) * price,
     };
 };

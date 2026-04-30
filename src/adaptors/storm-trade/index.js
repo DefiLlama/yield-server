@@ -4,7 +4,14 @@ const VAULTS_URL = 'https://api5.storm.tg/api/vaults';
 const TON_ADDRESS = 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
 
 const getApr = async () => {
-  const vaults = await utils.getData(VAULTS_URL);
+  let vaults;
+  try {
+    vaults = await utils.getData(VAULTS_URL);
+  } catch (e) {
+    if (e.response?.status === 404) return [];
+    throw e;
+  }
+  if (!Array.isArray(vaults)) return [];
 
   const priceKeys = vaults.map((v) => {
     const assetId = v.config.asset.assetId;

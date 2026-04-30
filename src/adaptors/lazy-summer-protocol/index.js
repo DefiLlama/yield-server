@@ -237,6 +237,7 @@ const main = async () => {
           tvlUsd,
           apyBase,
           apyBase7d,
+          ...(currentSharePrice > 0 && { pricePerShare: currentSharePrice }),
           underlyingTokens: [vault.asset],
           poolMeta,
           url: `https://summer.fi/earn/${chain === 'ethereum' ? 'mainnet' : chain}/position/${vault.address}`,

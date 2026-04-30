@@ -210,6 +210,7 @@ const apy = async () => {
       symbol: symbol.output || 'gMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
+      ...(Number(shareValueNow) / 1e18 > 0 && { pricePerShare: Number(shareValueNow) / 1e18 }),
       underlyingTokens: [WMON],
       searchTokenOverride: MAGMA_ADDRESS,
     },
