@@ -1,60 +1,56 @@
 const utils = require('../utils');
 
-const GRAPHQL_ENDPOINT = 'https://api5.storm.tg/graphql';
-
-
-const getVault = async (address, price, symbol, token) => {
-    console.log("Requesting vault " + address)
-    const vault = (await utils.getData(GRAPHQL_ENDPOINT, {
-        query: `
-        query {
-  getVault(address: "${address}") {
-    freeBalance
-    config {
-      asset {
-        name
-        decimals
-      }
-    }
-    APR {
-      rateAPR
-    }
-  }
-}`
-    })).data.getVault;
-    console.log(vault);
-    return {
-        pool: `${address}-ton`.toLowerCase(),
-        chain: 'Ton',
-        project: 'storm-trade',
-        symbol: symbol,
-        tvlUsd: vault.freeBalance / 1e9 * price,
-        apyBase: Number(vault.APR.rateAPR),
-        underlyingTokens: [token],
-        url: `https://app.storm.tg/vault/${symbol}`
-    }
-}
-
+const VAULTS_URL = 'https://api5.storm.tg/api/vaults';
+const TON_ADDRESS = 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
 
 const getApr = async () => {
-    console.log("Requesting vaults list")
-    const TON = 'ton:EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
-    const NOT = 'ton:EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT';
-    const price = async (token) => (await utils.getData(`https://coins.llama.fi/prices/current/${token}`)).coins[token].price;
-    const ton_price = await price(TON);
+  let vaults;
+  try {
+    vaults = await utils.getData(VAULTS_URL);
+  } catch (e) {
+    if (e.response?.status === 404) return [];
+    throw e;
+  }
+  if (!Array.isArray(vaults)) return [];
 
-    return [
-        await getVault('0:33e9e84d7cbefff0d23b395875420e3a1ecb82e241692be89c7ea2bd27716b77', 1,
-            'USDT', 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'),
-        await getVault('0:e926764ff3d272c73ddeb836975c5521c025ad68e7919a25094e2de3198805f1', await price(TON),
-            'TON', 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c'),
-        await getVault('0:06f3f073c255a49aa6fdcc89abf512638e065908b30e4173fd3d1d01d4f607bd', await price(NOT),
-            'NOT', 'EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT')
-    ];
+  const priceKeys = vaults.map((v) => {
+    const assetId = v.config.asset.assetId;
+    return `ton:${assetId === 'TON' ? TON_ADDRESS : assetId}`;
+  });
+
+  const prices = (
+    await utils.getData(
+      `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
+    )
+  ).coins;
+
+  return vaults
+    .map((vault, i) => {
+      const price = prices[priceKeys[i]]?.price ?? 0;
+      const apr = parseFloat(vault.apr.year);
+
+      return {
+        pool: `${vault.address}-ton`.toLowerCase(),
+        chain: 'Ton',
+        project: 'storm-trade',
+        symbol: vault.config.asset.name,
+        tvlUsd:
+          ((Number(vault.freeBalance) + Number(vault.lockedBalance)) / 1e9) *
+          price,
+        apyBase: isNaN(apr) ? 0 : apr,
+        underlyingTokens: [
+          vault.config.asset.assetId === 'TON'
+            ? TON_ADDRESS
+            : vault.config.asset.assetId,
+        ],
+        url: `https://app.storm.tg/vault/${vault.config.asset.name}`,
+      };
+    })
+    .filter((p) => p.tvlUsd > 0);
 };
 
 module.exports = {
-    timetravel: false,
-    apy: getApr,
-    url: 'https://storm.tg/',
+  timetravel: false,
+  apy: getApr,
+  url: 'https://storm.tg/',
 };

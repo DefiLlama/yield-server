@@ -1,5 +1,9 @@
 const axios = require('axios');
-const { getStakePoolInfo, calcSolanaLstApy } = require('../utils');
+const {
+  getStakePoolInfo,
+  calcSolanaLstApy,
+  solanaLstPricePerShare,
+} = require('../utils');
 
 const LAINESOL_MINT = 'LAinEtNLgpmCP9Rvsf5Hn8W6EhNiKLZQti1xfWMLy6X';
 const STAKE_POOL = '2qyEeSAWKfU18AFthrF7JA8z8ZCi1yt76Tqs917vwQTV';
@@ -17,6 +21,7 @@ const apy = async () => {
   if (!solPrice) throw new Error('Unable to fetch SOL price');
 
   const apyBase = calcSolanaLstApy(stakePool);
+  const pricePerShare = solanaLstPricePerShare(stakePool);
 
   const feePct = stakePool.epochFee
     ? `${((stakePool.epochFee.numerator / stakePool.epochFee.denominator) * 100).toFixed(0)}% epoch fee`
@@ -30,6 +35,7 @@ const apy = async () => {
       symbol: 'laineSOL',
       tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
+      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: [SOL],
       searchTokenOverride: LAINESOL_MINT,
       poolMeta: feePct,

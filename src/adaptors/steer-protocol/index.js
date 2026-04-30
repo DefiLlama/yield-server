@@ -1,6 +1,7 @@
 const { request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const axios = require('axios');
 
 // add chain deployments and subgraph endpoints here
@@ -111,7 +112,8 @@ const getPools = async () => {
       console.log(err.message);
     }
   }
-  return pools.filter((i) => utils.keepFinite(i));
+  const filtered = pools.filter((i) => utils.keepFinite(i));
+  return addMerklRewardApy(filtered, 'steer', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

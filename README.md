@@ -38,6 +38,7 @@ interface Pool {
   tvlUsd: number; // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
   apyBase?: number;
   apyReward?: number;
+  pricePerShare?: number; // underlying assets per share (e.g. ERC-4626 convertToAssets / 1 share); NOT a USD price. Omit when not applicable.
   rewardTokens?: Array<string>;
   underlyingTokens?: Array<string>;
   poolMeta?: string;

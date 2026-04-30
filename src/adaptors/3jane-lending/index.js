@@ -127,6 +127,7 @@ const apy = async () => {
       symbol: 'USD3',
       tvlUsd: usd3TvlUsd,
       apyBase: aaveApy,
+      pricePerShare: Number(usd3Pps.output) / 1e6,
       underlyingTokens: [USDC],
       url: 'https://app.3jane.xyz/supply',
     },
@@ -137,6 +138,8 @@ const apy = async () => {
       symbol: 'sUSD3',
       tvlUsd: susd3TvlUsd,
       apyBase: susd3Apy,
+      // Morpho Blue virtual-share offset = +6; scale to normalize.
+      pricePerShare: Number.isFinite(sppNow) ? sppNow * 1e6 : null,
       underlyingTokens: [USD3],
       url: 'https://app.3jane.xyz/supply',
     },

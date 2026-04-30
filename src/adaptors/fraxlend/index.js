@@ -2,6 +2,7 @@ const { default: BigNumber } = require('bignumber.js');
 const sdk = require('@defillama/sdk');
 const BIG_10 = new BigNumber('10');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
@@ -267,7 +268,7 @@ const main = async () => {
   );
   const prices = (await utils.getPrices(coins)).pricesByAddress;
 
-  return vaults
+  const pools = vaults
     .map((vaultAddress, index) => {
       const tvlUsd = new BigNumber(totalCollaterals[index])
         .dividedBy(BIG_10.pow(decimalCollaterals[index]))
@@ -288,6 +289,10 @@ const main = async () => {
       const apyBase = apyBaseBorrow
         .multipliedBy(new BigNumber(totalBorrows[index].amount))
         .div(new BigNumber(totalAssets[index].amount));
+      const assetShares = new BigNumber(totalAssets[index].shares);
+      const pricePerShare = assetShares.gt(0)
+        ? new BigNumber(totalAssets[index].amount).div(assetShares).toNumber()
+        : null;
       return {
         pool: vaultAddress,
         project: 'fraxlend',
@@ -295,6 +300,7 @@ const main = async () => {
         chain: 'ethereum',
         apyBase: apyBase.toNumber(),
         tvlUsd: tvlUsd.toNumber(),
+        pricePerShare,
         // borrow fields
         apyBaseBorrow: apyBaseBorrow.toNumber(),
         totalSupplyUsd: tvlUsd.toNumber(),
@@ -308,6 +314,8 @@ const main = async () => {
       };
     })
     .filter((e) => e.tvlUsd);
+
+  return addMerklRewardApy(pools, 'fraxlend');
 };
 
 module.exports = {

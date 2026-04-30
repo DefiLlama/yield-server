@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const API_ENDPOINT = 'https://api.stakedao.org/api/';
 const SDT_ADDRESS = '0x73968b9a57c6e53d41345fd57a6e6ae27d6cdb2f';
@@ -144,9 +145,11 @@ const poolsFunction = async () => {
     })
     .flat();
 
-  return utils.removeDuplicates(
+  const pools = utils.removeDuplicates(
     strats.concat(lockers).filter((i) => utils.keepFinite(i))
   );
+
+  return addMerklRewardApy(pools, 'stakedao');
 };
 
 module.exports = {

@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const poolAbi = require('./poolAbi');
 const {
   dustRewardsControllerAbi,
@@ -415,7 +416,8 @@ const apy = async () => {
     rewardTokensList.output
   );
 
-  return veDustPool ? [...lendingPools, veDustPool] : lendingPools;
+  const pools = veDustPool ? [...lendingPools, veDustPool] : lendingPools;
+  return addMerklRewardApy(pools, 'neverland', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

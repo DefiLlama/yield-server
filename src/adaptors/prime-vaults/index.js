@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
 const COMPOUND_FREQUENCY_DAILY = 365;
@@ -255,6 +256,10 @@ const apy = async () => {
         apyBase,
         apyReward,
         rewardTokens,
+        ...(Number(currentRate) / 10 ** (vault.decimals ?? 18) > 0 && {
+          pricePerShare:
+            Number(currentRate) / 10 ** (vault.decimals ?? 18),
+        }),
         underlyingTokens: [vault.underlyingToken],
         url: vault.url,
       });
@@ -263,7 +268,7 @@ const apy = async () => {
     }
   }
 
-  return pools.filter(utils.keepFinite);
+  return addMerklRewardApy(pools.filter(utils.keepFinite), 'prime-vaults', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const PROJECT_NAME = 'superform';
 
@@ -127,8 +128,8 @@ const main = async () => {
 
       // APY from 7-day share price change: (priceNow / pricePast) ^ (365/7) - 1
       let apyBase = 0;
+      const priceNow = assetsNow / supplyNow;
       if (supplyPast > 0 && assetsPast > 0) {
-        const priceNow = assetsNow / supplyNow;
         const pricePast = assetsPast / supplyPast;
         apyBase = (Math.pow(priceNow / pricePast, 365 / 7) - 1) * 100;
         apyBase = Math.max(apyBase, 0);
@@ -157,6 +158,8 @@ const main = async () => {
         symbol: utils.formatSymbol(symbol),
         tvlUsd,
         apyBase,
+        // SuperVault shares are 18-dec; assets in own decimals.
+        ...(priceNow * 10 ** (18 - decimals) > 0 && { pricePerShare: priceNow * 10 ** (18 - decimals) }),
         underlyingTokens: [assetAddress],
         poolMeta: 'SuperVault',
         url: `https://app.superform.xyz/vault/${vault.chain_id}_${vault.address}`,
@@ -171,7 +174,7 @@ const main = async () => {
     }
   }
 
-  return pools.filter((p) => utils.keepFinite(p));
+  return addMerklRewardApy(pools.filter((p) => utils.keepFinite(p)), 'superform');
 };
 
 module.exports = {

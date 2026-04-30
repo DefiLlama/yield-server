@@ -1,6 +1,7 @@
 const dolomiteMarginAbi = require('./dolomite-margin-abi.js');
 const isolationModeAbi = require('./isolation-mode-token-abi.js');
 const sdk = require('@defillama/sdk');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const DOLOMITE_MARGIN_ADDRESS_MAP = {
   arbitrum: '0x6Bd780E7fDf01D77e4d475c821f1e7AE05409072',
@@ -212,6 +213,7 @@ async function apy() {
               tvlUsd: supplyUsds[i] - borrowUsds[i],
               apyBase: supplyInterestRateApys[i],
               apyReward: 0,
+              ...(Number(indices[i].supply) / 1e18 > 0 && { pricePerShare: Number(indices[i].supply) / 1e18 }),
               underlyingTokens: [tokens[i]],
               rewardTokens: [],
               apyBaseBorrow: borrowInterestRateApys[i],
@@ -231,7 +233,7 @@ async function apy() {
     })
   );
 
-  return allPools.flat();
+  return addMerklRewardApy(allPools.flat(), 'dolomite', (p) => p.pool.split('-')[0]);
 }
 
 module.exports = {
