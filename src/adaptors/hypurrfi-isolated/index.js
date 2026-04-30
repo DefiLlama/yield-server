@@ -2,6 +2,7 @@ const axios = require("axios");
 const sdk = require("@defillama/sdk");
 
 const utils = require("../utils");
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 // HypurrFi Isolated Lending (Fraxlend-style pairs) on Hyperliquid L1
 const REGISTRY = "0x5aB54F5Ca61ab60E81079c95280AF1Ee864EA3e7";
@@ -201,18 +202,18 @@ const apy = async () => {
         debtCeilingUsd: null,
         apyBaseBorrow,
         ltv,
-        url: `https://app.hypurr.fi/markets/isolated/999/${pairAddr}`,
+        url: `https://hypurrfi.com/markets/isolated/999/${pairAddr}`,
         poolMeta: `Isolated - ${collName}`,
       };
     })
     .filter(Boolean)
     .filter((p) => utils.keepFinite(p));
 
-  return pools;
+  return addMerklRewardApy(pools, 'hypurrfi', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {
   timetravel: false,
   apy,
-  url: "https://app.hypurr.fi/lend",
+  url: "https://hypurrfi.com/lend",
 };

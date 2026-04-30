@@ -50,6 +50,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'apyBaseInception',
       'searchTokenOverride',
       'token',
+      'pricePerShare',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
@@ -194,6 +195,10 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       ltv: {
         min: 0,
         max: 1,
+      },
+      pricePerShare: {
+        type: 'number',
+        min: 0,
       },
     };
 

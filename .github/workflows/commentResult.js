@@ -1,44 +1,33 @@
-const { readFileSync } = require('fs');
+const { readFileSync, writeFileSync, mkdirSync } = require('fs');
+const path = require('path');
 
-const junk =
-  'rmiclefn]LqJkGICgOf7QUQgCO@4FLuF?bK.uOI0U6cbV';
-
-async function main() {
-  const [, , log, author, repo, pr, adapter] = process.argv;
+function main() {
+  const [, , log, outDir, adapter] = process.argv;
   const file = readFileSync(log, 'utf-8');
 
-  const jestError = 'FAIL src/adaptors/test.js';
-  const jestSuccess = 'PASS src/adaptors/test.js';
+  const passed = /PASS\s+.*test\.js/.test(file);
+  const failed = /FAIL\s+.*test\.js/.test(file);
+
+  // Everything from "Test Suites:" onward (includes pool output from afterTests.js)
   const summaryIndex = file.indexOf('Test Suites:');
-  const jestSuccessIndex = file.indexOf(jestSuccess);
-  const jestErrorIndex = file.indexOf(jestError);
+  if (summaryIndex === -1) return;
+  const output = file.substring(summaryIndex);
+
   let body;
-
-  if (jestErrorIndex === -1 && jestSuccessIndex !== -1) {
+  if (passed && !failed) {
     body = `The ${adapter} adapter exports pools:
-        \n \n ${file.substring(summaryIndex).replaceAll('\n', '\n    ')}`;
-  } else if (jestErrorIndex !== -1) {
+        \n \n ${output.replaceAll('\n', '\n    ')}`;
+  } else if (failed) {
     body = `Error while running ${adapter} adapter:
-        \n \n ${file.substring(summaryIndex).replaceAll('\n', '\n    ')}`;
-  } else return;
+        \n \n ${output.replaceAll('\n', '\n    ')}`;
+  } else {
+    return;
+  }
 
-  await fetch(
-    `https://api.github.com/repos/${author}/${repo}/issues/${pr}/comments`,
-    {
-      body: JSON.stringify({ body }),
-      method: 'POST',
-      headers: {
-        Authorization: scramble(junk),
-        Accept: 'application/vnd.github.v3+json',
-      },
-    }
-  );
-}
-
-function scramble(str) {
-  return str.split('').reduce((a, b) => {
-    return a + String.fromCharCode(b.charCodeAt(0) + 2);
-  }, '');
+  mkdirSync(outDir, { recursive: true });
+  const safeName = (adapter || 'general').replace(/[^a-zA-Z0-9._-]/g, '_');
+  const fileName = `${Date.now()}-${process.pid}-${safeName}.md`;
+  writeFileSync(path.join(outDir, fileName), body);
 }
 
 main();

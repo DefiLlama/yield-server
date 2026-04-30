@@ -97,7 +97,7 @@ const apy = async () => {
     pools.push({
       pool: `${TQETH_VAULT.toLowerCase()}-ethereum`,
       chain: 'Ethereum',
-      project: 'theoriq-v1',
+      project: 'theoriq-alphavault-eth',
       symbol: 'tqETH',
       tvlUsd: tqethTvl,
       apyBase: tqethVault.apy || 0,
@@ -113,7 +113,7 @@ const apy = async () => {
     pools.push({
       pool: `${STHQ_VAULT.toLowerCase()}-base`,
       chain: 'Base',
-      project: 'theoriq-v1',
+      project: 'theoriq-alphavault-eth',
       symbol: 'sTHQ',
       tvlUsd: sthqTvl,
       apyBase: sthqVault.apy || 0,

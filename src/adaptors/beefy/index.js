@@ -1,3 +1,4 @@
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const {
   formatChain,
   formatSymbol,
@@ -165,7 +166,7 @@ const main = async () => {
     }
   }
 
-  return removeDuplicates(data);
+  return addMerklRewardApy(removeDuplicates(data), 'beefy', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

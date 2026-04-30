@@ -26,6 +26,11 @@ async function main() {
     const { data: { supply } } = await utils.getData(`${NODE_URL}/accounts/${AMNIS_RESOURCE_ACCOUNT}/resource/0x1::coin::CoinInfo%3C${AMNIS_RESOURCE_ACCOUNT}::amapt_token::AmnisApt%3E`)
     tvlUsd = supply.vec[0].integer.vec[0].value/1e8 * aptPrice.coins[aptosCoinName].price
 
+    const pricePerShare =
+      Number(amStaked) > 0 && Number(amTotalSupply) > 0
+        ? Number(amStaked) / Number(amTotalSupply)
+        : null;
+
     return [
         {
           pool: `${AMNIS_RESOURCE_ACCOUNT}-amnis-finance`,
@@ -35,6 +40,7 @@ async function main() {
           tvlUsd: tvlUsd,
           apy: apy,
           apyBase: apy,
+          pricePerShare,
           underlyingTokens: ['0x1::aptos_coin::AptosCoin'],
         },
       ];

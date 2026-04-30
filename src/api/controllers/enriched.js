@@ -48,7 +48,13 @@ const getPoolEnriched = async (req, res) => {
     .status(200)
     .json({
       status: 'success',
-      data: data.filter((t) => t.pool == configID),
+      data: data
+        .filter((t) => t.pool == configID)
+        .map((pool) => {
+          const responsePool = { ...pool };
+          delete responsePool.poolTokenAddress;
+          return responsePool;
+        }),
     });
 };
 

@@ -264,7 +264,7 @@ const getApys = async () => {
               underlyingTokens: [assetAddr],
               ltv: ltv !== undefined ? ltv : undefined,
               url: chain === 'hyperliquid'
-                ? `https://app.hypurr.fi/markets/elend/999/${vaultAddr}`
+                ? `https://hypurrfi.com/markets/elend/999/${vaultAddr}`
                 : `https://app.euler.finance/vault/${vaultAddr}?network=${config.urlChain}`,
             };
           })
@@ -315,7 +315,7 @@ const getApys = async () => {
               apyBase,
               underlyingTokens: [earnAssetAddr],
               url: chain === 'hyperliquid'
-                ? `https://app.hypurr.fi/markets/elend/999/${earnAddr}`
+                ? `https://hypurrfi.com/markets/elend/999/${earnAddr}`
                 : `https://app.euler.finance/vault/${earnAddr}?network=${config.urlChain}`,
             };
           })
@@ -329,7 +329,10 @@ const getApys = async () => {
     })
   );
 
-  return await addMerklRewardApy(chainResults.flat(), 'euler');
+  return await addMerklRewardApy(chainResults.flat(), 'euler', (p) => {
+    const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
+    return match ? match[0] : p.pool;
+  });
 };
 
 module.exports = {
@@ -687,7 +690,10 @@ const getApys = async () => {
     })
   );
 
-  return await addMerklRewardApy(chainResults.flat(), 'euler');
+  return await addMerklRewardApy(chainResults.flat(), 'euler', (p) => {
+    const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
+    return match ? match[0] : p.pool;
+  });
 };
 
 module.exports = {
