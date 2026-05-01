@@ -101,6 +101,7 @@ const main = async (body) => {
   const strToNum = (val) => (typeof val === 'string' ? Number(val) : val);
   data = data.map((p) => ({
     ...p,
+    duration: strToNum(p.duration),
     apy: strToNum(p.apy),
     apyBase: strToNum(p.apyBase),
     apyReward: strToNum(p.apyReward),
@@ -139,6 +140,7 @@ const main = async (body) => {
     apyBaseInception: Number.isFinite(p.apyBaseInception)
       ? p.apyBaseInception
       : null,
+    duration: Number.isFinite(p.duration) ? p.duration : null,
     pricePerShare:
       Number.isFinite(p.pricePerShare) && p.pricePerShare > 0
         ? p.pricePerShare
@@ -359,6 +361,8 @@ const main = async (body) => {
       )
         ? p.symbol
         : utils.formatSymbol(p.symbol),
+      type: p.type ?? null,
+      duration: p.duration !== null ? +p.duration.toFixed(5) : null,
       tvlUsd: Math.round(p.tvlUsd), // round tvlUsd to integer and apy fields to n-dec
       apy: +p.apy.toFixed(precision), // round apy fields
       apyBase: p.apyBase !== null ? +p.apyBase.toFixed(precision) : p.apyBase,

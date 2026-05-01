@@ -110,6 +110,8 @@ const getPoolsBorrow = async (req, res) => {
         debtCeilingUsd: p.debtCeilingUsd,
         ltv: p.ltv,
         borrowable: p.borrowable,
+        type: p.type ?? poolSupplySide.type,
+        duration: p.duration ?? poolSupplySide.duration,
         mintedCoin: p.mintedCoin,
         borrowFactor: p.borrowFactor,
         rewardTokens: p.rewardTokens,
