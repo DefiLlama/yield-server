@@ -185,14 +185,15 @@ const apy = async () => {
       `SBTCDOracle.latestRoundData().answer must be positive, got ${priceUsd_e8}`
     );
   }
-  // tvlUsd = totalSupply × price / 10^(18+8) = USD raw with 8 decimals.
+  // tvlUsd = totalSupply × price / 10^(18+8) = USD raw with 8 decimals
+  // (the oracle's `decimals()` is fixed at 8 per IPriceOracle).
   // Split the BigInt into whole+fractional dollars so we don't lose cents
   // of precision once total TVL grows past Number.MAX_SAFE_INTEGER (~$90M
   // when expressed at 8-decimal scale).
   const tvlUsdScaled = (totalSupply * priceUsd_e8) / 10n ** 18n; // 8-decimal USD
-  const HUNDRED_M = 10n ** 8n;
-  const wholeUsd = tvlUsdScaled / HUNDRED_M;
-  const fracUsd = tvlUsdScaled % HUNDRED_M;
+  const ONE_USD_E8 = 10n ** 8n; // = 1.00 USD expressed in 8-dec oracle units
+  const wholeUsd = tvlUsdScaled / ONE_USD_E8;
+  const fracUsd = tvlUsdScaled % ONE_USD_E8;
   const tvlUsd = Number(wholeUsd) + Number(fracUsd) / 1e8;
 
   return [
