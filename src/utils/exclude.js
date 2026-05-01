@@ -337,6 +337,7 @@ const excludeAdaptors = [
   'taiga-karura',
   'unizen',
   'koalaswap',
+  'seamless-v2',
 ];
 
 const excludePools = [
