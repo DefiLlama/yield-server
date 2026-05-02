@@ -44,7 +44,7 @@ const getV3Pools = async (backendChain, chainString) => {
         .reduce((sum, item) => sum + Number(item.apr), 0);
 
       const stakingApr = aprItems
-        .filter((item) => item.type === 'STAKING')
+        .filter((item) => item.type === 'STAKING' || item.type === 'MERKL')
         .reduce((sum, item) => sum + Number(item.apr), 0);
 
       const rewardTokens = aprItems
@@ -95,7 +95,6 @@ const poolsFunction = async () => {
     hyperliquidPools,
     plasmaPools,
     monadPools,
-  
   ] = await Promise.all([
     getV3Pools('MAINNET', 'ethereum'),
     getV3Pools('GNOSIS', 'xdai'),
