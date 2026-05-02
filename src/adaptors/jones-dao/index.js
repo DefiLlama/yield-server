@@ -100,21 +100,19 @@ async function pools() {
     }
   }
 
-  // jGLP vault (Arbitrum) - only include if TVL > 0
+  // jGLP vault (Arbitrum)
   if (jglpRes?.result?.data?.json?.leveragedVaults) {
     const vaults = jglpRes.result.data.json.leveragedVaults;
     for (const vault of vaults) {
-      if (vault.tvl > 0) {
-        pools.push({
-          pool: `${jglpVault}-arbitrum`.toLowerCase(),
-          chain: 'Arbitrum',
-          project: 'jones-dao',
-          symbol: 'jGLP',
-          underlyingTokens: [glp],
-          tvlUsd: vault.tvl,
-          apyBase: vault.apy?.apy || 0,
-        });
-      }
+      pools.push({
+        pool: `${jglpVault}-arbitrum`.toLowerCase(),
+        chain: 'Arbitrum',
+        project: 'jones-dao',
+        symbol: 'jGLP',
+        underlyingTokens: [glp],
+        tvlUsd: vault.tvl,
+        apyBase: vault.apy?.apy || 0,
+      });
     }
   }
 

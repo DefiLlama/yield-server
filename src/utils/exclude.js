@@ -187,7 +187,6 @@ const excludeAdaptors = [
   'mm-finance-polygon',
   'maia-cl',
   'molecular',
-  'jones-dao', //disabled deposits
   'zkp2p',
   'dyson',
   'opyn-squeeth',
