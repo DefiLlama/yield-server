@@ -33,7 +33,6 @@ const gqlQueries = {
           asset {
             address
             decimals
-            priceUsd
             symbol
           }
           state {
