@@ -2,8 +2,8 @@ const axios = require('axios');
 const utils = require('../utils');
 const urls = {
   ethereum: 'https://api.vesper.finance/pools?stages=prod',
-  avalanche: 'https://api-avalanche.vesper.finance/pools?stages=prod',
   optimism: 'https://api-optimism.vesper.finance/pools?stages=prod',
+  base: 'https://api-base.vesper.finance/pools?stages=prod',
 };
 
 const underlyingTokenMapping = {
@@ -11,10 +11,11 @@ const underlyingTokenMapping = {
     eth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
   },
-  avalanche: {
-    avax: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7',
-  },
   optimism: {
+    eth: '0x4200000000000000000000000000000000000006',
+    weth: '0x4200000000000000000000000000000000000006',
+  },
+  base: {
     eth: '0x4200000000000000000000000000000000000006',
     weth: '0x4200000000000000000000000000000000000006',
   },
