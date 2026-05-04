@@ -62,6 +62,10 @@ const getV3Pools = async (backendChain, chainString) => {
           ? 'avalanche'
           : chainString;
 
+      rewardTokens.length
+        ? rewardTokens
+        : rewardTokens.push('0x0000000000000000000000000000000000000000');
+
       return {
         pool: pool.address,
         chain: utils.formatChain(chainString),
