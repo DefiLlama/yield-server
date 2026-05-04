@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
-const chainIdToName = { 143: 'monad' };
+const chainIdToName = { 143: 'monad', 4114: 'citrea' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const abis = {
@@ -11,7 +11,6 @@ const abis = {
 };
 
 const basisPointsToPercent = (value) => Number(value) / 1e4;
-const formatAmount = (value, decimals = 18) => (value == null ? null : Number(value) / 10 ** decimals);
 
 const fetchVaultsByLoanIds = async(loanIds) => {
     const results = await Promise.allSettled(
@@ -105,19 +104,40 @@ const fetchBreakdowns = async(loanIds) => {
 
 const apy = async() => {
     const { items } = await utils.getData(API_URL);
-    const activeLoans = items.filter((item) => item.loan_state === 3);
+    const activeLoans = items.filter(
+        (item) => item.loan_state === 3 && chainIdToName[item.chain_id]
+    );
     const loanIds = activeLoans.map((item) => item.id);
 
     const loanVaultMap = await fetchVaultsByLoanIds(loanIds);
-    const vaultAddresses = Object.values(loanVaultMap);
-    const vaultStats = await getVaultStats(vaultAddresses);
+
+    const vaultsByChain = {};
+    activeLoans.forEach((item) => {
+        const vault = loanVaultMap[item.id];
+        if (!vault) return;
+        const chain = chainIdToName[item.chain_id];
+        (vaultsByChain[chain] ||= new Set()).add(vault);
+    });
+    const vaultStats = {};
+    await Promise.all(
+        Object.entries(vaultsByChain).map(async([chain, vaultSet]) => {
+            const stats = await getVaultStats(Array.from(vaultSet), chain);
+            Object.assign(vaultStats, stats);
+        })
+    );
+
     const breakdowns = await fetchBreakdowns(loanIds);
 
     return Promise.all(
         activeLoans.map(async(item) => {
-            const chainName = chainIdToName[item.chain_id] || 'unknown';
+            const chainName = chainIdToName[item.chain_id];
             const vaultAddress = loanVaultMap[item.id];
             const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
+            const decimals = item.asset_decimals ?? 6;
+            const tvlToken = Number(item.tvl) / 10 ** decimals;
+            const priceUsd = tvlToken > 0 ? Number(item.tvl_in_usd) / tvlToken : 0;
+            const toUsd = (raw) =>
+                raw == null ? null : (Number(raw) / 10 ** decimals) * priceUsd;
             const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
 
             const breakdown = breakdowns[item.id]?.main || {};
@@ -164,13 +184,13 @@ const apy = async() => {
                 chain: utils.formatChain(chainName),
                 project: 'accountable',
                 symbol: utils.formatSymbol(item.asset_symbol),
-                tvlUsd: formatAmount(stats.tvl, 6),
+                tvlUsd: Number(item.tvl_in_usd) || 0,
                 apyBase: baseApy,
                 apyReward: totalApyReward,
                 rewardTokens: combinedRewardTokens,
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
-                totalSupplyUsd: formatAmount(stats.totalSupplied, 6),
-                totalBorrowUsd: formatAmount(stats.totalBorrowed, 6),
+                totalSupplyUsd: toUsd(stats.totalSupplied),
+                totalBorrowUsd: toUsd(stats.totalBorrowed),
                 underlyingTokens: stats.underlying ? [stats.underlying] : undefined,
             };
         })
