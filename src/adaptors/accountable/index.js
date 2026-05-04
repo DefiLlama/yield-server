@@ -81,7 +81,7 @@ const getVaultStats = async(vaults, chain = 'monad') => {
     const liquidity = liquidityRes.output.map((o) => o.output);
     return vaults.reduce((acc, address, i) => {
         acc[address] = {
-            totalSupplied: supplies[i],
+            totalAssets: totalAssets[i],
             totalBorrowed: Number(totalAssets[i]) - Number(liquidity[i] || 0),
             tvl: liquidity[i],
             underlying: underlyings[i],
@@ -122,7 +122,9 @@ const apy = async() => {
     await Promise.all(
         Object.entries(vaultsByChain).map(async([chain, vaultSet]) => {
             const stats = await getVaultStats(Array.from(vaultSet), chain);
-            Object.assign(vaultStats, stats);
+            for (const [address, s] of Object.entries(stats)) {
+                vaultStats[`${chain}:${address}`] = s;
+            }
         })
     );
 
@@ -132,7 +134,7 @@ const apy = async() => {
         activeLoans.map(async(item) => {
             const chainName = chainIdToName[item.chain_id];
             const vaultAddress = loanVaultMap[item.id];
-            const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
+            const stats = vaultAddress ? vaultStats[`${chainName}:${vaultAddress}`] || {} : {};
             const decimals = item.asset_decimals ?? 6;
             const tvlToken = Number(item.tvl) / 10 ** decimals;
             const priceUsd = tvlToken > 0 ? Number(item.tvl_in_usd) / tvlToken : 0;
@@ -189,7 +191,7 @@ const apy = async() => {
                 apyReward: totalApyReward,
                 rewardTokens: combinedRewardTokens,
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
-                totalSupplyUsd: toUsd(stats.totalSupplied),
+                totalSupplyUsd: toUsd(stats.totalAssets),
                 totalBorrowUsd: toUsd(stats.totalBorrowed),
                 underlyingTokens: stats.underlying ? [stats.underlying] : undefined,
             };
