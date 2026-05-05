@@ -5,194 +5,154 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const PROJECT = 'hyperswap-v2';
 const CHAIN = 'hyperevm';
 const MIN_TVL_USD = 1000;
+// HyperSwap V2 contract permits per-pair / per-direction fees, but every pair
+// observed in the wild uses the default 0.3% (300 / 100000). If that ever
+// changes for some pairs, read the extended getReserves() slot on-chain.
+const FEE_RATE = 0.003;
+// App uses 'HYPE' alias in URL paths instead of WHYPE's address.
+const WHYPE = '0x5555555555555555555555555555555555555555';
+const tokenForUrl = (addr) => (addr.toLowerCase() === WHYPE ? 'HYPE' : addr);
 
 const SUBGRAPH_URL =
-  'https://api.goldsky.com/api/public/project_cm97l77ib0cz601wlgi9wb0ec/subgraphs/hyperswap-v2/1.0.5/gn';
-
-const FEE_TIER = 3000;
+  'https://api.subgraph.ormilabs.com/api/public/33c67399-d625-4929-b239-5709cd66e422/subgraphs/hyperswap-v2/v1.0.0/gn';
 
 const pairsQuery = gql`
-  query getPairs($first: Int!, $skip: Int!) {
+  query getPairs(
+    $first: Int!
+    $skip: Int!
+    $minTvl: BigDecimal!
+    $hourCutoff: Int!
+  ) {
     pairs(
       first: $first
       skip: $skip
       orderBy: reserveUSD
       orderDirection: desc
-      where: { reserveUSD_gt: 1000 }
+      where: { reserveUSD_gt: $minTvl }
     ) {
       id
-      token0 {
-        id
-        symbol
-        decimals
-      }
-      token1 {
-        id
-        symbol
-        decimals
-      }
-      reserve0
-      reserve1
+      token0 { id symbol decimals }
+      token1 { id symbol decimals }
       reserveUSD
-      volumeUSD
-    }
-  }
-`;
-
-const pairDayDataQuery = gql`
-  query getPairDayData($pairAddresses: [String!], $startTime: Int!) {
-    pairDayDatas(
-      first: 1000
-      orderBy: date
-      orderDirection: desc
-      where: { pairAddress_in: $pairAddresses, date_gt: $startTime }
-    ) {
-      pairAddress
-      dailyVolumeUSD
-      date
+      pairHourData(
+        first: 24
+        orderBy: hourStartUnix
+        orderDirection: desc
+        where: { hourStartUnix_gt: $hourCutoff }
+      ) {
+        hourlyVolumeUSD
+      }
     }
   }
 `;
 
 async function fetchAllPairs() {
-  let allPairs = [];
-  let skip = 0;
+  const all = [];
   const first = 1000;
-
+  let skip = 0;
+  const hourCutoff = Math.floor(Date.now() / 1000) - 24 * 3600;
   while (true) {
-    try {
-      const data = await request(SUBGRAPH_URL, pairsQuery, {
-        first,
-        skip,
-      });
-      const pairs = data.pairs;
-
-      if (pairs.length === 0) break;
-
-      allPairs = allPairs.concat(pairs);
-
-      if (pairs.length < first) break;
-
-      skip += first;
-    } catch (error) {
-      console.error('Error fetching pairs from subgraph:', error);
-      throw error;
-    }
-  }
-
-  return allPairs;
-}
-
-async function fetchPairDayData(pairAddresses) {
-  // Get data from the last 7 days
-  const startTime = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
-
-  try {
-    const result = await request(SUBGRAPH_URL, pairDayDataQuery, {
-      pairAddresses,
-      startTime,
+    const { pairs } = await request(SUBGRAPH_URL, pairsQuery, {
+      first,
+      skip,
+      minTvl: String(MIN_TVL_USD),
+      hourCutoff,
     });
-
-    const volumesByPair = {};
-    const lastDayVolumeByPair = {};
-
-    const pairDayDatas = result.pairDayDatas || [];
-    
-    for (const dayData of pairDayDatas) {
-      const pairAddr = dayData.pairAddress.toLowerCase();
-      const volume = parseFloat(dayData.dailyVolumeUSD) || 0;
-
-      if (!volumesByPair[pairAddr]) {
-        volumesByPair[pairAddr] = 0;
-      }
-      volumesByPair[pairAddr] += volume;
-
-      if (
-        !lastDayVolumeByPair[pairAddr] ||
-        dayData.date > lastDayVolumeByPair[pairAddr].date
-      ) {
-        lastDayVolumeByPair[pairAddr] = {
-          date: dayData.date,
-          volume: volume,
-        };
-      }
-    }
-
-    return {
-      weeklyVolumes: volumesByPair,
-      lastDayVolumes: Object.fromEntries(
-        Object.entries(lastDayVolumeByPair).map(([k, v]) => [k, v.volume])
-      ),
-    };
-  } catch (error) {
-    console.error('Error fetching pair day data:', error);
-    return { weeklyVolumes: {}, lastDayVolumes: {} };
+    if (!pairs?.length) break;
+    all.push(...pairs);
+    if (pairs.length < first) break;
+    skip += first;
   }
+  return all;
 }
 
-function calculateApyBase(volumeUSD1d, tvlUSD) {
-  if (!tvlUSD || tvlUSD <= 0) return 0;
-  if (!volumeUSD1d || volumeUSD1d <= 0) return 0;
+// Pair entity has no derived `pairDayData` field, so we fetch the global
+// PairDayData stream filtered by date and group by pairAddress in JS.
+const dayDataQuery = gql`
+  query getPairDayData($first: Int!, $skip: Int!, $dateCutoff: Int!) {
+    pairDayDatas(
+      first: $first
+      skip: $skip
+      orderBy: date
+      orderDirection: desc
+      where: { date_gt: $dateCutoff }
+    ) {
+      pairAddress
+      date
+      dailyVolumeUSD
+    }
+  }
+`;
 
-  // Fee is 0.3% of volume (FEE_TIER / 1e6)
-  const feeUSD1d = (volumeUSD1d * FEE_TIER) / 1e6;
-  const apyBase = ((feeUSD1d * 365) / tvlUSD) * 100;
-  return apyBase;
+async function fetchPairDayVolumes() {
+  const dateCutoff = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
+  const first = 1000;
+  let skip = 0;
+  const byPair = new Map();
+  while (true) {
+    const { pairDayDatas } = await request(SUBGRAPH_URL, dayDataQuery, {
+      first,
+      skip,
+      dateCutoff,
+    });
+    if (!pairDayDatas?.length) break;
+    for (const d of pairDayDatas) {
+      const key = d.pairAddress.toLowerCase();
+      const arr = byPair.get(key) || [];
+      arr.push(Number(d.dailyVolumeUSD) || 0);
+      byPair.set(key, arr);
+    }
+    if (pairDayDatas.length < first) break;
+    skip += first;
+  }
+  return byPair;
 }
 
 async function apy() {
-  try {
-    const pairs = await fetchAllPairs();
+  const [pairs, dayVolumesByPair] = await Promise.all([
+    fetchAllPairs(),
+    fetchPairDayVolumes(),
+  ]);
 
-    const pairAddresses = pairs.map((p) => p.id.toLowerCase());
+  const formatted = pairs.map((p) => {
+    const tvlUsd = Number(p.reserveUSD);
 
-    const { weeklyVolumes, lastDayVolumes } =
-      await fetchPairDayData(pairAddresses);
+    const volumeUsd1d = (p.pairHourData || []).reduce(
+      (sum, h) => sum + Number(h.hourlyVolumeUSD || 0),
+      0
+    );
+    const feesUsd1d = volumeUsd1d * FEE_RATE;
+    const apyBase = (feesUsd1d * 365) / tvlUsd * 100;
 
-    const formattedPools = pairs
-      .map((pair) => {
-        const tvlUSD = Number(pair.reserveUSD) || 0;
+    const dailyVols = dayVolumesByPair.get(p.id) || [];
+    const volumeUsd7d = dailyVols.reduce((s, v) => s + v, 0);
+    const fees7d = volumeUsd7d * FEE_RATE;
+    const apyBase7d = dailyVols.length
+      ? ((fees7d / dailyVols.length) * 365) / tvlUsd * 100
+      : NaN;
 
-        if (tvlUSD < MIN_TVL_USD) return null;
+    const token0 = p.token0.id;
+    const token1 = p.token1.id;
+    const feePct = FEE_RATE * 100;
 
-        const pairId = pair.id.toLowerCase();
-        const volumeUSD1d = lastDayVolumes[pairId] || 0;
-        const volumeUSD7d = weeklyVolumes[pairId] || 0;
+    return {
+      pool: p.id,
+      chain: utils.formatChain(CHAIN),
+      project: PROJECT,
+      symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
+      tvlUsd,
+      apyBase,
+      apyBase7d,
+      underlyingTokens: [token0, token1],
+      poolMeta: `${feePct}%`,
+      url: `https://app.hyperswap.exchange/#/add/v2/${tokenForUrl(token0)}/${tokenForUrl(token1)}`,
+      volumeUsd1d,
+      volumeUsd7d,
+    };
+  });
 
-        const apyBase = calculateApyBase(volumeUSD1d, tvlUSD);
-
-        // 7-day APY calculation (annualised from weekly)
-        const apyBase7d =
-          volumeUSD7d > 0
-            ? ((volumeUSD7d * FEE_TIER) / 1e6 / tvlUSD) * 52 * 100
-            : null;
-
-        return {
-          pool: pairId,
-          chain: utils.formatChain(CHAIN),
-          project: PROJECT,
-          symbol: utils.formatSymbol(
-            `${pair.token0.symbol}-${pair.token1.symbol}`
-          ),
-          tvlUsd: tvlUSD,
-          apyBase: apyBase || 0,
-          apyBase7d: apyBase7d,
-          underlyingTokens: [
-            pair.token0.id.toLowerCase(),
-            pair.token1.id.toLowerCase(),
-          ],
-          url: `https://app.hyperswap.exchange/#/add/v2/${pair.token0.id}/${pair.token1.id}`,
-          volumeUsd1d: volumeUSD1d,
-          volumeUsd7d: volumeUSD7d,
-        };
-      })
-      .filter((pool) => pool !== null);
-
-    return addMerklRewardApy(formattedPools.filter((p) => utils.keepFinite(p)), 'hyperswap');
-  } catch (error) {
-    console.error('Error in HyperSwap V2 adapter:', error);
-    throw error;
-  }
+  const withRewards = await addMerklRewardApy(formatted, 'hyperswap');
+  return withRewards.filter((p) => utils.keepFinite(p));
 }
 
 module.exports = {
