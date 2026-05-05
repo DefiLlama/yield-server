@@ -17,9 +17,38 @@ const MINTED_TOPIC = ethers.utils.id('Minted(address,uint256,uint256)');
 const STABILITY_FEE_BPS = 5;
 const BPS_DENOMINATOR = 10000;
 
-// Lookback window for APY estimation
-const LOOKBACK_DAYS = 30;
-const BLOCKS_PER_DAY_BASE = 43200; // Base ~2s blocks
+// Lookback window for APY estimation. Kept short to (a) stay within RPC log
+// limits when chunking and (b) limit price-drift error from converting ETH
+// volumes at the end of the window using the current ETH price.
+const LOOKBACK_DAYS = 7;
+const BLOCKS_PER_DAY_BASE = 43200; // Base ~2s blocks (approx, used only for window sizing)
+const CHUNK_SIZE = 9000; // safe under typical eth_getLogs caps (10k)
+
+// Fetch logs in chunks to stay under provider limits
+const fetchLogsChunked = async (fromBlock, toBlock) => {
+  const all = [];
+  for (let start = fromBlock; start <= toBlock; start += CHUNK_SIZE) {
+    const end = Math.min(start + CHUNK_SIZE - 1, toBlock);
+    try {
+      const res = await sdk.api.util.getLogs({
+        target: GBLIN_V5,
+        topic: MINTED_TOPIC,
+        fromBlock: start,
+        toBlock: end,
+        chain: 'base',
+        keys: [],
+      });
+      if (Array.isArray(res?.output)) all.push(...res.output);
+    } catch (e) {
+      // Log and continue: a single failed chunk shouldn't tank the whole APY.
+      // We surface the failure but keep aggregating partial data.
+      console.warn(
+        `GBLIN: getLogs chunk ${start}-${end} failed: ${e.message}`
+      );
+    }
+  }
+  return all;
+};
 
 const getApy = async () => {
   try {
@@ -36,56 +65,58 @@ const getApy = async () => {
     const latest = protocolData.tvl[protocolData.tvl.length - 1];
     const tvlUsd = latest?.totalLiquidityUSD;
 
-    if (!tvlUsd || tvlUsd < 100) {
-      console.warn(`GBLIN: TVL below threshold (${tvlUsd})`);
+    // Allow tiny but valid pools through; only drop if TVL is missing or non-positive.
+    if (typeof tvlUsd !== 'number' || tvlUsd <= 0) {
+      console.warn(`GBLIN: invalid TVL (${tvlUsd})`);
       return [];
     }
+    if (tvlUsd < 100) {
+      console.warn(`GBLIN: tiny TVL (${tvlUsd}) — pool still reported`);
+    }
 
-    // 2) Sum Minted event ETH volumes over the last LOOKBACK_DAYS days
+    // 2) Sum Minted event ETH volumes over the lookback window (chunked)
     const currentBlock = await sdk.api.util.getLatestBlock('base');
     const fromBlock = Math.max(
       0,
       currentBlock.number - BLOCKS_PER_DAY_BASE * LOOKBACK_DAYS
     );
 
-    const logs = await sdk.api.util.getLogs({
-      target: GBLIN_V5,
-      topic: MINTED_TOPIC,
-      fromBlock,
-      toBlock: currentBlock.number,
-      chain: 'base',
-      keys: [],
-    });
+    const logs = await fetchLogsChunked(fromBlock, currentBlock.number);
 
     let totalVolumeWei = 0n;
-    for (const log of logs?.output || []) {
-      // log.data = abi.encode(ethIn, gblinOut) -> first 32 bytes = ethIn
+    for (const log of logs) {
+      // Defensive: malformed entries shouldn't crash the loop
+      if (typeof log?.data !== 'string') continue;
       const dataHex = log.data.startsWith('0x') ? log.data.slice(2) : log.data;
       if (dataHex.length < 64) continue;
+      // log.data = abi.encode(ethIn, gblinOut) -> first 32 bytes = ethIn
       const ethInHex = '0x' + dataHex.slice(0, 64);
-      totalVolumeWei += BigInt(ethInHex);
+      try {
+        totalVolumeWei += BigInt(ethInHex);
+      } catch (_) {
+        // Skip non-hex / corrupted entries silently
+        continue;
+      }
     }
 
     let apyBase = 0;
 
     if (totalVolumeWei > 0n) {
-      // Convert ETH volume to USD (current ETH price)
+      // Compute fees in ETH first to minimize price-drift bias, then convert
+      // the annualized total to USD ONCE using the current ETH price. This is
+      // internally consistent with `tvlUsd` (also a current snapshot).
+      const totalVolumeEth = Number(totalVolumeWei) / 1e18;
+      const periodFeesEth =
+        totalVolumeEth * (STABILITY_FEE_BPS / BPS_DENOMINATOR);
+      const annualizedFeesEth = periodFeesEth * (365 / LOOKBACK_DAYS);
+
       const priceResp = await utils.getData(
         'https://coins.llama.fi/prices/current/coingecko:ethereum'
       );
       const ethUsd = priceResp?.coins?.['coingecko:ethereum']?.price;
 
-      if (ethUsd && ethUsd > 0) {
-        const totalVolumeEth = Number(totalVolumeWei) / 1e18;
-        const totalVolumeUsd = totalVolumeEth * ethUsd;
-
-        // Stability fees accrued in window = volume * 0.05%
-        const periodFeesUsd =
-          totalVolumeUsd * (STABILITY_FEE_BPS / BPS_DENOMINATOR);
-
-        // Annualize (period -> 365d)
-        const annualizedFeesUsd = periodFeesUsd * (365 / LOOKBACK_DAYS);
-
+      if (typeof ethUsd === 'number' && ethUsd > 0) {
+        const annualizedFeesUsd = annualizedFeesEth * ethUsd;
         apyBase = (annualizedFeesUsd / tvlUsd) * 100;
       }
     }
