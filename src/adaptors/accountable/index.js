@@ -205,7 +205,7 @@ const apy = async() => {
                 chain: utils.formatChain(chainName),
                 project: 'accountable',
                 symbol: utils.formatSymbol(item.asset_symbol),
-                tvlUsd: toUsd(stats.totalAssets),
+                tvlUsd: toUsd(stats.tvl),
                 apyBase: baseApy,
                 apyReward: totalApyReward,
                 rewardTokens: combinedRewardTokens,
