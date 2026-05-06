@@ -16,6 +16,10 @@ const { lte } = require('lodash');
 const { excludePools } = require('../../utils/exclude');
 const { getChildChainRootGauge } = require('./childChainGauges.js');
 
+const BALANCER_API_URL = 'https://api-v3.balancer.fi/graphql';
+const SNAPSHOT_BATCH_SIZE = 25;
+const SNAPSHOT_WINDOW_DAYS = 7;
+
 // Subgraph URLs
 const urlEthereum = sdk.graph.modifyEndpoint(
   'C4ayEZP2yTXRAB8vSaTrgN4m9anTe9Mdm2ViyiAuV9TV'
@@ -424,6 +428,183 @@ const aprFee = (el, dataNow, dataPrior, swapFeePercentage) => {
   return el;
 };
 
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const chunkArray = (items, size) => {
+  const chunks = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+};
+
+const getBackendChain = (chainString) => {
+  const mapping = {
+    ethereum: 'MAINNET',
+    polygon: 'POLYGON',
+    arbitrum: 'ARBITRUM',
+    xdai: 'GNOSIS',
+    base: 'BASE',
+    avax: 'AVALANCHE',
+  };
+  return mapping[chainString];
+};
+
+const buildSnapshotsQuery = (poolIds) => {
+  const aliasedFields = poolIds
+    .map(
+      (poolId, index) => `
+      snapshot_${index}: poolGetSnapshots(
+        chain: $chain
+        id: "${poolId}"
+        range: THIRTY_DAYS
+      ) {
+        timestamp
+        volume24h
+      }`
+    )
+    .join('\n');
+
+  return gql`
+    query GetPoolSnapshots($chain: GqlChain!) {
+      ${aliasedFields}
+    }
+  `;
+};
+
+const getSnapshotsByPoolId = async (backendChain, poolIds) => {
+  const snapshotsByPoolId = new Map();
+  const batches = chunkArray(poolIds, SNAPSHOT_BATCH_SIZE);
+  const responses = await Promise.all(
+    batches.map(async (batch) => {
+      const snapshotsQuery = buildSnapshotsQuery(batch);
+      try {
+        const data = await request(BALANCER_API_URL, snapshotsQuery, {
+          chain: backendChain,
+        });
+        return { batch, data };
+      } catch (error) {
+        console.error(
+          `Error fetching Balancer V2 snapshots for ${backendChain}:`,
+          error
+        );
+        return { batch, data: {} };
+      }
+    })
+  );
+
+  responses.forEach(({ batch, data }) => {
+    batch.forEach((poolId, index) => {
+      const snapshots = Array.isArray(data[`snapshot_${index}`])
+        ? data[`snapshot_${index}`]
+        : [];
+      snapshotsByPoolId.set(poolId.toLowerCase(), snapshots);
+    });
+  });
+
+  return snapshotsByPoolId;
+};
+
+const getVolumeDataFromSnapshots = (snapshots) => {
+  const sortedSnapshots = [...(snapshots || [])].sort(
+    (a, b) => toNumber(b.timestamp) - toNumber(a.timestamp)
+  );
+  const dailyVolumes = sortedSnapshots
+    .slice(0, SNAPSHOT_WINDOW_DAYS)
+    .map((snapshot) => toNumber(snapshot.volume24h));
+
+  return {
+    volumeUsd1d: dailyVolumes[0] ?? 0,
+    volumeUsd7d: dailyVolumes.reduce((sum, volume) => sum + volume, 0),
+  };
+};
+
+const getChainUrlSlug = (chainString) => {
+  return chainString === 'avax'
+    ? 'avalanche'
+    : chainString === 'xdai'
+    ? 'gnosis'
+    : chainString;
+};
+
+const fallbackPoolsQuery = gql`
+  query GetPools($chain: GqlChain!) {
+    poolGetPools(
+      first: 1000
+      where: { chainIn: [$chain], protocolVersionIn: [2] }
+    ) {
+      id
+      symbol
+      address
+      poolTokens {
+        address
+      }
+      dynamicData {
+        totalLiquidity
+        volume24h
+      }
+    }
+  }
+`;
+
+const getFallbackPoolsFromBalancerApi = async (chainString) => {
+  const backendChain = getBackendChain(chainString);
+  if (!backendChain) return [];
+
+  try {
+    const { poolGetPools } = await request(BALANCER_API_URL, fallbackPoolsQuery, {
+      chain: backendChain,
+    });
+    const pools = Array.isArray(poolGetPools) ? poolGetPools : [];
+    if (pools.length === 0) return [];
+
+    const poolIds = pools
+      .map((pool) => (pool.id || pool.address || '').toLowerCase())
+      .filter(Boolean);
+    const snapshotsByPoolId = await getSnapshotsByPoolId(backendChain, poolIds);
+
+    return pools
+      .filter((pool) => pool.id || pool.address)
+      .map((pool) => {
+        const poolId = pool.id || pool.address;
+        const normalizedPoolId = poolId.toLowerCase();
+        const tokenAddress = (pool.address || poolId.slice(0, 42)).toLowerCase();
+        const { volumeUsd1d: volumeUsd1dFromSnapshots, volumeUsd7d } =
+          getVolumeDataFromSnapshots(snapshotsByPoolId.get(normalizedPoolId) || []);
+        const dynamicVolume24h = toNumber(pool.dynamicData?.volume24h);
+        const volumeUsd1d =
+          dynamicVolume24h > 0 ? dynamicVolume24h : volumeUsd1dFromSnapshots;
+
+        return {
+          pool: poolId,
+          chain: utils.formatChain(chainString),
+          project: 'balancer-v2',
+          symbol: utils.formatSymbol(pool.symbol || ''),
+          token: tokenAddress,
+          tvlUsd: toNumber(pool.dynamicData?.totalLiquidity),
+          apyBase: 0,
+          apyReward: 0,
+          rewardTokens: [],
+          underlyingTokens: (pool.poolTokens || [])
+            .map((token) => token.address)
+            .filter(Boolean),
+          volumeUsd1d,
+          volumeUsd7d,
+          url: `https://balancer.fi/pools/${getChainUrlSlug(chainString)}/v2/${poolId}`,
+        };
+      });
+  } catch (error) {
+    console.error(
+      `Failed to fetch Balancer V2 fallback pools from Balancer API on ${chainString}:`,
+      error?.message || error
+    );
+    return [];
+  }
+};
+
 const topLvl = async (
   chainString,
   url,
@@ -434,17 +615,47 @@ const topLvl = async (
   gaugeABI,
   swapFeePercentage
 ) => {
-  const [_, blockPrior] = await utils.getBlocks(chainString, null, [url]);
-  // pull data
-  let dataNow = await request(url, query);
-  let dataPrior = await request(
-    url,
-    queryPrior.replace('<PLACEHOLDER>', blockPrior)
-  );
+  // pull current data first; if this fails the chain cannot be processed
+  let dataNowResponse;
+  try {
+    dataNowResponse = await request(url, query);
+  } catch (error) {
+    console.error(
+      `Failed to fetch Balancer V2 current pools on ${chainString}:`,
+      error?.message || error
+    );
+    return getFallbackPoolsFromBalancerApi(chainString);
+  }
+
+  if (!Array.isArray(dataNowResponse?.pools) || dataNowResponse.pools.length === 0) {
+    console.error(
+      `Balancer V2 subgraph returned no pools on ${chainString}, trying Balancer API fallback`
+    );
+    const fallbackPools = await getFallbackPoolsFromBalancerApi(chainString);
+    if (fallbackPools.length > 0) return fallbackPools;
+  }
+
+  // historical block lookups can fail in shared CI (stale subgraph checks / RPC issues).
+  // fallback to current-state data so adapter still returns pools.
+  let dataPriorResponse = null;
+  try {
+    const [_, blockPrior] = await utils.getBlocks(chainString, null, [url]);
+    dataPriorResponse = await request(
+      url,
+      queryPrior.replace('<PLACEHOLDER>', blockPrior)
+    );
+  } catch (error) {
+    console.error(
+      `Failed to fetch Balancer V2 prior block data on ${chainString}, falling back to zero fee APR deltas:`,
+      error?.message || error
+    );
+  }
 
   // correct for missing maker symbol
-  dataNow = dataNow.pools.map((el) => correctMaker(el));
-  dataPrior = dataPrior.pools.map((el) => correctMaker(el));
+  let dataNow = (dataNowResponse?.pools || []).map((el) => correctMaker(el));
+  let dataPrior = (dataPriorResponse?.pools || dataNowResponse?.pools || []).map(
+    (el) => correctMaker(el)
+  );
 
   // for tvl, we gonna pull token prices from our price api, which we use to calculate tvl
   // note: the subgraph already comes with usd tvl values, but sometimes they are inflated
@@ -467,11 +678,18 @@ const topLvl = async (
       .map((i) => `${chainString}:${i}`)
       .join(',')
       .replaceAll('/', '');
-    pricesA = [
-      ...pricesA,
-      (await axios.get(`https://coins.llama.fi/prices/current/${keys}`))
-        .data.coins,
-    ];
+    try {
+      pricesA = [
+        ...pricesA,
+        (await axios.get(`https://coins.llama.fi/prices/current/${keys}`))
+          .data.coins,
+      ];
+    } catch (error) {
+      console.error(
+        `Failed to fetch Balancer V2 token prices on ${chainString}, defaulting missing prices to 0:`,
+        error?.message || error
+      );
+    }
   }
   let tokenPriceList = {};
   for (const p of pricesA) {
@@ -487,16 +705,32 @@ const topLvl = async (
   );
 
   // calculate reward apr
-  tvlInfo = await aprLM(tvlInfo, urlGauge, queryGauge, chainString, gaugeABI);
+  try {
+    tvlInfo = await aprLM(tvlInfo, urlGauge, queryGauge, chainString, gaugeABI);
+  } catch (error) {
+    console.error(
+      `Failed to compute Balancer V2 LM APR on ${chainString}, defaulting to 0:`,
+      error?.message || error
+    );
+    tvlInfo = tvlInfo.map((pool) => ({
+      ...pool,
+      aprLM: 0,
+      rewardTokens: [],
+    }));
+  }
+
+  const backendChain = getBackendChain(chainString);
+  const poolIds = tvlInfo.map((pool) => pool.id).filter(Boolean);
+  const snapshotsByPoolId = backendChain
+    ? await getSnapshotsByPoolId(backendChain, poolIds)
+    : new Map();
 
   // build pool objects
   return tvlInfo.map((p) => {
-    const chainUrl =
-      chainString === 'avax'
-        ? 'avalanche'
-        : chainString === 'xdai'
-        ? 'gnosis'
-        : chainString;
+    const chainUrl = getChainUrlSlug(chainString);
+    const { volumeUsd1d, volumeUsd7d } = getVolumeDataFromSnapshots(
+      snapshotsByPoolId.get(p.id.toLowerCase()) || []
+    );
 
     return {
       pool: p.id,
@@ -510,9 +744,11 @@ const topLvl = async (
         p.id ===
         '0x8167a1117691f39e05e9131cfa88f0e3a620e96700020000000000000000038c' // WETH-T wrong bal apr
           ? 0
-          : p.aprLM,
-      rewardTokens: p.rewardTokens,
+          : p.aprLM || 0,
+      rewardTokens: p.rewardTokens || [],
       underlyingTokens: p.tokensList,
+      volumeUsd1d,
+      volumeUsd7d,
       url: `https://balancer.fi/pools/${chainUrl}/v2/${p.id}`,
     };
   });
@@ -520,8 +756,10 @@ const topLvl = async (
 
 const main = async () => {
   // balancer splits off a pct cut of swap fees to the protocol, get pct value:
-  const swapFeePercentage =
-    (
+  let swapFeePercentage = 1;
+  try {
+    swapFeePercentage =
+      (
       await sdk.api.abi.call({
         target: protocolFeesCollector,
         abi: protocolFeesCollectorABI.find(
@@ -529,70 +767,105 @@ const main = async () => {
         ),
         chain: 'ethereum',
       })
-    ).output / 1e18;
+      ).output / 1e18;
+  } catch (error) {
+    console.error(
+      'Failed to fetch Balancer V2 swapFeePercentage, defaulting to 1:',
+      error?.message || error
+    );
+  }
 
-  const data = await Promise.allSettled([
-    topLvl(
-      'ethereum',
-      urlEthereum,
-      query,
-      queryPrior,
-      urlGaugesEthereum,
-      queryGauge,
-      gaugeABIEthereum,
-      swapFeePercentage
-    ),
-    topLvl(
-      'polygon',
-      urlPolygon,
-      query,
-      queryPrior,
-      urlGaugesPolygon,
-      queryGauge,
-      gaugeABIPolygon,
-      swapFeePercentage
-    ),
-    topLvl(
-      'arbitrum',
-      urlArbitrum,
-      query,
-      queryPrior,
-      urlGaugesArbitrum,
-      queryGauge,
-      gaugeABIArbitrum,
-      swapFeePercentage
-    ),
-    topLvl(
-      'xdai',
-      urlGnosis,
-      query,
-      queryPrior,
-      urlGaugesGnosis,
-      queryGauge,
-      gaugeABIGnosis,
-      swapFeePercentage
-    ),
-    topLvl(
-      'base',
-      urlBaseChain,
-      query,
-      queryPrior,
-      urlGaugesBase,
-      queryGauge,
-      gaugeABIBase,
-      swapFeePercentage
-    ),
-    topLvl(
-      'avax',
-      urlAvalanche,
-      query,
-      queryPrior,
-      urlGaugesAvalanche,
-      queryGauge,
-      gaugeABIArbitrum,
-      swapFeePercentage
-    ),
-  ]);
+  const chainJobs = [
+    {
+      chain: 'ethereum',
+      promise: topLvl(
+        'ethereum',
+        urlEthereum,
+        query,
+        queryPrior,
+        urlGaugesEthereum,
+        queryGauge,
+        gaugeABIEthereum,
+        swapFeePercentage
+      ),
+    },
+    {
+      chain: 'polygon',
+      promise: topLvl(
+        'polygon',
+        urlPolygon,
+        query,
+        queryPrior,
+        urlGaugesPolygon,
+        queryGauge,
+        gaugeABIPolygon,
+        swapFeePercentage
+      ),
+    },
+    {
+      chain: 'arbitrum',
+      promise: topLvl(
+        'arbitrum',
+        urlArbitrum,
+        query,
+        queryPrior,
+        urlGaugesArbitrum,
+        queryGauge,
+        gaugeABIArbitrum,
+        swapFeePercentage
+      ),
+    },
+    {
+      chain: 'xdai',
+      promise: topLvl(
+        'xdai',
+        urlGnosis,
+        query,
+        queryPrior,
+        urlGaugesGnosis,
+        queryGauge,
+        gaugeABIGnosis,
+        swapFeePercentage
+      ),
+    },
+    {
+      chain: 'base',
+      promise: topLvl(
+        'base',
+        urlBaseChain,
+        query,
+        queryPrior,
+        urlGaugesBase,
+        queryGauge,
+        gaugeABIBase,
+        swapFeePercentage
+      ),
+    },
+    {
+      chain: 'avax',
+      promise: topLvl(
+        'avax',
+        urlAvalanche,
+        query,
+        queryPrior,
+        urlGaugesAvalanche,
+        queryGauge,
+        gaugeABIArbitrum,
+        swapFeePercentage
+      ),
+    },
+  ];
+
+  const data = await Promise.allSettled(chainJobs.map((job) => job.promise));
+
+  data.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(
+        `Balancer V2 chain job failed (${chainJobs[index].chain}):`,
+        result.reason?.message || result.reason
+      );
+    }
+  });
 
   const pools = data
     .filter((i) => i.status === 'fulfilled')
