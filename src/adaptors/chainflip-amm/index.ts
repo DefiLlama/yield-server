@@ -4,7 +4,7 @@ const axios = require('axios');
 type Asset = 'Btc' | 'Eth' | 'Sol' | 'Usdc' | 'Usdt';
 
 type Pool = {
-  pool: `boost-pool-Btc` | `lending-pool-${Asset}`;
+  pool: `boost-pool-btc` | `${Lowercase<Asset>}-lending-pool`;
   asset: Asset;
   chain: 'bitcoin' | 'ethereum' | 'solana';
   tvl: number;
@@ -17,11 +17,11 @@ const getPool = async () => {
     'https://explorer-service-processor.chainflip.io/defi-llama/yield'
   );
 
-  const boostPool = apyData.data.find((d) => d.pool === 'boost-pool-Btc');
+  const boostPool = apyData.data.find((d) => d.pool === 'boost-pool-btc');
   if (!boostPool) return [];
 
   const btcPool = {
-    pool: 'chainflip-boost-Btc',
+    pool: 'chainflip-boost-btc',
     chain: utils.formatChain('bitcoin'),
     project: 'chainflip-amm',
     symbol: utils.formatSymbol('BTC'),
