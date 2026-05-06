@@ -5,11 +5,7 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const PROJECT = 'hyperswap-v2';
 const CHAIN = 'hyperevm';
 const MIN_TVL_USD = 1000;
-// HyperSwap V2 contract permits per-pair / per-direction fees, but every pair
-// observed in the wild uses the default 0.3% (300 / 100000). If that ever
-// changes for some pairs, read the extended getReserves() slot on-chain.
 const FEE_RATE = 0.003;
-// App uses 'HYPE' alias in URL paths instead of WHYPE's address.
 const WHYPE = '0x5555555555555555555555555555555555555555';
 const tokenForUrl = (addr) => (addr.toLowerCase() === WHYPE ? 'HYPE' : addr);
 
