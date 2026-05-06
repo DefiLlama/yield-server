@@ -128,6 +128,22 @@ const apy = async() => {
         })
     );
 
+    const underlyingsByChain = {};
+    Object.entries(vaultStats).forEach(([key, s]) => {
+        if (!s.underlying) return;
+        const chain = key.split(':')[0];
+        (underlyingsByChain[chain] ||= new Set()).add(s.underlying.toLowerCase());
+    });
+    const pricesByChainToken = {};
+    await Promise.all(
+        Object.entries(underlyingsByChain).map(async([chain, addressSet]) => {
+            const { pricesByAddress } = await utils.getPrices(Array.from(addressSet), chain);
+            for (const [address, price] of Object.entries(pricesByAddress)) {
+                pricesByChainToken[`${chain}:${address.toLowerCase()}`] = price;
+            }
+        })
+    );
+
     const breakdowns = await fetchBreakdowns(loanIds);
 
     return Promise.all(
@@ -135,11 +151,14 @@ const apy = async() => {
             const chainName = chainIdToName[item.chain_id];
             const vaultAddress = loanVaultMap[item.id];
             const stats = vaultAddress ? vaultStats[`${chainName}:${vaultAddress}`] || {} : {};
-            const decimals = item.asset_decimals ?? 6;
-            const tvlToken = Number(item.tvl) / 10 ** decimals;
-            const priceUsd = tvlToken > 0 ? Number(item.tvl_in_usd) / tvlToken : 0;
-            const toUsd = (raw) =>
-                raw == null ? null : (Number(raw) / 10 ** decimals) * priceUsd;
+            const d = Number(item.asset_decimals);
+            const decimals = Number.isFinite(d) ? d : null;
+            const underlying = stats.underlying?.toLowerCase();
+            const priceUsd = underlying ? pricesByChainToken[`${chainName}:${underlying}`] : undefined;
+            const toUsd = (raw) => {
+                if (raw == null || decimals == null || priceUsd == null) return null;
+                return (Number(raw) / 10 ** decimals) * priceUsd;
+            };
             const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
 
             const breakdown = breakdowns[item.id]?.main || {};
@@ -186,7 +205,7 @@ const apy = async() => {
                 chain: utils.formatChain(chainName),
                 project: 'accountable',
                 symbol: utils.formatSymbol(item.asset_symbol),
-                tvlUsd: Number(item.tvl_in_usd) || 0,
+                tvlUsd: toUsd(stats.tvl),
                 apyBase: baseApy,
                 apyReward: totalApyReward,
                 rewardTokens: combinedRewardTokens,
