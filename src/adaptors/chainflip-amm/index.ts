@@ -4,7 +4,7 @@ const axios = require('axios');
 type Asset = 'Btc' | 'Eth' | 'Sol' | 'Usdc' | 'Usdt';
 
 type Pool = {
-  pool: `boost-pool-btc` | `${Lowercase<Asset>}-lending-pool`;
+  pool: `boost-pool-btc` | `${Lowercase<Asset>}-chainflip-lending`;
   asset: Asset;
   chain: 'bitcoin' | 'ethereum' | 'solana';
   tvl: number;
@@ -26,7 +26,7 @@ const getPool = async () => {
     project: 'chainflip-amm',
     symbol: utils.formatSymbol('BTC'),
     tvlUsd: boostPool.tvl,
-    apy: boostPool.apy,
+    apyBase: boostPool.apy,
     url: 'https://scan.chainflip.io/pools/Btc/boost',
     underlyingTokens: ['coingecko:bitcoin'],
   };

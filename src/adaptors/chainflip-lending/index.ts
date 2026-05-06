@@ -4,13 +4,13 @@ const axios = require('axios');
 type Asset = 'Btc' | 'Eth' | 'Sol' | 'Usdc' | 'Usdt';
 
 type Pool = {
-  pool: `boost-pool-btc` | `${Lowercase<Asset>}-lending-pool`;
+  pool: `boost-pool-btc` | `${Lowercase<Asset>}-chainflip-lending`;
   asset: Asset;
   chain: 'bitcoin' | 'ethereum' | 'solana';
   tvl: number;
   apy: number;
   coingeckoId: string;
-  tokenAddress?: string;
+  tokenContractAddress: string | null;
 };
 
 const getPools = async () => {
@@ -19,25 +19,21 @@ const getPools = async () => {
   );
 
   const lendingPools = apyData.data.filter((d) =>
-    d.pool.includes('lending-pool')
+    d.pool.endsWith('-chainflip-lending')
   );
 
-  const pools = lendingPools.map((pool) => {
-    return {
-      pool: pool.pool,
-      chain: utils.formatChain(pool.chain),
-      project: 'chainflip-lending',
-      symbol: utils.formatSymbol(pool.asset.toUpperCase()),
-      tvlUsd: pool.tvl,
-      apy: pool.apy,
-      url: `https://scan.chainflip.io/pools/${pool.asset}/lending`,
-      underlyingTokens: [
-        pool.tokenAddress ? pool.tokenAddress : `coingecko:${pool.coingeckoId}`,
-      ],
-    };
-  });
-
-  return pools;
+  return lendingPools.map((pool) => ({
+    pool: pool.pool,
+    chain: utils.formatChain(pool.chain),
+    project: 'chainflip-lending',
+    symbol: utils.formatSymbol(pool.asset.toUpperCase()),
+    tvlUsd: pool.tvl,
+    apyBase: pool.apy,
+    url: `https://scan.chainflip.io/pools/${pool.asset}/lending`,
+    underlyingTokens: [
+      pool.tokenContractAddress ?? `coingecko:${pool.coingeckoId}`,
+    ],
+  }));
 };
 
 module.exports = {
