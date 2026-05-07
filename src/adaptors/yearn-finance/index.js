@@ -2,6 +2,11 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
+const NATIVE_SENTINEL = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const normalizeNativeAddress = (addr) =>
+  addr && addr.toLowerCase() === NATIVE_SENTINEL.toLowerCase() ? ZERO_ADDRESS : addr;
+
 const chains = {
   ethereum: 1,
   fantom: 250,
@@ -44,6 +49,8 @@ const getApy = async () => {
             const lpTokens = await getLpUnderlying(p.token.address, chain[0]);
             underlying = lpTokens || [p.token.address.toLowerCase()];
           }
+
+          underlying = underlying.map(normalizeNativeAddress);
 
           // OP incentives via yvToken staking
           const apyReward = p.apr?.extra?.stakingRewardsAPR * 100 ?? 0;

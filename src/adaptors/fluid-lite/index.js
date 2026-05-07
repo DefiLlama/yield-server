@@ -1,5 +1,10 @@
 const utils = require('../utils');
 
+const NATIVE_SENTINEL = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const normalizeNativeAddress = (addr) =>
+  addr && addr.toLowerCase() === NATIVE_SENTINEL.toLowerCase() ? ZERO_ADDRESS : addr;
+
 const LITE_ETH_VAULT_URL =
   'https://api.instadapp.io/v2/mainnet/lite/users/0x0000000000000000000000000000000000000000/vaults';
 
@@ -15,7 +20,7 @@ const getLiteEthPool = async () => {
     symbol: item.token.symbol,
     tvlUsd: Number(item.vaultTVLInAsset) * item.token.price,
     apy: Number(item.apy.apyWithoutFee),
-    underlyingTokens: [item.tokenAddress],
+    underlyingTokens: [normalizeNativeAddress(item.tokenAddress)],
   }));
 };
 
@@ -39,7 +44,7 @@ const getLiteUsdPool = async () => {
       symbol: utils.formatSymbol(underlyingAsset.symbol),
       tvlUsd,
       apy: Number(rate) / 100,
-      underlyingTokens: [asset],
+      underlyingTokens: [normalizeNativeAddress(asset)],
     },
   ];
 };

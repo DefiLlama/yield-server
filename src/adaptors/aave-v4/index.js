@@ -93,6 +93,7 @@ const getApy = async (chain) => {
         tvlUsd,
         apyBase,
         underlyingTokens: [underlying],
+        token: null,
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,

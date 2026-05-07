@@ -119,14 +119,11 @@ exports.addMerklRewardApy = async (
       const updated = { ...pool };
       let changed = false;
 
-      if (merklRewards.apyReward !== undefined && !pool.apyReward) {
+      if (merklRewards.apyReward > 0 && !pool.apyReward) {
         updated.apyReward = merklRewards.apyReward;
         changed = true;
       }
-      if (
-        merklRewards.apyRewardBorrow !== undefined &&
-        !pool.apyRewardBorrow
-      ) {
+      if (merklRewards.apyRewardBorrow > 0 && !pool.apyRewardBorrow) {
         updated.apyRewardBorrow = merklRewards.apyRewardBorrow;
         changed = true;
       }
@@ -141,8 +138,8 @@ exports.addMerklRewardApy = async (
 
       if (
         !changed &&
-        (merklRewards.apyReward !== undefined ||
-          merklRewards.apyRewardBorrow !== undefined)
+        ((merklRewards.apyReward > 0 && pool.apyReward) ||
+          (merklRewards.apyRewardBorrow > 0 && pool.apyRewardBorrow))
       ) {
         console.log(
           'pool already has matching apy reward field(s)',

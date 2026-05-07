@@ -25,6 +25,11 @@ const CONSTANTS = {
       polygon: '0x9edb8D8b6db9A869c3bd913E44fa416Ca7490aCA',
     },
   },
+  FLUID_TOKEN: {
+    ethereum: '0x6f40d4a6237c257fff2db00fa0510deeecd303eb',
+    arbitrum: '0x61e030a56d33e8260fdd81f03b162a79fe3449cd',
+    base: '0x61e030a56d33e8260fdd81f03b162a79fe3449cd',
+  },
 };
 
 // Import ABIs
@@ -65,33 +70,40 @@ const getLendingApy = async (chain) => {
     const merkleRewardsTokens = (await axios.get(`https://api.fluid.instadapp.io/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/tokens`)).data.data;
 
     return fTokensEntireData
-      .map((token, i) => ({
-        project: 'fluid-lending',
-        pool: `${chain}_${token.tokenAddress}`,
-        tvlUsd:
-          (token.totalAssets * prices[`${chain}:${underlying[i]}`].price) /
-          10 ** decimals.output[i].output,
-        symbol: symbol.output[i].output,
-        underlyingTokens: [token.asset],
-        rewardTokens: [
-          token.asset,
-          ...merkleRewardsTokens
-            .find(t => t.address.toLowerCase() === token.tokenAddress.toLowerCase())
-            ?.rewards?.map(reward => reward?.token?.address) || []
-        ],
-        chain,
-        apyBase: Number((token.supplyRate / 1e2).toFixed(2)),
-        apyReward: (() => {
-          const nativeRewardsRate = Number((token.rewardsRate / 1e12).toFixed(2));
-          const fTokenMerkleData = merkleRewardsTokens.find(t => t.address.toLowerCase() === token.tokenAddress.toLowerCase());
-          if (!fTokenMerkleData || !fTokenMerkleData.rewards || fTokenMerkleData.rewards.length === 0) {
-            return nativeRewardsRate;
-          }
-          const merkleRewardsSum = fTokenMerkleData.rewards.reduce((sum, reward) => sum + (reward.rate / 1e2), 0);
-          return Number((nativeRewardsRate + merkleRewardsSum).toFixed(2));
-        })(),
-        url: `https://fluid.io/lending/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${symbol.output[i].output}`,
-      }))
+      .map((token, i) => {
+        const fTokenMerkleData = merkleRewardsTokens.find(
+          (t) => t.address.toLowerCase() === token.tokenAddress.toLowerCase()
+        );
+        const merkleTokens =
+          fTokenMerkleData?.rewards
+            ?.map((r) => r?.token?.address)
+            .filter(Boolean) || [];
+        const merkleRewardsSum =
+          fTokenMerkleData?.rewards?.reduce(
+            (sum, r) => sum + (r.rate / 1e2),
+            0
+          ) || 0;
+        const nativeRewardsRate = Number(token.rewardsRate) / 1e12;
+        const apyReward = Number(
+          (nativeRewardsRate + merkleRewardsSum).toFixed(2)
+        );
+        return {
+          project: 'fluid-lending',
+          pool: `${chain}_${token.tokenAddress}`,
+          tvlUsd:
+            (token.totalAssets * prices[`${chain}:${underlying[i]}`].price) /
+            10 ** decimals.output[i].output,
+          symbol: symbol.output[i].output,
+          underlyingTokens: [token.asset],
+          chain,
+          apyBase: Number((token.supplyRate / 1e2).toFixed(2)),
+          ...(apyReward > 0 && merkleTokens.length > 0 && {
+            apyReward,
+            rewardTokens: merkleTokens,
+          }),
+          url: `https://fluid.io/lending/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${symbol.output[i].output}`,
+        };
+      })
       .filter((i) => utils.keepFinite(i));
   } catch (error) {
     console.error(`Error fetching lending APY for ${chain}:`, error);
@@ -222,10 +234,17 @@ const calculateVaultPoolData = (
       10 ** tokenData.borrowTokenDecimals[index]
   );
 
+  const fluidToken = CONSTANTS.FLUID_TOKEN[chain];
+
   return filteredVaults.map((vault, index) => {
     const s = tokenData.symbol[index].replace('.base', '').split('/');
     const supplySymbol = s[0];
     const borrowSymbol = s[1];
+    const apyReward = Number((vaultDetails.rewardsRates[index] / 1e12).toFixed(2));
+    const apyRewardBorrow = Number(
+      (vaultDetails.rewardsRatesBorrow[index] / 1e12).toFixed(2)
+    );
+    const hasReward = (apyReward > 0 || apyRewardBorrow > 0) && Boolean(fluidToken);
     return {
       project: 'fluid-lending',
       pool: `${chain}_${vaultDetails.pools[index]}`,
@@ -234,16 +253,16 @@ const calculateVaultPoolData = (
       totalBorrowUsd: totalBorrowUsd[index],
       symbol: supplySymbol,
       underlyingTokens: vaultDetails.underlyingTokens[index],
-      rewardTokens: vaultDetails.underlyingTokens[index],
       chain,
       apyBase: Number((vaultDetails.supplyRates[index] / 1e2).toFixed(2)),
       apyBaseBorrow: Number(
         (vaultDetails.supplyRatesBorrow[index] / 1e2).toFixed(2)
       ),
-      apyReward: Number((vaultDetails.rewardsRates[index] / 1e12).toFixed(2)),
-      apyRewardBorrow: Number(
-        (vaultDetails.rewardsRatesBorrow[index] / 1e12).toFixed(2)
-      ),
+      ...(hasReward && {
+        apyReward,
+        apyRewardBorrow,
+        rewardTokens: [fluidToken],
+      }),
       ltv: vaultDetails.ltv[index] / 1e4,
       mintedCoin: borrowSymbol,
       url: `https://fluid.io/vaults/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${vault.VaultId}`,

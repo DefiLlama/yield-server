@@ -76,8 +76,6 @@ async function buildPool(vault) {
         symbol: `${vault.asset}`,
         tvlUsd,
         apyBase,
-        apyReward: 0,
-        rewardTokens: [],
         underlyingTokens: [vault.assetAddress],
         poolMeta: `${vault.name}`,
         url

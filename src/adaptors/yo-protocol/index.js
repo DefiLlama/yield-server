@@ -131,6 +131,7 @@ const getSolanaPools = async () => {
     const apyBase = vault.yield?.['1d'] != null ? Number(vault.yield['1d']) : null;
     const rewardYield = vault.rewardYield != null ? Number(vault.rewardYield) : null;
 
+    const shareTokenAddress = vault.shareAsset?.address || vault.contracts.vaultAddress;
     const pool = {
       pool: vault.contracts.vaultAddress,
       chain: formatChain('Solana'),
@@ -140,9 +141,11 @@ const getSolanaPools = async () => {
       tvlUsd,
       apyBase,
       underlyingTokens: [vault.asset.address],
+      token: shareTokenAddress,
       url: `https://app.yo.xyz/vault/Solana/${vault.id.toLowerCase()}`,
       ...(rewardYield && rewardYield > 0 && {
         apyReward: rewardYield,
+        rewardTokens: ['0x1925450f5e5fb974b0aae1f3408cf5286fbd1a72'],
       }),
     };
 

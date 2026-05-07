@@ -246,21 +246,26 @@ async function poolApys(chainId, pools) {
   // support swap volumes on pool
   const poolWithVolumes = chains[chainId].disabledVolume ? pools : await fetchPoolsVolumes(chains[chainId].chainName, pools, chains[chainId].ROUTERS)
 
-  return poolWithVolumes.map((p) => ({
-    pool: p.address,
-    chain: utils.formatChain(chains[chainId].chainName),
-    project: 'pendle',
-    symbol: utils.formatSymbol(p.name),
-    tvlUsd: p.details.liquidity,
-    apyBase: (p.details.aggregatedApy - p.details.pendleApy) * 100,
-    apyReward: p.details.pendleApy * 100,
-    rewardTokens: [chains[chainId].PENDLE],
-    underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address].map(resolveToken),
-    volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
-    volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
-    poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
-    url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
-  }));
+  return poolWithVolumes.map((p) => {
+    const apyReward = p.details.pendleApy * 100;
+    return {
+      pool: p.address,
+      chain: utils.formatChain(chains[chainId].chainName),
+      project: 'pendle',
+      symbol: utils.formatSymbol(p.name),
+      tvlUsd: p.details.liquidity,
+      apyBase: (p.details.aggregatedApy - p.details.pendleApy) * 100,
+      ...(apyReward > 0 && {
+        apyReward,
+        rewardTokens: [chains[chainId].PENDLE],
+      }),
+      underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address].map(resolveToken),
+      volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
+      volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
+      poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
+      url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
+    };
+  });
 }
 
 function ptApys(chainId, pools) {

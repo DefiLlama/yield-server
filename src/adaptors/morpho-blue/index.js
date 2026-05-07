@@ -437,7 +437,8 @@ const apy = async () => {
       // override and add OP rewards to this pool
       if (
         vault.address.toLowerCase() ===
-        '0xc30ce6a5758786e0f640cc5f881dd96e9a1c5c59'
+          '0xc30ce6a5758786e0f640cc5f881dd96e9a1c5c59' &&
+        rewardsApy > 0
       ) {
         rewardTokens = ['0x4200000000000000000000000000000000000042'];
         apyReward = rewardsApy * 100;
