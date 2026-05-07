@@ -20,6 +20,13 @@ const sparkSavingsAbi = {
     stateMutability: 'view',
     type: 'function',
   },
+  ssr: {
+    inputs: [],
+    name: 'ssr',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
   asset: {
     inputs: [],
     name: 'asset',

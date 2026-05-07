@@ -35,6 +35,7 @@ const protocolDataProviders = {
   horizon: '0x53519c32f73fE1797d10210c4950fFeBa3b21504', // RWA market on ethereum
   mantle: '0x487c5c669D9eee6057C44973207101276cf73b68',
   megaeth: '0x9588b453A4EE24a420830CB3302195cA7aA3b403',
+  xlayer: '0x6C505C31714f14e8af2A03633EB2Cdfb4959138F',
 };
 
 const getApy = async (market) => {

@@ -121,6 +121,14 @@ const apy = async () => {
 
   const eBTCTvlUsd = eBTCTotalSupply * (btcPrice || 0);
 
+  const pricePerShare = Number(weETHRates[0].output) / 1e18;
+  const bridgedWeethPools = await getBridgedWeethPools({
+    apyBase: apr1d,
+    apyBase7d: apr7d,
+    apyReward: restakingApy,
+    pricePerShare,
+  });
+
   return [
     {
       pool: weETH,
@@ -131,7 +139,7 @@ const apy = async () => {
       apyBase: apr1d,
       apyBase7d: apr7d,
       apyReward: restakingApy,
-      ...(Number(weETHRates[0].output) / 1e18 > 0 && { pricePerShare: Number(weETHRates[0].output) / 1e18 }),
+      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: weETH,
       rewardTokens: [lrt2],
@@ -146,14 +154,65 @@ const apy = async () => {
       tvlUsd: eBTCTvlUsd,
       apyBase: eBTCApyBase,
       apyBase7d: eBTCApyBase7d,
-      // eBTC is 8-dec; accountant returns rate in share decimals.
       ...(eBTCRateCurrent / 1e8 > 0 && { pricePerShare: eBTCRateCurrent / 1e8 }),
       underlyingTokens: [LBTC, WBTC],
       searchTokenOverride: eBTC,
       url: 'https://ether.fi/app/ebtc',
       isIntrinsicSource: true
     },
+    ...bridgedWeethPools,
   ];
+};
+
+const BRIDGED_WEETH = {
+  base: '0x04c0599ae5a44757c0af6f9ec3b93da8976c150a',
+  linea: '0x1bf74c010e6320bab11e2e5a532b5ac15e0b8aa6',
+  scroll: '0x01f0a31698c4d065659b9bdc21b3610292a1c506',
+};
+
+const getBridgedWeethPools = async ({ apyBase, apyBase7d, apyReward, pricePerShare }) => {
+  const entries = Object.entries(BRIDGED_WEETH);
+
+  const supplies = await Promise.all(
+    entries.map(([chain, addr]) =>
+      sdk.api.abi
+        .call({ target: addr, abi: 'erc20:totalSupply', chain })
+        .then((r) => Number(r.output))
+        .catch(() => null)
+    )
+  );
+
+  const priceKeys = entries.map(([chain, addr]) => `${chain}:${addr}`).join(',');
+  const priceRes = await axios.get(
+    `https://coins.llama.fi/prices/current/${priceKeys}`
+  );
+  const prices = priceRes.data.coins;
+
+  return entries
+    .map(([chain, addr], i) => {
+      const supply = supplies[i];
+      const priceKey = `${chain}:${addr}`;
+      const price = prices[priceKey]?.price;
+      if (!supply || !price) return null;
+
+      return {
+        pool: `${addr}-${chain}`,
+        chain,
+        project: 'ether.fi-stake',
+        symbol: 'weETH',
+        tvlUsd: (supply / 1e18) * price,
+        apyBase,
+        apyBase7d,
+        apyReward,
+        ...(pricePerShare > 0 && { pricePerShare }),
+        underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+        searchTokenOverride: addr,
+        rewardTokens: [lrt2],
+        url: 'https://ether.fi/app/weeth',
+        isIntrinsicSource: true,
+      };
+    })
+    .filter(Boolean);
 };
 
 module.exports = {

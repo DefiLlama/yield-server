@@ -14,12 +14,15 @@ const CHAINS = {
   unichain: 130,
   polygon: 137,
   monad: 143,
+  wc: 480,
+  stable: 988,
 };
 
 // Maps chain keys to URL slugs used by app.morpho.org
 // Only entries that differ from the chain key need to be listed
 const CHAIN_URL_SLUG = {
   hyperliquid: 'hyperevm',
+  wc: 'worldchain',
 };
 
 const getChainSlug = (chain) => CHAIN_URL_SLUG[chain] || chain;

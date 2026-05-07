@@ -14,6 +14,7 @@ const chains = {
   optimism: 10,
   base: 8453,
   katana: 747474,
+  polygon: 137,
 };
 
 // For Velodrome/Aerodrome LP vaults where the API doesn't provide underlying tokens,
