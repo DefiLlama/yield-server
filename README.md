@@ -57,7 +57,27 @@ interface Pool {
 
 #### `token` and `searchTokenOverride`
 
-- **`token`** — The pool's token contract address. This is the actual token associated with the pool (e.g. the LP token, vault receipt token, or staked asset address). Currently optional but will eventually be required for all adaptors.
+- **`token`** — The pool's token contract address as a single hex string (e.g. the LP token, vault receipt token, or staked asset address). Stored on `config.token` and exposed by the yields API as `poolTokenAddress`. Drives holder analytics (the holder pipeline reads `config.token` to look up on-chain holders) and downstream features that need a single canonical token per pool. Currently optional but will eventually be required for all adapters.
+
+  **How it gets populated** (see `src/handlers/triggerAdaptor.js`):
+
+  1. If the adapter sets `token` on the pool, that value is used (lowercased; `''`/`undefined` are treated as missing).
+  2. Otherwise the handler runs a regex over the `pool` id and uses the **first** `0x…` address it finds.
+  3. If neither produces an address, `config.token` is stored as `null`.
+
+  **When is it `null`?** Whenever the adapter doesn't set it _and_ the pool id has no `0x` address — typically API-driven adapters that use UUIDs as pool ids, or non-EVM chains (Solana, Cosmos, etc.) where addresses aren't `0x…`. For those, set `token` explicitly.
+
+  **Edge cases — set `token` explicitly when:**
+
+  - The pool id is not address-shaped (UUID, name, subgraph id without an address).
+  - The pool id contains an address but it isn't the right one (e.g. Aave v4 hub address, Uniswap v4 id).
+  - The pool id contains multiple addresses (LP-style ids); the regex picks the first, so override if a different one is canonical.
+  - You explicitly want no token associated with the pool — pass `token: null` to opt out of the fallback extraction.
+
+  **Borrow / CDP pools — pass `token: null`.** When the position is debt against collateral (Morpho Blue borrow markets, Liquity v1/v2 Troves, Liquity v2 stability pools, MakerDAO/Sky vaults, etc.), there is no transferable ERC-20 representing the user's position 1:1, so there are no holders to track and no canonical "pool token". The pool id in these adapters typically points at a market/vault/join contract (e.g. `morpho-blue-${uniqueKey}-${chain}`, the trove manager, an `ilk` join), and letting the fallback regex grab that address would surface a misleading value as `poolTokenAddress` and pollute holder analytics. Setting `token: null` explicitly suppresses the fallback and signals "no token" to downstream consumers.
+
+  ERC-4626-style "Earn" / vault pools on the same protocols (e.g. Morpho Blue MetaMorpho vaults, Liquity v2 stability-pool wrappers via 4626) **do** have a receipt token — for those, set `token` to the share-token address and don't pass `null`.
+
 - **`searchTokenOverride`** — Used for LSTs (Liquid Staking Tokens), LRTs (Liquid Restaking Tokens), and similar derivative tokens where the pool's token address differs from the underlying token. When set, this address is used instead of the underlying token for search and display matching. Only set this if the default matching produces incorrect results.
 - **`isIntrinsicSource`** — Set to `true` only for LST, LRT, or yield-bearing stablecoin primitives whose APY should be used as intrinsic APY for downstream pools. Example: Lido stETH APY can be linked as intrinsic APY for an Aave stETH/wstETH market.
   If an adapter lists multiple bridged versions with the same intrinsic APY, set this only on the canonical deployment.
