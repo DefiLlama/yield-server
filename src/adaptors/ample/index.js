@@ -87,7 +87,8 @@ const getRealizedPrizeData = async (chain, vault) => {
   let sumPayout = 0;
   for (let i = 0; i < setLogs.length; i++) {
     const r = poolsRes.output[i];
-    const canceled = r?.success && r.output && (r.output.canceled ?? r.output[0]);
+    if (!r?.success || !r.output) continue;
+    const canceled = r.output.canceled ?? r.output[0];
     if (canceled) continue;
     sumPayout += Number(setLogs[i].args.totalPayoutAmount.toString()) / scale;
   }
