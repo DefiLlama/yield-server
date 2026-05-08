@@ -8,6 +8,14 @@ const parseNumberOrNaN = (v) => {
   return Number.isFinite(n) ? n : NaN;
 };
 
+const parseUnderlyingTokens = (p) => {
+  const longToken = String(p?.long_token ?? '').trim();
+  const shortToken = String(p?.short_token ?? '').trim();
+
+  const tokens = [longToken, shortToken].filter(Boolean);
+  return tokens.length ? tokens : null;
+};
+
 const apy = async () => {
   const data = await utils.getData(POOLS_URL);
   if (!Array.isArray(data)) throw new Error('gmtrade api response is not an array');
@@ -18,6 +26,8 @@ const apy = async () => {
       const poolAddress = String(p.pool ?? '').trim();
       if (!poolAddress) return null;
 
+      const underlyingTokens = parseUnderlyingTokens(p);
+
       return {
         pool: poolAddress,
         chain,
@@ -25,6 +35,7 @@ const apy = async () => {
         symbol: p.symbol,
         tvlUsd: parseNumberOrNaN(p.tvl_usd),
         apyBase: parseNumberOrNaN(p.apy_base),
+        ...(underlyingTokens ? { underlyingTokens } : {}),
         token: poolAddress,
       };
     })
