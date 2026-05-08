@@ -135,7 +135,6 @@ const buildPool = async (chain, vault) => {
       apyBase,
       underlyingTokens: [vault.underlying],
       url: 'https://ample.money/',
-      isIntrinsicSource: true,
     };
   } catch (err) {
     console.error(`ample ${chain} error:`, err.message);
