@@ -41,21 +41,25 @@ const VAULTS = {
 
 const SET_MERKLE_ROOTS_ABI =
   'event SetMerkleRoots(uint256 indexed payoutId, bytes32 indexed participantsRoot, bytes32 indexed designatedRecipientsRoot, uint256 designatedRecipientsCount, uint256 totalTickets, uint256 totalPayoutAmount)';
-const CANCEL_PAYOUT_ABI =
-  'event CancelPayout(uint256 indexed payoutId, uint256 recoveredPayoutAmount)';
+const PAYOUT_POOL_ABI =
+  'function payoutPool(uint256) view returns (bool canceled, uint8 designatedRecipientsCount, uint8 claimCount, uint256 claimMask, uint256 totalPayoutAmount, uint256 remainingPayoutAmount, uint256 totalTickets, bytes32 participantsRoot, bytes32 designatedRecipientsRoot, tuple(bytes32 proof, bytes32 seed, bytes32 publicKey, bytes32 vrfHash) vrfProofDetails)';
+const TOTAL_ASSETS_ABI = 'uint256:totalAssets';
 
 const SECONDS_PER_DAY = 86400;
-const PRIZE_WINDOW_DAYS = 30;
-const MIN_DRAWS_FOR_REALIZED = 2;
+const WINDOW_DAYS = 30;
+const WINDOW_SECONDS = WINDOW_DAYS * SECONDS_PER_DAY;
 
-const getRealizedPrizeApy = async (chain, vault) => {
+const getRealizedPrizeData = async (chain, vault) => {
   const latest = await sdk.api.util.getLatestBlock(chain);
-  const past = await sdk.api.util.lookupBlock(
-    latest.timestamp - PRIZE_WINDOW_DAYS * SECONDS_PER_DAY,
-    { chain }
-  );
+  const cutoffTimestamp = latest.timestamp - WINDOW_SECONDS;
+  const past = await sdk.api.util.lookupBlock(cutoffTimestamp, { chain });
 
-  const [setLogs, cancelLogs, totalAssetsRes] = await Promise.all([
+  const [totalAssetsRes, setLogs] = await Promise.all([
+    sdk.api.abi.call({
+      target: vault.address,
+      chain,
+      abi: TOTAL_ASSETS_ABI,
+    }),
     sdk.getEventLogs({
       target: vault.address,
       chain,
@@ -63,75 +67,64 @@ const getRealizedPrizeApy = async (chain, vault) => {
       toBlock: latest.number,
       eventAbi: SET_MERKLE_ROOTS_ABI,
     }),
-    sdk.getEventLogs({
-      target: vault.address,
-      chain,
-      fromBlock: past.block,
-      toBlock: latest.number,
-      eventAbi: CANCEL_PAYOUT_ABI,
-    }),
-    sdk.api.abi.call({
-      target: vault.address,
-      chain,
-      abi: 'uint256:totalAssets',
-    }),
   ]);
 
-  if (setLogs.length < MIN_DRAWS_FOR_REALIZED) return null;
-
-  const cancelledIds = new Set(
-    cancelLogs.map((l) => l.args.payoutId.toString())
-  );
   const scale = 10 ** vault.underlyingDecimals;
-
-  const sumPayout = setLogs.reduce((acc, log) => {
-    if (cancelledIds.has(log.args.payoutId.toString())) return acc;
-    return acc + Number(log.args.totalPayoutAmount.toString()) / scale;
-  }, 0);
-
   const tvlUnderlying = Number(totalAssetsRes.output) / scale;
-  if (!tvlUnderlying || !sumPayout) return null;
 
-  const windowSeconds =
-    latest.timestamp - past.timestamp || PRIZE_WINDOW_DAYS * SECONDS_PER_DAY;
-  const annualization = (365 * SECONDS_PER_DAY) / windowSeconds;
-  return (sumPayout / tvlUnderlying) * annualization * 100;
+  if (!setLogs.length || !tvlUnderlying) {
+    return { apyBase: null, tvlUnderlying };
+  }
+
+  const ids = setLogs.map((log) => log.args.payoutId.toString());
+  const poolsRes = await sdk.api.abi.multiCall({
+    chain,
+    abi: PAYOUT_POOL_ABI,
+    calls: ids.map((id) => ({ target: vault.address, params: [id] })),
+    permitFailure: true,
+  });
+
+  let sumPayout = 0;
+  for (let i = 0; i < setLogs.length; i++) {
+    const r = poolsRes.output[i];
+    const canceled = r?.success && r.output && (r.output.canceled ?? r.output[0]);
+    if (canceled) continue;
+    sumPayout += Number(setLogs[i].args.totalPayoutAmount.toString()) / scale;
+  }
+
+  if (!sumPayout) return { apyBase: null, tvlUnderlying };
+
+  const annualization = (365 * SECONDS_PER_DAY) / WINDOW_SECONDS;
+  const apyBase = (sumPayout / tvlUnderlying) * annualization * 100;
+  return { apyBase, tvlUnderlying };
 };
 
 const buildPool = async (chain, vault) => {
   try {
-    const ampleInfo = await utils.getERC4626Info(vault.address, chain, undefined, {
-      assetUnit: '1000000000000000000',
-    });
+    const { apyBase: realizedApy, tvlUnderlying } =
+      await getRealizedPrizeData(chain, vault);
 
-    let apyBase = null;
-    try {
-      apyBase = await getRealizedPrizeApy(chain, vault);
-    } catch (err) {
-      console.error(`ample ${chain} realized apy error:`, err.message);
-    }
-
-    if (apyBase === null || !Number.isFinite(apyBase)) {
-      apyBase = vault.yieldSource
-        ? (await utils.getERC4626Info(vault.yieldSource, chain, undefined, {
-            assetUnit: '1000000000000000000',
-          })).apyBase
-        : ampleInfo.apyBase;
+    let apyBase = realizedApy;
+    if ((apyBase === null || !Number.isFinite(apyBase)) && vault.yieldSource) {
+      const yieldInfo = await utils.getERC4626Info(
+        vault.yieldSource,
+        chain,
+        undefined,
+        { assetUnit: '1000000000000000000' }
+      );
+      apyBase = yieldInfo.apyBase;
     }
 
     const { pricesByAddress } = await utils.getPrices([vault.underlying], chain);
     const price = pricesByAddress[vault.underlying.toLowerCase()];
     if (!price) return null;
 
-    const tvlUsd =
-      (Number(ampleInfo.tvl) / 10 ** vault.underlyingDecimals) * price;
-
     return {
       pool: `${vault.address}-${chain}`,
       chain: utils.formatChain(chain),
       project: 'ample',
       symbol: vault.symbol,
-      tvlUsd,
+      tvlUsd: tvlUnderlying * price,
       apyBase,
       underlyingTokens: [vault.underlying],
       url: 'https://ample.money/',
