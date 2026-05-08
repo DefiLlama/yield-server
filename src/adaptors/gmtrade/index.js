@@ -12,7 +12,7 @@ const parseUnderlyingTokens = (p) => {
   const longToken = String(p?.long_token ?? '').trim();
   const shortToken = String(p?.short_token ?? '').trim();
 
-  const tokens = [longToken, shortToken].filter(Boolean);
+  const tokens = [...new Set([longToken, shortToken].filter(Boolean))];
   return tokens.length ? tokens : null;
 };
 
