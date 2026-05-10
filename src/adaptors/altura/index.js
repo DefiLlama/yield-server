@@ -53,6 +53,7 @@ const apy = async (timestamp) => {
       tvlUsd: vaultInfo.tvl / 1e6,
       apyBase: vaultInfo.apyBase,
       apyReward: rewards.apyReward,
+      pricePerShare: vaultInfo.pricePerShare,
       underlyingTokens: [USDT0_ADDRESS],
       rewardTokens: rewards.rewardTokens.length > 0 ? rewards.rewardTokens : undefined,
       poolMeta: 'Multi-Strategy Stablecoin Vault',

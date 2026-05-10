@@ -39,6 +39,7 @@ const main = async (timestamp = null) => {
        symbol: wrappers[i].symbol,
       tvlUsd: (Number(info.tvl) / 10 ** priceEntry.decimals) * priceEntry.price,
        apyBase: info.apyBase,
+       pricePerShare: info.pricePerShare,
        underlyingTokens: [wrappers[i].underlyingToken],
        url: wrappers[i].poolUrl
      };

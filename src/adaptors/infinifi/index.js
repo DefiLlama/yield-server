@@ -42,6 +42,7 @@ async function computeStakedTokenAPY() {
     symbol: utils.formatSymbol('siUSD'),
     tvlUsd: parseFloat(ethers.utils.formatUnits(erc4626Infos.tvl, 18)),
     apyBase: erc4626Infos.apyBase,
+    pricePerShare: erc4626Infos.pricePerShare,
     poolMeta: 'Staked iUSD',
     url: 'https://infinifi.xyz/',
     underlyingTokens: [iUSDAddress],

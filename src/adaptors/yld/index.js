@@ -36,6 +36,7 @@ const getApy = async () => {
           symbol: utils.formatSymbol(vault.symbol),
           tvlUsd: (info.tvl / 1e18) * tokenPrice,
           apyBase: info.apyBase,
+          pricePerShare: info.pricePerShare,
           underlyingTokens: [vault.underlying],
           url: `https://yldfi.co/vaults/${key}`,
         };

@@ -69,6 +69,7 @@ const main = async () => {
         chain: 'Ethereum',
         tvlUsd: sreusd.tvl / 1e18,
         apyBase: sreusd.apyBase,
+        pricePerShare: sreusd.pricePerShare,
         poolMeta: 'Savings reUSD',
         url: 'https://resupply.fi/supply',
         underlyingTokens: [reUSD],

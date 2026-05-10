@@ -348,13 +348,18 @@ const getMuBondPool = async (
   aznd
 ) => {
   try {
-    const [circulatingSupplyRes, decimalsRes, symbolRes, price] =
+    const [circulatingSupplyRes, decimalsRes, symbolRes, priceFromFeed] =
       await Promise.all([
         getMuBondSupply(muBond, chain),
         getErc20Decimals(muBond, chain),
         getErc20Symbol(muBond, chain),
-        getPriceWithFallback(priceFeed, muBond, chain),
+        getPriceFromFeed(priceFeed, muBond, chain).catch(() => null),
       ]);
+
+    const price =
+      priceFromFeed && !priceFromFeed.isZero()
+        ? priceFromFeed
+        : new BigNumber(await getTokenPrice(muBond, chain));
 
     const tokenDecimals = Number(decimalsRes);
     const tvlUsd = calcTvlUsd(circulatingSupplyRes.toFixed(0), tokenDecimals, price);
@@ -368,6 +373,9 @@ const getMuBondPool = async (
       symbol: formatSymbol(symbolRes),
       tvlUsd,
       apyBase,
+      ...(priceFromFeed && !priceFromFeed.isZero() && {
+        pricePerShare: priceFromFeed.toNumber(),
+      }),
       url,
       underlyingTokens: [aznd],
     };
@@ -391,7 +399,8 @@ const getERC4626InfoSafe = async (
   chain,
   timestamp,
   assetUnit,
-  assetDecimals
+  assetDecimals,
+  shareDecimals
 ) => {
   try {
     const latest = await sdk.api.util.getLatestBlock(chain);
@@ -425,14 +434,13 @@ const getERC4626InfoSafe = async (
     ]);
     const priceNowBN = new BigNumber(priceNow.output);
     const priceYesterdayBN = new BigNumber(priceYesterday.output);
-    // convertToAssets returns asset amounts in native decimals; rescale to
-    // 18-dec share units so pricePerShare is comparable across vaults.
-    const decimalScale = new BigNumber(10).pow(18 - Number(assetDecimals));
+    const shareScale = new BigNumber(10).pow(Number(shareDecimals));
+    const assetScale = new BigNumber(10).pow(Number(assetDecimals));
     const pricePerShare = priceNowBN.isZero()
       ? null
       : priceNowBN
-          .div(new BigNumber(assetUnit))
-          .times(decimalScale)
+          .times(shareScale)
+          .div(new BigNumber(assetUnit).times(assetScale))
           .toNumber();
     if (priceNowBN.isZero() || priceYesterdayBN.isZero()) {
       return { tvl: tvl.output, apyBase: 0, pricePerShare };
@@ -470,7 +478,7 @@ const getVaultData = async (
 
     const assetDecimals = await getErc20Decimals(asset, chain);
     const erc4626Info =
-      (await getERC4626InfoSafe(vault, chain, timestamp, assetUnit, assetDecimals)) ||
+      (await getERC4626InfoSafe(vault, chain, timestamp, assetUnit, assetDecimals, shareDecimals)) ||
       (await sdk.api.abi
         .call({
           target: vault,

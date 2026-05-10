@@ -49,7 +49,7 @@ const apy = async (timestamp) => {
   return VAULTS.flatMap((vault, i) => {
     const result = vaultInfoResults[i];
     if (result.status !== 'fulfilled') return [];
-    const { tvl, apyBase } = result.value;
+    const { tvl, apyBase, pricePerShare } = result.value;
     const tokenAmount = Number(tvl) / 10 ** vault.decimals;
     const price =
       pricesByAddress[vault.underlyingToken.toLowerCase()] || 0;
@@ -68,6 +68,7 @@ const apy = async (timestamp) => {
       symbol: vault.symbol,
       tvlUsd,
       apyBase,
+      pricePerShare,
       underlyingTokens: [vault.underlyingToken],
       url: `https://app.mysticfinance.xyz/vault?vaultAddress=${vault.address}&chainId=14`,
     };

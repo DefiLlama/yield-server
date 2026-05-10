@@ -165,7 +165,9 @@ const apy = async () => {
         chain: 'ethereum',
         tvlUsd: scrvusd.tvl / 1e18,
         apyBase: scrvusd.apyBase,
+        pricePerShare: scrvusd.pricePerShare,
         underlyingTokens: [crvUsd],
+        url: 'https://www.curve.finance/crvusd/ethereum/scrvUSD',
       },
     ])
     .filter(
@@ -175,5 +177,5 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://crvusd.curve.fi/#/ethereum/markets',
+  url: 'https://www.curve.finance/llamalend/ethereum/markets',
 };

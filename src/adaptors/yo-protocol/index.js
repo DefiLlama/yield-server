@@ -44,12 +44,14 @@ const getEvmPools = async () => {
   );
 
   const tvlByKey = {};
+  const pricePerShareByKey = {};
   tvls.forEach((result, i) => {
     if (result.status === 'fulfilled') {
       const vault = vaults[i];
       const key =
         `${vault.contracts.vaultAddress}-${vault.chain.name}`.toLowerCase();
       tvlByKey[key] = result.value.tvl;
+      pricePerShareByKey[key] = result.value.pricePerShare;
     }
   });
 
@@ -93,6 +95,7 @@ const getEvmPools = async () => {
       symbol: vault.asset.symbol,
       tvlUsd: tvlUsd,
       apyBase: Number(vault.yield['1d']),
+      pricePerShare: pricePerShareByKey[key],
       underlyingTokens: [vault.asset.address],
       url: `https://app.yo.xyz/vault/${vault.chain.name}/${vault.contracts.vaultAddress}`,
       ...(vaultReward && {

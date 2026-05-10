@@ -526,7 +526,7 @@ exports.getERC4626Info = async (
         .then((r) => r.data.height)
     )
   );
-  const [tvl, priceNow, priceYesterday, asset] = await Promise.all([
+  const [tvl, priceNow, priceYesterday, asset, shareDecimalsRes] = await Promise.all([
     sdk.api.abi.call({
       target: address,
       block: blockNow,
@@ -554,6 +554,13 @@ exports.getERC4626Info = async (
         chain: chain,
       })
       .catch(() => null),
+    sdk.api.abi
+      .call({
+        target: address,
+        abi: 'erc20:decimals',
+        chain: chain,
+      })
+      .catch(() => null),
   ]);
   const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
   let assetDecimals = 18;
@@ -568,8 +575,14 @@ exports.getERC4626Info = async (
       if (Number.isFinite(parsed) && parsed > 0) assetDecimals = parsed;
     } catch (_) {}
   }
+  let shareDecimals = 18;
+  if (shareDecimalsRes && shareDecimalsRes.output) {
+    const parsed = Number(shareDecimalsRes.output);
+    if (Number.isFinite(parsed) && parsed > 0) shareDecimals = parsed;
+  }
   const pricePerShare =
-    (Number(priceNow.output) * 10 ** (18 - assetDecimals)) / Number(assetUnit);
+    (Number(priceNow.output) * 10 ** shareDecimals) /
+    (Number(assetUnit) * 10 ** assetDecimals);
   return {
     pool: address,
     chain,
