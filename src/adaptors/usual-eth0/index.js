@@ -6,6 +6,7 @@ const CONFIG = {
   ETHEREUM: {
     ETH0: '0x734eec7930bc84eC5732022B9EB949A81fB89AbE',
     WSTETH: '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+    STETH: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
     CHAIN: 'Ethereum',
   },
   USUAL_TOKEN: '0xC4441c2BE5d8fA8126822B9929CA0b81Ea0DE38E',
@@ -32,7 +33,8 @@ async function getTokenSupply(chain, address) {
 async function getTokenPrice(chain, address) {
   const priceKey = `${chain.toLowerCase()}:${address}`;
   const { data } = await axios.get(`${CONFIG.URLS.LLAMA_PRICE}${priceKey}`);
-  return data.coins[priceKey].price;
+  const entry = data.coins[priceKey] || data.coins[priceKey.toLowerCase()];
+  return entry ? entry.price : null;
 }
 
 async function getRewardData(pool, reward) {
@@ -48,7 +50,12 @@ async function getRewardData(pool, reward) {
 
 async function getETH0ChainData(chainConfig) {
   const supply = await getTokenSupply(chainConfig.CHAIN, chainConfig.ETH0);
-  const price = await getTokenPrice(chainConfig.CHAIN, chainConfig.ETH0);
+  const price =
+    (await getTokenPrice(chainConfig.CHAIN, chainConfig.ETH0)) ||
+    (await getTokenPrice(chainConfig.CHAIN, chainConfig.STETH));
+  if (!price) {
+    throw new Error('No coins.llama.fi price for ETH0 or stETH');
+  }
   return { supply, price };
 }
 
