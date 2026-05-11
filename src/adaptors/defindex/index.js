@@ -5,9 +5,21 @@ const API_BASE_URL = 'https://api.defindex.io';
 const STELLAR_DECIMALS = 7;
 const START_TIMESTAMP = 1747281600;
 
+async function getWithRetry(url, retries = 3) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await axios.get(url);
+    } catch (e) {
+      if (attempt === retries) throw e;
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+    }
+  }
+}
+
 async function fetchCoinData(assets) {
+  if (!assets.length) return {};
   const keys = assets.map(a => `stellar:${a.toLowerCase()}`).join(',');
-  const { data } = await axios.get(`https://coins.llama.fi/prices/current/${keys}`);
+  const { data } = await getWithRetry(`https://coins.llama.fi/prices/current/${keys}`);
   return Object.entries(data.coins ?? {}).reduce((acc, [key, coin]) => {
     const address = key.split(':')[1];
     acc[address] = {
@@ -22,7 +34,7 @@ async function fetchCoinData(assets) {
 async function apy(timestamp = null) {
   const ts = timestamp ?? Math.floor(Date.now() / 1000);
 
-  const { data: strategies } = await axios.get(
+  const { data: strategies } = await getWithRetry(
     `${API_BASE_URL}/strategies/apy?timestamp=${ts}&network=mainnet`,
   );
 
@@ -48,7 +60,7 @@ async function apy(timestamp = null) {
       tvlUsd,
       apyBase: strategy.apy7d,
       underlyingTokens: [strategy.asset],
-      url: `https://stellar.expert/explorer/public/contract/${strategy.address}`,
+      url: `https://www.defindex.io/strategies`,
     }];
   }).filter(p => utils.keepFinite(p));
 }
@@ -57,5 +69,5 @@ module.exports = {
   timetravel: true,
   start: START_TIMESTAMP,
   apy,
-  url: "https://www.defindex.io/strategies",
+  url: 'https://www.defindex.io/strategies',
 };
