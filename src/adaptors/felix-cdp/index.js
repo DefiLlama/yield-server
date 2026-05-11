@@ -12,7 +12,6 @@ const ABIS = {
   stabilityPool: 'address:stabilityPool',
   activePool: 'address:activePool',
   borrowerOperations: 'address:borrowerOperations',
-  troveNFT: 'address:troveNFT',
   collToken: 'address:collToken',
   defaultPoolAddress: 'address:defaultPoolAddress',
   getCollBalance: 'uint256:getCollBalance',
@@ -86,7 +85,6 @@ const multiCall = (abi, targets, params) =>
     abi,
     calls: targets.map((target) => (params ? { target, params } : { target })),
     chain: CHAIN,
-    permitFailure: true,
   });
 
 const apy = async () => {
@@ -111,12 +109,11 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
-  const [stabilityPools, activePools, borrowerOperations, troveNFTs] = (
+  const [stabilityPools, activePools, borrowerOperations] = (
     await Promise.all([
       multiCall(ABIS.stabilityPool, troveManagers),
       multiCall(ABIS.activePool, troveManagers),
       multiCall(ABIS.borrowerOperations, troveManagers),
-      multiCall(ABIS.troveNFT, troveManagers),
     ])
   ).map((r) => r.output.map((o) => o.output));
 
@@ -185,7 +182,7 @@ const apy = async () => {
       ltv,
       mintedCoin: 'feUSD',
       underlyingTokens: [collToken],
-      token: troveNFTs[i],
+      token: null,
     });
 
     if (spSupplyUsd > 0) {
@@ -199,6 +196,7 @@ const apy = async () => {
         underlyingTokens: [FE_USD],
         rewardTokens: [FE_USD, collToken],
         poolMeta: `${symbol} Stability Pool`,
+        token: null,
       });
     }
   }
