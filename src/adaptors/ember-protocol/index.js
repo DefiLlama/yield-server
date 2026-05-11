@@ -147,6 +147,13 @@ const buildEvmPools = async (vaults, chainKey) => {
     const apyReward = apiRewardApy(vault);
     const rewardTokens = rewardTokenAddresses(vault, apyReward);
 
+    const shareDec = Number(details.receiptCoin?.decimals ?? decimals);
+    const shareNowRaw = Number(shareNowRes.output[i]?.output);
+    const pricePerShare =
+      Number.isFinite(shareNowRaw) && shareNowRaw > 0
+        ? (shareNowRaw * 10 ** shareDec) / (1e18 * 10 ** decimals)
+        : undefined;
+
     pools.push({
       pool: `${details.address.toLowerCase()}-${chainKey}`,
       chain: display,
@@ -155,6 +162,7 @@ const buildEvmPools = async (vaults, chainKey) => {
       tvlUsd,
       apyBase,
       ...(apyReward > 0 && { apyReward }),
+      ...(pricePerShare && { pricePerShare }),
       underlyingTokens: [baseAddr],
       ...(rewardTokens && { rewardTokens }),
       poolMeta: vault.name,
