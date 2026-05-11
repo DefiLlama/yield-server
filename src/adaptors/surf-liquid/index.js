@@ -8,6 +8,7 @@ const V2_FACTORY = '0x1D283b668F947E03E8ac8ce8DA5505020434ea0E';
 const V3_FACTORY = '0xf1d64dee9f8e109362309a4bfbb523c8e54fa1aa';
 const V3_DEPLOY_FROM_BLOCK = 38856207;
 const SURF_STAKING = '0xB0fDFc081310A5914c2d2c97e7582F4De12FA9d6';
+const SURF_STAKING_V2 = '0xeBa3B16E175fD36c8b01953D9e3962AB3c575718';
 const SURF_TOKEN = '0xcdca2eaae4a8a6b83d7a3589946c2301040dafbf';
 const USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
 const WETH = '0x4200000000000000000000000000000000000006';
@@ -404,65 +405,50 @@ const apy = async () => {
     });
   }
 
-  // --- Step 7: SURF Staking pool ---
-
-  const [
-    { output: totalStaked },
-    { output: apr6M },
-    { output: apr12M },
-    { output: basisPoints },
-  ] = await Promise.all([
-    sdk.api.abi.call({
-      target: SURF_STAKING,
-      abi: 'uint256:totalStaked',
-      chain: CHAIN,
-    }),
-    sdk.api.abi.call({
-      target: SURF_STAKING,
-      abi: 'uint256:apr6Months',
-      chain: CHAIN,
-    }),
-    sdk.api.abi.call({
-      target: SURF_STAKING,
-      abi: 'uint256:apr12Months',
-      chain: CHAIN,
-    }),
-    sdk.api.abi.call({
-      target: SURF_STAKING,
-      abi: 'uint256:BASIS_POINTS',
-      chain: CHAIN,
-    }),
-  ]);
-
-  const bp = Number(basisPoints);
-  const stakingApr6M = bp > 0 ? (Number(apr6M) / bp) * 100 : null;
-  const stakingApr12M = bp > 0 ? (Number(apr12M) / bp) * 100 : null;
+  // --- Step 7: SURF Staking pools (v1 + v2) ---
 
   const surfPriceKey = `${CHAIN}:${SURF_TOKEN}`;
   const surfPriceResp = await axios.get(
     `https://coins.llama.fi/prices/current/${surfPriceKey}?searchWidth=24h`
   );
   const surfPrice = surfPriceResp.data?.coins?.[surfPriceKey]?.price || 0;
-  const stakingTvl = (Number(totalStaked) / 1e18) * surfPrice;
 
-  if (stakingTvl > 100) {
-    const stakingPool = {
-      pool: `${SURF_STAKING.toLowerCase()}-${CHAIN}`,
-      chain: utils.formatChain(CHAIN),
-      project: 'surf-liquid',
-      symbol: 'SURF',
-      tvlUsd: stakingTvl,
-      apyBase: 0,
-      underlyingTokens: [SURF_TOKEN],
-    };
+  for (const stakingAddr of [SURF_STAKING, SURF_STAKING_V2]) {
+    const [
+      { output: totalStaked },
+      { output: apr6M },
+      { output: apr12M },
+      { output: basisPoints },
+    ] = await Promise.all([
+      sdk.api.abi.call({ target: stakingAddr, abi: 'uint256:totalStaked', chain: CHAIN }),
+      sdk.api.abi.call({ target: stakingAddr, abi: 'uint256:apr6Months', chain: CHAIN }),
+      sdk.api.abi.call({ target: stakingAddr, abi: 'uint256:apr12Months', chain: CHAIN }),
+      sdk.api.abi.call({ target: stakingAddr, abi: 'uint256:BASIS_POINTS', chain: CHAIN }),
+    ]);
 
-    if (stakingApr6M != null && stakingApr6M > 0) {
-      stakingPool.apyReward = stakingApr6M;
-      stakingPool.rewardTokens = [SURF_TOKEN];
-      stakingPool.poolMeta = '6M / 12M lock';
+    const bp = Number(basisPoints);
+    const stakingApr6M = bp > 0 ? (Number(apr6M) / bp) * 100 : null;
+    const stakingTvl = (Number(totalStaked) / 1e18) * surfPrice;
+
+    if (stakingTvl > 100) {
+      const stakingPool = {
+        pool: `${stakingAddr.toLowerCase()}-${CHAIN}`,
+        chain: utils.formatChain(CHAIN),
+        project: 'surf-liquid',
+        symbol: 'SURF',
+        tvlUsd: stakingTvl,
+        apyBase: 0,
+        underlyingTokens: [SURF_TOKEN],
+      };
+
+      if (stakingApr6M != null && stakingApr6M > 0) {
+        stakingPool.apyReward = stakingApr6M;
+        stakingPool.rewardTokens = [SURF_TOKEN];
+        stakingPool.poolMeta = '6M / 12M lock';
+      }
+
+      pools.push(stakingPool);
     }
-
-    pools.push(stakingPool);
   }
 
   // =====================================================================
