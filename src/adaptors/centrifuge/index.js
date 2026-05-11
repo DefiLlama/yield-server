@@ -3,6 +3,8 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const API_URL = 'https://api.centrifuge.io/graphql';
+const HTTP_TIMEOUT_MS = 15000;
+const http = axios.create({ timeout: HTTP_TIMEOUT_MS });
 const SHARE_UNIT = '1000000000000000000'; // 1e18
 const DAY = 86400;
 
@@ -23,8 +25,8 @@ const CHAIN_MAP = {
   12: 'pharos',
 };
 
-const VAULTS_QUERY = `{
-  vaults(where: { isActive: true }, limit: 200) {
+const VAULTS_QUERY = `query($cursor: String) {
+  vaults(where: { isActive: true }, limit: 200, after: $cursor) {
     items {
       id
       centrifugeId
@@ -41,7 +43,7 @@ const VAULTS_QUERY = `{
         decimals
       }
     }
-    pageInfo { hasNextPage }
+    pageInfo { hasNextPage endCursor }
   }
 }`;
 
@@ -52,15 +54,26 @@ const ABIS = {
 };
 
 async function getHistoricalBlock(chain, timestamp) {
-  const { data } = await axios.get(
+  const { data } = await http.get(
     `https://coins.llama.fi/block/${chain}/${timestamp}`
   );
   return data.height;
 }
 
 async function fetchVaults() {
-  const { data } = await axios.post(API_URL, { query: VAULTS_QUERY });
-  return data.data.vaults.items;
+  const items = [];
+  let cursor = null;
+  while (true) {
+    const { data } = await http.post(API_URL, {
+      query: VAULTS_QUERY,
+      variables: { cursor },
+    });
+    const page = data.data.vaults;
+    items.push(...page.items);
+    if (!page.pageInfo.hasNextPage) break;
+    cursor = page.pageInfo.endCursor;
+  }
+  return items;
 }
 
 async function processChain(chain, vaults) {
@@ -168,7 +181,7 @@ async function processChain(chain, vaults) {
         project: 'centrifuge',
         symbol: assetSymbol,
         tvlUsd,
-        apyBase: apyBase !== null ? apyBase : (apyBase7d ?? 0),
+        apyBase: apyBase ?? apyBase7d ?? null,
         apyBase7d,
         underlyingTokens: [v.assetAddress],
         poolMeta: tokenName,
