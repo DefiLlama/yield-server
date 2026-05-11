@@ -49,6 +49,18 @@ const chains = {
       },
     ],
   },
+  megaeth: {
+    chainId: 4326,
+    gns: '0x551DFe38994eC53c9E7E18084D73893225Eea3bf',
+    staking: '0x4F1D70A563c2cA96b076cc28E84Ec25da8D6f486',
+    vaults: [
+      {
+        symbol: 'USDM',
+        pool: '0x46344456f130e9dcdeA7F98cDb0E02fB9F4ab72D',
+        underlying: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7',
+      },
+    ],
+  },
 };
 
 const getApy = async () => {
