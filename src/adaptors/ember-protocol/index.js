@@ -218,7 +218,13 @@ const buildSuiPools = async (vaults, chainKey) => {
 };
 
 const apy = async () => {
-  const { data: vaults } = await axios.get(VAULTS_URL);
+  let vaults;
+  try {
+    ({ data: vaults } = await axios.get(VAULTS_URL));
+  } catch (err) {
+    console.error(`ember-protocol: failed to fetch ${VAULTS_URL}:`, err.message);
+    throw err;
+  }
 
   const [evmPools, suiPools] = await Promise.all([
     buildEvmPools(vaults, 'ethereum'),
