@@ -62,7 +62,7 @@ async function main() {
   const pools = Object.entries(XHYPE).map(([key, config]) => ({
     pool: `${config.address}-${config.chain}-${key}`.toLowerCase(),
     chain: config.chainDisplay,
-    project: 'liminal',
+    project: 'liminal-basis',
     symbol: 'xHYPE',
     tvlUsd,
     apyBase: apyBase7d,
