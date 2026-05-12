@@ -68,7 +68,8 @@ async function fetchVaults() {
       query: VAULTS_QUERY,
       variables: { cursor },
     });
-    const page = data.data.vaults;
+    const page = data?.data?.vaults;
+    if (!page?.items) throw new Error('Unexpected GraphQL response');
     items.push(...page.items);
     if (!page.pageInfo.hasNextPage) break;
     cursor = page.pageInfo.endCursor;
@@ -152,7 +153,8 @@ async function processChain(chain, vaults) {
 
       if (!ta || !ta.success || !pNow || !pNow.success) continue;
 
-      const decimals = v.asset?.decimals ?? 6;
+      const decimals = v.asset?.decimals;
+      if (decimals == null) continue;
       const assetSymbol = v.asset?.symbol ?? 'UNKNOWN';
       const usdPrice = pricesByAddress[v.assetAddress.toLowerCase()];
       if (!usdPrice) continue;
