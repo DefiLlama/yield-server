@@ -178,7 +178,7 @@ async function processChain(chain, vaults) {
       pools.push({
         pool: `${v.id}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
-        project: 'centrifuge',
+        project: 'centrifuge-protocol',
         symbol: assetSymbol,
         tvlUsd,
         apyBase: apyBase ?? apyBase7d ?? null,
