@@ -129,7 +129,6 @@ const getApy = async () => {
       tvlUsd: allocateTvl(unstakedWei),
       apyBase,
       underlyingTokens: [MUSD],
-      pricePerShare: 1,
       url: URL,
     },
     {
@@ -143,7 +142,6 @@ const getApy = async () => {
       apyReward,
       rewardTokens: [rewardToken],
       underlyingTokens: [MUSD],
-      pricePerShare: 1,
       url: URL,
     },
   ];
