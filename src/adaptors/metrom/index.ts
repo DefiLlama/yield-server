@@ -30,6 +30,7 @@ const CHAIN_TYPE_AND_NAMES: ByChainTypeAndId<string> = {
     5_464: 'Saga',
     747_474: 'Katana',
     4_326: 'MegaETH',
+    1: 'Ethereum',
   },
   aptos: {
     1: 'Aptos',
@@ -111,6 +112,16 @@ interface YieldSeekerTarget extends BaseTarget {
   type: 'yield-seeker';
 }
 
+interface Erc4626Target extends BaseTarget {
+  type: 'erc4626-vault';
+  brand: string;
+  vault: {
+    name: string;
+    symbol: string;
+    asset: string;
+  };
+}
+
 interface Reward extends Token {
   amount: string;
   remaining: string;
@@ -133,7 +144,8 @@ interface Campaign {
     | AaveV3BorrowTarget
     | AaveV3NetSupplyTarget
     | TurtleTarget
-    | YieldSeekerTarget;
+    | YieldSeekerTarget
+    | Erc4626Target;
   rewards?: Rewards;
   usdTvl?: number;
   apr?: number;
@@ -301,6 +313,16 @@ async function processCampaign(
         symbol: 'USDC',
         underlyingTokens: [BASE_USDC],
         poolMeta: 'Deposit',
+      };
+    }
+    case 'erc4626-vault': {
+      return {
+        symbol: formatSymbol(campaign.target.vault.symbol),
+        underlyingTokens: [campaign.target.vault.asset],
+        poolMeta: humanizeTargetProtocol(
+          'Deposit to',
+          campaign.target.vault.name
+        ),
       };
     }
     default: {
