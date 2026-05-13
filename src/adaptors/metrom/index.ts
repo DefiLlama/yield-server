@@ -257,7 +257,7 @@ async function processCampaign(
         symbol: campaign.target.collateral.symbol,
         underlyingTokens: [campaign.target.collateral.address],
         poolMeta: humanizeTargetProtocol(
-          'Deposit to stability pool on',
+          'Stability pool on',
           campaign.target.brand
         ),
       };
