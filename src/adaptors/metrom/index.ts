@@ -416,9 +416,12 @@ function getCampaignApyFields(
     : { apy: campaign.apr };
 }
 
-function humanizeTargetProtocol(action: string, protocolSlug: string): string {
-  return `${action} ${protocolSlug
-    .split('-')
+function humanizeTargetProtocol(action: string, protocolSlug?: string): string {
+  const normalizedSlug = protocolSlug?.trim();
+  if (!normalizedSlug) return action;
+
+  return `${action} ${normalizedSlug
+    .split(/[-_]/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')}`;
 }
