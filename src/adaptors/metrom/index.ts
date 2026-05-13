@@ -1,6 +1,4 @@
-import { formatSymbol } from '../utils';
-
-const { getData, formatChain, keepFinite } = require('../utils');
+const { getData, formatChain, formatSymbol, keepFinite } = require('../utils');
 
 const PROJECT = 'metrom';
 const METROM_REWARDS_URL = 'https://app.metrom.xyz/en?type=rewards';
