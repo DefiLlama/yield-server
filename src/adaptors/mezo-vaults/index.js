@@ -47,7 +47,7 @@ const computeBaseApr = async (currentIndex, latestBlock) => {
       }
     } catch {}
   }
-  return 0;
+  return null;
 };
 
 const getApy = async () => {
