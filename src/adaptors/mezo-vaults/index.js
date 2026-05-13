@@ -10,7 +10,6 @@ const STRATEGY = '0x0C0944713c185ea3e64F5609ECee3fB3C054a295';
 const GAUGE = '0x677817bF3e44b90E8F95222F75e2950b7904a401';
 const MUSD = '0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186';
 
-const SECONDS_PER_BLOCK = 2;
 const SECONDS_PER_DAY = 86400;
 const SECONDS_PER_YEAR = 365 * SECONDS_PER_DAY;
 const YIELD_INDEX_SCALE = 1e18;
@@ -29,21 +28,24 @@ const viewAbi = (name, outType) => ({
 
 const yieldIndexAbi = viewAbi('yieldIndex', 'uint256');
 
-const computeBaseApr = async (currentIndex, latestBlock) => {
+const computeBaseApr = async (currentIndex, latest) => {
   for (const days of LOOKBACK_WINDOWS_DAYS) {
-    const olderBlock =
-      latestBlock - Math.floor((SECONDS_PER_DAY * days) / SECONDS_PER_BLOCK);
+    const targetTimestamp = latest.timestamp - days * SECONDS_PER_DAY;
     try {
+      const older = await sdk.api.util.lookupBlock(targetTimestamp, {
+        chain: CHAIN,
+      });
       const res = await sdk.api.abi.call({
         target: VAULT,
         abi: yieldIndexAbi,
         chain: CHAIN,
-        block: olderBlock,
+        block: older.number,
       });
       const oldIndex = Number(res.output);
-      if (oldIndex > 0 && currentIndex > oldIndex) {
+      const elapsedSeconds = latest.timestamp - older.timestamp;
+      if (oldIndex > 0 && currentIndex > oldIndex && elapsedSeconds > 0) {
         const yieldPerShare = (currentIndex - oldIndex) / YIELD_INDEX_SCALE;
-        return yieldPerShare * (365 / days) * 100;
+        return yieldPerShare * (SECONDS_PER_YEAR / elapsedSeconds) * 100;
       }
     } catch {}
   }
@@ -108,7 +110,7 @@ const getApy = async () => {
   };
 
   const currentIndex = Number(yieldIndexRes.output);
-  const apyBase = await computeBaseApr(currentIndex, latestBlock.number);
+  const apyBase = await computeBaseApr(currentIndex, latestBlock);
 
   const stakedTvlUsd = allocateTvl(gaugeStakedWei);
   const rewardRate = weiToNumber(BigInt(rewardRateRes.output));
@@ -120,7 +122,7 @@ const getApy = async () => {
 
   const pools = [
     {
-      pool: `${VAULT.toLowerCase()}-${CHAIN}}`,
+      pool: `${VAULT.toLowerCase()}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
       project: PROJECT,
       symbol: 'sMUSD',
@@ -131,7 +133,7 @@ const getApy = async () => {
       url: URL,
     },
     {
-      pool: `${GAUGE.toLowerCase()}-${CHAIN}}`,
+      pool: `${GAUGE.toLowerCase()}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
       project: PROJECT,
       symbol: 'sMUSD',
