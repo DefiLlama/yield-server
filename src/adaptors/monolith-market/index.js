@@ -11,12 +11,8 @@ const path = require('path');
 
 const PROJECT = 'monolith-market';
 
-const mainnetProvider = new ethers.providers.JsonRpcProvider(
-  process.env.ALCHEMY_CONNECTION_ETHEREUM
-);
-
 const FACTORIES = {
-  ethereum: { chainId: 1, blocksPerYear: 2609750, provider: mainnetProvider, factory: '0x6D961c9DCF1AD73566822BA4B087892e3839B849', lens: '0x156a901EE34cBd7af4035cbc964019112835d7aB', fromBlock: 24949282 },
+  ethereum: { chainId: 1, blocksPerYear: 2609750, factory: '0x6D961c9DCF1AD73566822BA4B087892e3839B849', lens: '0x0f3a7cd1828698D2B6daEf081d5c319c0734fA1c', fromBlock: 24949282 },
 }
 
 const CREATE_DEPLOYMENT_EVENT =
@@ -28,16 +24,20 @@ const simpleCalls = (arr, params) => {
 
 async function getChainPools(chain) {
   const latestBlock = await sdk.api.util.getLatestBlock(chain);
+  sdk.api.util.getLogs
   const toBlock = latestBlock.number;
 
-  const { factory, chainId, lens, provider, blocksPerYear, fromBlock } = FACTORIES[chain];
+  const { factory, chainId, lens, blocksPerYear, fromBlock } = FACTORIES[chain];
 
-  const factoryContract = new ethers.Contract(factory, factoryAbi, provider);
-  const logs = await factoryContract.queryFilter(factoryContract.filters.Deployed(), fromBlock, toBlock);
-
-  const lenders = logs.map(l => l.args.lender)
-  const coins = logs.map(l => l.args.coin)
-  const vaults = logs.map(l => l.args.vault)
+  const logsRawData = await sdk.api.util.getLogs({
+    target: factory, fromBlock, toBlock, chain: chain, keys: ['topics'], topics: ['0xc95935a66d15e0da5e412aca0ad27ae891d20b2fb91cf3994b6a3bf2b8178082']
+  });
+  // clean raw data from sdk
+  const logs = logsRawData.output.map(d => d.slice(-3).map(a => a.replace('0x000000000000000000000000', '0x')));
+  
+  const lenders = logs.map(l => l[0]);
+  const coins = logs.map(l => l[1]);
+  const vaults = logs.map(l => l[2]);
 
   const [
     rates,
@@ -105,8 +105,8 @@ async function getChainPools(chain) {
     const collateralPriceUsd = pricesByAddress[collateral.toLowerCase()] || oraclePriceUsd;
     const totalSupplyUsd = collateralPriceUsd * Number(collateralDeposits[marketIndex]) / (10 ** collateralDecimal)
     const totalBorrowUsd = coinPriceUsd * (Number(totalPaidDebts[marketIndex]) / 1e18 + Number(totalFreeDebts[marketIndex]) / 1e18);
-    const borrowApr = Number(rates[marketIndex][0]) / 1e16;
-    const borrowApy = utils.aprToApy(borrowApr, blocksPerYear)
+    const borrowApr = Math.min(Number(rates[marketIndex][0]) / 1e16, 999_999_999_999);
+    const borrowApy = borrowApr < 999_999_999_999 ? utils.aprToApy(borrowApr, blocksPerYear) : 999_999_999_999;
 
     return {
       pool: `monolith-market-lending-${m}`,
@@ -114,6 +114,7 @@ async function getChainPools(chain) {
       project: PROJECT,
       symbol: collateralSymbol,
       mintedCoin,
+      apyBase: 0,
       // cdp => tvlUsd = totalSupplyUsd
       tvlUsd: totalSupplyUsd,
       underlyingTokens: [collateral],
