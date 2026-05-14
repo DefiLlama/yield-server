@@ -15,9 +15,6 @@ const FACTORIES = {
   ethereum: { chainId: 1, blocksPerYear: 2609750, factory: '0x6D961c9DCF1AD73566822BA4B087892e3839B849', lens: '0x0f3a7cd1828698D2B6daEf081d5c319c0734fA1c', fromBlock: 24949282 },
 }
 
-const CREATE_DEPLOYMENT_EVENT =
-  'event Deployed(address indexed lender, address indexed coin, address indexed vault)';
-
 const simpleCalls = (arr, params) => {
   return arr.map(a => ({ target: a, params }))
 }
@@ -127,7 +124,7 @@ async function getChainPools(chain) {
     };
   });
 
-  // savings vaults (ERC4626), a vault's asset is a coin minted by the cdp markets
+  // savings vaults (ERC4626), a vault's asset is the coin minted by the cdp markets
   const savingsVaults = lenders.map((m, marketIndex) => {
     const underlying = coins[marketIndex];
     const vaultSymbol = vaultSymbols[marketIndex];
