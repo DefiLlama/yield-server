@@ -97,13 +97,17 @@ async function fetchTvlUsd(chain, vaultAddress, decimals) {
     target: vaultAddress,
     chain,
   });
-  return Number(output) / 10 ** decimals;
+  // formatUnits is overflow-safe for 256-bit values; Number coercion alone is not.
+  return Number(ethers.utils.formatUnits(output, decimals));
 }
 
 async function fetchRewardLogs(chain, vaultAddress, latestBlock, blockTime, chunkSize) {
   const blockWindow = Math.ceil(3 * 24 * 3600 / blockTime); // 3-day window
   const fromBlock   = Math.max(0, latestBlock - blockWindow);
 
+  // Let RPC/SDK errors propagate to the per-vault try/catch in apy(); swallowing
+  // them here would make a network failure indistinguishable from "no rewards"
+  // and the vault would be emitted with apyBase: 0.
   const logsCall = (from, to) =>
     sdk.api.util.getLogs({
       target:    vaultAddress,
@@ -113,7 +117,7 @@ async function fetchRewardLogs(chain, vaultAddress, latestBlock, blockTime, chun
       keys:      [],
       topics:    [REWARD_TOPIC],
       chain,
-    }).then((r) => r.output || []).catch(() => []);
+    }).then((r) => r.output || []);
 
   if (!chunkSize) {
     return logsCall(fromBlock, latestBlock);
