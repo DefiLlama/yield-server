@@ -17,10 +17,12 @@
  *   value, not on a simple `balanceOf` check.
  *
  * APY methodology:
- *   Daily APR is derived from the most recent `RewardDistributed` event within
- *   the past 3 days. Rewards are distributed once per day (6 pm - 1 am UTC),
- *   so a 3-day lookback always captures at least one event.
- *   APR formula: rewardAmount / prevTVL * 365 * 100.
+ *   APR is derived from all `RewardDistributed` events within the past 3 days.
+ *   All events are included — negative (loss) days reduce the result so the
+ *   figure reflects the true rolling return, not just positive days.
+ *   Rewards are distributed once per day (6 pm - 1 am UTC), so a 3-day
+ *   lookback always captures at least one event.
+ *   APR formula: sum(rewardAmount over window) / prevTVL / windowDays * 365 * 100.
  *
  *   Logs are fetched via the DefiLlama SDK for both chains:
  *   - Arbitrum: single sdk.api.util.getLogs call (no per-request block limit).
@@ -127,27 +129,39 @@ async function fetchRewardLogs(chain, vaultAddress, latestBlock, blockTime, chun
 }
 
 function computeDailyApr(logs, decimals) {
-  // Iterate newest-first to find the most recent positive reward event.
-  for (let i = logs.length - 1; i >= 0; i--) {
+  // Parse all events in the window (logs are in chronological order, oldest first).
+  const events = [];
+  for (const log of logs) {
     try {
-      const parsed = rewardIface.parseLog(logs[i]);
-      const reward = parsed.args.rewardAmount; // int256, may be negative on a loss day
-      const newTvl = parsed.args.newTotalVaultValue;
-
-      if (reward.lte(0)) continue;
-
-      const rewardUsd = reward.toNumber()             / 10 ** decimals;
-      const prevTvl   = newTvl.sub(reward).toNumber() / 10 ** decimals;
-
-      if (prevTvl <= 0) continue;
-
-      const apr = (rewardUsd / prevTvl) * 365 * 100;
-      return Number.isFinite(apr) ? Math.max(0, apr) : 0;
+      const p = rewardIface.parseLog(log);
+      events.push({ reward: p.args.rewardAmount, newTvl: p.args.newTotalVaultValue });
     } catch (_) {
-      continue;
+      // skip unparseable logs
     }
   }
-  return 0;
+  if (!events.length) return 0;
+
+  // Sum all rewards across the window — negative (loss) days are included so
+  // the result reflects the true rolling return, not just positive days.
+  let totalReward = ethers.BigNumber.from(0);
+  for (const { reward } of events) {
+    totalReward = totalReward.add(reward);
+  }
+
+  // TVL before the earliest event in the window is used as the denominator.
+  const firstPrevTvl = events[0].newTvl.sub(events[0].reward);
+  if (firstPrevTvl.lte(0)) return 0;
+
+  // Use formatUnits instead of toNumber() to avoid Number.MAX_SAFE_INTEGER
+  // overflow on large balances (toNumber throws above 2^53-1, ~$9B at 6 decimals).
+  const totalRewardUsd = Number(ethers.utils.formatUnits(totalReward, decimals));
+  const prevTvlUsd     = Number(ethers.utils.formatUnits(firstPrevTvl, decimals));
+  if (prevTvlUsd <= 0) return 0;
+
+  // Annualise over the 3-day lookback window.
+  const WINDOW_DAYS = 3;
+  const apr = (totalRewardUsd / prevTvlUsd / WINDOW_DAYS) * 365 * 100;
+  return Number.isFinite(apr) ? apr : 0;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -156,34 +170,42 @@ const apy = async () => {
   const pools = [];
 
   for (const [chainKey, vault] of Object.entries(VAULTS)) {
-    const latestBlock = await getLatestBlockNumber(chainKey, vault.rpcUrl);
+    // Wrap each vault independently so an RPC outage on one chain does not
+    // prevent the other chain's pool from being reported.
+    try {
+      const latestBlock = await getLatestBlockNumber(chainKey, vault.rpcUrl);
 
-    const [tvlUsd, logs] = await Promise.all([
-      fetchTvlUsd(chainKey, vault.address, vault.decimals),
-      fetchRewardLogs(
-        chainKey,
-        vault.address,
-        latestBlock,
-        vault.blockTime,
-        vault.logChunkSize,
-      ),
-    ]);
+      const [tvlUsd, logs] = await Promise.all([
+        fetchTvlUsd(chainKey, vault.address, vault.decimals),
+        fetchRewardLogs(
+          chainKey,
+          vault.address,
+          latestBlock,
+          vault.blockTime,
+          vault.logChunkSize,
+        ),
+      ]);
 
-    const apyBase  = computeDailyApr(logs, vault.decimals);
-    const vaultUrl =
-      `https://invest.scrub.money/vault/chain/${chainKey}/${vault.address.toLowerCase()}`;
+      const apyBase  = computeDailyApr(logs, vault.decimals);
+      const vaultUrl =
+        `https://invest.scrub.money/vault/chain/${chainKey}/${vault.address.toLowerCase()}`;
 
-    pools.push({
-      pool:             `${vault.address}-${chainKey}`.toLowerCase(),
-      chain:            vault.chain,
-      project:          PROJECT,
-      symbol:           vault.symbol,
-      tvlUsd,
-      apyBase:          Math.round(apyBase * 100) / 100,
-      underlyingTokens: [vault.stablecoin],
-      poolMeta:         vault.poolMeta,
-      url:              vaultUrl,
-    });
+      pools.push({
+        pool:             `${vault.address}-${chainKey}`.toLowerCase(),
+        chain:            vault.chain,
+        project:          PROJECT,
+        symbol:           vault.symbol,
+        tvlUsd,
+        apyBase:          Math.round(apyBase * 100) / 100,
+        underlyingTokens: [vault.stablecoin],
+        poolMeta:         vault.poolMeta,
+        url:              vaultUrl,
+      });
+    } catch (err) {
+      console.error(
+        `[scrub] ${vault.chain} vault ${vault.address} failed: ${err.message}`,
+      );
+    }
   }
 
   return pools;
