@@ -52,7 +52,8 @@ async function getMetromRewards() {
 
     for (let page = 1; ; page++) {
       const { data } = await axios.get(
-        `${METROM_CAMPAIGNS_API}?page=${page}&pageSize=${METROM_PAGE_SIZE}&chainIds=1&chainTypes=evm&statuses=active`
+        `${METROM_CAMPAIGNS_API}?page=${page}&pageSize=${METROM_PAGE_SIZE}&chainIds=1&chainTypes=evm&statuses=active`,
+        { timeout: 10_000 }
       );
       const campaigns = data?.campaigns || [];
 
