@@ -52,6 +52,7 @@ async function listMarketIds() {
     target: COVENANT,
     eventAbi: createMarketAbi,
     fromBlock: DEPLOY_BLOCK,
+    toTimestamp: Math.floor(Date.now() / 1000),
     chain: CHAIN,
   });
   return logs.map((l) => l.args.marketId);
