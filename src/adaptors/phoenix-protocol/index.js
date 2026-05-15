@@ -34,8 +34,8 @@ const callView = (target, abi, params) =>
 const getPhUsdPrice = async () => {
   try {
     const [tokens, balances, sharesToAssets] = await Promise.all([
-      callView(BALANCER_VAULT, getPoolTokensAbi, BALANCER_POOL),
-      callView(BALANCER_VAULT, getCurrentLiveBalancesAbi, BALANCER_POOL),
+      callView(BALANCER_VAULT, getPoolTokensAbi, [BALANCER_POOL]),
+      callView(BALANCER_VAULT, getCurrentLiveBalancesAbi, [BALANCER_POOL]),
       callView(SUSDS, 'function convertToAssets(uint256) view returns (uint256)', [
         '1000000000000000000',
       ]),
