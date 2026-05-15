@@ -126,7 +126,7 @@ async function apy() {
       apyBase,
       underlyingTokens: [underlying.toLowerCase()],
       url: `${APP_URL}/market/${d.marketId.toLowerCase()}?action=swap&input=base&output=yield`,
-      poolMeta: `Fixed-rate ${quoteSym} yield, backed by ${d.baseToken.symbol}`,
+      poolMeta: `${quoteSym} Yield Coin (backed by ${d.baseToken.symbol})`,
     });
   }
   return pools;
