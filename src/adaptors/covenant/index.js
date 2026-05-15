@@ -7,13 +7,9 @@ const dataProviderAbi = require('./dataProvider.json');
 const CHAIN = 'monad';
 const COVENANT = '0x11a7ab0a9d7bd531dbcf0f0630bf7167f8f198f6';
 const DATA_PROVIDER = '0x3818a6d5018aa9eb69b6bce09e38a7c24bbe8c22';
-const DEPLOY_BLOCK = 35851140;
 const YEAR_SECONDS = 365 * 24 * 60 * 60;
 const PROJECT = 'covenant';
 const POOL_URL = 'https://covenant.finance';
-
-const createMarketEvent =
-  'event CreateMarket(bytes20 indexed marketId, (address baseToken, address quoteToken, address curator, address lex) marketParams, (address aToken, address zToken) synthTokens, bytes initData, bytes lexData)';
 
 const getMarketsDetailsAbi = dataProviderAbi.find(
   (x) => x.name === 'getMarketsDetails'
@@ -48,16 +44,26 @@ function zTokenSupplyValueInQuote(d) {
   return Number(wad) / 1e18;
 }
 
-async function listMarketIds() {
-  const logs = await sdk.getEventLogs({
-    target: COVENANT,
-    eventAbi: createMarketEvent,
-    fromBlock: DEPLOY_BLOCK,
-    toTimestamp: Math.floor(Date.now() / 1000),
-    chain: CHAIN,
-  });
-  return logs.map((l) => l.args.marketId);
-}
+// Monad RPCs cap eth_getLogs at 100 blocks, so direct getLogs across the full
+// market history fails. Hardcode the current marketId list as a snapshot.
+// Refresh by running `node scripts/list-markets.js` in
+// https://github.com/covenant-labs/covenant-defillama when new markets launch.
+const KNOWN_MARKET_IDS = [
+  '0x1cf32aabab09cf73d5ebd22d08d472f9aaac0650', // WETH/USD
+  '0xc0e43be9048549aa7d4c78a20ce6c50aae603875', // aprMON/MON
+  '0x544e60c94e9aa394db6b0ed7868eb29b8745cd46', // gMON/MON
+  '0xb17ed620936f4f90c53d554f4ce4cf654855bcf0', // shMON/MON
+  '0xb2c399d52b748bcababf1ffab623135bbd2aa69a', // sMON/MON
+  '0xe36835496ea4c0e7c0cdd0d71d0a5335c1d234e7', // KURU-VAULT/USD
+  '0xc731f60dbdc480110e1fb135e985ee25d85c21bd', // shMON/USD
+  '0x84d4052c25391d26b16a685218b9ee8d9c78e4f8', // sbMU/USD
+  '0x3ed929b6c215655dfba05dcd524494c1644e4912', // bbqAUSD/USD
+  '0xf30d107691fde017fbf47af10eea67607dfa6f13', // earnAUSD/USD
+  '0xeb91150761cf353d9d9cd932d87b9e3a33649b5f', // aHYPER/USD
+  '0xc387a0dd7c67e96b0522b40c0425274eda8ec8b2', // naccUSDC/USD
+  '0xdae76886306e311307b0d406394555377c21a3e6', // hyperUSDCa/USD
+  '0x2bbb31f07be3bf497ada87eb9446e0eb5f937c89', // bbqUSDC/USD
+];
 
 async function fetchMonUsdPrice() {
   // Native MON, queried by chain identifier (no contract address for the gas token).
@@ -68,7 +74,7 @@ async function fetchMonUsdPrice() {
 }
 
 async function apy() {
-  const marketIds = await listMarketIds();
+  const marketIds = KNOWN_MARKET_IDS;
   if (!marketIds.length) return [];
 
   const { output: details } = await sdk.api.abi.call({
