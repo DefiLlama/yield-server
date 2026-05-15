@@ -108,9 +108,8 @@ const gqlQueries = {
           state {
             totalAssets
             totalAssetsUsd
-            apy
-            netApy
-            fee
+            netApyDay: avgNetApy(lookback: ONE_DAY)
+            baseApyDay: avgNetApyExcludingRewards(lookback: ONE_DAY)
             totalSupply
             allocation {
               supplyAssetsUsd
@@ -149,11 +148,8 @@ const gqlQueries = {
             id
           }
           totalAssetsUsd
-          avgApy
-          avgNetApy
-          performanceFee
-          managementFee
-          maxRate
+          netApyDay: avgNetApy(lookback: ONE_DAY)
+          baseApyDay: avgNetApyExcludingRewards(lookback: ONE_DAY)
           rewards {
             asset {
               address
@@ -179,6 +175,17 @@ const isNegligible = (part, total, threshold = 0.01) => {
     return Math.abs(part) === 0;
   }
   return Math.abs(part) / denom < threshold;
+};
+
+// Drop pools whose 1d-realized APY exceeds this — broken liquidity adapters
+// can return constant 1000%+ values across every Morpho field.
+const MAX_REASONABLE_APY_PCT = 200;
+
+const sanitizeApyPct = (decimalValue) => {
+  if (decimalValue == null || !Number.isFinite(decimalValue)) return null;
+  const pct = Math.max(decimalValue * 100, 0);
+  if (pct > MAX_REASONABLE_APY_PCT) return null;
+  return pct;
 };
 
 // Look up on-chain expiry for PT collateral tokens to filter expired ones.
@@ -251,63 +258,40 @@ const buildVaultV2Pools = (earnV2, chain) =>
       );
     })
     .map((vault) => {
-      // (a) Aggregate reward APRs from all positive supplyApr entries.
-      //     This is the "rewards" side as exposed by the API.
+      const netApy = sanitizeApyPct(vault.netApyDay);
+      if (netApy == null) return null;
+
       const totalRewardApr =
         vault.rewards?.reduce(
           (sum, reward) => sum + (reward.supplyApr > 0 ? reward.supplyApr : 0),
           0
         ) || 0;
-
-      // (b) Decide whether to surface rewards separately.
-      //     We call them negligible if they are < 1% of the total net APY.
-      const rewardsAreNegligible = isNegligible(totalRewardApr, vault.avgNetApy);
+      const rewardsAreNegligible = isNegligible(totalRewardApr, vault.netApyDay);
 
       const rewardTokens = rewardsAreNegligible
         ? []
         : (vault.rewards || [])
             .filter((reward) => reward.supplyApr > 0)
             .map((reward) => reward.asset.address.toLowerCase());
-
-      // (c) Split avgNetApy (after fees, with rewards) into base + rewards.
-      //
-      //     Definitions:
-      //       - avgNetApy: realized average net APY of the vault
-      //                    (after fees, including rewards).
-      //       - totalRewardApr: sum of all reward APRs from rewards.supplyApr.
-      //
-      //     We want:
-      //       totalAPY (what user earns) = apyBase + apyReward
-      //                                 ≈ avgNetApy
-      //
-      //     So we define (in decimal form):
-      //       rewardComponent = rewardsAreNegligible ? 0 : totalRewardApr
-      //       baseComponent   = avgNetApy - rewardComponent
-      //
-      //     And convert both to percentages for DefiLlama:
       const rewardComponent = rewardsAreNegligible ? 0 : totalRewardApr;
 
       const apyReward = rewardComponent * 100;
-      const apyBase = (vault.avgNetApy - rewardComponent) * 100;
+      const apyBase = Math.max(netApy - rewardComponent * 100, 0);
 
       return {
         pool: `morpho-vault-v2-${vault.address}-${chain}`,
         chain,
         project: 'morpho-blue',
         symbol: vault.symbol,
-        // Base APY: net yield from the strategy + underlying asset, after fees,
-        //           excluding explicit reward APRs.
         apyBase,
         tvlUsd: vault.totalAssetsUsd || 0,
         underlyingTokens: [vault.asset.address],
         url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
-
-        // Reward APY: sum of reward APRs from rewards.supplyApr,
-        //             hidden when negligible vs avgNetApy.
         apyReward,
         rewardTokens,
       };
-    });
+    })
+    .filter(Boolean);
 
 const fetchChainData = async (chainId) => {
   const fetchPage = async (query, variables, key) => {
@@ -394,92 +378,73 @@ const apy = async () => {
     );
     const expiredPTAddresses = await getExpiredPTAddresses(ptMarkets, chain);
 
-    // Transform Vault V1 (MetaMorpho) pools
-    const earnV1Pools = earnV1.map((vault) => {
-      // fetch reward token addresses from allocation data
-      let additionalRewardTokens = new Set();
-      vault.state.allocation.forEach((allocatedMarket) => {
-        const allocationUsd = allocatedMarket.supplyAssetsUsd;
-        if (allocationUsd > 0) {
-          // For each reward from the allocated market
-          allocatedMarket.market.state?.rewards?.forEach((rw) => {
-            if (rw.supplyApr > 0) {
-              additionalRewardTokens.add(rw.asset.address.toLowerCase());
-            }
-          });
+    const OP_REWARD_OVERRIDE_VAULT =
+      '0xc30ce6a5758786e0f640cc5f881dd96e9a1c5c59';
+    const OP_TOKEN = '0x4200000000000000000000000000000000000042';
+
+    const earnV1Pools = earnV1
+      .map((vault) => {
+        const additionalRewardTokens = new Set();
+        vault.state.allocation.forEach((allocatedMarket) => {
+          if (allocatedMarket.supplyAssetsUsd > 0) {
+            allocatedMarket.market.state?.rewards?.forEach((rw) => {
+              if (rw.supplyApr > 0) {
+                additionalRewardTokens.add(rw.asset.address.toLowerCase());
+              }
+            });
+          }
+        });
+
+        const baseApy = sanitizeApyPct(vault.state.baseApyDay);
+        const netApy = sanitizeApyPct(vault.state.netApyDay);
+        if (baseApy == null) return null;
+
+        const rewardsApy =
+          netApy != null ? Math.max(netApy - baseApy, 0) : 0;
+        const isNegligibleApy =
+          netApy == null || isNegligible(rewardsApy / 100, netApy / 100);
+
+        let rewardTokens = isNegligibleApy ? [] : [...additionalRewardTokens];
+        let apyReward = rewardTokens.length === 0 ? 0 : rewardsApy;
+        let apyBase = rewardTokens.length === 0 ? (netApy ?? baseApy) : baseApy;
+
+        if (
+          vault.address.toLowerCase() === OP_REWARD_OVERRIDE_VAULT &&
+          rewardsApy > 0
+        ) {
+          rewardTokens = [OP_TOKEN];
+          apyReward = rewardsApy;
+          apyBase = baseApy;
         }
-      });
 
-      // Vault V1 semantics are mixed:
-      // - `apy` is the base APY before fees.
-      // - `netApy` is the total user APY, but on fee-only vaults it may just
-      //   be the fee-reduced base APY.
-      // If we can see rewards here (allocation rewards or the OP override),
-      // use fee-adjusted `apy` as base and the rest of `netApy` as rewards.
-      // Otherwise treat it as fee-only and clamp base to the lower of
-      // `apy` and `netApy`. Merkl can still add rewards later.
-      const hasKnownRewardApy =
-        additionalRewardTokens.size > 0 ||
-        vault.address.toLowerCase() ===
-          '0xc30ce6a5758786e0f640cc5f881dd96e9a1c5c59';
-      const feeAdjustedBaseApy =
-        vault.state.apy * (1 - Number(vault.state.fee || 0));
-      const baseApy = hasKnownRewardApy
-        ? Math.min(feeAdjustedBaseApy, vault.state.netApy)
-        : Math.min(vault.state.apy, vault.state.netApy);
+        // MetaMorpho shares are always 18-dec; assets aren't.
+        const assetDecimals = Number(vault.asset.decimals);
+        const totalAssetsRaw = Number(vault.state.totalAssets);
+        const totalSupplyRaw = Number(vault.state.totalSupply);
+        const pricePerShare =
+          Number.isFinite(totalAssetsRaw) &&
+          Number.isFinite(totalSupplyRaw) &&
+          Number.isFinite(assetDecimals) &&
+          totalSupplyRaw > 0
+            ? (totalAssetsRaw / totalSupplyRaw) * 10 ** (18 - assetDecimals)
+            : null;
 
-      // `netApy` is the total user APY. Once base is chosen using the mode
-      // above, the remainder is the reward component we surface separately.
-      const rewardsApy = hasKnownRewardApy
-        ? Math.max(vault.state.netApy - baseApy, 0)
-        : Math.max(vault.state.netApy - vault.state.apy, 0);
-      const isNegligibleApy = isNegligible(rewardsApy, vault.state.netApy);
-      let rewardTokens = isNegligibleApy ? [] : [...additionalRewardTokens];
-      let apyReward = rewardTokens.length === 0 ? 0 : rewardsApy * 100;
+        return {
+          pool: `morpho-vault-v1-${vault.address}-${chain}`,
+          chain,
+          project: 'morpho-blue',
+          symbol: vault.symbol,
+          apyBase,
+          tvlUsd: vault.state.totalAssetsUsd || 0,
+          pricePerShare,
+          underlyingTokens: [vault.asset.address],
+          url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
+          apyReward,
+          rewardTokens,
+        };
+      })
+      .filter(Boolean);
 
-      // override and add OP rewards to this pool
-      if (
-        vault.address.toLowerCase() ===
-          '0xc30ce6a5758786e0f640cc5f881dd96e9a1c5c59' &&
-        rewardsApy > 0
-      ) {
-        rewardTokens = ['0x4200000000000000000000000000000000000042'];
-        apyReward = rewardsApy * 100;
-      }
-
-      // MetaMorpho shares are always 18-dec; assets aren't. Match Morpho UI.
-      const assetDecimals = Number(vault.asset.decimals);
-      const totalAssetsRaw = Number(vault.state.totalAssets);
-      const totalSupplyRaw = Number(vault.state.totalSupply);
-      const pricePerShare =
-        Number.isFinite(totalAssetsRaw) &&
-        Number.isFinite(totalSupplyRaw) &&
-        Number.isFinite(assetDecimals) &&
-        totalSupplyRaw > 0
-          ? (totalAssetsRaw / totalSupplyRaw) * 10 ** (18 - assetDecimals)
-          : null;
-
-      return {
-        pool: `morpho-vault-v1-${vault.address}-${chain}`,
-        chain,
-        project: 'morpho-blue',
-        symbol: vault.symbol,
-        apyBase: baseApy * 100,
-        tvlUsd: vault.state.totalAssetsUsd || 0,
-        pricePerShare,
-        underlyingTokens: [vault.asset.address],
-        url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
-        apyReward,
-        rewardTokens,
-      };
-    });
-
-    // Transform Vault V2 pools
-    // Note: avgNetApy is the realized average net APY (after fees, with rewards)
-    // rewards.supplyApr contains the reward APRs from the API
-    // as per the GraphQL schema definition, see: https://api.morpho.org/graphql
-    // The API already applies maxRate capping when calculating these from share price evolution
-    // We filter to only include vaults with MetaMorpho or MorphoMarketV1 adapters
     const earnV2Pools = buildVaultV2Pools(earnV2, chain);
 
     const borrowPools = borrow.map((market) => {
