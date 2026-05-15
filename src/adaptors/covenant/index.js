@@ -9,7 +9,7 @@ const COVENANT = '0x11a7ab0a9d7bd531dbcf0f0630bf7167f8f198f6';
 const DATA_PROVIDER = '0x3818a6d5018aa9eb69b6bce09e38a7c24bbe8c22';
 const YEAR_SECONDS = 365 * 24 * 60 * 60;
 const PROJECT = 'covenant';
-const POOL_URL = 'https://covenant.finance';
+const APP_URL = 'https://app.covenant.finance';
 
 // Yield Coin (zToken) is a synthetic claim denominated in the market's quote
 // unit (USD or MON), not in the baseToken collateral. Matches Synthetix-v3's
@@ -125,8 +125,8 @@ async function apy() {
       tvlUsd,
       apyBase,
       underlyingTokens: [underlying.toLowerCase()],
-      url: POOL_URL,
-      poolMeta: `${d.baseToken.symbol}/${quoteSym} Yield Coin (backed by ${d.baseToken.symbol})`,
+      url: `${APP_URL}/market/${d.marketId.toLowerCase()}?action=swap&input=base&output=yield`,
+      poolMeta: `Fixed-rate ${quoteSym} yield, backed by ${d.baseToken.symbol}`,
     });
   }
   return pools;
@@ -135,5 +135,5 @@ async function apy() {
 module.exports = {
   timetravel: false,
   apy,
-  url: POOL_URL,
+  url: APP_URL,
 };
