@@ -11,6 +11,13 @@ const YEAR_SECONDS = 365 * 24 * 60 * 60;
 const PROJECT = 'covenant';
 const POOL_URL = 'https://covenant.finance';
 
+// Yield Coin (zToken) is a synthetic claim denominated in the market's quote
+// unit (USD or MON), not in the baseToken collateral. Matches Synthetix-v3's
+// convention of marking USDC as the underlying for sUSD yield (and shmonad's
+// use of WMON for MON-denominated yield).
+const USDC_MONAD = '0xf817257fed379853cDe0fa4F97AB987181B1E5Ea';
+const WMON = '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A';
+
 const getMarketsDetailsAbi = dataProviderAbi.find(
   (x) => x.name === 'getMarketsDetails'
 );
@@ -96,9 +103,16 @@ async function apy() {
 
     const quoteSym = d.quoteToken.symbol;
     let quoteUsd;
-    if (quoteSym === 'USD') quoteUsd = 1;
-    else if (quoteSym === 'MON') quoteUsd = monUsd;
-    else quoteUsd = null;
+    let underlying;
+    if (quoteSym === 'USD') {
+      quoteUsd = 1;
+      underlying = USDC_MONAD;
+    } else if (quoteSym === 'MON') {
+      quoteUsd = monUsd;
+      underlying = WMON;
+    } else {
+      continue;
+    }
     if (quoteUsd == null) continue;
 
     const tvlUsd = zTokenSupplyValueInQuote(d) * quoteUsd;
@@ -110,9 +124,9 @@ async function apy() {
       symbol: utils.formatSymbol(d.zToken.symbol),
       tvlUsd,
       apyBase,
-      underlyingTokens: [d.marketParams.baseToken.toLowerCase()],
+      underlyingTokens: [underlying.toLowerCase()],
       url: POOL_URL,
-      poolMeta: `${d.baseToken.symbol}/${quoteSym} Yield Coin`,
+      poolMeta: `${d.baseToken.symbol}/${quoteSym} Yield Coin (backed by ${d.baseToken.symbol})`,
     });
   }
   return pools;
