@@ -2,7 +2,6 @@ const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 const utils = require('../utils');
 
-const covenantAbi = require('./covenant.json');
 const dataProviderAbi = require('./dataProvider.json');
 
 const CHAIN = 'monad';
@@ -13,7 +12,9 @@ const YEAR_SECONDS = 365 * 24 * 60 * 60;
 const PROJECT = 'covenant';
 const POOL_URL = 'https://covenant.finance';
 
-const createMarketAbi = covenantAbi.find((x) => x.name === 'CreateMarket');
+const createMarketEvent =
+  'event CreateMarket(bytes20 indexed marketId, (address baseToken, address quoteToken, address curator, address lex) marketParams, (address aToken, address zToken) synthTokens, bytes initData, bytes lexData)';
+
 const getMarketsDetailsAbi = dataProviderAbi.find(
   (x) => x.name === 'getMarketsDetails'
 );
@@ -50,7 +51,7 @@ function zTokenSupplyValueInQuote(d) {
 async function listMarketIds() {
   const logs = await sdk.getEventLogs({
     target: COVENANT,
-    eventAbi: createMarketAbi,
+    eventAbi: createMarketEvent,
     fromBlock: DEPLOY_BLOCK,
     toTimestamp: Math.floor(Date.now() / 1000),
     chain: CHAIN,
