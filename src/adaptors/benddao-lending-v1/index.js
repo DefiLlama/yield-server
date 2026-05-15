@@ -19,7 +19,7 @@ const ChainName = {
   ethereum: 'Ethereum',
 };
 
-const projectSlug = 'benddao-lending';
+const projectSlug = 'benddao-lending-v1';
 
 async function apy() {
   const pools = await Promise.all(
