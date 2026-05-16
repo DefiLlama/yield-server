@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const axios = require('axios');
 const utils = require('../utils');
 
 const CHAIN = 'mezo';
@@ -53,11 +53,11 @@ const tokensPerWeekAbi = {
 const weiToNumber = (wei) => Number(wei) / 10 ** TOKEN_DECIMALS;
 
 const fetchMezo = (path) =>
-  superagent
-    .get(`${API_BASE}${path}`)
-    .set('Origin', API_ORIGIN)
-    .set('Referer', `${API_ORIGIN}/`)
-    .then((r) => r.body?.data ?? []);
+  axios
+    .get(`${API_BASE}${path}`, {
+      headers: { Origin: API_ORIGIN, Referer: `${API_ORIGIN}/` },
+    })
+    .then((r) => r.data?.data ?? []);
 
 const getMusdVaultTvlUsd = async (musdPrice) => {
   const [vaultBalRes, strategyBalRes] = await Promise.all([
