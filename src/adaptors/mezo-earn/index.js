@@ -1,3 +1,9 @@
+// Mezo Earn yield mechanics: https://mezo.org/blog/introducing-mezo-earn
+// - veBTC: passive BTC chain fees (apyBase) + max-TVL gauge voting yield (apyReward).
+// - veMEZO: weekly MEZO emission rebases (apyBase). The boost-market incentives
+//   from BTC holders attracting veMEZO votes are part of the design but not yet
+//   exposed via the API, so apyReward is omitted until that data is available.
+
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
@@ -116,8 +122,8 @@ const buildPool = async ({
   symbol,
   poolMeta,
   price,
-  apyReward,
-  rewardTokens,
+  apyReward = null,
+  rewardTokens = null,
 }) => {
   const [supplyRes, lastTokenTimeRes] = await Promise.all([
     sdk.api.abi.call({ target: veAddress, abi: supplyAbi, chain: CHAIN }),
@@ -142,8 +148,10 @@ const buildPool = async ({
 
   const apyBase =
     supplyWei > 0n
-      ? (Number(weeklyEmissionWei) / Number(supplyWei)) * WEEKS_PER_YEAR * 100
-      : 0;
+      ? (Number((weeklyEmissionWei * 10n ** 18n) / supplyWei) / 1e18) *
+        WEEKS_PER_YEAR *
+        100
+      : null;
 
   const tvlUsd = weiToNumber(supplyWei) * price;
 
