@@ -14,23 +14,10 @@ const {
 
 const GHO = '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f';
 const SGHO = '0xE1753F2e00940cC31213dd92013cF019DFE4ca1d';
+const UMBRELLA_STK_GHO = '0x4f827A63755855cDf3e8f3bcD20265C833f15033';
 
-const sGhoVaultAbi = [
-  {
-    inputs: [],
-    name: 'targetRate',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'totalAssets',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-];
+const umbrellaStakeDataProviderAbi =
+  'function getStakeData() view returns (tuple(address tokenAddress,string,string,uint256 price,uint256 totalAssets,uint256,address,string,string,uint8 underlyingTokenDecimals,uint256,uint256,bool,tuple(address,string,string,address,string,string),tuple(address rewardAddress,string,string,uint256,uint8,uint256,uint256,uint256,uint256,uint256 apy)[] rewards)[])';
 
 const protocolDataProviders = {
   ethereum: '0x497a1994c46d4f6C864904A9f1fac6328Cb7C8a6',
@@ -260,12 +247,12 @@ const sGho = async () => {
   const [sghoTotalAssets, sghoTargetRate, ghoPrice] = await Promise.all([
     sdk.api.abi.call({
       target: SGHO,
-      abi: sGhoVaultAbi.find((m) => m.name === 'totalAssets'),
+      abi: 'function totalAssets() view returns (uint256)',
       chain: 'ethereum',
     }),
     sdk.api.abi.call({
       target: SGHO,
-      abi: sGhoVaultAbi.find((m) => m.name === 'targetRate'),
+      abi: 'function targetRate() view returns (uint256)',
       chain: 'ethereum',
     }),
     axios.get(`https://coins.llama.fi/prices/current/ethereum:${GHO}`),
@@ -347,6 +334,43 @@ const stkGho = async () => {
   return pool;
 };
 
+const umbrellaGho = async () => {
+  const umbrellaStakeDataProvider = '0x6321ba6b41fbddb6b678cd80db067f20a8770879';
+
+  const stakeData = (
+    await sdk.api.abi.call({
+      target: umbrellaStakeDataProvider,
+      abi: umbrellaStakeDataProviderAbi,
+      chain: 'ethereum',
+    })
+  ).output;
+
+  const umbrellaGhoData = stakeData.find(
+    (pool) => pool.tokenAddress.toLowerCase() === UMBRELLA_STK_GHO.toLowerCase()
+  );
+
+  return {
+    pool: `${UMBRELLA_STK_GHO}-ethereum`.toLowerCase(),
+    chain: 'Ethereum',
+    project: 'aave-v3',
+    symbol: 'GHO',
+    tvlUsd:
+      (Number(umbrellaGhoData.totalAssets) /
+        10 ** Number(umbrellaGhoData.underlyingTokenDecimals)) *
+      (Number(umbrellaGhoData.price) / 1e8),
+    apyReward: umbrellaGhoData.rewards.reduce(
+      (acc, reward) => acc + Number(reward.apy) / 100,
+      0
+    ),
+    rewardTokens: [
+      ...new Set(umbrellaGhoData.rewards.map((reward) => reward.rewardAddress)),
+    ],
+    url: 'https://app.aave.com/staking/',
+    underlyingTokens: [GHO],
+    poolMeta: 'Umbrella',
+  };
+};
+
 const apy = async () => {
   const pools = await Promise.allSettled(
     Object.keys(protocolDataProviders)
@@ -354,13 +378,17 @@ const apy = async () => {
       .concat([getApyAptos()])
   );
 
-  const [sghoPool, stkghoPool] = await Promise.all([sGho(), stkGho()]);
+  const [sghoPool, stkghoPool, umbrellaGhoPool] = await Promise.all([
+    sGho(),
+    stkGho(),
+    umbrellaGho(),
+  ]);
 
   const result = pools
     .filter((i) => i.status === 'fulfilled')
     .map((i) => i.value)
     .flat()
-    .concat([sghoPool, stkghoPool])
+    .concat([sghoPool, stkghoPool, umbrellaGhoPool])
     .filter((p) => utils.keepFinite(p));
 
   return addMerklRewardApy(result, 'aave', (p) => p.pool.split('-')[0]);
