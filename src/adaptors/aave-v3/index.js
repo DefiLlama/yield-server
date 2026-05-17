@@ -13,6 +13,24 @@ const {
 } = require('@aave/aave-v3-aptos-ts-sdk');
 
 const GHO = '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f';
+const SGHO = '0xE1753F2e00940cC31213dd92013cF019DFE4ca1d';
+
+const sGhoVaultAbi = [
+  {
+    inputs: [],
+    name: 'targetRate',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'totalAssets',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+];
 
 const protocolDataProviders = {
   ethereum: '0x497a1994c46d4f6C864904A9f1fac6328Cb7C8a6',
@@ -238,6 +256,35 @@ const getApyAptos = async () => {
     .filter(Boolean);
 };
 
+const sGho = async () => {
+  const [sghoTotalAssets, sghoTargetRate, ghoPrice] = await Promise.all([
+    sdk.api.abi.call({
+      target: SGHO,
+      abi: sGhoVaultAbi.find((m) => m.name === 'totalAssets'),
+      chain: 'ethereum',
+    }),
+    sdk.api.abi.call({
+      target: SGHO,
+      abi: sGhoVaultAbi.find((m) => m.name === 'targetRate'),
+      chain: 'ethereum',
+    }),
+    axios.get(`https://coins.llama.fi/prices/current/ethereum:${GHO}`),
+  ]);
+
+  return {
+    pool: `${SGHO}-ethereum`.toLowerCase(),
+    chain: 'Ethereum',
+    project: 'aave-v3',
+    symbol: 'sGHO',
+    tvlUsd:
+      (sghoTotalAssets.output / 1e18) *
+      ghoPrice.data.coins[`ethereum:${GHO}`].price,
+    apyBase: Number(sghoTargetRate.output) / 100,
+    url: 'https://app.aave.com/sgho',
+    underlyingTokens: [GHO],
+  };
+};
+
 const stkGho = async () => {
   const convertStakedTokenApy = (rawApy) => {
     const rawApyStringified = rawApy.toString();
@@ -291,8 +338,9 @@ const stkGho = async () => {
     symbol: 'sGHO',
     tvlUsd: stkghoSupply * ghoPrice,
     apy: stkghoApy,
-    url: 'https://app.aave.com/staking',
+    url: 'https://app.aave.com/sgho/',
     underlyingTokens: [GHO],
+    poolMeta: 'Legacy',
   };
 
   return pool;
@@ -305,13 +353,13 @@ const apy = async () => {
       .concat([getApyAptos()])
   );
 
-  const stkghoPool = await stkGho();
+  const [sghoPool, stkghoPool] = await Promise.all([sGho(), stkGho()]);
 
   const result = pools
     .filter((i) => i.status === 'fulfilled')
     .map((i) => i.value)
     .flat()
-    .concat([stkghoPool])
+    .concat([sghoPool, stkghoPool])
     .filter((p) => utils.keepFinite(p));
 
   return addMerklRewardApy(result, 'aave', (p) => p.pool.split('-')[0]);
