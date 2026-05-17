@@ -14,10 +14,15 @@ const {
 
 const GHO = '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f';
 const SGHO = '0xE1753F2e00940cC31213dd92013cF019DFE4ca1d';
-const UMBRELLA_STK_GHO = '0x4f827A63755855cDf3e8f3bcD20265C833f15033';
+const UMBRELLA_STAKE_TOKENS = [
+  '0x6bf183243FdD1e306ad2C4450BC7dcf6f0bf8Aa6',
+  '0xA484Ab92fe32B143AEE7019fC1502b1dAA522D31',
+  '0xaAFD07D53A7365D3e9fb6F3a3B09EC19676B73Ce',
+  '0x4f827A63755855cDf3e8f3bcD20265C833f15033',
+];
 
 const umbrellaStakeDataProviderAbi =
-  'function getStakeData() view returns (tuple(address tokenAddress,string,string,uint256 price,uint256 totalAssets,uint256,address,string,string,uint8 underlyingTokenDecimals,uint256,uint256,bool,tuple(address,string,string,address,string,string),tuple(address rewardAddress,string,string,uint256,uint8,uint256,uint256,uint256,uint256,uint256 apy)[] rewards)[])';
+  'function getStakeData() view returns (tuple(address tokenAddress,string,string,uint256 price,uint256 totalAssets,uint256,address underlyingTokenAddress,string underlyingTokenName,string underlyingTokenSymbol,uint8 underlyingTokenDecimals,uint256,uint256,bool underlyingIsStataToken,tuple(address asset,string assetName,string assetSymbol,address aToken,string aTokenName,string aTokenSymbol) stataTokenData,tuple(address rewardAddress,string,string,uint256,uint8,uint256,uint256,uint256,uint256,uint256 apy)[] rewards)[])';
 
 const protocolDataProviders = {
   ethereum: '0x497a1994c46d4f6C864904A9f1fac6328Cb7C8a6',
@@ -334,7 +339,7 @@ const stkGho = async () => {
   return pool;
 };
 
-const umbrellaGho = async () => {
+const umbrella = async (aavePools) => {
   const umbrellaStakeDataProvider = '0x6321ba6b41fbddb6b678cd80db067f20a8770879';
 
   const stakeData = (
@@ -345,30 +350,46 @@ const umbrellaGho = async () => {
     })
   ).output;
 
-  const umbrellaGhoData = stakeData.find(
-    (pool) => pool.tokenAddress.toLowerCase() === UMBRELLA_STK_GHO.toLowerCase()
-  );
+  return UMBRELLA_STAKE_TOKENS.map((stakeToken) => {
+    const stakePool = stakeData.find(
+      (pool) => pool.tokenAddress.toLowerCase() === stakeToken.toLowerCase()
+    );
+    const aaveUnderlyingToken = stakePool.underlyingIsStataToken
+      ? stakePool.stataTokenData.asset
+      : stakePool.underlyingTokenAddress;
+    const aavePool =
+      stakePool.underlyingIsStataToken &&
+      aavePools.find(
+        (pool) =>
+          pool.chain === 'ethereum' &&
+          !pool.poolMeta &&
+          pool.underlyingTokens[0].toLowerCase() === aaveUnderlyingToken.toLowerCase()
+      );
 
-  return {
-    pool: `${UMBRELLA_STK_GHO}-ethereum`.toLowerCase(),
-    chain: 'Ethereum',
-    project: 'aave-v3',
-    symbol: 'GHO',
-    tvlUsd:
-      (Number(umbrellaGhoData.totalAssets) /
-        10 ** Number(umbrellaGhoData.underlyingTokenDecimals)) *
-      (Number(umbrellaGhoData.price) / 1e8),
-    apyReward: umbrellaGhoData.rewards.reduce(
-      (acc, reward) => acc + Number(reward.apy) / 100,
-      0
-    ),
-    rewardTokens: [
-      ...new Set(umbrellaGhoData.rewards.map((reward) => reward.rewardAddress)),
-    ],
-    url: 'https://app.aave.com/staking/',
-    underlyingTokens: [GHO],
-    poolMeta: 'Umbrella',
-  };
+    return {
+      pool: `${stakeToken}-ethereum`.toLowerCase(),
+      chain: 'Ethereum',
+      project: 'aave-v3',
+      symbol: stakePool.underlyingIsStataToken
+        ? stakePool.stataTokenData.assetSymbol
+        : stakePool.underlyingTokenSymbol,
+      tvlUsd:
+        (Number(stakePool.totalAssets) /
+          10 ** Number(stakePool.underlyingTokenDecimals)) *
+        (Number(stakePool.price) / 1e8),
+      ...(aavePool ? { apyBase: aavePool.apyBase } : {}),
+      apyReward: stakePool.rewards.reduce(
+        (acc, reward) => acc + Number(reward.apy) / 100,
+        0
+      ),
+      rewardTokens: [
+        ...new Set(stakePool.rewards.map((reward) => reward.rewardAddress)),
+      ],
+      url: 'https://app.aave.com/staking/',
+      underlyingTokens: [stakePool.underlyingTokenAddress],
+      poolMeta: 'Umbrella',
+    };
+  });
 };
 
 const apy = async () => {
@@ -378,17 +399,19 @@ const apy = async () => {
       .concat([getApyAptos()])
   );
 
-  const [sghoPool, stkghoPool, umbrellaGhoPool] = await Promise.all([
-    sGho(),
-    stkGho(),
-    umbrellaGho(),
-  ]);
-
-  const result = pools
+  const aavePools = pools
     .filter((i) => i.status === 'fulfilled')
     .map((i) => i.value)
-    .flat()
-    .concat([sghoPool, stkghoPool, umbrellaGhoPool])
+    .flat();
+
+  const [sghoPool, stkghoPool, umbrellaPools] = await Promise.all([
+    sGho(),
+    stkGho(),
+    umbrella(aavePools),
+  ]);
+
+  const result = aavePools
+    .concat([sghoPool, stkghoPool, ...umbrellaPools])
     .filter((p) => utils.keepFinite(p));
 
   return addMerklRewardApy(result, 'aave', (p) => p.pool.split('-')[0]);
