@@ -363,6 +363,9 @@ const excludeAdaptors = [
   'arbitrove',
   'kokoa-finance',
   'yusan',
+  'paladin-dullahan',
+  'pando-leaf',
+  'teller',
 ];
 
 const excludePools = [
