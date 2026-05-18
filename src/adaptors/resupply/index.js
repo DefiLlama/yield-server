@@ -31,6 +31,7 @@ const formatPair = (pair, chain, protocol) => {
     symbol: symbol,
     tvlUsd: parseFloat(pair.total_underlying),
     mintedCoin: pair.debt_token.symbol,
+    borrowToken: pair.debt_token.address,
     apyBase: parseFloat(pair.base_apr),
     apyBaseBorrow: parseFloat(pair.borrow_cost_apr),
     apyRewardBorrow: apyRewardBorrow,

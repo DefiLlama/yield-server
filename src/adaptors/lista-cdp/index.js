@@ -6,6 +6,7 @@ const { collateralList, getIlks } = require('./config');
 // under src/adaptors, run `npm run test --adapter=lisusd` to test the adaptor
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
 const RAY = new BigNumber(10).pow(27);
+const LISUSD = '0x0782b6d8c4551B9760e74c0545a9bCD90bdc41E5';
 
 const INTERACTION = {
   address: '0xB68443Ee3e828baD1526b3e0Bdf2Dfc6b1975ec4',
@@ -234,6 +235,7 @@ const getApy = async () => {
             totalBorrowUsd: debt,
             debtCeilingUsd: debtCeiling,
             mintedCoin: 'lisUSD',
+            borrowToken: LISUSD,
             ltv: collateralRate,
             apyBaseBorrow: aprRates || 0,
             underlyingTokens: [(collateral.originAddress || collateral.address).toLowerCase()],

@@ -95,6 +95,7 @@ const main = async () => {
         debtCeilingUsd: debtCeilingUsd,
         underlyingTokens: [pool.denom].filter(Boolean),
         mintedCoin: 'USDX',
+        borrowToken: USDX_ID,
       };
     });
 };

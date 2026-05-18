@@ -307,6 +307,7 @@ const main = async () => {
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: debtCeilingUsd.toNumber(),
         mintedCoin: 'FRAX',
+        borrowToken: FRAX,
         ltv: new BigNumber(maxLTVs[index])
           .dividedBy(new BigNumber(100000))
           .toNumber(),

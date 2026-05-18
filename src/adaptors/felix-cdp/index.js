@@ -181,6 +181,7 @@ const apy = async () => {
       totalBorrowUsd: totalDebtUsd,
       ltv,
       mintedCoin: 'feUSD',
+      borrowToken: FE_USD,
       underlyingTokens: [collToken],
       token: null,
     });

@@ -185,12 +185,15 @@ const getApy = async (market) => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
-        debtCeilingUsd: pool.symbol === 'GHO' ? 1e8 : null,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-        mintedCoin: pool.symbol === 'GHO' ? 'GHO' : null,
+        ...(pool.symbol === 'GHO' && {
+          debtCeilingUsd: 1e8,
+          mintedCoin: 'GHO',
+          borrowToken: pool.tokenAddress,
+        }),
         poolMeta: ['lido', 'etherfi', 'horizon'].includes(market)
           ? `${market}-market`
           : null,

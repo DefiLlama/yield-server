@@ -219,6 +219,7 @@ const main = async () => {
       chain: 'Ethereum',
       project: 'inverse-finance-firm',
       mintedCoin: 'DOLA',
+      borrowToken: DOLA,
       symbol,
       tvlUsd: totalSupplyUsd,
       apyBase: 0,
