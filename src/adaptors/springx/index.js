@@ -37,25 +37,29 @@ async function apy() {
     farmToTvls[item.toLowerCase()] = result;
   }
 
-  let d = pools.map((pool) => {
-    let tvlInfo = farmToTvls[pool.farmAddress.toLowerCase()].find(
-      (item) => item.pid == pool.pid
-    );
-    let tvl = tvlInfo.tvl / 10 ** pool.assetDecimals;
-    let price = coins[`${chain}:${pool.asset}`].price;
-    let tvlPrice = tvl * price;
-    let apy = pool.apy / 10 ** 16;
-    return {
-      chain,
-      pool: pool.farmAddress,
-      symbol: pool.assetSymbol,
-      underlyingTokens: [pool.asset],
-      tvlUsd: tvlPrice,
-      apyBase: apy,
-      url: `https://springx.finance/Vault/${pool.farmAddress}/${pool.asset}`,
-      project: 'springx',
-    };
-  });
+  let d = pools
+    .map((pool) => {
+      let tvlRows = farmToTvls[pool.farmAddress.toLowerCase()] ?? [];
+      const tvlInfo = tvlRows.find((item) => item.pid == pool.pid);
+      let price = coins?.[`${chain}:${pool.asset}`]?.price;
+      if (!tvlInfo || price == null) return null;
+
+      let tvl = tvlInfo.tvl / 10 ** pool.assetDecimals;
+
+      let tvlPrice = tvl * price;
+      let apy = pool.apy / 10 ** 16;
+      return {
+        chain,
+        pool: `${pool.farmAddress}-${pool.pid}`,
+        symbol: pool.assetSymbol,
+        underlyingTokens: [pool.asset],
+        tvlUsd: tvlPrice,
+        apyBase: apy,
+        url: `https://springx.finance/Vault/${pool.farmAddress}/${pool.asset}`,
+        project: 'springx',
+      };
+    })
+    .filter(Boolean);
   return d;
 }
 
