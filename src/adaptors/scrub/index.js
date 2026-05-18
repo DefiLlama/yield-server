@@ -24,12 +24,11 @@
  *   lookback always captures at least one event.
  *   APR formula: sum(rewardAmount over window) / prevTVL / windowDays * 365 * 100.
  *
- *   Logs are fetched via the DefiLlama SDK for both chains:
+ *   Block numbers and logs are fetched via the DefiLlama SDK for both chains:
+ *   - Latest block: sdk.api.util.getLatestBlock(chain).
  *   - Arbitrum: single sdk.api.util.getLogs call (no per-request block limit).
  *   - Kava: RPC caps eth_getLogs at 10 000 blocks, so the 3-day window
  *     (~43 200 blocks) is split into 5 parallel SDK calls.
- *   - Kava's latest block is obtained via ethers.providers.JsonRpcProvider
- *     because sdk.api.util.getLatestBlock does not support Kava.
  */
 
 const sdk        = require('@defillama/sdk');
@@ -49,7 +48,6 @@ const VAULTS = {
     poolMeta:     'Delta Neutral USDt Vault',
     logChunkSize: 10000, // Kava RPC limit per eth_getLogs request
     blockTime:    6,     // seconds per block
-    rpcUrl:       'https://evm.kava.io',
   },
   arbitrum: {
     chain:        'Arbitrum',
@@ -60,7 +58,6 @@ const VAULTS = {
     poolMeta:     'Delta Neutral USDC Vault',
     logChunkSize: null,  // Arbitrum handles large ranges in one call
     blockTime:    0.25,
-    rpcUrl:       null,  // use sdk.api.util.getLatestBlock
   },
 };
 
@@ -92,16 +89,6 @@ const rewardIface  = new ethers.utils.Interface([
 const REWARD_TOPIC = rewardIface.getEventTopic('RewardDistributed');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-async function getLatestBlockNumber(chainKey, rpcUrl) {
-  if (rpcUrl) {
-    // sdk.api.util.getLatestBlock does not support all chains (e.g. Kava).
-    // Fall back to a direct JSON-RPC call via ethers — already a dependency.
-    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-    return provider.getBlockNumber();
-  }
-  return (await sdk.api.util.getLatestBlock(chainKey)).number;
-}
 
 async function fetchTvlUsd(chain, vaultAddress, decimals) {
   const { output } = await sdk.api.abi.call({
@@ -199,7 +186,7 @@ const apy = async () => {
     // Wrap each vault independently so an RPC outage on one chain does not
     // prevent the other chain's pool from being reported.
     try {
-      const latestBlock = await getLatestBlockNumber(chainKey, vault.rpcUrl);
+      const latestBlock = (await sdk.api.util.getLatestBlock(chainKey)).number;
 
       const [tvlUsd, logs, pricePerShare] = await Promise.all([
         fetchTvlUsd(chainKey, vault.address, vault.decimals),
