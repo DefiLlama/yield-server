@@ -366,6 +366,7 @@ const excludeAdaptors = [
   'paladin-dullahan',
   'pando-leaf',
   'teller',
+  'ramses-cl',
 ];
 
 const excludePools = [
