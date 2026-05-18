@@ -265,6 +265,7 @@ const calculateVaultPoolData = (
       }),
       ltv: vaultDetails.ltv[index] / 1e4,
       mintedCoin: borrowSymbol,
+      borrowToken: vaultDetails.borrowTokens[index],
       url: `https://fluid.io/vaults/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${vault.VaultId}`,
     };
   });

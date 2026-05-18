@@ -51,6 +51,7 @@ interface Pool {
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
+  borrowToken?: string; // underlying token address/string the borrower receives; not a debt receipt token
   ltv?: number; // btw [0, 1]
 }
 ```

@@ -41,6 +41,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'borrowFactor',
       'debtCeilingUsd',
       'mintedCoin',
+      'borrowToken',
       'apyBase7d',
       'apyRewardFake',
       'apyRewardBorrowFake',
@@ -204,9 +205,18 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       isIntrinsicSource: {
         type: 'boolean',
       },
+      borrowToken: {
+        type: 'string',
+      },
     };
 
     apy.forEach((pool) => {
+      if (pool.mintedCoin != null) {
+        test(`Pool ${pool.pool} with mintedCoin should include a borrowToken`, () => {
+          expect(pool.borrowToken).toBeDefined();
+          expect(pool.borrowToken).not.toBeNull();
+        });
+      }
       Object.entries(additionalFieldRules).map(([field, rule]) => {
         if (pool[field] !== undefined) {
           if (rule.type !== undefined) {

@@ -74,6 +74,7 @@ const main = async () => {
       totalBorrowUsd: totalSupplyUsd,
       ltv: 1 / (mcr / 1e18),
       mintedCoin: 'LUSD',
+      borrowToken: LUSD_ADDRESS,
       underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     },
   ];

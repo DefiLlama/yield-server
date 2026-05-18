@@ -378,6 +378,7 @@ const buildPool = ({
     borrowable: true,
     ltv: Number(marketParams.lltv) / 1e18,
     mintedCoin: utils.formatSymbol(loanSymbol),
+    borrowToken: fixedRateInfo?.underlyingToken || loanToken,
     poolMeta: metadata.join(' | '),
     url: URLS.DAPP,
   };

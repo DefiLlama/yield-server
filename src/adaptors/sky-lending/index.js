@@ -404,6 +404,7 @@ const main = async () => {
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: debtCeilingUsd.toNumber(),
         mintedCoin: 'DAI',
+        borrowToken: DAI,
         ltv: 1 / Number(liquidationRatio.toNumber()),
         underlyingTokens: [gems[index]],
       };

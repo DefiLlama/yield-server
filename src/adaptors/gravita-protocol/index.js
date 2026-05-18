@@ -196,6 +196,7 @@ const main = async () => {
         project: 'gravita-protocol',
         symbol: symbol,
         mintedCoin: 'GRAI',
+        borrowToken: GRAI_ADDRESS,
         apy: 0,
         tvlUsd: totalSupplyUsd,
         underlyingTokens: [collateral],

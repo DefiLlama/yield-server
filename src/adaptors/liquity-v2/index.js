@@ -469,6 +469,7 @@ const ABIS = {
           totalBorrowUsd: totalDebtUsd,
           ltv: ltv,
           mintedCoin: 'BOLD',
+          borrowToken: BOLD_TOKEN,
           underlyingTokens: [branch.collToken], 
         }
 

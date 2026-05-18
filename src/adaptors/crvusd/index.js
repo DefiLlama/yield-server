@@ -147,6 +147,7 @@ const apy = async () => {
       apyBaseBorrow,
       underlyingTokens: [collateralTokens[i]],
       mintedCoin: 'crvusd',
+      borrowToken: crvUsd,
       ltv,
     };
   });
