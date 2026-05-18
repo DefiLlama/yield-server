@@ -133,10 +133,6 @@ const getVaultApy = async (chain) => {
 
     const vaultDetails = {
       pools: filteredVaults.map((vault) => vault[0]),
-      underlyingTokens: filteredVaults.map((vault) => [
-        normalizeAddress(vault[3][8][0]),
-        normalizeAddress(vault[3][9][0]),
-      ]),
       rewardsRates: filteredVaults.map((vault) => Math.max(0, vault[5][12])),
       rewardsRatesBorrow: filteredVaults.map((vault) =>
         Math.max(0, vault[5][13])
@@ -182,8 +178,8 @@ const fetchTokenData = async (chain, vaultDetails) => {
   const priceKeys = vaultDetails.supplyTokens
     .map((token) => `${chain}:${token}`)
     .join(',');
-  const borrowPriceKeys = vaultDetails.underlyingTokens
-    .map((tokens) => `${chain}:${tokens[1]}`)
+  const borrowPriceKeys = vaultDetails.borrowTokens
+    .map((token) => `${chain}:${token}`)
     .join(',');
 
   const [prices, borrowPrices] = await Promise.all([
@@ -196,10 +192,10 @@ const fetchTokenData = async (chain, vaultDetails) => {
   ]);
 
   return {
-    symbol: vaultDetails.underlyingTokens.map(
-      (tokens) =>
-        `${prices[`${chain}:${tokens[0]}`].symbol}/${
-          borrowPrices[`${chain}:${tokens[1]}`].symbol
+    symbol: vaultDetails.supplyTokens.map(
+      (token, index) =>
+        `${prices[`${chain}:${token}`].symbol}/${
+          borrowPrices[`${chain}:${vaultDetails.borrowTokens[index]}`].symbol
         }`
     ),
     decimals: vaultDetails.supplyTokens.map(
@@ -252,7 +248,7 @@ const calculateVaultPoolData = (
       totalSupplyUsd: totalSupplyUsd[index],
       totalBorrowUsd: totalBorrowUsd[index],
       symbol: supplySymbol,
-      underlyingTokens: vaultDetails.underlyingTokens[index],
+      underlyingTokens: [vaultDetails.supplyTokens[index]],
       chain,
       apyBase: Number((vaultDetails.supplyRates[index] / 1e2).toFixed(2)),
       apyBaseBorrow: Number(

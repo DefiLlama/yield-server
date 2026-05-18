@@ -198,7 +198,7 @@ const getPoolsForChain = async (chain) => {
       const apyBase = annualizedRate * 100 * 0.9; // Lender rate
       const apyBaseBorrow = annualizedRate * 100;
 
-      const symbol = `${quoteSymbol}-${collateralSymbol}`;
+      const symbol = collateralSymbol
 
       poolData.push({
         pool: `${pool}-${chain}`.toLowerCase(),
@@ -207,12 +207,13 @@ const getPoolsForChain = async (chain) => {
         symbol: symbol,
         tvlUsd,
         apyBase,
-        underlyingTokens: [quoteToken],
+        underlyingTokens: [collateralToken],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
-        poolMeta: `${collateralSymbol} collateral`,
         url: `https://ajnafi.com/${chain}/pools/${pool}`,
+        mintedCoin: quoteSymbol,
+        borrowToken: quoteToken,
       });
     }
 
