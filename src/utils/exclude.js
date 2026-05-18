@@ -367,6 +367,7 @@ const excludeAdaptors = [
   'pando-leaf',
   'teller',
   'ramses-cl',
+  'impermax-v2',
 ];
 
 const excludePools = [
