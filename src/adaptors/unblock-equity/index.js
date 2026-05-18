@@ -13,7 +13,6 @@ const sdk = require('@defillama/sdk');
 const CHAIN = 'base';
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const MORPHO_BLUE = '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb';
-const ADAPTIVE_CURVE_IRM = '0x46415998764C29aB2a25CbeA6254146D50D22687';
 const SECONDS_PER_YEAR = 31_536_000;
 
 // 24 vaults: { id, vault, marketId, name }
@@ -140,13 +139,15 @@ const poolsFunction = async () => {
     chain: CHAIN,
   });
 
-  // 4. Borrow rate per market — only call if market has supply
+  // 4. Borrow rate per market — only call if market has supply.
+  //    Target the market's own IRM address (from market params) so this stays
+  //    correct if any market ever uses a non-AdaptiveCurve IRM in the future.
   const irmCalls = VAULTS.map((v, i) => {
     const m = marketRes.output[i]?.output;
     const p = paramsRes.output[i]?.output;
     if (!m || !p || BigInt(m.totalSupplyAssets || 0) === 0n) return null;
     return {
-      target: ADAPTIVE_CURVE_IRM,
+      target: p.irm,
       params: [
         [p.loanToken, p.collateralToken, p.oracle, p.irm, p.lltv],
         [m.totalSupplyAssets, m.totalSupplyShares, m.totalBorrowAssets, m.totalBorrowShares, m.lastUpdate, m.fee],
