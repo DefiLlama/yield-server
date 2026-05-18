@@ -113,6 +113,7 @@ async function getChainPools(chain) {
       project: PROJECT,
       symbol: collateralSymbol,
       mintedCoin,
+      borrowToken: coin,
       apyBase: 0,
       // cdp => tvlUsd = totalSupplyUsd
       tvlUsd: totalSupplyUsd,
