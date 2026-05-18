@@ -37,7 +37,7 @@ const { ethers } = require('ethers');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PROJECT = 'scrub';
+const PROJECT = 'scrubvault';
 
 const VAULTS = {
   kava: {
