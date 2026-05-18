@@ -26,7 +26,8 @@
  *
  *   Block numbers and logs are fetched via the DefiLlama SDK for both chains:
  *   - Latest block: sdk.api.util.getLatestBlock(chain).
- *   - Arbitrum: single sdk.api.util.getLogs call (no per-request block limit).
+ *   - Logs: sdk.getEventLogs with the RewardDistributed event ABI.
+ *   - Arbitrum: single getEventLogs call (no per-request block limit).
  *   - Kava: RPC caps eth_getLogs at 10 000 blocks, so the 3-day window
  *     (~43 200 blocks) is split into 5 parallel SDK calls.
  */
@@ -83,10 +84,8 @@ const SHARE_VALUE_ABI = {
 };
 const SHARE_VALUE_DECIMALS = 18;
 
-const rewardIface  = new ethers.utils.Interface([
-  'event RewardDistributed(int256 rewardAmount, uint256 newTotalVaultValue, uint256 timestamp)',
-]);
-const REWARD_TOPIC = rewardIface.getEventTopic('RewardDistributed');
+const REWARD_EVENT_ABI =
+  'event RewardDistributed(int256 rewardAmount, uint256 newTotalVaultValue, uint256 timestamp)';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -114,19 +113,18 @@ async function fetchRewardLogs(chain, vaultAddress, latestBlock, blockTime, chun
   const blockWindow = Math.ceil(3 * 24 * 3600 / blockTime); // 3-day window
   const fromBlock   = Math.max(0, latestBlock - blockWindow);
 
-  // Let RPC/SDK errors propagate to the per-vault try/catch in apy(); swallowing
-  // them here would make a network failure indistinguishable from "no rewards"
-  // and the vault would be emitted with apyBase: 0.
+  // sdk.getEventLogs (event-ABI based) for consistency with the rest of the
+  // codebase; it returns logs pre-decoded into `.args`. Errors propagate to
+  // the per-vault try/catch in apy() — not swallowed — so an RPC failure is
+  // never reported as a real 0% APR.
   const logsCall = (from, to) =>
-    sdk.api.util.getLogs({
+    sdk.getEventLogs({
       target:    vaultAddress,
-      topic:     '',
+      eventAbi:  REWARD_EVENT_ABI,
       fromBlock: from,
       toBlock:   to,
-      keys:      [],
-      topics:    [REWARD_TOPIC],
       chain,
-    }).then((r) => r.output || []);
+    });
 
   if (!chunkSize) {
     return logsCall(fromBlock, latestBlock);
@@ -142,31 +140,28 @@ async function fetchRewardLogs(chain, vaultAddress, latestBlock, blockTime, chun
 }
 
 function computeDailyApr(logs, decimals) {
-  // Parse all events in the window (logs are in chronological order, oldest first).
-  const events = [];
-  for (const log of logs) {
-    try {
-      const p = rewardIface.parseLog(log);
-      events.push({ reward: p.args.rewardAmount, newTvl: p.args.newTotalVaultValue });
-    } catch (_) {
-      // skip unparseable logs
-    }
-  }
+  // Logs are pre-decoded by sdk.getEventLogs (oldest first); args are BigInt.
+  const events = logs
+    .filter((l) => l && l.args)
+    .map((l) => ({
+      reward: BigInt(l.args.rewardAmount),         // int256 — negative on loss days
+      newTvl: BigInt(l.args.newTotalVaultValue),   // uint256
+    }));
   if (!events.length) return 0;
 
   // Sum all rewards across the window — negative (loss) days are included so
   // the result reflects the true rolling return, not just positive days.
-  let totalReward = ethers.BigNumber.from(0);
+  let totalReward = 0n;
   for (const { reward } of events) {
-    totalReward = totalReward.add(reward);
+    totalReward += reward;
   }
 
   // TVL before the earliest event in the window is used as the denominator.
-  const firstPrevTvl = events[0].newTvl.sub(events[0].reward);
-  if (firstPrevTvl.lte(0)) return 0;
+  const firstPrevTvl = events[0].newTvl - events[0].reward;
+  if (firstPrevTvl <= 0n) return 0;
 
-  // Use formatUnits instead of toNumber() to avoid Number.MAX_SAFE_INTEGER
-  // overflow on large balances (toNumber throws above 2^53-1, ~$9B at 6 decimals).
+  // formatUnits is overflow-safe for 256-bit values and handles negatives;
+  // plain Number coercion is not.
   const totalRewardUsd = Number(ethers.utils.formatUnits(totalReward, decimals));
   const prevTvlUsd     = Number(ethers.utils.formatUnits(firstPrevTvl, decimals));
   if (prevTvlUsd <= 0) return 0;
