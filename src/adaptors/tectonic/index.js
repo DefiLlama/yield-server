@@ -194,6 +194,8 @@ const getApy = async () => {
     };
     const apyReward = calcRewardApy(extraRewards, totalSupplyUsd);
     const apyRewardBorrow = calcRewardApy(extraRewardsBorrow, totalBorrowUsd);
+    const rewardTokens =
+      apyReward || apyRewardBorrow ? [PROTOCOL_TOKEN.address] : [];
 
     return {
       pool: market,
@@ -204,7 +206,7 @@ const getApy = async () => {
       apyBase,
       apyReward,
       underlyingTokens: [token],
-      rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      rewardTokens,
       url: `https://app.tectonic.finance/markets/${symbol.toLowerCase()}`,
       // borrow fields
       totalSupplyUsd,
