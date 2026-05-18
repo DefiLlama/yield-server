@@ -358,14 +358,14 @@ const buildPool = ({
   metadata.push(rateType);
   if (rateType === 'fixed' && maturity) {
     const btBaseTokenSymbol = getBtBaseTokenSymbol(loanSymbolRaw);
-    metadata.push(`${collateralSymbolRaw}-${btBaseTokenSymbol}`);
+    metadata.push(`${btBaseTokenSymbol}`);
   }
 
   return {
     pool: `${lendingMarket.toLowerCase()}-${marketId}`,
     chain: utils.formatChain(CHAIN),
     project: PROJECT,
-    symbol: `${collateralSymbol}-${loanSymbol}`,
+    symbol: collateralSymbol,
     tvlUsd,
     apyBase: preferOnchainApy(computedApyBase, aprPoolData?.apyBase),
     apyBaseBorrow: preferOnchainApy(
@@ -374,7 +374,7 @@ const buildPool = ({
     ),
     totalSupplyUsd,
     totalBorrowUsd,
-    underlyingTokens: [loanToken],
+    underlyingTokens: [collateralToken],
     borrowable: true,
     ltv: Number(marketParams.lltv) / 1e18,
     mintedCoin: utils.formatSymbol(loanSymbol),
@@ -649,8 +649,12 @@ const apy = async () => {
       const poolKey = vault.address.toLowerCase();
       const aprPoolData = aprPoolMap[poolKey];
       if (!aprPoolData) return null;
+      const [borrowToken] = aprPoolData.underlyingTokens || [];
       return {
         ...aprPoolData,
+        ...(aprPoolData.mintedCoin != null &&
+          aprPoolData.borrowToken == null &&
+          borrowToken && { borrowToken }),
         pool: poolKey,
         url: aprPoolData.url || URLS.DAPP,
       };
