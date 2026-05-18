@@ -260,6 +260,7 @@ async function poolApys(chainId, pools) {
         rewardTokens: [chains[chainId].PENDLE],
       }),
       underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address].map(resolveToken),
+      searchTokenOverride: resolveToken(splitId(p.underlyingAsset).address),
       volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
       volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
       poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
