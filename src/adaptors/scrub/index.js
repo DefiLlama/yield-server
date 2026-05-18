@@ -205,11 +205,11 @@ const apy = async () => {
         project:          PROJECT,
         symbol:           vault.symbol,
         tvlUsd,
-        apyBase:          Math.round(apyBase * 100) / 100,
+        apyBase,
         underlyingTokens: [vault.stablecoin],
         poolMeta:         vault.poolMeta,
         url:              vaultUrl,
-        pricePerShare:    Math.round(pricePerShare * 1e6) / 1e6,
+        pricePerShare,
       });
     } catch (err) {
       console.error(
