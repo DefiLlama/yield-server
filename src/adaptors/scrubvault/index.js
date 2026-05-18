@@ -213,7 +213,7 @@ const apy = async () => {
       });
     } catch (err) {
       console.error(
-        `[scrub] ${vault.chain} vault ${vault.address} failed: ${err.message}`,
+        `[${PROJECT}] ${vault.chain} vault ${vault.address} failed: ${err.message}`,
       );
     }
   }
