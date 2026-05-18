@@ -26,15 +26,17 @@ async function getChainPools(chain) {
 
   const { factory, chainId, lens, blocksPerYear, fromBlock } = FACTORIES[chain];
 
-  const logsRawData = await sdk.api.util.getLogs({
-    target: factory, fromBlock, toBlock, chain: chain, keys: ['topics'], topics: ['0xc95935a66d15e0da5e412aca0ad27ae891d20b2fb91cf3994b6a3bf2b8178082']
+  const logs = await sdk.getEventLogs({
+    target: factory,
+    fromBlock,
+    toBlock,
+    chain,
+    eventAbi: 'event Deployed(address indexed lender, address indexed coin, address indexed vault)',
   });
-  // clean raw data from sdk
-  const logs = logsRawData.output.map(d => d.slice(-3).map(a => a.replace('0x000000000000000000000000', '0x')));
-  
-  const lenders = logs.map(l => l[0]);
-  const coins = logs.map(l => l[1]);
-  const vaults = logs.map(l => l[2]);
+
+  const lenders = logs.map(l => l.args.lender);
+  const coins = logs.map(l => l.args.coin);
+  const vaults = logs.map(l => l.args.vault);
 
   const [
     rates,
