@@ -74,6 +74,18 @@ const TOTAL_VAULT_VALUE_ABI = {
   type:            'function',
 };
 
+// shareValue() returns the USD value of one vault share, always 18 decimals,
+// regardless of the underlying stablecoin's decimals. Returns 1e18 when no
+// shares have been minted yet (1:1 default).
+const SHARE_VALUE_ABI = {
+  inputs:          [],
+  name:            'shareValue',
+  outputs:         [{ internalType: 'uint256', name: '', type: 'uint256' }],
+  stateMutability: 'view',
+  type:            'function',
+};
+const SHARE_VALUE_DECIMALS = 18;
+
 const rewardIface  = new ethers.utils.Interface([
   'event RewardDistributed(int256 rewardAmount, uint256 newTotalVaultValue, uint256 timestamp)',
 ]);
@@ -99,6 +111,16 @@ async function fetchTvlUsd(chain, vaultAddress, decimals) {
   });
   // formatUnits is overflow-safe for 256-bit values; Number coercion alone is not.
   return Number(ethers.utils.formatUnits(output, decimals));
+}
+
+async function fetchPricePerShare(chain, vaultAddress) {
+  const { output } = await sdk.api.abi.call({
+    abi:    SHARE_VALUE_ABI,
+    target: vaultAddress,
+    chain,
+  });
+  // shareValue() is always 18-decimal USD regardless of stablecoin decimals.
+  return Number(ethers.utils.formatUnits(output, SHARE_VALUE_DECIMALS));
 }
 
 async function fetchRewardLogs(chain, vaultAddress, latestBlock, blockTime, chunkSize) {
@@ -179,7 +201,7 @@ const apy = async () => {
     try {
       const latestBlock = await getLatestBlockNumber(chainKey, vault.rpcUrl);
 
-      const [tvlUsd, logs] = await Promise.all([
+      const [tvlUsd, logs, pricePerShare] = await Promise.all([
         fetchTvlUsd(chainKey, vault.address, vault.decimals),
         fetchRewardLogs(
           chainKey,
@@ -188,6 +210,7 @@ const apy = async () => {
           vault.blockTime,
           vault.logChunkSize,
         ),
+        fetchPricePerShare(chainKey, vault.address),
       ]);
 
       const apyBase  = computeDailyApr(logs, vault.decimals);
@@ -204,6 +227,7 @@ const apy = async () => {
         underlyingTokens: [vault.stablecoin],
         poolMeta:         vault.poolMeta,
         url:              vaultUrl,
+        pricePerShare:    Math.round(pricePerShare * 1e6) / 1e6,
       });
     } catch (err) {
       console.error(
