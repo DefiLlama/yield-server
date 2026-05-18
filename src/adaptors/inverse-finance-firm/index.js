@@ -271,15 +271,13 @@ const main = async () => {
 
   // add sDOLA
   pools.push({
-    pool: `sDOLA`,
+    pool: SDOLA_ADDRESS,
     chain: 'Ethereum',
     project: 'inverse-finance-firm',
-    mintedCoin: 'sDOLA',
     symbol: 'sDOLA',
     tvlUsd: sDolaTotalAssets * prices[DOLA].price,
     apyBase: aprToApy(sDOLAapr, WEEKS_PER_YEAR),
     underlyingTokens: [DOLA],
-    poolMeta: 'Yield-Bearing stable',
     url: 'https://inverse.finance/sDOLA',
   });
 
@@ -332,10 +330,9 @@ const main = async () => {
 
   // add sINV
   pools.push({
-    pool: `sINV`,
+    pool: SINV_ADDRESS,
     chain: 'Ethereum',
     project: 'inverse-finance-firm',
-    mintedCoin: 'sINV',
     symbol: 'sINV',
     tvlUsd: sInvTotalAssets * prices[INV].price,
     apyBase: aprToApy(sINVapr, WEEKS_PER_YEAR),
