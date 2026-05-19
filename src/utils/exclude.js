@@ -369,6 +369,8 @@ const excludeAdaptors = [
   'ramses-cl',
   'impermax-v2',
   'levva',
+  'green-planet',
+  'aloe',
 ];
 
 const excludePools = [
