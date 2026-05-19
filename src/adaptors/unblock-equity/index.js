@@ -118,9 +118,16 @@ function computeSupplyApy(ratePerSecWad, supply, borrow, feeWad) {
 }
 
 const poolsFunction = async () => {
-  // 1. TVL — multicall totalAssets() across all 24 vaults
+  // 1a. TVL — multicall totalAssets() across all 24 vaults
   const totalAssetsRes = await sdk.api.abi.multiCall({
     abi: 'uint256:totalAssets',
+    calls: VAULTS.map((v) => ({ target: v.vault })),
+    chain: CHAIN,
+  });
+
+  // 1b. Share supply — needed for pricePerShare
+  const totalSharesRes = await sdk.api.abi.multiCall({
+    abi: 'erc20:totalSupply',
     calls: VAULTS.map((v) => ({ target: v.vault })),
     chain: CHAIN,
   });
@@ -173,6 +180,9 @@ const poolsFunction = async () => {
   }
 
   // 5. Assemble pools + count failures for RPC-outage guard
+  // pricePerShare: assets-per-share, in human units.
+  //   assets = USDC (6 dec), shares = vault token (18 dec).
+  //   pricePerShare = (totalAssets * 10^12) / totalSupply, with 1.0 fallback for empty vaults.
   let tvlFailures = 0;
   const pools = VAULTS.map((v, i) => {
     const totalAssetsRaw = totalAssetsRes.output[i]?.output;
@@ -181,6 +191,14 @@ const poolsFunction = async () => {
       tvlFailures += 1;
     } else {
       tvlUsd = Number(totalAssetsRaw) / 1e6;
+    }
+
+    const totalSharesRaw = totalSharesRes.output[i]?.output;
+    let pricePerShare = 1;
+    if (totalAssetsRaw != null && totalSharesRaw != null && BigInt(totalSharesRaw) > 0n) {
+      // shares are 18-dec, assets are 6-dec → scale by 10^12 to express pps in assets
+      const scaled = (BigInt(totalAssetsRaw) * 10n ** 12n * 10n ** 9n) / BigInt(totalSharesRaw);
+      pricePerShare = Number(scaled) / 1e9;
     }
 
     const m = marketRes.output[i]?.output;
@@ -202,6 +220,7 @@ const poolsFunction = async () => {
       symbol: 'USDC',
       tvlUsd,
       apyBase,
+      pricePerShare,
       underlyingTokens: [USDC],
       url: 'https://app.unblockequity.com/earn',
       poolMeta: v.name,
