@@ -65,6 +65,17 @@ async function fetchV3Pools(chain) {
     })
   ).output.map((o) => o.output);
 
+  const reserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupplyEthereum = (
     await sdk.api.abi.multiCall({
       chain,
@@ -106,6 +117,15 @@ async function fetchV3Pools(chain) {
   return reserveTokens
     .map((pool, i) => {
       const p = poolsReserveData[i];
+      const config = poolsReservesConfigurationData[i];
+      if (config.isFrozen) return null;
+
+      const decimals = BigInt(underlyingDecimalsEthereum[i]);
+      const borrowCap = BigInt(reserveCaps[i].borrowCap);
+      const borrowCapReached =
+        borrowCap > 0n &&
+        BigInt(p.totalStableDebt) + BigInt(p.totalVariableDebt) >=
+          borrowCap * 10n ** decimals;
       const price = pricesEthereum[`${chain}:${pool.tokenAddress}`]?.price;
 
       const supply = totalSupplyEthereum[i];
@@ -115,6 +135,13 @@ async function fetchV3Pools(chain) {
       const currentSupply = underlyingBalancesEthereum[i];
       const tvlUsd =
         (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
+
+      const totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      // Omit borrow fields when Spark disables borrowing; cap-reached markets
+      // still expose borrow data but are marked as not borrowable.
+      const hasBorrowSide = config.borrowingEnabled && config.isActive;
+      const borrowable = hasBorrowSide && !borrowCapReached;
+      const sparkChainId = chain === 'xdai' ? 100 : 1;
 
       return {
         pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
@@ -126,12 +153,16 @@ async function fetchV3Pools(chain) {
         apyBase: (p.liquidityRate / 10 ** 27) * 100,
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
-        totalBorrowUsd: totalSupplyUsd - tvlUsd,
-        apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-        ltv: poolsReservesConfigurationData[i].ltv / 10000,
-        borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        ...(hasBorrowSide && {
+          totalBorrowUsd,
+          apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        }),
+        ltv: config.ltv / 10000,
+        borrowable,
+        url: `https://app.spark.fi/markets/${sparkChainId}/${pool.tokenAddress}`,
       };
     })
+    .filter(Boolean)
     .filter((p) => utils.keepFinite(p));
 }
 
@@ -205,37 +236,6 @@ const apy = async () => {
   const v3Pools = [
     ...(await Promise.all(sparkChains.map(fetchV3Pools))),
   ].flat();
-
-  const ilk = (
-    await sdk.api.abi.call({
-      target: '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B',
-      params: [
-        '0x4449524543542d535041524b2d44414900000000000000000000000000000000',
-      ],
-      abi: {
-        constant: true,
-        inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
-        name: 'ilks',
-        outputs: [
-          { internalType: 'uint256', name: 'Art', type: 'uint256' },
-          { internalType: 'uint256', name: 'rate', type: 'uint256' },
-          { internalType: 'uint256', name: 'spot', type: 'uint256' },
-          { internalType: 'uint256', name: 'line', type: 'uint256' },
-          { internalType: 'uint256', name: 'dust', type: 'uint256' },
-        ],
-        payable: false,
-        stateMutability: 'view',
-        type: 'function',
-      },
-    })
-  ).output;
-
-  const ethereumDaiPool = v3Pools.find(
-    (p) => p.symbol === 'DAI' && p.chain === 'Ethereum'
-  );
-  ethereumDaiPool.totalSupplyUsd = Number(ilk.line) / 1e45;
-  ethereumDaiPool.tvlUsd =
-    ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
 
   return [...v3Pools, ...spkFarmPool];
 };
