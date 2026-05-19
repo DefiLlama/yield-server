@@ -371,6 +371,7 @@ const excludeAdaptors = [
   'levva',
   'green-planet',
   'aloe',
+  'rheo',
 ];
 
 const excludePools = [
