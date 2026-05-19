@@ -31,7 +31,7 @@ const apy = async () => {
     {
       pool: '0x4274cD7277C7bb0806Bd5FE84b9aDAE466a8DA0a-ethereum'.toLowerCase(),
       chain: 'Ethereum',
-      project: 'aegis',
+      project: 'aegis-yusd',
       symbol: 'YUSD',
       tvlUsd: aegisEthTvl,
       apy: aegisData.efficient_apr,
@@ -40,7 +40,7 @@ const apy = async () => {
     {
       pool: '0xAB3dBcD9B096C3fF76275038bf58eAC10D22C61f-binance'.toLowerCase(),
       chain: 'Binance',
-      project: 'aegis',
+      project: 'aegis-yusd',
       symbol: 'YUSD',
       tvlUsd: aegisBscTvl,
       apy: aegisData.efficient_apr,
