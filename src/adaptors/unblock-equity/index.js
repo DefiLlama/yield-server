@@ -169,6 +169,16 @@ const poolsFunction = async () => {
     permitFailure: true,
   });
 
+  // Symmetric guard with the TVL check: if every funded market's borrowRateView
+  // failed, all pools would silently publish apyBase = 0 — abort instead.
+  const expectedRateCalls = irmCalls.filter((c) => c !== null).length;
+  const successfulRateCalls = irmRes.output.filter(
+    (r) => r?.success !== false && r?.output != null
+  ).length;
+  if (expectedRateCalls > 0 && successfulRateCalls === 0) {
+    throw new Error('unblock-equity: failed to fetch borrowRateView() for all funded markets');
+  }
+
   // Map borrow-rate responses back to vault indices
   const rateByIndex = new Map();
   let rateCursor = 0;
