@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const url = 'https://biholder-view.thebifrost.io/chains/bfc/bifi';
+const url = 'https://crosschain.bifi.finance/api/biholder/chains/bfc/bifi';
 
 const apy = async () => {
   const [markets, handlers] = await Promise.all(
