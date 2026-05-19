@@ -22,7 +22,6 @@ const Addresses = {
     srmHYPER: '0x627EA69929212916Ec57B1b26d2E1a19F6129B53',
     jrmHYPER: '0xEb205d26E9E605Ec82d1C0d652E00037C278714b',
     underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-    decimals: 6,
   },
   mm1usd: {
     cdo: '0x613D1790d9BA381D27B4071C04380Db8ED120E5f',
@@ -35,18 +34,17 @@ const Addresses = {
     srUSDat: '0xFaa9a0e1Db9E22AE3A20B2B58a68DC24D053d066',
     jrUSDat: '0x011e55d2b28306458e37Ca7E997C879BB25A455D',
     underlying: '0x23238f20b894f29041f48D88eE91131C395Aaa71', // USDat
-    decimals: 6,
   },
 };
 
-const getTotalSupply = async (tokenAddress, chain = 'ethereum', decimals = 18) => {
+const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
   try {
     const { output } = await sdk.api.abi.call({
       target: tokenAddress,
       abi: 'erc20:totalSupply',
       chain,
     });
-    return output / (10 ** decimals);
+    return output / (10 ** 18); 
   } catch (error) {
     console.error(`Error fetching total supply for ${tokenAddress}:`, error);
     throw error;
@@ -89,10 +87,9 @@ const getAprs = async (cdoAddress, chain = 'ethereum') => {
 async function loadPool(tranche, symbol) {
   const cdo = Addresses[tranche].cdo;
   const vault = Addresses[tranche][symbol];
-  const decimals = Addresses[tranche].decimals ?? 18;
 
   const [totalSupply, price, aprs] = await Promise.all([
-    getTotalSupply(vault, 'ethereum', decimals),
+    getTotalSupply(vault, 'ethereum'),
     getTokenPrice(vault),
     getAprs(cdo),
   ]);
