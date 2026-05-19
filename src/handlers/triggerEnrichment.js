@@ -14,6 +14,8 @@ const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
 const { getExcludedAdaptors } = require('../utils/exclude');
 
+const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
+
 module.exports.handler = async (event, context) => {
   await main();
 };
@@ -25,7 +27,7 @@ const main = async () => {
     await axios.get('https://api.llama.fi/config/yields?a=1')
   ).data.protocols;
   const lendingProjects = Object.entries(config)
-    .filter(([, protocol]) => protocol?.category === 'Lending')
+    .filter(([, protocol]) => ZERO_TVL_CATEGORIES.includes(protocol?.category))
     .map(([project]) => project);
 
   // ---------- get lastet unique pool

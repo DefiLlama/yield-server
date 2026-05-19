@@ -5,13 +5,15 @@ const AppError = require('../../utils/appError');
 const { conn } = require('../db');
 const exclude = require('../../utils/exclude');
 
+const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
+
 // get pool urls (filtered to only include pools that appear in /pools response)
 const getUrl = async (req, res) => {
   const protocolConfig = (
     await axios.get('https://api.llama.fi/config/yields?a=1')
   ).data.protocols;
   const lendingProjects = Object.entries(protocolConfig)
-    .filter(([, protocol]) => protocol?.category === 'Lending')
+    .filter(([, protocol]) => ZERO_TVL_CATEGORIES.includes(protocol?.category))
     .map(([project]) => project);
 
   const query = `

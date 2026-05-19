@@ -15,6 +15,8 @@ const {
   getDistinctProjects,
 } = require('../queries/config');
 
+const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
+
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
   console.log(event);
@@ -85,7 +87,9 @@ const main = async (body) => {
   const protocolConfig = (
     await axios.get('https://api.llama.fi/config/yields?a=1')
   ).data.protocols;
-  const isLendingProject = protocolConfig[body.adaptor]?.category === 'Lending';
+  const isLendingProject = ZERO_TVL_CATEGORIES.includes(
+    protocolConfig[body.adaptor]?.category
+  );
   const tvlLowerBound = isLendingProject ? 0 : exclude.boundaries.tvlUsdDB.lb;
 
   // ---------- prepare prior insert
