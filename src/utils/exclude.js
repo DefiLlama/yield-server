@@ -368,6 +368,7 @@ const excludeAdaptors = [
   'teller',
   'ramses-cl',
   'impermax-v2',
+  'levva',
 ];
 
 const excludePools = [
