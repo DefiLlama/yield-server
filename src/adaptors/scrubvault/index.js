@@ -37,7 +37,7 @@ const { ethers } = require('ethers');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PROJECT = 'scrub';
+const PROJECT = 'scrubvault';
 
 const VAULTS = {
   kava: {
@@ -213,7 +213,7 @@ const apy = async () => {
       });
     } catch (err) {
       console.error(
-        `[scrub] ${vault.chain} vault ${vault.address} failed: ${err.message}`,
+        `[${PROJECT}] ${vault.chain} vault ${vault.address} failed: ${err.message}`,
       );
     }
   }
