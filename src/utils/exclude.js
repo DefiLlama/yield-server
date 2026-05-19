@@ -372,6 +372,7 @@ const excludeAdaptors = [
   'green-planet',
   'aloe',
   'rheo',
+  'damm-finance',
 ];
 
 const excludePools = [
