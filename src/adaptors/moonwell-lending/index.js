@@ -1,7 +1,6 @@
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const sdk = require('@defillama/sdk');
-const { request, gql, batchRequests } = require('graphql-request');
 const { MRD_ABI, VIEWS_ABI } = require('./abi');
 const axios = require('axios');
 
@@ -72,36 +71,89 @@ const multicallViews = async (network) => {
   ).output.map(({ output }) => output);
 };
 
-const API_URL = 'https://ponder.moonwell.fi/';
+const CHAINS = [
+  { network: 'base', chainId: 8453 },
+  { network: 'moonbeam', chainId: 1284, nativeSymbol: 'GLMR' },
+  { network: 'optimism', chainId: 10 },
+];
 
-const query = gql`
-  {
-    markets(limit: 1000) {
-      items {
-        id
-        address
-        chainId
-        collateralFactor
-        interestRateModelAddress
-        priceFeedAddress
-        reserveFactor
-        underlyingTokenAddress
+const fetchMarketsAndTokens = async () => {
+  const markets = [];
+  const tokens = [];
+  for (const { network, chainId, nativeSymbol } of CHAINS) {
+    const viewsRes = await multicallViews(network);
+    if (!viewsRes || !viewsRes[0]) continue;
+    const mTokens = viewsRes[0]
+      .filter((p) => p.isListed)
+      .map((p) => p.market);
+
+    const underlyingRes = await sdk.api.abi.multiCall({
+      chain: network,
+      calls: mTokens.map((t) => ({ target: t })),
+      abi: 'address:underlying',
+      permitFailure: true,
+    });
+
+    const validUnderlyings = new Set();
+    mTokens.forEach((mToken, i) => {
+      const o = underlyingRes.output[i];
+      const underlying =
+        o.success && o.output
+          ? o.output.toLowerCase()
+          : '0x0000000000000000000000000000000000000000';
+      markets.push({
+        address: mToken.toLowerCase(),
+        chainId,
+        underlyingTokenAddress: underlying,
+      });
+      if (underlying !== '0x0000000000000000000000000000000000000000') {
+        validUnderlyings.add(underlying);
       }
-    }
-    tokens(limit: 1000) {
-      items {
-        id
-        address
-        chainId
-        symbol
-        decimals
+    });
+
+    const underlyingList = Array.from(validUnderlyings);
+    const [decimalsRes, symbolRes] = await Promise.all([
+      sdk.api.abi.multiCall({
+        chain: network,
+        calls: underlyingList.map((t) => ({ target: t })),
+        abi: 'erc20:decimals',
+        permitFailure: true,
+      }),
+      sdk.api.abi.multiCall({
+        chain: network,
+        calls: underlyingList.map((t) => ({ target: t })),
+        abi: 'erc20:symbol',
+        permitFailure: true,
+      }),
+    ]);
+
+    underlyingList.forEach((addr, i) => {
+      const dOk = decimalsRes.output[i].success;
+      const sOk = symbolRes.output[i].success;
+      if (dOk && sOk) {
+        tokens.push({
+          address: addr,
+          chainId,
+          decimals: Number(decimalsRes.output[i].output),
+          symbol: symbolRes.output[i].output,
+        });
       }
+    });
+
+    if (nativeSymbol) {
+      tokens.push({
+        address: '0x0000000000000000000000000000000000000000',
+        chainId,
+        decimals: 18,
+        symbol: nativeSymbol,
+      });
     }
   }
-`;
+  return { markets: { items: markets }, tokens: { items: tokens } };
+};
 
 const getApy = async () => {
-  const ponder_markets_res = await request(API_URL, query);
+  const ponder_markets_res = await fetchMarketsAndTokens();
 
   const ponder_markets = ponder_markets_res.markets.items;
   const ponder_tokens = ponder_markets_res.tokens.items;
