@@ -29,6 +29,12 @@ const Addresses = {
     jrmM1USD: '0xf7eB8dfec75C42D2d2247FE76Ccaedc59f821688',
     underlying: '0xCc5C22C7A6BCC25e66726AeF011dDE74289ED203', // MM1USD
   },
+  saturn: {
+    cdo: '0xa617763cEB808f43eC9D532cbE8C65819afb846b',
+    srUSDat: '0xFaa9a0e1Db9E22AE3A20B2B58a68DC24D053d066',
+    jrUSDat: '0x011e55d2b28306458e37Ca7E997C879BB25A455D',
+    underlying: '0x23238f20b894f29041f48D88eE91131C395Aaa71', // USDat
+  },
 };
 
 const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
@@ -38,7 +44,7 @@ const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
       abi: 'erc20:totalSupply',
       chain,
     });
-    return output / 1e18;
+    return output / (10 ** 18); 
   } catch (error) {
     console.error(`Error fetching total supply for ${tokenAddress}:`, error);
     throw error;
@@ -46,7 +52,7 @@ const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
 };
 
 const getTokenPrice = async (tokenAddress) => {
-  try {
+try {
     const priceKey = `ethereum:${tokenAddress}`;
     const { data } = await axios.get(
       `https://coins.llama.fi/prices/current/${priceKey}`
@@ -83,7 +89,7 @@ async function loadPool(tranche, symbol) {
   const vault = Addresses[tranche][symbol];
 
   const [totalSupply, price, aprs] = await Promise.all([
-    getTotalSupply(vault),
+    getTotalSupply(vault, 'ethereum'),
     getTokenPrice(vault),
     getAprs(cdo),
   ]);
@@ -111,6 +117,8 @@ const apy = async () => {
       loadPool('mhyper', 'jrmHYPER'),
       loadPool('mm1usd', 'srmM1USD'),
       loadPool('mm1usd', 'jrmM1USD'),
+      loadPool('saturn', 'srUSDat'),
+      loadPool('saturn', 'jrUSDat'),
     ]);
   } catch (error) {
     console.error('Error fetching APYs:', error);
