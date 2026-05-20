@@ -64,17 +64,20 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const collateralDecimals = (
+    await sdk.api.abi.multiCall({
+      calls: collateralTokens.map((i) => ({
+        target: i,
+      })),
+      abi: 'erc20:decimals',
+    })
+  ).output.map((o) => o.output);
+
   const maxBorrowable = (
     await sdk.api.abi.multiCall({
-      calls: controllers.map((i) => ({
+      calls: controllers.map((i, idx) => ({
         target: i,
-        params: [
-          // wbtc
-          i === '0x4e59541306910aD6dC1daC0AC9dFB29bD9F15c67'
-            ? 100000000n
-            : 1000000000000000000n,
-          4,
-        ],
+        params: [10n ** BigInt(collateralDecimals[idx]), 4],
       })),
       abi: abiControllers.find((m) => m.name === 'max_borrowable'),
     })
