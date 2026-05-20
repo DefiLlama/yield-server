@@ -73,14 +73,19 @@ const multicallViews = async (network) => {
 
 const CHAINS = [
   { network: 'base', chainId: 8453 },
-  { network: 'moonbeam', chainId: 1284, nativeSymbol: 'GLMR' },
+  {
+    network: 'moonbeam',
+    chainId: 1284,
+    nativeSymbol: 'GLMR',
+    nativeMTokens: ['0x091608f4e4a15335145be0a279483c0f8e4c7955'],
+  },
   { network: 'optimism', chainId: 10 },
 ];
 
 const fetchMarketsAndTokens = async () => {
   const markets = [];
   const tokens = [];
-  for (const { network, chainId, nativeSymbol } of CHAINS) {
+  for (const { network, chainId, nativeSymbol, nativeMTokens } of CHAINS) {
     const viewsRes = await multicallViews(network);
     if (!viewsRes || !viewsRes[0]) continue;
     const mTokens = viewsRes[0]
@@ -94,20 +99,25 @@ const fetchMarketsAndTokens = async () => {
       permitFailure: true,
     });
 
+    const knownNative = new Set((nativeMTokens || []).map((a) => a.toLowerCase()));
     const validUnderlyings = new Set();
     mTokens.forEach((mToken, i) => {
       const o = underlyingRes.output[i];
-      const underlying =
-        o.success && o.output
-          ? o.output.toLowerCase()
-          : '0x0000000000000000000000000000000000000000';
-      markets.push({
-        address: mToken.toLowerCase(),
-        chainId,
-        underlyingTokenAddress: underlying,
-      });
-      if (underlying !== '0x0000000000000000000000000000000000000000') {
+      const mTokenLc = mToken.toLowerCase();
+      if (o.success && o.output) {
+        const underlying = o.output.toLowerCase();
+        markets.push({
+          address: mTokenLc,
+          chainId,
+          underlyingTokenAddress: underlying,
+        });
         validUnderlyings.add(underlying);
+      } else if (knownNative.has(mTokenLc)) {
+        markets.push({
+          address: mTokenLc,
+          chainId,
+          underlyingTokenAddress: '0x0000000000000000000000000000000000000000',
+        });
       }
     });
 
