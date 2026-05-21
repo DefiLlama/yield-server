@@ -175,8 +175,11 @@ async function processChain(chain, vaults) {
           100;
       }
 
+      const shareDecimals = v.token?.decimals;
+      if (shareDecimals == null) continue;
       const tokenName = v.token?.name ?? v.token?.symbol ?? 'Unknown';
-      const pricePerShare = Number(pNow.output) / 10 ** decimals;
+      const pricePerShare =
+        Number(pNow.output) / 10 ** (decimals + 18 - shareDecimals);
 
       pools.push({
         pool: `${v.id}-${chain}`.toLowerCase(),
