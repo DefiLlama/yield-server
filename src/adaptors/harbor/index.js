@@ -238,6 +238,67 @@ async function calculateAPRFromRewards(poolAddress, poolTVLUsd, chain) {
   }
 }
 
+/** USD price of 1 pegged token using this market's minter + collateral feed. */
+async function resolveMarketPeggedPriceUsd(
+  chain,
+  market,
+  peggedTokenSymbol,
+  defaultFeedKey,
+  cache = {}
+) {
+  const feedKey = market.collateralPriceFeed || defaultFeedKey;
+  const cacheKey = `${market.minterAddress || 'none'}:${feedKey}`;
+  if (cache[cacheKey] !== undefined) {
+    return cache[cacheKey];
+  }
+
+  let peggedTokenPriceInUnderlying = 0;
+  if (market.minterAddress) {
+    try {
+      const minterPriceResult = await sdk.api.abi.call({
+        target: market.minterAddress,
+        abi: MINTER_ABI.find((m) => m.name === 'peggedTokenPrice'),
+        chain,
+      });
+      if (minterPriceResult?.output) {
+        peggedTokenPriceInUnderlying = Number(minterPriceResult.output) / 1e18;
+      }
+    } catch (error) {
+      // fall through to default peg ratio
+    }
+  }
+
+  if (peggedTokenPriceInUnderlying === 0) {
+    peggedTokenPriceInUnderlying = 1;
+  } else if (market.marketLabel) {
+    console.log(
+      `  [${chain}] ${market.marketLabel} peggedTokenPrice: ${peggedTokenPriceInUnderlying.toFixed(6)} ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'collateral units'}`
+    );
+  }
+
+  let underlyingAssetPriceUSD = 0;
+  try {
+    underlyingAssetPriceUSD = await getCollateralUsdPrice(chain, feedKey);
+    if (underlyingAssetPriceUSD > 0 && market.marketLabel) {
+      console.log(
+        `  [${chain}] ${market.marketLabel} ${feedKey}: $${underlyingAssetPriceUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      );
+    }
+  } catch (error) {
+    console.log(`  [${chain}] Failed to get ${feedKey} price:`, error.message);
+  }
+
+  const peggedTokenPriceUSD = peggedTokenPriceInUnderlying * underlyingAssetPriceUSD;
+  if (peggedTokenPriceUSD > 0 && market.marketLabel) {
+    console.log(
+      `  [${chain}] ${market.marketLabel} ${peggedTokenSymbol} price: $${peggedTokenPriceUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    );
+  }
+
+  cache[cacheKey] = peggedTokenPriceUSD;
+  return peggedTokenPriceUSD;
+}
+
 async function fetchPoolsFromChain() {
   const marketsByChainToken = {};
   for (const market of activeMarkets) {
@@ -258,92 +319,12 @@ async function fetchPoolsFromChain() {
     let totalTVL = 0;
 
     try {
-      let peggedTokenPriceInUnderlying = 0;
-      let underlyingAssetPriceUSD = 0;
       let decimals = 18;
 
       const defaultFeedKey = TOKEN_CHAINLINK_FEED_MAP[peggedTokenSymbol];
       if (!defaultFeedKey) {
         throw new Error(
           `Unsupported pegged token symbol: ${peggedTokenSymbol}. Supported: ${Object.keys(TOKEN_CHAINLINK_FEED_MAP).join(', ')}`
-        );
-      }
-
-      let pricingMarket = tokenMarkets.find(
-        (m) => m.minterAddress && m.collateralPriceFeed
-      );
-
-      if (pricingMarket) {
-        try {
-          const minterPriceResult = await sdk.api.abi.call({
-            target: pricingMarket.minterAddress,
-            abi: MINTER_ABI.find((m) => m.name === 'peggedTokenPrice'),
-            chain,
-          });
-          if (minterPriceResult?.output) {
-            peggedTokenPriceInUnderlying = Number(minterPriceResult.output) / 1e18;
-            console.log(
-              `  [${chain}] peggedTokenPrice from ${pricingMarket.marketLabel || 'market'} minter: ${peggedTokenPriceInUnderlying.toFixed(6)} ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'collateral units'}`
-            );
-          }
-        } catch (error) {
-          pricingMarket = null;
-        }
-      }
-
-      if (peggedTokenPriceInUnderlying === 0) {
-        const hasAnyFeedMarket = tokenMarkets.some((m) => m.collateralPriceFeed);
-        for (const market of tokenMarkets) {
-          if (!market.minterAddress || (hasAnyFeedMarket && !market.collateralPriceFeed)) {
-            continue;
-          }
-          try {
-            const minterPriceResult = await sdk.api.abi.call({
-              target: market.minterAddress,
-              abi: MINTER_ABI.find((m) => m.name === 'peggedTokenPrice'),
-              chain,
-            });
-            if (minterPriceResult?.output) {
-              peggedTokenPriceInUnderlying = Number(minterPriceResult.output) / 1e18;
-              pricingMarket = market;
-              console.log(
-                `  [${chain}] peggedTokenPrice from ${market.marketLabel || 'market'} minter: ${peggedTokenPriceInUnderlying.toFixed(6)} ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'collateral units'}`
-              );
-              break;
-            }
-          } catch (error) {
-            continue;
-          }
-        }
-      }
-
-      if (peggedTokenPriceInUnderlying === 0) {
-        peggedTokenPriceInUnderlying = 1;
-        console.log(
-          `  [${chain}] Using default peg ratio: 1.0 ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'UNDERLYING'}`
-        );
-      }
-
-      const priceFeedKey =
-        pricingMarket?.collateralPriceFeed ||
-        tokenMarkets.find((m) => m.collateralPriceFeed)?.collateralPriceFeed ||
-        defaultFeedKey;
-
-      try {
-        underlyingAssetPriceUSD = await getCollateralUsdPrice(chain, priceFeedKey);
-        if (underlyingAssetPriceUSD > 0) {
-          console.log(
-            `  [${chain}] ${priceFeedKey} price in USD: $${underlyingAssetPriceUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-          );
-        }
-      } catch (error) {
-        console.log(`  [${chain}] Failed to get ${priceFeedKey} price:`, error.message);
-      }
-
-      const peggedTokenPriceUSD = peggedTokenPriceInUnderlying * underlyingAssetPriceUSD;
-      if (peggedTokenPriceUSD > 0) {
-        console.log(
-          `  [${chain}] Final ${peggedTokenSymbol} price: $${peggedTokenPriceUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         );
       }
 
@@ -358,12 +339,22 @@ async function fetchPoolsFromChain() {
         console.log(`  [${chain}] Decimals lookup failed, using default 18`);
       }
 
+      const priceCache = {};
+
       for (const market of tokenMarkets) {
         const { collateralPoolAddress, sailPoolAddress, marketLabel } = market;
 
         try {
           console.log(
             `  [${chain}] ${peggedTokenSymbol} ${marketLabel || ''} - Collateral: ${collateralPoolAddress}, Sail: ${sailPoolAddress}`
+          );
+
+          const peggedTokenPriceUSD = await resolveMarketPeggedPriceUsd(
+            chain,
+            market,
+            peggedTokenSymbol,
+            defaultFeedKey,
+            priceCache
           );
 
           const [collateralTVLResult, sailTVLResult] = await Promise.all([
