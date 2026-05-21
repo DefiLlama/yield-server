@@ -34,7 +34,7 @@ const apy = async () =>
         })
       ).map(([adjustFactor]) => adjustFactor);
 
-      /** @type [assets: string[], decimals: number[], maxFuturePools: number[], prevTotalAssets: string[], prevTotalSupply: string[], prevTotalFloatingBorrowAssets: string[], prevTotalFloatingBorrowShares: string[], totalAssets: string[], totalSupply: string[], totalFloatingBorrowAssets: string[], totalFloatingBorrowShares: string[], previewFloatingAssetsAverages: string[], backupFeeRates: bigint[], interestRateModels: number[], reserveFactors: string[] ] */
+      /** @type [assets: string[], decimals: number[], maxFuturePools: number[], prevTotalAssets: string[], prevTotalSupply: string[], prevTotalFloatingBorrowAssets: string[], prevTotalFloatingBorrowShares: string[], totalAssets: string[], totalSupply: string[], totalFloatingBorrowAssets: string[], totalFloatingBorrowShares: string[], previewFloatingAssetsAverages: string[], backupFeeRates: bigint[], interestRateModels: number[], reserveFactors: string[], frozen: (boolean | null)[] ] */
       const [
         assets,
         decimals,
@@ -51,6 +51,7 @@ const apy = async () =>
         backupFeeRates,
         interestRateModels,
         reserveFactors,
+        frozen,
       ] = await Promise.all([
         ...[
           "asset",
@@ -71,6 +72,7 @@ const apy = async () =>
           "interestRateModel",
           "reserveFactor",
         ].map((key) => api2.abi.multiCall({ abi: abis[key], calls: markets, chain, block })),
+        api2.abi.multiCall({ abi: abis.isFrozen, calls: markets, chain, block, permitFailure: true }),
       ]);
 
       /** @type string[] */
@@ -81,6 +83,8 @@ const apy = async () =>
 
       return Promise.all(
         markets.map(async (market, i) => {
+          if (frozen[i]) return [];
+
           /** @type {number} */
           const usdUnitPrice = pricesByAddress[assets[i].toLowerCase()];
           const poolMetadata = {
@@ -231,12 +235,13 @@ const apy = async () =>
                   : 0;
 
               const secsToMaturity = maturity - timestampNow;
-              const poolMeta = new Date(maturity * 1_000).toISOString().slice(0, 10);
+              const maturityDate = new Date(maturity * 1_000).toISOString().slice(0, 10);
+              const poolMeta = `Fixed mat: ${maturityDate}`;
 
               /** @type {Pool} */
               return {
                 ...poolMetadata,
-                pool: `${market}-${chain}-${poolMeta}`.toLowerCase(),
+                pool: `${market}-${chain}-${maturityDate}`.toLowerCase(),
                 poolMeta,
                 apyBase: aprToApy(fixedDepositAPR, secsToMaturity / 86_400),
                 apyBaseBorrow: aprToApy(minFixedRate / 1e16, secsToMaturity / 86_400),
@@ -282,6 +287,7 @@ const abis = {
   previewFloatingAssetsAverage: "function previewFloatingAssetsAverage() view returns (uint256)",
   backupFeeRate: "function backupFeeRate() view returns (uint256)",
   interestRateModel: "function interestRateModel() view returns (address)",
+  isFrozen: "function isFrozen() view returns (bool)",
   minFixedRate: "function minFixedRate(uint256, uint256, uint256) view returns (uint256 rate, uint256)",
   marketsData: "function markets(address) view returns (uint128, uint8, uint8, bool, address)",
   rewardsController: "function rewardsController() view returns (address)",
