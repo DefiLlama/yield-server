@@ -112,12 +112,10 @@ const apy = async () => {
     const poolMeta = `Takara Lend ${underlyingSymbol} Market`;
     const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl));
     const ltv = Number(ethers.utils.formatEther(marketInfo.ltv));
-    const totalSupplyUsd = Number(
-      ethers.utils.formatEther(marketInfo.totalSupply)
-    );
     const totalBorrowUsd = Number(
       ethers.utils.formatEther(marketInfo.totalBorrows)
     );
+    const totalSupplyUsd = tvlUsd + totalBorrowUsd;
     const borrowRatePerBlock = marketInfo.borrowRatePerBlock;
     const supplyRatePerBlock = marketInfo.supplyRatePerBlock;
     const timestampsPerYear = marketInfo.timestampsPerYear;
