@@ -1,4 +1,4 @@
-const { getData, formatChain, formatSymbol, keepFinite } = require('../utils');
+const { getData, formatChain, keepFinite } = require('../utils');
 
 const PROJECT = 'metrom';
 const METROM_REWARDS_URL = 'https://app.metrom.xyz/en?type=rewards';
@@ -247,7 +247,7 @@ async function processCampaign(
     }
     case 'liquity-v2-debt': {
       return {
-        symbol: formatSymbol(campaign.target.collateral.symbol),
+        symbol: campaign.target.collateral.symbol,
         underlyingTokens: [campaign.target.collateral.address],
         poolMeta: humanizeTargetProtocol('Borrow on', campaign.target.brand),
       };
@@ -269,14 +269,14 @@ async function processCampaign(
     }
     case 'aave-v3-supply': {
       return {
-        symbol: formatSymbol(campaign.target.collateral.symbol),
+        symbol: campaign.target.collateral.symbol,
         underlyingTokens: [campaign.target.collateral.address],
         poolMeta: humanizeTargetProtocol('Lend on', campaign.target.brand),
       };
     }
     case 'aave-v3-borrow': {
       return {
-        symbol: formatSymbol(campaign.target.collateral.symbol),
+        symbol: campaign.target.collateral.symbol,
         underlyingTokens: [campaign.target.collateral.address],
         poolMeta: humanizeTargetProtocol('Borrow on', campaign.target.brand),
       };
@@ -315,7 +315,7 @@ async function processCampaign(
     }
     case 'erc4626-vault': {
       return {
-        symbol: formatSymbol(campaign.target.vault.symbol),
+        symbol: campaign.target.vault.symbol,
         underlyingTokens: [campaign.target.vault.asset],
         poolMeta: humanizeTargetProtocol(
           'Deposit to',
