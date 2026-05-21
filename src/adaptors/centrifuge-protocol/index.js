@@ -176,6 +176,7 @@ async function processChain(chain, vaults) {
       }
 
       const tokenName = v.token?.name ?? v.token?.symbol ?? 'Unknown';
+      const pricePerShare = Number(pNow.output) / 10 ** decimals;
 
       pools.push({
         pool: `${v.id}-${chain}`.toLowerCase(),
@@ -183,8 +184,9 @@ async function processChain(chain, vaults) {
         project: 'centrifuge-protocol',
         symbol: assetSymbol,
         tvlUsd,
-        apyBase: apyBase ?? apyBase7d ?? null,
+        apyBase: apyBase7d ?? apyBase ?? null,
         apyBase7d,
+        pricePerShare,
         underlyingTokens: [v.assetAddress],
         poolMeta: tokenName,
         url: 'https://app.centrifuge.io',
@@ -222,13 +224,14 @@ const apy = async () => {
   }
 
   const pools = [];
-  for (const [chain, vaults] of Object.entries(byChain)) {
-    try {
-      const chainPools = await processChain(chain, vaults);
-      pools.push(...chainPools);
-    } catch (e) {
-      console.error(`centrifuge: error processing ${chain}:`, e.message);
-    }
+  const results = await Promise.allSettled(
+    Object.entries(byChain).map(([chain, vaults]) =>
+      processChain(chain, vaults)
+    )
+  );
+  for (const r of results) {
+    if (r.status === 'fulfilled') pools.push(...r.value);
+    else console.error('centrifuge chain failed:', r.reason?.message);
   }
 
   return pools.filter((p) => utils.keepFinite(p));
