@@ -90,6 +90,17 @@ const getApy = async (market) => {
     })
   ).output.map((o) => o.output);
 
+  const poolsReserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: protocolDataProvider,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupply = (
     await sdk.api.abi.multiCall({
       chain,
@@ -121,21 +132,17 @@ const getApy = async (market) => {
     })
   ).output.map((o) => o.output);
 
-  const priceKeys = reserveTokens
-    .map((t) => `${chain}:${t.tokenAddress}`)
-    .concat(`${chain}:${GHO}`)
-    .join(',');
+  const priceKeys = [
+    ...new Set(
+      reserveTokens
+        .map((t) => `${chain}:${t.tokenAddress}`)
+        .concat(`ethereum:${GHO}`)
+    ),
+  ].join(',');
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
   ).data.coins;
-
-  const ghoSupply =
-    (
-      await sdk.api.abi.call({
-        target: GHO,
-        abi: 'erc20:totalSupply',
-      })
-    ).output / 1e18;
+  const ghoPrice = prices[`ethereum:${GHO}`]?.price;
 
   return reserveTokens
     .map((pool, i) => {
@@ -143,22 +150,29 @@ const getApy = async (market) => {
       if (frozen) return null;
 
       const p = poolsReserveData[i];
-      const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
+      const isGho = pool.symbol === 'GHO';
+      const isEthereumGhoFacilitator = isGho && market === 'ethereum';
+      const price =
+        prices[`${chain}:${pool.tokenAddress}`]?.price ??
+        (isGho ? ghoPrice : undefined);
+      const decimals = Number(underlyingDecimals[i]);
 
-      const supply = totalSupply[i];
-      let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const supply = isGho ? p.totalAToken : totalSupply[i];
+      const totalSupplyUsd = (supply / 10 ** decimals) * price;
 
       const currentSupply = underlyingBalances[i];
-      let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
-      let totalBorrowUsd;
-
-      if (pool.symbol === 'GHO') {
-        tvlUsd = 0;
-        totalSupplyUsd = tvlUsd;
-        totalBorrowUsd = ghoSupply * prices[`${chain}:${GHO}`]?.price;
-      } else {
-        totalBorrowUsd = totalSupplyUsd - tvlUsd;
-      }
+      const reserveLiquidityUsd = (currentSupply / 10 ** decimals) * price;
+      const totalBorrowUsd = isGho
+        ? ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+            10 ** decimals) *
+          price
+        : totalSupplyUsd - reserveLiquidityUsd;
+      const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      // Core Ethereum GHO is minted by the Aave facilitator, so available
+      // liquidity is constrained by remaining borrow cap, not reserve cash.
+      const tvlUsd = isEthereumGhoFacilitator
+        ? Math.max(borrowCapUsd - totalBorrowUsd, 0)
+        : reserveLiquidityUsd;
 
       const marketUrlParam =
         market === 'ethereum'
@@ -189,8 +203,9 @@ const getApy = async (market) => {
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-        ...(pool.symbol === 'GHO' && {
-          debtCeilingUsd: 1e8,
+        // TODO: Remove these core GHO compatibility fields once v2 is live
+        ...(isEthereumGhoFacilitator && {
+          debtCeilingUsd: borrowCapUsd,
           mintedCoin: 'GHO',
           borrowToken: pool.tokenAddress,
         }),
