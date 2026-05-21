@@ -26,6 +26,13 @@
 // This adapter supersedes the earlier draft at
 //   https://github.com/DefiLlama/yield-server/pull/2254
 // which was closed pending a TVL adapter on the DefiLlama-Adapters side.
+//
+// DefiLlama slug note: DefiLlama assigned this protocol the slug "kerne"
+// when the TVL adapter merged (DefiLlama-Adapters#19306, 2026-05-18), so
+// the project field below matches that slug. The TVL adapter directory in
+// DefiLlama-Adapters remains projects/kerne-protocol/ per the module field
+// on /api/protocols, but the yield-server adapter directory and project
+// field both follow the public slug "kerne".
 
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
@@ -98,7 +105,7 @@ const apy = async () => {
     {
       pool: `${VAULT_ADDRESS}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
-      project: 'kerne-protocol',
+      project: 'kerne',
       symbol: 'kLP',
       tvlUsd,
       apyBase,
