@@ -162,11 +162,10 @@ const getApy = async (market) => {
 
       const currentSupply = underlyingBalances[i];
       const reserveLiquidityUsd = (currentSupply / 10 ** decimals) * price;
-      const totalBorrowUsd = isGho
-        ? ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
-            10 ** decimals) *
-          price
-        : totalSupplyUsd - reserveLiquidityUsd;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** decimals) *
+        price;
       const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
       // Core Ethereum GHO is minted by the Aave facilitator, so available
       // liquidity is constrained by remaining borrow cap, not reserve cash.
