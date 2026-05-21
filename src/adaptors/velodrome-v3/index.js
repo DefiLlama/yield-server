@@ -6,7 +6,6 @@ const utils = require('../utils');
 const abiSugar = require('./abiSugar.json');
 const abiSugarHelper = require('./abiSugarHelper.json');
 
-const nullAddress = '0x0000000000000000000000000000000000000000';
 const tickWidthMappings = { 1: 5, 50: 5, 100: 15, 200: 10, 2000: 2 };
 const CHUNK_SIZE = 400;
 
@@ -104,9 +103,7 @@ async function getApyForChain(cfg) {
         chain,
       })
     ).output;
-    const filtered = chunk.filter(
-      (t) => Number(t.type) > 0 && t.gauge !== nullAddress
-    );
+    const filtered = chunk.filter((t) => Number(t.type) > 0);
     allPoolsData.push(...filtered);
     if (chunk.length === 0) break;
     offset += CHUNK_SIZE;
