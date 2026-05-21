@@ -292,8 +292,11 @@ async function fetchPoolsFromChain() {
       }
 
       if (peggedTokenPriceInUnderlying === 0) {
+        const hasAnyFeedMarket = tokenMarkets.some((m) => m.collateralPriceFeed);
         for (const market of tokenMarkets) {
-          if (!market.minterAddress) continue;
+          if (!market.minterAddress || (hasAnyFeedMarket && !market.collateralPriceFeed)) {
+            continue;
+          }
           try {
             const minterPriceResult = await sdk.api.abi.call({
               target: market.minterAddress,
