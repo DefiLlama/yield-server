@@ -269,8 +269,31 @@ async function fetchPoolsFromChain() {
         );
       }
 
-      for (const market of tokenMarkets) {
-        if (market.minterAddress && peggedTokenPriceInUnderlying === 0) {
+      let pricingMarket = tokenMarkets.find(
+        (m) => m.minterAddress && m.collateralPriceFeed
+      );
+
+      if (pricingMarket) {
+        try {
+          const minterPriceResult = await sdk.api.abi.call({
+            target: pricingMarket.minterAddress,
+            abi: MINTER_ABI.find((m) => m.name === 'peggedTokenPrice'),
+            chain,
+          });
+          if (minterPriceResult?.output) {
+            peggedTokenPriceInUnderlying = Number(minterPriceResult.output) / 1e18;
+            console.log(
+              `  [${chain}] peggedTokenPrice from ${pricingMarket.marketLabel || 'market'} minter: ${peggedTokenPriceInUnderlying.toFixed(6)} ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'collateral units'}`
+            );
+          }
+        } catch (error) {
+          pricingMarket = null;
+        }
+      }
+
+      if (peggedTokenPriceInUnderlying === 0) {
+        for (const market of tokenMarkets) {
+          if (!market.minterAddress) continue;
           try {
             const minterPriceResult = await sdk.api.abi.call({
               target: market.minterAddress,
@@ -279,8 +302,9 @@ async function fetchPoolsFromChain() {
             });
             if (minterPriceResult?.output) {
               peggedTokenPriceInUnderlying = Number(minterPriceResult.output) / 1e18;
+              pricingMarket = market;
               console.log(
-                `  [${chain}] peggedTokenPrice from minter: ${peggedTokenPriceInUnderlying.toFixed(6)} ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'collateral units'}`
+                `  [${chain}] peggedTokenPrice from ${market.marketLabel || 'market'} minter: ${peggedTokenPriceInUnderlying.toFixed(6)} ${UNDERLYING_ASSET_DISPLAY[peggedTokenSymbol] || 'collateral units'}`
               );
               break;
             }
@@ -298,7 +322,9 @@ async function fetchPoolsFromChain() {
       }
 
       const priceFeedKey =
-        tokenMarkets.find((m) => m.collateralPriceFeed)?.collateralPriceFeed || defaultFeedKey;
+        pricingMarket?.collateralPriceFeed ||
+        tokenMarkets.find((m) => m.collateralPriceFeed)?.collateralPriceFeed ||
+        defaultFeedKey;
 
       try {
         underlyingAssetPriceUSD = await getCollateralUsdPrice(chain, priceFeedKey);

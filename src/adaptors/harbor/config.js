@@ -219,10 +219,10 @@ const UNDERLYING_ASSETS = {
     haEUR: '0xdb25f211ab05b1c97d595516f45794528a807ad8',
     haGOLD: 'coingecko:pax-gold',
     haSILVER: 'coingecko:silver',
-    haUSD: '0xa569d910839Ae8865Da8F8e70FfFb0cBA869F961',
+    haUSD: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
   },
   megaeth: {
-    haUSD: '0x4F2A91150D5D6B91B5F0b0DF6F109C4BCeCefA61',
+    haUSD: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7', // USDM (MegaETH native USD stable)
   },
 };
 
