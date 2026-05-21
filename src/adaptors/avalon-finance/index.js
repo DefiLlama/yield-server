@@ -50,16 +50,6 @@ const getApy = async (market) => {
     })
   ).output.map((o) => o.output);
 
-  const totalSupply = (
-    await sdk.api.abi.multiCall({
-      chain,
-      abi: 'erc20:totalSupply',
-      calls: aTokens.map((t) => ({
-        target: t.tokenAddress,
-      })),
-    })
-  ).output.map((o) => o.output);
-
   const underlyingBalances = (
     await sdk.api.abi.multiCall({
       chain,
@@ -96,15 +86,17 @@ const getApy = async (market) => {
 
       const p = poolsReserveData[i];
       const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
-
-      const supply = totalSupply[i];
-      let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const decimals = Number(underlyingDecimals[i]);
+      const toTokenAmount = (amount) => Number(amount) / 10 ** decimals;
 
       const currentSupply = underlyingBalances[i];
-      let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
+      const tvlUsd = toTokenAmount(currentSupply) * price;
 
-      const totalBorrowUsd = totalSupplyUsd - tvlUsd;
-      
+      const totalBorrow =
+        BigInt(p.totalStableDebt) + BigInt(p.totalVariableDebt);
+      const totalBorrowUsd = toTokenAmount(totalBorrow) * price;
+      const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+
       const marketUrlParam =
         market === 'ethereum'
           ? 'mainnet'
@@ -116,7 +108,7 @@ const getApy = async (market) => {
           ? 'bnb'
           : market;
 
-      const url = `https:/lend.avalonfinance.xyz/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
+      const url = `https://lend.avalonfinance.xyz/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
 
       return {
         pool: `${aTokens[i].tokenAddress}-${
