@@ -40,17 +40,10 @@ const getPrices = async (addresses) => {
 };
 
 const POOLS = {
-  fantom: {
-    pool: '0x37Cf490255082ee50845EA4Ff783Eb9b6D1622ce',
-    name: 'MIM-fUSDT-USDC',
-  },
-  arbitrum: {
-    pool: '0x839De324a1ab773F76a53900D70Ac1B913d2B387',
-    name: 'MIM-3CRV',
-  },
   ethereum: {
     pool: '0xF43480afE9863da4AcBD4419A47D9Cc7d25A647F',
     name: 'SPELL-ETH',
+    activePoolIds: [0],
   },
 };
 
@@ -284,6 +277,10 @@ const getApy = async () => {
             ? underlyingTokens
             : curveUnderlyingTokens[i][idx],
       };
+    }).filter((_, idx) => {
+      const activePoolIds =
+        POOLS[chain].activePoolIds ?? poolsInfo[i].map((_, idx) => idx);
+      return activePoolIds.includes(idx);
     });
   });
 
