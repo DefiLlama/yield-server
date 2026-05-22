@@ -276,6 +276,9 @@ const main = async () => {
       const totalBorrowUsd = new BigNumber(totalBorrows[index].amount)
         .dividedBy(BIG_10.pow(18))
         .times(prices[FRAX.toLowerCase()]);
+      const isDustBorrowMismatch = tvlUsd.lt(10) && totalBorrowUsd.gt(tvlUsd);
+
+      if (isDustBorrowMismatch) return null;
 
       const debtCeilingUsd = new BigNumber(totalSupplys[index])
         .dividedBy(BIG_10.pow(18))
@@ -314,7 +317,7 @@ const main = async () => {
         underlyingTokens: [collateralContracts[index]],
       };
     })
-    .filter((e) => e.tvlUsd);
+    .filter((e) => e?.tvlUsd);
 
   return addMerklRewardApy(pools, 'fraxlend');
 };
