@@ -1,13 +1,8 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
-const ethers = require('ethers');
-const { getUniqueAddresses } = require('@defillama/sdk/build/generalUtil');
 const utils = require('../utils');
 const lensAbi = require('./lensAbi');
 const lenderAbi = require('./lenderAbi');
-const factoryAbi = require('./factoryAbi');
 const vaultAbi = require('./vaultAbi');
-const path = require('path');
 
 const PROJECT = 'monolith-market';
 
@@ -16,12 +11,12 @@ const FACTORIES = {
 }
 
 const simpleCalls = (arr, params) => {
-  return arr.map(a => ({ target: a, params }))
+  return arr.map(a => ({ target: a, params, permitFailure: true }))
 }
 
 async function getChainPools(chain) {
   const latestBlock = await sdk.api.util.getLatestBlock(chain);
-  sdk.api.util.getLogs
+
   const toBlock = latestBlock.number;
 
   const { factory, chainId, lens, blocksPerYear, fromBlock } = FACTORIES[chain];
@@ -54,6 +49,7 @@ async function getChainPools(chain) {
         return {
           target: lens,
           params: [lender],
+          permitFailure: true,
         }
       })
     }),
@@ -80,6 +76,7 @@ async function getChainPools(chain) {
         return {
           target: col,
           params: [lenders[i]],
+          permitFailure: true,
         }
       })
     }),
@@ -104,8 +101,8 @@ async function getChainPools(chain) {
     const collateralPriceUsd = pricesByAddress[collateral.toLowerCase()] || oraclePriceUsd;
     const totalSupplyUsd = collateralPriceUsd * Number(collateralDeposits[marketIndex]) / (10 ** collateralDecimal)
     const totalBorrowUsd = coinPriceUsd * (Number(totalPaidDebts[marketIndex]) / 1e18 + Number(totalFreeDebts[marketIndex]) / 1e18);
-    const borrowApr = Math.min(Number(rates[marketIndex][0]) / 1e16, 999_999_999_999);
-    const borrowApy = borrowApr < 999_999_999_999 ? utils.aprToApy(borrowApr, blocksPerYear) : 999_999_999_999;
+    const borrowApr = Math.min(Number(rates[marketIndex][0]) / 1e16, 999_999_999);
+    const borrowApy = borrowApr < 999_999_999 ? Math.min(999_999_999, utils.aprToApy(borrowApr, blocksPerYear)) : 999_999_999;
 
     return {
       pool: `monolith-market-lending-${m}`,
@@ -146,7 +143,6 @@ async function getChainPools(chain) {
       underlyingTokens: [underlying],
       url: 'https://app.monolith.market/1/coin/' + marketIndex,
       totalSupplyUsd,
-      tvlUsd: totalSupplyUsd,
       borrowable: false,
     };
   });
