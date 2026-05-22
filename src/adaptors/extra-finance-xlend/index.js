@@ -188,12 +188,14 @@ const getApy = async (market) => {
       const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
 
       const supply = totalSupply[i];
-      let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
 
       const currentSupply = underlyingBalances[i];
-      let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
-
-      totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      const tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** underlyingDecimals[i]) *
+        price;
 
       const url = `https://xlend.extrafi.io/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=${market}`;
 
