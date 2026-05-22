@@ -1,11 +1,21 @@
 const utils = require('../utils');
 
+const isFiniteNumber = (value) => Number.isFinite(value);
+
 const getLendingPoolData = async () => {
   try {
     const response = await utils.getData('https://api.curve.finance/v1/getLendingVaults/all');
     if (response.success) {
       const chains = [...new Set(response.data.lendingVaultData.map(v => v.blockchainId))];
-      const pools = response.data.lendingVaultData.map(vault =>({
+      const pools = response.data.lendingVaultData.filter((vault) => {
+        const tvlUsd = vault.usdTotal;
+        const totalSupplyUsd = vault.totalSupplied?.usdTotal;
+        const totalBorrowUsd = vault.borrowed?.usdTotal;
+
+        if (![tvlUsd, totalSupplyUsd, totalBorrowUsd].every(isFiniteNumber)) return false;
+
+        return !(tvlUsd < 10 && totalBorrowUsd > totalSupplyUsd);
+      }).map(vault =>({
         pool: vault.address + '-' + vault.blockchainId,
         chain: utils.formatChain(vault.blockchainId),
         project: 'curve-llamalend',
