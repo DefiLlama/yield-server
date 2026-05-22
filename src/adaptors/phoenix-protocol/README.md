@@ -2,6 +2,8 @@
 
 Surfaces the Phoenix Protocol phUSD staking pool (Ethereum mainnet) on DefiLlama yields.
 
+Staking contract (PHLIMBO): `0x6084a02c2ac0127ddf1e617de257c61480a2aee0`
+
 Stakers deposit phUSD into the staking contract and earn two emission-based rewards:
 
 - **USDC** — distributed via linear depletion. APY = `rewardBalance / depletionDuration` annualized, divided by USD TVL.
