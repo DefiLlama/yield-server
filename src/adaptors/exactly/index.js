@@ -254,6 +254,7 @@ const apy = async () =>
                     usdUnitPrice) /
                   baseUnit,
                 totalBorrowUsd: (borrowed * usdUnitPrice) / baseUnit,
+                ltv: 0,
                 rewardTokens,
                 apyRewardBorrow: aprRewardBorrow ? aprToApy(aprRewardBorrow, secsToMaturity / 86_400) : undefined,
               };
