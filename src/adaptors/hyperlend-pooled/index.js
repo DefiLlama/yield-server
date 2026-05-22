@@ -94,12 +94,14 @@ const getApy = async (market) => {
       const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
 
       const supply = totalSupply[i];
-      let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
 
       const currentSupply = underlyingBalances[i];
-      let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
-
-      let totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      const tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** underlyingDecimals[i]) *
+        price;
 
       const url = `https://app.hyperlend.finance/markets/${pool.tokenAddress}`;
 
@@ -113,13 +115,10 @@ const getApy = async (market) => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
-        debtCeilingUsd: null,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-        mintedCoin: null,
-        poolMeta: null,
       };
     })
     .filter((i) => Boolean(i));
