@@ -41,9 +41,8 @@ const yuzuConfig = {
     yzPP: { address: '0x8CBafE7847606FF9aC5eb5e8dd54E5459E8dcC51', unit: UNIT },
   },
   sei: {
-    // Sei settles yzPP redemptions into USDC, not USDT — keyed as `usdt` only
-    // to match TOKEN_META.yzPP.getUnderlyingTokens which looks up `usdt`.
-    usdt: '0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392',
+    // Sei settles yzPP redemptions into USDC, not USDT.
+    usdc: '0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392',
     yzUSD: { address: '0x9dcB0D17eDDE04D27F387c89fECb78654C373858', unit: UNIT },
     syzUSD: { address: '0xB98b14d316d13f012d52f30A3d46641092AC6944', unit: UNIT },
     yzPP: { address: '0x5a4958AE05640b6483d44B45d36E5eBF7Cd20fe4', unit: UNIT },
@@ -60,7 +59,10 @@ const TOKEN_META = {
   yzPP: {
     symbol: 'yzPP',
     url: 'https://app.yuzu.money/yzpp',
-    getUnderlyingTokens: (chain) => [yuzuConfig[chain].usdt],
+    // Settlement token: USDT on most chains, USDC on Sei.
+    getUnderlyingTokens: (chain) => [
+      yuzuConfig[chain].usdt ?? yuzuConfig[chain].usdc,
+    ],
   },
   yzPrime: {
     symbol: 'yzPrime',
@@ -202,7 +204,9 @@ const fetchYzPrimePool = async () => {
   const [totalSupply, apyResult, usdcPrice] = await Promise.all([
     getTotalSupply(chain, token),
     calculateApy(chain, token, USDC_UNIT),
-    getUsdPrice(chain, { address: yuzuConfig[chain].usdc }),
+    // USDC is a stablecoin; fall back to $1 if the price lookup fails so a
+    // missing quote doesn't reject apy() and take down every pool.
+    getUsdPrice(chain, { address: yuzuConfig[chain].usdc }).catch(() => 1),
   ]);
 
   const navInUsdc = apyResult.currentPrice ?? 0;
