@@ -46,7 +46,7 @@ const gqlQueries = {
         skip: $skip
         orderBy: SupplyAssetsUsd
         orderDirection: Desc
-        where: { chainId_in: [$chainId], whitelisted: true }
+        where: { chainId_in: [$chainId], listed: true }
       ) {
         items {
           uniqueKey
