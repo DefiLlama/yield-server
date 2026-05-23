@@ -172,6 +172,16 @@ const correctMaker = (entry) => {
   return entry;
 };
 
+const normalizeAddress = (address) => address?.toLowerCase();
+
+const poolAddress = (entry) =>
+  normalizeAddress(entry.address || entry.id?.slice(0, 42));
+
+const isPoolToken = (tokenAddress, entry) => {
+  const address = poolAddress(entry);
+  return address !== undefined && normalizeAddress(tokenAddress) === address;
+};
+
 const tvl = (entry, tokenPriceList, chainString) => {
   entry = { ...entry };
 
@@ -201,10 +211,10 @@ const tvl = (entry, tokenPriceList, chainString) => {
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
     totalShares: entry.totalShares,
-    tokensList: entry.tokensList,
+    tokensList: (entry.tokensList || []).filter(
+      (token) => !isPoolToken(token, entry)
+    ),
   };
-  const symbols = [];
-  const tokensList = [];
   const emptyPrice = [];
   let price;
   for (const el of balanceDetails) {
