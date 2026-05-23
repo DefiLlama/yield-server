@@ -23,6 +23,7 @@ Our goal is to display minimum attainable yield values for all listed projects:
 - If rewards are slashed when exiting a pool early, then set the apy value to that lower bound.
 - Omit any yield which requires an additional token aside from the LP token (eg veCRV to boost reward yields)
 - Omit any locked rewards
+- `apyReward` must not include pre-TGE points, non-transferable tokens, or other non-tradable incentives. Only include reward APY for incentives paid in tokens that are already tradable.
 - Fee based APY values should be calculated over a 24h window
 
 ### Adaptors
