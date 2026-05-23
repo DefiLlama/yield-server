@@ -37,7 +37,6 @@ const protocolDataProviders = {
   scroll: '0xDC3c96ef82F861B4a3f10C81d4340c75460209ca',
   era: '0xf79473ea6ef2C9537027bAe2f6E07d67dD9999E0',
   lido: '0x66FeAe868EBEd74A34A7043e88742AAE00D2bC53', // on ethereum
-  etherfi: '0xECdA3F25B73261d1FdFa1E158967660AA29f00cC', // on ethereum
   linea: '0x9eEBf28397D8bECC999472fC8838CBbeF54aebf6',
   sonic: '0x306c124fFba5f2Bc0BcAf40D249cf19D492440b9',
   celo: '0x33b7d355613110b4E842f5f7057Ccd36fb4cee28',
@@ -48,8 +47,13 @@ const protocolDataProviders = {
   xlayer: '0x6C505C31714f14e8af2A03633EB2Cdfb4959138F',
 };
 
+const ethereumMarkets = {
+  lido: 'Prime Instance',
+  horizon: 'Aave Horizon Market',
+};
+
 const getApy = async (market) => {
-  const chain = ['lido', 'etherfi', 'horizon'].includes(market) ? 'ethereum' : market;
+  const chain = ethereumMarkets[market] ? 'ethereum' : market;
 
   const protocolDataProvider = protocolDataProviders[market];
   const reserveTokens = (
@@ -208,9 +212,7 @@ const getApy = async (market) => {
           mintedCoin: 'GHO',
           borrowToken: pool.tokenAddress,
         }),
-        poolMeta: ['lido', 'etherfi', 'horizon'].includes(market)
-          ? `${market}-market`
-          : null,
+        poolMeta: ethereumMarkets[market] ?? null,
       };
     })
     .filter((i) => Boolean(i));
