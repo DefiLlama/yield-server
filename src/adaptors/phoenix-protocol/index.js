@@ -1,4 +1,5 @@
 const sdk = require('@defillama/sdk');
+const axios = require('axios');
 
 const CHAIN = 'ethereum';
 const PHLIMBO = '0x6084a02c2ac0127ddf1e617de257c61480a2aee0';
@@ -31,54 +32,56 @@ const callView = (target, abi, params) =>
     .call({ target, abi, params, chain: CHAIN })
     .then((r) => r.output);
 
-const getPhUsdPrice = async () => {
-  try {
-    const [tokens, balances, sharesToAssets] = await Promise.all([
-      callView(BALANCER_VAULT, getPoolTokensAbi, [BALANCER_POOL]),
-      callView(BALANCER_VAULT, getCurrentLiveBalancesAbi, [BALANCER_POOL]),
-      callView(SUSDS, 'function convertToAssets(uint256) view returns (uint256)', [
-        '1000000000000000000',
-      ]),
-    ]);
+const getPrices = async (tokens) => {
+  const keys = tokens.map((t) => `${CHAIN}:${t}`);
+  const { data } = await axios.get(
+    `https://coins.llama.fi/prices/current/${keys.join(',')}`
+  );
+  return tokens.reduce((acc, t, i) => {
+    const coin = data.coins[keys[i]];
+    if (!coin) throw new Error(`missing DefiLlama price for ${keys[i]}`);
+    acc[t.toLowerCase()] = coin.price;
+    return acc;
+  }, {});
+};
 
-    const lc = (a) => String(a).toLowerCase();
-    const idxSusds = tokens.findIndex((t) => lc(t) === lc(SUSDS));
-    const idxPhusd = tokens.findIndex((t) => lc(t) === lc(PHUSD));
-    if (idxSusds < 0 || idxPhusd < 0) {
-      throw new Error('phUSD/sUSDS not found in Balancer pool');
-    }
+// phUSD is not listed on the DefiLlama price API, so derive its USD value from
+// the Balancer V3 phUSD/sUSDS spot ratio scaled by the DefiLlama sUSDS price
+// (which already reflects the sUSDS->USDS ERC4626 rate and the USDS market price).
+const getPhUsdPrice = async (sUsdsPrice) => {
+  const [tokens, balances] = await Promise.all([
+    callView(BALANCER_VAULT, getPoolTokensAbi, [BALANCER_POOL]),
+    callView(BALANCER_VAULT, getCurrentLiveBalancesAbi, [BALANCER_POOL]),
+  ]);
 
-    const sUsdsBalance = Number(balances[idxSusds]);
-    const phUsdBalance = Number(balances[idxPhusd]);
-    if (!(sUsdsBalance > 0) || !(phUsdBalance > 0)) {
-      throw new Error('Balancer pool has zero balance');
-    }
-
-    const phUsdPriceInSUsds = sUsdsBalance / phUsdBalance;
-    const usdsPerSUsds = Number(sharesToAssets) / 1e18;
-    return phUsdPriceInSUsds * usdsPerSUsds;
-  } catch (err) {
-    console.warn(
-      `[phoenix-protocol] phUSD pricing failed (${err.message}); falling back to $1`
-    );
-    return 1;
+  const lc = (a) => String(a).toLowerCase();
+  const idxSusds = tokens.findIndex((t) => lc(t) === lc(SUSDS));
+  const idxPhusd = tokens.findIndex((t) => lc(t) === lc(PHUSD));
+  if (idxSusds < 0 || idxPhusd < 0) {
+    throw new Error('phUSD/sUSDS not found in Balancer pool');
   }
+
+  const sUsdsBalance = Number(balances[idxSusds]);
+  const phUsdBalance = Number(balances[idxPhusd]);
+  if (!(sUsdsBalance > 0) || !(phUsdBalance > 0)) {
+    throw new Error('Balancer pool has zero balance');
+  }
+
+  const phUsdPriceInSUsds = sUsdsBalance / phUsdBalance;
+  return phUsdPriceInSUsds * sUsdsPrice;
 };
 
 const apy = async () => {
-  const [
-    totalStaked,
-    desiredAPYBps,
-    rewardBalance,
-    depletionDuration,
-    phUsdPrice,
-  ] = await Promise.all([
-    callView(PHLIMBO, 'uint256:totalStaked'),
-    callView(PHLIMBO, 'uint256:desiredAPYBps'),
-    callView(PHLIMBO, 'uint256:rewardBalance'),
-    callView(PHLIMBO, 'uint256:depletionDuration'),
-    getPhUsdPrice(),
-  ]);
+  const prices = await getPrices([SUSDS, USDC]);
+
+  const [totalStaked, desiredAPYBps, rewardBalance, depletionDuration, phUsdPrice] =
+    await Promise.all([
+      callView(PHLIMBO, 'uint256:totalStaked'),
+      callView(PHLIMBO, 'uint256:desiredAPYBps'),
+      callView(PHLIMBO, 'uint256:rewardBalance'),
+      callView(PHLIMBO, 'uint256:depletionDuration'),
+      getPhUsdPrice(prices[SUSDS.toLowerCase()]),
+    ]);
 
   const stakedAmount = Number(totalStaked) / 1e18;
   const tvlUsd = stakedAmount * phUsdPrice;
@@ -87,7 +90,8 @@ const apy = async () => {
   if (tvlUsd > 0 && Number(depletionDuration) > 0) {
     const usdcPerYearUsd =
       ((Number(rewardBalance) / Number(depletionDuration)) * SECONDS_PER_YEAR) /
-      1e6;
+      1e6 *
+      prices[USDC.toLowerCase()];
     usdcApy = (usdcPerYearUsd / tvlUsd) * 100;
   }
   const phusdApy = Number(desiredAPYBps) / 100;
