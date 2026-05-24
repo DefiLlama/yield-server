@@ -46,5 +46,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://gmtrade.xyz',
+  url: 'https://gmtrade.xyz/pools',
 };
