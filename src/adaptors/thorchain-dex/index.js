@@ -1,5 +1,7 @@
 const utils = require('../utils');
 
+const RUNE = 'coingecko:thorchain';
+
 const chainMapping = {
   ETH: 'ethereum',
   BTC: 'bitcoin',
@@ -59,7 +61,9 @@ const buildPool = (entry, runePrice) => {
     tvlUsd: balanceAsset + balanceRune,
     apy: Number(entry.poolAPY) * 100,
     // Resolve underlying: native assets use coingecko, EVM tokens extract address
-    underlyingTokens: [resolveUnderlying(entry.asset, chain)],
+    underlyingTokens: [
+      ...new Set([resolveUnderlying(entry.asset, chain), RUNE]),
+    ],
   };
 
   return newObj;
