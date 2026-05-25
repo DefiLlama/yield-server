@@ -35,7 +35,8 @@ const callView = (target, abi, params) =>
 const getPrices = async (tokens) => {
   const keys = tokens.map((t) => `${CHAIN}:${t}`);
   const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${keys.join(',')}`
+    `https://coins.llama.fi/prices/current/${keys.join(',')}`,
+    { timeout: 10_000 }
   );
   return tokens.reduce((acc, t, i) => {
     const coin = data.coins[keys[i]];
@@ -74,12 +75,11 @@ const getPhUsdPrice = async (sUsdsPrice) => {
 const apy = async () => {
   const prices = await getPrices([SUSDS, USDC]);
 
-  const [totalStaked, desiredAPYBps, rewardBalance, depletionDuration, phUsdPrice] =
+  const [totalStaked, desiredAPYBps, rewardPerSecond, phUsdPrice] =
     await Promise.all([
       callView(PHLIMBO, 'uint256:totalStaked'),
       callView(PHLIMBO, 'uint256:desiredAPYBps'),
-      callView(PHLIMBO, 'uint256:rewardBalance'),
-      callView(PHLIMBO, 'uint256:depletionDuration'),
+      callView(PHLIMBO, 'uint256:rewardPerSecond'),
       getPhUsdPrice(prices[SUSDS.toLowerCase()]),
     ]);
 
@@ -87,10 +87,12 @@ const apy = async () => {
   const tvlUsd = stakedAmount * phUsdPrice;
 
   let usdcApy = 0;
-  if (tvlUsd > 0 && Number(depletionDuration) > 0) {
+  if (tvlUsd > 0) {
+    // rewardPerSecond is the live USDC emission rate: USDC (6 decimals) per
+    // second, scaled by a further 1e18 of fixed-point precision (=> /1e24).
     const usdcPerYearUsd =
-      ((Number(rewardBalance) / Number(depletionDuration)) * SECONDS_PER_YEAR) /
-      1e6 *
+      (Number(rewardPerSecond) / 1e24) *
+      SECONDS_PER_YEAR *
       prices[USDC.toLowerCase()];
     usdcApy = (usdcPerYearUsd / tvlUsd) * 100;
   }
