@@ -374,6 +374,8 @@ const excludeAdaptors = [
   'rheo',
   'damm-finance',
   'morfi',
+  'goldfinger',
+  'dforce-lending',
 ];
 
 const excludePools = [
