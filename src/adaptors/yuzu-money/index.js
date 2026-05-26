@@ -119,8 +119,13 @@ const calculateTvlByToken = async (tokenKey) => {
     CHAINS.map((chain) => getTotalSupply(chain, yuzuConfig[chain][tokenKey])),
   );
 
-  // Price always fetched from Plasma (home chain).
-  const tokenPrice = await getUsdPrice('plasma', yuzuConfig.plasma[tokenKey]);
+  // Price always fetched from Plasma (home chain). Fall back to 0 if DefiLlama
+  // has no quote so a missing price yields tvlUsd: 0 (filtered downstream)
+  // instead of rejecting and taking down every pool.
+  const tokenPrice = await getUsdPrice(
+    'plasma',
+    yuzuConfig.plasma[tokenKey],
+  ).catch(() => 0);
 
   const tvlByChain = {};
   let bridgedSum = 0;
