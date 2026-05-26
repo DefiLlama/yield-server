@@ -110,7 +110,7 @@ const apy = async () => {
       tvlUsd: sBtcdTvlUsd,
       apyBase: sBtcdApyBase,
       underlyingTokens: [BTCD],
-      poolMeta: 'BTCD staking vault (8h vesting, 7d cooldown)',
+      poolMeta: 'BTCD staking vault (8h vesting)',
       url: 'https://btcd.fi/app/stake/btcd',
       token: SBTCD,
     },
