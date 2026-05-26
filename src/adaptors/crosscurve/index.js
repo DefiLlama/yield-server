@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const curve = require('../curve-dex');
 const { default: BigNumber } = require('bignumber.js');
+const { merklGet } = require('../merkl/merkl-client');
 
 const chainIdMap = {
   146: 'Sonic',
@@ -61,18 +62,10 @@ const getConfig = async () => {
 
 const merkl = async () => {
   try {
-    const response = await fetch(
-      'https://api.merkl.xyz/v4/opportunities?mainProtocolId=crosscurve',
-      {
-        timeout: 10000,
-      }
+    const merklData = await merklGet(
+      '/v4/opportunities?mainProtocolId=crosscurve',
+      { timeout: 10000 }
     );
-
-    if (!response.ok) {
-      throw new Error(response.status);
-    }
-
-    const merklData = await response.json();
 
     return Object.values(merklData);
   } catch (error) {

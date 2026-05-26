@@ -12,6 +12,7 @@
 var sdk = require('@defillama/sdk');
 var utils = require('../utils');
 const fetch = require('node-fetch');
+const { merklGet } = require('../merkl/merkl-client');
 
 // src/yield-server/index.ts
 
@@ -579,8 +580,7 @@ async function getMerklRewards(chain) {
       if (!poolId) return;
 
       try {
-        const response = await fetch(`https://api.merkl.xyz/v4/opportunities/?chainId=${config.chainId}&identifier=${poolId}`);
-        const data = await response.json();
+        const data = await merklGet(`/v4/opportunities/?chainId=${config.chainId}&identifier=${poolId}`);
 
         if (!data || !Array.isArray(data) || data.length === 0) {
           console.log(`⚠️  No Merkl rewards data found for ${chain} pool ${poolId}`);

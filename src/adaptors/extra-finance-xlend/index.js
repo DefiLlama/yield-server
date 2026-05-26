@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const poolAbi = require('./poolAbi');
+const { merklGet } = require('../merkl/merkl-client');
 
 const protocolDataProviders = {
   optimism: '0xCC61E9470B5f0CE21a3F6255c73032B47AaeA9C0',
@@ -171,10 +172,8 @@ const getApy = async (market) => {
   let merklRewards = [];
   try {
     merklRewards = (
-      await axios.get(
-        `https://api.merkl.xyz/v4/opportunities?mainProtocolId=xlend`
-      )
-    ).data.filter((i) => (i.status || '').toLowerCase() === 'live');
+      await merklGet('/v4/opportunities?mainProtocolId=xlend')
+    ).filter((i) => (i.status || '').toLowerCase() === 'live');
   } catch (err) {
     console.warn('get merkl rewards error');
   }

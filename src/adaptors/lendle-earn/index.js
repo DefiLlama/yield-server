@@ -1,6 +1,7 @@
 const axios = require('axios');
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
+const { merklGet } = require('../merkl/merkl-client');
 
 const vaultsApi = 'https://lendle-vaults-api-184110952121.europe-west4.run.app';
 const vaultsApy = `${vaultsApi}/apy/breakdown`;
@@ -50,7 +51,7 @@ const getApy = async () => {
 
       const _vaultsApy = (await axios.get(vaultsApy)).data;
 
-      const _vaultsCampaignApi = (await axios.get(vaultsCampaignApi)).data;
+      const _vaultsCampaignApi = await merklGet(vaultsCampaignApi);
 
       return vaultList.map((t, i) => {
         const config = _vaultsData.find(

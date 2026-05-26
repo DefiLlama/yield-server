@@ -1,5 +1,5 @@
 const { networks, chainAliases } = require('./config');
-const { getData } = require('../utils');
+const { merklGet } = require('./merkl-client');
 
 const getChainAliases = (canonical) =>
   chainAliases[canonical] || [canonical];
@@ -40,8 +40,8 @@ exports.addMerklRewardApy = async (
     while (true) {
       let data;
       try {
-        data = await getData(
-          `https://api.merkl.xyz/v4/opportunities?mainProtocolId=${protocolId}&status=LIVE&items=100&page=${pageI}`
+        data = await merklGet(
+          `/v4/opportunities?mainProtocolId=${protocolId}&status=LIVE&items=100&page=${pageI}`
         );
       } catch (err) {
         console.log(`failed to fetch Merkl data for ${protocolId}: ${err}`);

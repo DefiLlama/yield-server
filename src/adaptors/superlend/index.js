@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+const { merklGet } = require('../merkl/merkl-client');
 
 const {
   poolAbi,
@@ -120,7 +121,7 @@ const getApy = async () => {
       'CAMPAIGN_ID',
       campaignId
     );
-    const campaign = await utils.getData(url);
+    const campaign = await merklGet(url);
     rewardData[pool.symbol.toUpperCase()] = campaign[0]?.Opportunity?.apr ?? 0;
   }
 
