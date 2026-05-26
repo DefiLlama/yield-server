@@ -14,7 +14,6 @@ const poolsQuery = gql`
       skip: $skip
       orderBy: totalValueLockedUSD
       orderDirection: desc
-      where: { gauge_not: null }
     ) {
       id
       token0 {
