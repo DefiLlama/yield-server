@@ -53,12 +53,12 @@ const yuzuConfig = {
 const TOKEN_META = {
   syzUSD: {
     symbol: 'syzUSD',
-    url: 'https://app.yuzu.money/yzusd-syzusd',
+    url: 'https://app.yuzu.money/alpha/yzusd-syzusd',
     getUnderlyingTokens: (chain) => [yuzuConfig[chain].yzUSD.address],
   },
   yzPP: {
     symbol: 'yzPP',
-    url: 'https://app.yuzu.money/yzpp',
+    url: 'https://app.yuzu.money/alpha/yzpp',
     // Settlement token: USDT on most chains, USDC on Sei.
     getUnderlyingTokens: (chain) => [
       yuzuConfig[chain].usdt ?? yuzuConfig[chain].usdc,
