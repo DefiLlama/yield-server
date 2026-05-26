@@ -88,7 +88,7 @@ const getApy = async () => {
     return {
       pool: `${p.lpToken}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
-      project: 'bitway',
+      project: 'bitway-earn',
       symbol: p.symbol,
       tvlUsd,
       apyBase,
