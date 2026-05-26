@@ -8,7 +8,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const CHAIN = 'ethereum';
-const BTCD  = '0xC6694e05B750015f54Ac646544a4a9D33cbe4086';
+const BTCD = '0xC6694e05B750015f54Ac646544a4a9D33cbe4086';
 const SBTCD = '0x3BC801419479865B24b4d32faB0Bf64638Abbd5f';
 
 // Chainlink BTC/USD aggregator (public infra; not the BTCD-specific oracle).
@@ -17,7 +17,6 @@ const BTC_USD_FEED = '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c';
 // Must match SBTCDOracle.P0_WAD at deploy. Re-verify if the oracle is redeployed.
 const P0_USD = 94000;
 
-const WAD = '1000000000000000000';
 const SCALE = 10n ** 18n;
 const SECONDS_PER_DAY = 86400;
 const LOOKBACK_DAYS = 30;
@@ -26,13 +25,15 @@ const SECONDS_PER_YEAR = 365.25 * SECONDS_PER_DAY;
 // prices before this would corrupt the APR ratio.
 const SBTCD_YIELD_TURNED_ON_BLOCK = 24450207;
 
-const previewRedeemAbi = 'function previewRedeem(uint256 shares) view returns (uint256)';
+const previewRedeemAbi =
+  'function previewRedeem(uint256 shares) view returns (uint256)';
 const totalAssetsAbi = 'function totalAssets() view returns (uint256)';
 const latestRoundDataAbi =
   'function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)';
 
 const getBlockAtTimestamp = async (chain, timestamp) =>
-  (await axios.get(`https://coins.llama.fi/block/${chain}/${timestamp}`)).data.height;
+  (await axios.get(`https://coins.llama.fi/block/${chain}/${timestamp}`)).data
+    .height;
 
 async function computeApyBase() {
   const nowTs = Math.floor(Date.now() / 1000);
@@ -47,8 +48,19 @@ async function computeApyBase() {
   let nowVal, oldVal;
   try {
     const [nowRes, oldRes] = await Promise.all([
-      sdk.api.abi.call({ chain: CHAIN, target: SBTCD, abi: previewRedeemAbi, params: [WAD] }),
-      sdk.api.abi.call({ chain: CHAIN, target: SBTCD, abi: previewRedeemAbi, params: [WAD], block: oldBlock }),
+      sdk.api.abi.call({
+        chain: CHAIN,
+        target: SBTCD,
+        abi: previewRedeemAbi,
+        params: [SCALE.toString()],
+      }),
+      sdk.api.abi.call({
+        chain: CHAIN,
+        target: SBTCD,
+        abi: previewRedeemAbi,
+        params: [SCALE.toString()],
+        block: oldBlock,
+      }),
     ]);
     nowVal = BigInt(nowRes.output);
     oldVal = BigInt(oldRes.output);
@@ -82,12 +94,12 @@ async function btcdPriceUsd() {
 }
 
 const apy = async () => {
-  const [totalAssetsRes, price, apyBase] = await Promise.all([
+  const [sBtcdAssetsRes, price, sBtcdApyBase] = await Promise.all([
     sdk.api.abi.call({ chain: CHAIN, target: SBTCD, abi: totalAssetsAbi }),
     btcdPriceUsd(),
     computeApyBase(),
   ]);
-  const tvlUsd = (Number(BigInt(totalAssetsRes.output)) / 1e18) * price;
+  const sBtcdTvlUsd = (Number(BigInt(sBtcdAssetsRes.output)) / 1e18) * price;
 
   return [
     {
@@ -95,11 +107,11 @@ const apy = async () => {
       chain: 'Ethereum',
       project: 'btcd',
       symbol: 'sBTCD',
-      tvlUsd,
-      apyBase,
+      tvlUsd: sBtcdTvlUsd,
+      apyBase: sBtcdApyBase,
       underlyingTokens: [BTCD],
       poolMeta: 'BTCD staking vault (8h vesting, 7d cooldown)',
-      url: 'https://btcd.fi',
+      url: 'https://btcd.fi/app/stake/btcd',
       token: SBTCD,
     },
   ];
