@@ -28,6 +28,13 @@ const cooldownDurationAbi =
 const latestRoundDataAbi =
   'function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)';
 
+/**
+ * Format a positive seconds count as a short label using the largest exact
+ * unit (`d`/`h`/`m`/`s`). Returns null for 0, negative, or non-finite inputs
+ * so the caller can drop the label.
+ * @param {number} seconds
+ * @returns {string | null}
+ */
 function formatDuration(seconds) {
   if (!Number.isFinite(seconds) || seconds <= 0) return null;
   if (seconds % 86400 === 0) return `${seconds / 86400}d`;
@@ -36,8 +43,15 @@ function formatDuration(seconds) {
   return `${seconds}s`;
 }
 
-// Mirrors services/vault/sbtcdror/sbtcdrorcalculator.go: pins both share-price
-// reads to real blocks and uses actual block timestamps as the divisor.
+/**
+ * 30-day simple APR from sBTCD share-price growth. Pins both `previewRedeem`
+ * reads to real blocks and uses actual block timestamps as the divisor, the
+ * same shape as services/vault/sbtcdror/sbtcdrorcalculator.go.
+ *
+ * Returns 0 on any RPC failure, a pre-yield lookback, or non-positive growth
+ * so the pool publishes without an APY rather than poisoning the cycle.
+ * @returns {Promise<number>} APR as a percentage (e.g. 11.88 for 11.88%).
+ */
 async function computeApyBase() {
   let latest, old;
   try {
@@ -80,9 +94,18 @@ async function computeApyBase() {
   return ((rate * SECONDS_PER_YEAR) / secondsElapsed) * 100;
 }
 
-// peg = sqrt(BTC_USD / P0) — mirrors SBTCDOracle (services/contracts/
-// price-oracle/src/PriceOracle.sol) but reads Chainlink directly. Returns
-// null on failure so apy() skips the pool instead of publishing a stale peg.
+/**
+ * BTCD/USD spot price using the algorithmic peg
+ *   `peg = sqrt(BTC_USD / P0_USD)`
+ * Mirrors SBTCDOracle (services/contracts/price-oracle/src/PriceOracle.sol)
+ * but reads Chainlink BTC/USD directly so the adapter has no dependency on
+ * the BTCD protocol's own oracle.
+ *
+ * Returns null when the feed read fails or the answer is non-finite/<=0,
+ * which signals `apy()` to skip publishing the pool instead of emitting a
+ * TVL anchored to a hardcoded peg.
+ * @returns {Promise<number | null>} USD price per 1 BTCD, or null on failure.
+ */
 async function btcdPriceUsd() {
   try {
     const r = await sdk.api.abi.call({
@@ -98,6 +121,25 @@ async function btcdPriceUsd() {
   }
 }
 
+/**
+ * Defillama yield-server entrypoint. Reads sBTCD's totalAssets, BTCD/USD peg,
+ * 30-day APR, and live vesting/cooldown parameters in one fan-out, then emits
+ * a single pool entry. Returns an empty array (defillama keeps the prior
+ * snapshot) when TVL or price reads fail so we never publish bogus values.
+ *
+ * @returns {Promise<Array<{
+ *   pool: string,
+ *   chain: string,
+ *   project: string,
+ *   symbol: string,
+ *   tvlUsd: number,
+ *   apyBase: number,
+ *   underlyingTokens: string[],
+ *   poolMeta: string,
+ *   url: string,
+ *   token: string,
+ * }>>}
+ */
 const apy = async () => {
   const [sBtcdAssetsRes, price, sBtcdApyBase, vestingRes, cooldownRes] =
     await Promise.all([
@@ -156,5 +198,7 @@ const apy = async () => {
 
 module.exports = {
   apy,
+  // Protocol-root URL surfaced on defillama's project page. The per-pool
+  // deep link to the staking page lives on the pool entry's own `url` field.
   url: 'https://btcd.fi',
 };
