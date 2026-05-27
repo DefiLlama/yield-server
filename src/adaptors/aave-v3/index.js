@@ -156,6 +156,7 @@ const getApy = async (market) => {
       const p = poolsReserveData[i];
       const isGho = pool.symbol === 'GHO';
       const isEthereumGhoFacilitator = isGho && market === 'ethereum';
+      const borrowable = poolsReservesConfigurationData[i].borrowingEnabled;
       const price =
         prices[`${chain}:${pool.tokenAddress}`]?.price ??
         (isGho ? ghoPrice : undefined);
@@ -171,11 +172,21 @@ const getApy = async (market) => {
           10 ** decimals) *
         price;
       const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const hasBorrowCap = Number(poolsReserveCaps[i].borrowCap) > 0;
       // Core Ethereum GHO is minted by the Aave facilitator, so available
       // liquidity is constrained by remaining borrow cap, not reserve cash.
-      const tvlUsd = isEthereumGhoFacilitator
-        ? Math.max(borrowCapUsd - totalBorrowUsd, 0)
-        : reserveLiquidityUsd;
+      let availableBorrowUsd = null;
+      if (isEthereumGhoFacilitator) {
+        availableBorrowUsd = Math.max(borrowCapUsd - totalBorrowUsd, 0);
+      } else if (borrowable) {
+        availableBorrowUsd = hasBorrowCap
+          ? Math.max(
+              Math.min(reserveLiquidityUsd, borrowCapUsd - totalBorrowUsd),
+              0
+            )
+          : reserveLiquidityUsd;
+      }
+      const tvlUsd = availableBorrowUsd ?? reserveLiquidityUsd;
 
       const marketUrlParam =
         market === 'ethereum'
@@ -202,11 +213,15 @@ const getApy = async (market) => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
+        ...(availableBorrowUsd !== null && {
+          borrowCapUsd,
+          availableBorrowUsd,
+        }),
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
-        borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-        // TODO: Remove these core GHO compatibility fields once v2 is live
+        borrowable,
+        // TODO: Remove mintedCoin & rename debtCeilingUsd to borrowCapUsd once v2 is live
         ...(isEthereumGhoFacilitator && {
           debtCeilingUsd: borrowCapUsd,
           mintedCoin: 'GHO',
