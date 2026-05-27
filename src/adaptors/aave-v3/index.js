@@ -186,7 +186,9 @@ const getApy = async (market) => {
             )
           : reserveLiquidityUsd;
       }
-      const tvlUsd = availableBorrowUsd ?? reserveLiquidityUsd;
+      const tvlUsd = isEthereumGhoFacilitator
+        ? availableBorrowUsd
+        : reserveLiquidityUsd;
 
       const marketUrlParam =
         market === 'ethereum'
@@ -262,6 +264,13 @@ const getApyAptos = async () => {
       const totalSupplyUsd = (availableLiquidity + totalVariableDebt) * priceUsd;
       const totalBorrowUsd = totalVariableDebt * priceUsd;
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+      const borrowCapUsd = Number(r.borrowCap) * priceUsd;
+      const hasBorrowCap = Number(r.borrowCap) > 0;
+      const availableBorrowUsd = r.borrowingEnabled
+        ? hasBorrowCap
+          ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+          : tvlUsd
+        : null;
 
       return {
         pool: `${r.aTokenAddress}-aptos`.toLowerCase(),
@@ -273,6 +282,10 @@ const getApyAptos = async () => {
         underlyingTokens: [r.underlyingAsset],
         totalSupplyUsd,
         totalBorrowUsd,
+        ...(availableBorrowUsd !== null && {
+          borrowCapUsd,
+          availableBorrowUsd,
+        }),
         apyBaseBorrow: Number(r.variableBorrowRate) / 1e25,
         ltv: Number(r.baseLTVasCollateral) / 10000,
         url: `https://aptos.aave.com/reserve-overview/?underlyingAsset=${r.underlyingAsset}&marketName=aptos`,
