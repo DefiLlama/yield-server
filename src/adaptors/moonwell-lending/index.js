@@ -179,10 +179,13 @@ const getApy = async () => {
       .map((pool) => {
         const {
           market,
+          borrowCap,
+          borrowPaused,
           collateralFactor,
           underlyingPrice,
           totalSupply,
           totalBorrows,
+          cash,
           exchangeRate,
           borrowRate,
           supplyRate,
@@ -225,6 +228,15 @@ const getApy = async () => {
           underlyingPriceScaled;
         const totalBorrowUsd =
           Number(totalBorrowsScaled) * underlyingPriceScaled;
+        const availableBorrowUsd =
+          (Math.min(
+            Number(cash),
+            Number(borrowCap) > 0
+              ? Math.max(Number(borrowCap) - Number(totalBorrows), 0)
+              : Number(cash)
+          ) /
+            Math.pow(10, token_info.decimals)) *
+          underlyingPriceScaled;
 
         const supplyRateScaled = Number(supplyRate) / Math.pow(10, 18);
         const borrowRateScaled = Number(borrowRate) / Math.pow(10, 18);
@@ -257,9 +269,11 @@ const getApy = async () => {
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
+          availableBorrowUsd,
           apyBaseBorrow: borrowApy,
           apyRewardBorrow: 0,
           ltv: collateralFactorScaled,
+          borrowable: !borrowPaused,
           incentives: [], //helper
         };
       })
@@ -382,10 +396,13 @@ const getApy = async () => {
       .map((pool) => {
         const {
           market,
+          borrowCap,
+          borrowPaused,
           collateralFactor,
           underlyingPrice,
           totalSupply,
           totalBorrows,
+          cash,
           exchangeRate,
           borrowRate,
           supplyRate,
@@ -428,6 +445,15 @@ const getApy = async () => {
           underlyingPriceScaled;
         const totalBorrowUsd =
           Number(totalBorrowsScaled) * underlyingPriceScaled;
+        const availableBorrowUsd =
+          (Math.min(
+            Number(cash),
+            Number(borrowCap) > 0
+              ? Math.max(Number(borrowCap) - Number(totalBorrows), 0)
+              : Number(cash)
+          ) /
+            Math.pow(10, token_info.decimals)) *
+          underlyingPriceScaled;
 
         const supplyRateScaled = Number(supplyRate) / Math.pow(10, 18);
         const borrowRateScaled = Number(borrowRate) / Math.pow(10, 18);
@@ -452,9 +478,11 @@ const getApy = async () => {
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
+          availableBorrowUsd,
           apyBaseBorrow: borrowApy,
           apyRewardBorrow: 0,
           ltv: Number(collateralFactorScaled),
+          borrowable: !borrowPaused,
           incentives: [], //helper
         };
       })
@@ -597,10 +625,13 @@ const getApy = async () => {
       .map((pool) => {
         const {
           market,
+          borrowCap,
+          borrowPaused,
           collateralFactor,
           underlyingPrice,
           totalSupply,
           totalBorrows,
+          cash,
           exchangeRate,
           borrowRate,
           supplyRate,
@@ -643,6 +674,15 @@ const getApy = async () => {
           underlyingPriceScaled;
         const totalBorrowUsd =
           Number(totalBorrowsScaled) * underlyingPriceScaled;
+        const availableBorrowUsd =
+          (Math.min(
+            Number(cash),
+            Number(borrowCap) > 0
+              ? Math.max(Number(borrowCap) - Number(totalBorrows), 0)
+              : Number(cash)
+          ) /
+            Math.pow(10, token_info.decimals)) *
+          underlyingPriceScaled;
 
         const supplyRateScaled = Number(supplyRate) / Math.pow(10, 18);
         const borrowRateScaled = Number(borrowRate) / Math.pow(10, 18);
@@ -667,6 +707,8 @@ const getApy = async () => {
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
+          availableBorrowUsd,
+          borrowable: !borrowPaused,
           apyBaseBorrow: borrowApy,
           apyRewardBorrow: 0,
           ltv: Number(collateralFactorScaled),

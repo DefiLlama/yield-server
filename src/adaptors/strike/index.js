@@ -107,6 +107,7 @@ const main = async () => {
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
   const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
+  const isBorrowPaused = await getRewards(allMarkets, 'borrowGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -183,6 +184,8 @@ const main = async () => {
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Number(marketsCash[i]) / 10 ** decimals) * price;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
@@ -217,6 +220,8 @@ const main = async () => {
         // borrow fields
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
+        borrowable: isBorrowPaused[i] === false,
         apyBaseBorrow,
         apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
