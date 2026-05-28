@@ -376,6 +376,17 @@ const excludeAdaptors = [
   'morfi',
   'goldfinger',
   'dforce-lending',
+  'apeswap-lending',
+  'moonwell-apollo',
+  'aurigami',
+  'blume',
+  'lodestar-v0',
+  'lodestar-v1',
+  'minterest',
+  'orbit-protocol',
+  'sonne-finance',
+  'strike',
+  'wefi',
 ];
 
 const excludePools = [
