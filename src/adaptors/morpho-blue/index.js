@@ -51,7 +51,7 @@ const gqlQueries = {
         where: { chainId_in: [$chainId], listed: true }
       ) {
         items {
-          uniqueKey
+          uniqueKey: marketId
           lltv
           loanAsset {
             address
@@ -116,7 +116,7 @@ const gqlQueries = {
             allocation {
               supplyAssetsUsd
               market {
-                uniqueKey
+                uniqueKey: marketId
                 state {
                   rewards {
                     asset {
