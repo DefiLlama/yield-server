@@ -349,7 +349,6 @@ const buildInsertYieldQuery = (payload) => {
     { name: 'totalSupplyUsd', def: null },
     { name: 'totalBorrowUsd', def: null },
     { name: 'debtCeilingUsd', def: null },
-    { name: 'borrowCapUsd', def: null },
     { name: 'availableBorrowUsd', def: null },
     { name: 'pricePerShare', def: null },
   ];

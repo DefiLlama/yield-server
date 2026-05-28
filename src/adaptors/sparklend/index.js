@@ -136,7 +136,14 @@ async function fetchV3Pools(chain) {
       const tvlUsd =
         (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
 
-      const totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** underlyingDecimalsEthereum[i]) *
+        price;
+      const borrowCapUsd = Number(reserveCaps[i].borrowCap) * price;
+      const availableBorrowUsd = borrowCap > 0n
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
       // Omit borrow fields when Spark disables borrowing; cap-reached markets
       // still expose borrow data but are marked as not borrowable.
       const hasBorrowSide = config.borrowingEnabled && config.isActive;
@@ -155,6 +162,7 @@ async function fetchV3Pools(chain) {
         totalSupplyUsd,
         ...(hasBorrowSide && {
           totalBorrowUsd,
+          availableBorrowUsd,
           apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
         }),
         ltv: config.ltv / 10000,

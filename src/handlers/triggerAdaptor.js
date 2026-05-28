@@ -115,7 +115,6 @@ const main = async (body) => {
     apyRewardBorrowFake: strToNum(p.apyRewardBorrowFake),
     apyBaseInception: strToNum(p.apyBaseInception),
     pricePerShare: strToNum(p.pricePerShare),
-    borrowCapUsd: strToNum(p.borrowCapUsd),
     availableBorrowUsd: strToNum(p.availableBorrowUsd),
   }));
 
@@ -392,10 +391,6 @@ const main = async (body) => {
         p.debtCeilingUsd === undefined || p.debtCeilingUsd === null
           ? null
           : Math.round(p.debtCeilingUsd),
-      borrowCapUsd:
-        p.borrowCapUsd === undefined || p.borrowCapUsd === null
-          ? null
-          : Math.round(p.borrowCapUsd),
       availableBorrowUsd:
         p.availableBorrowUsd === undefined || p.availableBorrowUsd === null
           ? null
