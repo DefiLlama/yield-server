@@ -40,7 +40,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'borrowable',
       'borrowFactor',
       'debtCeilingUsd',
-      'borrowCapUsd',
       'availableBorrowUsd',
       'mintedCoin',
       'borrowToken',
@@ -195,10 +194,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       },
       totalBorrowUsd: {
         type: 'number',
-      },
-      borrowCapUsd: {
-        type: 'number',
-        min: 0,
       },
       availableBorrowUsd: {
         type: 'number',

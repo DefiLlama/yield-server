@@ -101,7 +101,7 @@ const fetchMarketData = async (target) => {
     return { apyReward: totalRewardAPY, rewardTokens };
   };
 
-  const [poolsReserveData, poolsReservesConfigurationData, balanceData, decimalsData] = await Promise.all([
+  const [poolsReserveData, poolsReservesConfigurationData, poolsReserveCaps, balanceData, decimalsData] = await Promise.all([
     sdk.api.abi.multiCall({
       calls: reserveTokens.map((p) => ({ target, params: p.tokenAddress })),
       abi: poolAbi.find((m) => m.name === 'getReserveData'),
@@ -110,6 +110,11 @@ const fetchMarketData = async (target) => {
     sdk.api.abi.multiCall({
       calls: reserveTokens.map((p) => ({ target, params: p.tokenAddress })),
       abi: poolAbi.find((m) => m.name === 'getReserveConfigurationData'),
+      chain,
+    }),
+    sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({ target, params: p.tokenAddress })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
       chain,
     }),
     sdk.api.abi.multiCall({
@@ -156,6 +161,10 @@ const fetchMarketData = async (target) => {
       BigInt(p.totalStableDebt) + BigInt(p.totalVariableDebt);
     const totalBorrowUsd = toTokenAmount(totalBorrow) * price;
     const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+    const borrowCapUsd = Number(poolsReserveCaps.output[i].output.borrowCap) * price;
+    const availableBorrowUsd = Number(poolsReserveCaps.output[i].output.borrowCap)
+      ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+      : tvlUsd;
     const marketName = marketNameByDataProvider[target.toLowerCase()];
     const url = `https://app.colend.xyz/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=${marketName}`;
 
@@ -186,6 +195,7 @@ const fetchMarketData = async (target) => {
       underlyingTokens: [pool.tokenAddress],
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
       ltv: poolsReservesConfigurationData.output[i].output.ltv / 10000,
       url,
