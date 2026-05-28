@@ -1,5 +1,9 @@
-// sBTCD ERC-4626 staking vault: TVL + 30-day simple APR from previewRedeem
-// growth, annualised on 365 days to match btcd.fi's public APY.
+/**
+ * @file Defillama yield-server adapter for the BTCD protocol's sBTCD ERC-4626
+ * staking vault. Publishes a single Ethereum pool entry with TVL in USD and
+ * a 30-day simple APR derived from `previewRedeem(1e18)` growth, annualised
+ * on a 365-day year to match btcd.fi's public APY.
+ */
 
 const sdk = require('@defillama/sdk');
 
@@ -196,9 +200,14 @@ const apy = async () => {
   ];
 };
 
+/**
+ * Defillama yield-server adapter module export.
+ * @property {() => Promise<Array<object>>} apy  Per-cycle pool builder.
+ * @property {string} url  Protocol-root URL surfaced on defillama's project
+ *   page. The per-pool deep link to the staking page lives on the pool
+ *   entry's own `url` field, set inside `apy()`.
+ */
 module.exports = {
   apy,
-  // Protocol-root URL surfaced on defillama's project page. The per-pool
-  // deep link to the staking page lives on the pool entry's own `url` field.
   url: 'https://btcd.fi',
 };
