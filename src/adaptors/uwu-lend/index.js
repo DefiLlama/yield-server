@@ -186,6 +186,7 @@ const apy = async () => {
         // borrow fields
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd: tvlUsd,
         apyBaseBorrow,
         apyRewardBorrow,
         ltv,
