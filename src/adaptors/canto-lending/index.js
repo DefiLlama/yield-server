@@ -107,6 +107,7 @@ const poolInfo = async (chain) => {
   };
 
   yieldMarkets.map((data, i) => {
+    data.isListed = markets[i].isListed;
     data.collateralFactor = collateralFactor[i];
     data.borrowRate = borrowRatePerBlock[i];
     data.supplyRate = supplyRatePerBlock[i];
@@ -255,6 +256,8 @@ const getApy = async () => {
       pool.underlyingTokenDecimals
     );
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (parseFloat(pool.getCash) / pool.underlyingTokenDecimals) * pool.price;
     const apyBase = calculateApy(pool.supplyRate);
     const apyReward = Number.isFinite(wCantoUsd)
       ? calculateApy(pool.compSupplySpeeds, wCantoUsd, totalSupplyUsd)
@@ -278,7 +281,9 @@ const getApy = async () => {
       apyRewardBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
-      ltv
+      availableBorrowUsd,
+      ltv,
+      pool.isListed
     );
 
     return readyToExport;
@@ -304,7 +309,9 @@ function exportFormatter(
   apyRewardBorrow,
   totalSupplyUsd,
   totalBorrowUsd,
-  ltv
+  availableBorrowUsd,
+  ltv,
+  borrowable
 ) {
   return {
     pool: `${pool}-${chain}`.toLowerCase(),
@@ -320,7 +327,9 @@ function exportFormatter(
     apyRewardBorrow,
     totalSupplyUsd,
     totalBorrowUsd,
+    availableBorrowUsd,
     ltv,
+    borrowable,
   };
 }
 

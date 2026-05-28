@@ -103,6 +103,7 @@ const getApy = async () => {
         underlyingTokens: [t],
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd: tvlUsd,
         apyBaseBorrow,
         ltv,
         borrowable,

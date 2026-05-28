@@ -160,6 +160,7 @@ const apy = async (chain) => {
         tvlUsd: liquidityUsd,
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd: liquidityUsd,
         apyBase: r.liquidity_rate / (10 ** 27) * 100,
         apyBaseBorrow: r.variable_borrow_rate / (10 ** 27) * 100,
         apyReward,
@@ -167,6 +168,7 @@ const apy = async (chain) => {
         underlyingTokens: [r.underlying_asset],
         rewardTokens,
         ltv: r.base_lt_vas_collateral / (10 ** 5),
+        borrowable: r.borrowing_enabled !== false,
       };
     });
   } else {
@@ -357,6 +359,15 @@ const apy = async (chain) => {
         price;
       const totalBorrowUsd = (totalBorrow[i] / 10 ** decimal) * price;
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+      const availableBorrowUsd =
+        (Math.min(
+          Number(cash[i]),
+          Number(marketInfoOf[i].borrowCap) > 0
+            ? Math.max(Number(marketInfoOf[i].borrowCap) - Number(totalBorrow[i]), 0)
+            : Number(cash[i])
+        ) /
+          10 ** decimal) *
+        price;
 
       // LayerBank has V1 and V2 rate models coexisting across markets:
       // - V1: baseRatePerYear < 1e18 (1e18 = 100%), per-second rates need * 100
@@ -414,6 +425,8 @@ const apy = async (chain) => {
         tvlUsd,
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
+        borrowable: marketInfoOf[i].isListed,
         apyBase,
         apyBaseBorrow,
         apyReward,
