@@ -44,10 +44,10 @@ const CHAIN_LABEL = {
 };
 
 const apy = async () => {
-  // FT price is fetched best effort. If coins.llama.fi misses or returns 0
-  // the adapter still reports TVL with apyReward = 0 instead of dropping
-  // both pools entirely.
-  let ftPrice = 0;
+  // FT price is fetched best effort. If coins.llama.fi misses or returns 0 the
+  // price is unknown, so apyReward is reported as null (rewards can't be
+  // valued) rather than 0 (which would assert there were no rewards).
+  let ftPrice = null;
   try {
     const ftPriceKey = `ethereum:${FT}`;
     const resp = await axios.get(
@@ -56,7 +56,7 @@ const apy = async () => {
     const candidate = resp.data?.coins?.[ftPriceKey]?.price;
     if (typeof candidate === 'number' && candidate > 0) ftPrice = candidate;
   } catch (_) {
-    ftPrice = 0;
+    ftPrice = null;
   }
 
   const pools = [];
@@ -101,11 +101,15 @@ const apy = async () => {
     const PRECISION = 6n; // 1e6 FT-units of precision in the final number
     const scaled = totalRewardWei / 10n ** (FT_DECIMALS - PRECISION);
     const rewardFt = Number(scaled) / Number(10n ** PRECISION);
-    const rewardUsd = rewardFt * ftPrice;
 
-    let apyReward = 0;
-    if (tvlUsd > 0 && rewardUsd > 0) {
-      apyReward = (rewardUsd / tvlUsd) * (365 / WINDOW_DAYS) * 100;
+    // Missing price => apyReward null (rewards can't be valued). Price known
+    // but no/zero rewards => apyReward 0 (genuinely no yield this window).
+    let apyReward = null;
+    if (ftPrice !== null) {
+      const rewardUsd = rewardFt * ftPrice;
+      apyReward = tvlUsd > 0 && rewardUsd > 0
+        ? (rewardUsd / tvlUsd) * (365 / WINDOW_DAYS) * 100
+        : 0;
     }
 
     pools.push({
