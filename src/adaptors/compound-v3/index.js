@@ -274,6 +274,15 @@ const main = async (pool) => {
 
   // supply side
   const totalSupplyUsd = (totalSupply / 10 ** decimals) * usdcPrice;
+  const availableBorrow = (
+    await sdk.api.abi.call({
+      abi: 'erc20:balanceOf',
+      target: pool.underlying,
+      params: [pool.address],
+      chain: pool.chain,
+    })
+  ).output;
+  const availableBorrowUsd = (availableBorrow / 10 ** decimals) * usdcPrice;
   const apyBase = (supplyRate / 1e18) * secondsPerYear * 100;
   const apyReward =
     (((baseTrackingSupplySpeed / trackingIndexScale) *
@@ -309,6 +318,7 @@ const main = async (pool) => {
       apyRewardBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       borrowable: true,
       ltv: 0,
     },
