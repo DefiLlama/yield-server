@@ -53,6 +53,7 @@ const gqlQueries = {
         items {
           uniqueKey: marketId
           lltv
+          reallocatableLiquidityAssets
           loanAsset {
             address
             symbol
@@ -76,6 +77,7 @@ const gqlQueries = {
             collateralAssetsUsd
             supplyAssetsUsd
             borrowAssetsUsd
+            liquidityAssetsUsd
             rewards {
               borrowApr
               asset {
@@ -466,6 +468,12 @@ const apy = async () => {
           0,
           (market.state.borrowApy || 0) - (market.state.netBorrowApy || 0)
         ) * 100;
+      const reallocatableLiquidityUsd =
+        (Number(market.reallocatableLiquidityAssets || 0) /
+          10 ** Number(market.loanAsset?.decimals || 0)) *
+        Number(market.loanAsset?.priceUsd || 0);
+      const availableBorrowUsd =
+        (market.state.liquidityAssetsUsd ?? 0) + reallocatableLiquidityUsd;
 
       return {
         pool: `morpho-blue-${market.uniqueKey}-${chain}`,
@@ -479,11 +487,13 @@ const apy = async () => {
         apyBaseBorrow: market.state.borrowApy * 100,
         totalSupplyUsd: market.state.collateralAssetsUsd ?? 0,
         totalBorrowUsd: market.state.borrowAssetsUsd ?? 0,
+        availableBorrowUsd,
         debtCeilingUsd:
           market.state.supplyAssetsUsd - market.state.borrowAssetsUsd,
         ltv: market.lltv / 1e18,
         mintedCoin: market.loanAsset?.symbol,
         borrowToken: market.loanAsset?.address,
+        borrowable: market.lltv > 0,
         url: `https://app.morpho.org/${getChainSlug(chain)}/market/${market.uniqueKey}`,
         apyRewardBorrow,
         rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],
