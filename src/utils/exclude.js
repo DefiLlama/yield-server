@@ -388,6 +388,7 @@ const excludeAdaptors = [
   'strike',
   'wefi',
   'gravita-protocol',
+  'sendit',
 ];
 
 const excludePools = [

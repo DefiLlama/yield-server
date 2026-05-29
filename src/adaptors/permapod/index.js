@@ -84,6 +84,7 @@ const utils = require('../utils');
             tvlUsd,
             totalSupplyUsd: totalSupplied.times(price).toNumber(),
             totalBorrowUsd: totalBorrowed.times(price).toNumber(),
+            availableBorrowUsd: tvlUsd,
 
             apyBase: utils.aprToApy(depositApr, 365),
             apyBaseBorrow: utils.aprToApy(borrowApr, 365),
