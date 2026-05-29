@@ -387,6 +387,7 @@ const excludeAdaptors = [
   'sonne-finance',
   'strike',
   'wefi',
+  'gravita-protocol',
 ];
 
 const excludePools = [
