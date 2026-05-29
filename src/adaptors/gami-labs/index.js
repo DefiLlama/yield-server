@@ -1,8 +1,5 @@
 const sdk = require('@defillama/sdk');
 
-// ============================================================
-// VAULTS REGISTRY — single source of truth
-// ============================================================
 const VAULTS = [
   // ETHEREUM — Lagoon
   { sdkChain: 'ethereum', address: '0xdae854d0896ad2fee335689a3f7b4a95fd1a3e46', name: 'Gami USDC', url: 'https://gamilabs.io/vaults/1/0xdae854d0896ad2fee335689a3f7b4a95fd1a3e46' },
@@ -12,18 +9,12 @@ const VAULTS = [
   { sdkChain: 'ethereum', address: '0x2a676c2744421b4fae65ce86b47adacb620047d4', name: 'Gami hemiBTC', url: 'https://gamilabs.io/vaults/1/0x2a676c2744421b4fae65ce86b47adacb620047d4' },
   { sdkChain: 'ethereum', address: '0x2031eceec018549a2c729cacd6c0bfc4be2524ed', name: 'Gami ETH', url: 'https://gamilabs.io/vaults/1/0x2031eceec018549a2c729cacd6c0bfc4be2524ed' },
   { sdkChain: 'ethereum', address: '0xfab0f56c28e3f874b15922b213e696f37b670916', name: 'Coinshift USPC Prime', url: 'https://gamilabs.io/vaults/1/0xfab0f56c28e3f874b15922b213e696f37b670916' },
-  { sdkChain: 'ethereum', address: '0x09252d2c4afca9b1479efdd39faa53de9ff23114', name: 'Coinshift Leveraged USPC', url: 'https://gamilabs.io/vaults/1/0x09252d2c4afca9b1479efdd39faa53de9ff23114' },
-  // ETHEREUM — Gearbox
+  { sdkChain: 'ethereum', address: '0x09252d2c4afca9b1479efdd39faa53de9ff23114', name: 'Coinshift USPC High Yield', url: 'https://gamilabs.io/vaults/1/0x09252d2c4afca9b1479efdd39faa53de9ff23114' },
   { sdkChain: 'ethereum', address: '0x683faf5bafd88d4c383ccaf3d61c26af2e164409', name: 'Gami Gearbox WBTC', url: 'https://gamilabs.io/vaults/1/0x683faf5bafd88d4c383ccaf3d61c26af2e164409' },
-  // BASE — Spectra
   { sdkChain: 'base', address: '0x776f95321a0285f8bcde149e3264d16dc08da69a', name: 'Gami Spectra USDC', url: 'https://gamilabs.io/vaults/8453/0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a' },
-  // FLARE — Spectra
   { sdkChain: 'flare', address: '0x6420a613e936602ca3f1ad5680b3f4d47d473bf1', name: 'Flare XRP Yield Prime', url: 'https://gamilabs.io/vaults/14/0x0c4f32c53d4b91a019c7c9d8da14af140295eef6' },
-  // HEMI — Lagoon
   { sdkChain: 'hemi', address: '0x1e32c96757c07775ca4fc796c4f4311722eaf35e', name: 'Hemi USDC', url: 'https://gamilabs.io/vaults/43111/0x1e32c96757c07775ca4fc796c4f4311722eaf35e' },
-  // AVAX — Lagoon
   { sdkChain: 'avax', address: '0xb3a2bcb30c1460d88db18b42a29fae2399952874', name: 'USDC Avalanche Core', url: 'https://gamilabs.io/vaults/43114/0xb3a2bcb30c1460d88db18b42a29fae2399952874' },
-  // AVAX — Silo
   { sdkChain: 'avax', address: '0x1F0570a081FeE0e4dF6eAC470f9d2D53CDEDa1c5', name: 'Gami Silo USDC', url: 'https://gamilabs.io/vaults/43114/0x1F0570a081FeE0e4dF6eAC470f9d2D53CDEDa1c5' },
   { sdkChain: 'avax', address: '0x0F78Ea587D8E2950319e0b467c665bD2CB73051B', name: 'Gami Silo AVAX', url: 'https://gamilabs.io/vaults/43114/0x0F78Ea587D8E2950319e0b467c665bD2CB73051B' },
 ];
@@ -104,6 +95,7 @@ async function processChain(sdkChain, vaults) {
       project: 'gami-labs',
       symbol: sym || v.name,
       tvlUsd,
+      apyBase: 0,
       pricePerShare,
       underlyingTokens: [asset.toLowerCase()],
       poolMeta: v.name,
