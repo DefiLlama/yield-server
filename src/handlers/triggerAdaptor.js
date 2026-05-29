@@ -217,130 +217,6 @@ const main = async (body) => {
   }));
   console.log(data.length);
 
-  // ---- add IL (only for dexes + pools with underlyingTokens array)
-  // need the protocol response to check if adapter.body === 'Dexes' category
-
-  // required conditions to calculate IL field
-  const isUniV3Fork = data.filter((i) =>
-    i.poolMeta?.includes('stablePool=')
-  ).length;
-
-  if (
-    data[0]?.underlyingTokens?.length &&
-    protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer-v2', 'curve-dex', 'clipper', 'astroport', 'cetus-amm'].includes(
-      body.adaptor
-    ) &&
-    !['elrond', 'near', 'hedera', 'carbon'].includes(
-      data[0].chain.toLowerCase()
-    )
-  ) {
-    // extract all unique underlyingTokens
-    const uniqueToken = [
-      ...new Set(
-        data
-          .map((p) => p.underlyingTokens?.map((t) => `${p.chain}:${t}`))
-          .flat()
-      ),
-    ].filter(Boolean);
-
-    // prices now
-    const priceUrl = 'https://coins.llama.fi/prices';
-    const prices = (
-      await utils.getData(priceUrl, {
-        coins: uniqueToken,
-      })
-    ).coins;
-
-    const timestamp7daysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
-    // price endpoint seems to break with too many tokens, splitting it to max 150 per request
-    const maxSize = 100;
-    const pages = Math.ceil(uniqueToken.length / maxSize);
-    let prices7d_ = [];
-    let x = '';
-    for (const p of [...Array(pages).keys()]) {
-      x = uniqueToken.slice(p * maxSize, maxSize * (p + 1)).join(',');
-      prices7d_ = [
-        ...prices7d_,
-        (
-          await axios.get(
-            `https://coins.llama.fi/prices/historical/${timestamp7daysAgo}/${x}`
-          )
-        ).data.coins,
-      ];
-    }
-    // flatten
-    let prices7d = {};
-    for (const p of prices7d_.flat()) {
-      prices7d = { ...prices7d, ...p };
-    }
-    prices7d = Object.fromEntries(
-      Object.entries(prices7d).map(([k, v]) => [k.toLowerCase(), v])
-    );
-
-    // calc IL
-    data = data.map((p) => {
-      if (p?.underlyingTokens === null || p?.underlyingTokens === undefined)
-        return { ...p };
-      // extract prices
-      const token0 = `${p.chain}:${p.underlyingTokens[0]}`.toLowerCase();
-      const token1 = `${p.chain}:${p.underlyingTokens[1]}`.toLowerCase();
-
-      // now
-      const price0 = prices[token0]?.price;
-      const price1 = prices[token1]?.price;
-
-      // 7 days ago
-      const price0_7d = prices7d[token0]?.price;
-      const price1_7d = prices7d[token1]?.price;
-
-      // relative price changes
-      const pctChangeX = (price0 - price0_7d) / price0_7d;
-      const pctChangeY = (price1 - price1_7d) / price1_7d;
-
-      // return in case of missing/weird prices
-      if (!Number.isFinite(pctChangeX) || !Number.isFinite(pctChangeY))
-        return { ...p };
-
-      // d paramter (P1 / P0)
-      const d = (1 + pctChangeX) / (1 + pctChangeY);
-
-      // IL(d)
-      let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
-
-      // for uni v3
-      if (isUniV3Fork) {
-        const P = price1 / price0;
-
-        // for stablecoin pools, we assume a +/- 0.1% range around current price
-        // for non-stablecoin pools -> +/- 30%
-        const pct = 0.3;
-        const pctStablePool = 0.001;
-        const delta = p.poolMeta.includes('stablePool=true')
-          ? pctStablePool
-          : pct;
-
-        const [p_lb, p_ub] = [P * (1 - delta), P * (1 + delta)];
-
-        // https://medium.com/auditless/impermanent-loss-in-uniswap-v3-6c7161d3b445
-        // ilv3 = ilv2 * factor
-        const factor =
-          1 / (1 - (Math.sqrt(p_lb / P) + d * Math.sqrt(P / p_ub)) / (1 + d));
-
-        // scale IL by factor
-        il7d *= factor;
-        // if the factor is too large, it may result in IL values >100% which don't make sense
-        // -> clip to max -100% IL
-        il7d = il7d < 0 ? Math.max(il7d, -100) : il7d;
-      }
-
-      return {
-        ...p,
-        il7d,
-      };
-    });
-  }
-
   // for PK, FK, read data from config table
   const config = await getConfigProject(body.adaptor);
   const mapping = {};
@@ -396,12 +272,7 @@ const main = async (body) => {
           ? null
           : Math.round(p.availableBorrowUsd),
       mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
-      poolMeta:
-        p.poolMeta === undefined
-          ? null
-          : p.poolMeta?.includes('stablePool=')
-          ? p.poolMeta?.split(',')[0]
-          : p.poolMeta,
+      poolMeta: p.poolMeta === undefined ? null : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
       apyBase7d:
         p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,
