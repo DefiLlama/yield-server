@@ -28,15 +28,12 @@ const FT = '0x5DD1A7A369e8273371d2DBf9d83356057088082c';
 const EVENT_EPOCH_SETTLED =
   'event EpochSettled(uint32 indexed epochId, uint256 rewardAmount, uint256 stakeTime, uint256 rateRay)';
 
-// 30 day reward window. Sonic settles roughly every 8 hours and Ethereum
-// roughly daily so this captures a meaningful number of epochs on both chains.
+// 30 day reward window. The start block is resolved from the chain's own
+// timestamps via lookupBlock rather than an assumed block-time, so it is a true
+// 30 days on every chain regardless of block cadence, and the result is
+// annualized by the actual elapsed time of that window.
 const WINDOW_DAYS = 30;
-
-// Conservative average block-time per chain (12 s on Ethereum, ~0.4 s on Sonic).
-const BLOCKS_PER_DAY = {
-  ethereum: 7200,
-  sonic: 216000,
-};
+const SECONDS_PER_DAY = 86400;
 
 const CHAIN_LABEL = {
   ethereum: 'Ethereum',
@@ -75,17 +72,17 @@ const apy = async () => {
     ).output;
     const tvlUsd = Number(totalSupply) / 1e6;
 
-    const latestBlock = (await sdk.api.util.getLatestBlock(chain)).number;
-    const fromBlock = Math.max(
-      0,
-      latestBlock - BLOCKS_PER_DAY[chain] * WINDOW_DAYS
-    );
+    const latestBlock = await sdk.api.util.getLatestBlock(chain);
+    const windowStart = latestBlock.timestamp - WINDOW_DAYS * SECONDS_PER_DAY;
+    const fromBlock = await sdk.api.util.lookupBlock(windowStart, { chain });
+    const elapsedDays =
+      (latestBlock.timestamp - fromBlock.timestamp) / SECONDS_PER_DAY;
 
     const logs = await sdk.getEventLogs({
       target: vault,
       eventAbi: EVENT_EPOCH_SETTLED,
-      fromBlock,
-      toBlock: latestBlock,
+      fromBlock: fromBlock.block,
+      toBlock: latestBlock.number,
       chain,
     });
 
@@ -107,9 +104,10 @@ const apy = async () => {
     let apyReward = null;
     if (ftPrice !== null) {
       const rewardUsd = rewardFt * ftPrice;
-      apyReward = tvlUsd > 0 && rewardUsd > 0
-        ? (rewardUsd / tvlUsd) * (365 / WINDOW_DAYS) * 100
-        : 0;
+      apyReward =
+        tvlUsd > 0 && rewardUsd > 0 && elapsedDays > 0
+          ? (rewardUsd / tvlUsd) * (365 / elapsedDays) * 100
+          : 0;
     }
 
     pools.push({
@@ -122,7 +120,7 @@ const apy = async () => {
       rewardTokens: [FT],
       underlyingTokens: [FTUSD],
       poolMeta: 'staked ftUSD (FT rewards bought on open market)',
-      url: 'https://app.flyingtulip.com/',
+      url: 'https://flyingtulip.com/ftusd/',
     });
   }
 
@@ -131,5 +129,5 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://flyingtulip.com/',
+  url: 'https://flyingtulip.com/ftusd/',
 };
