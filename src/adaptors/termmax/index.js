@@ -137,7 +137,9 @@ const VAULT_BLACKLIST = {
 };
 
 async function getMerklOpportunities() {
-  const data = await merklGet('/v4/opportunities?name=termmax');
+  const data = await merklGet('/v4/opportunities', {
+    params: { name: 'termmax' },
+  });
   return data.filter((o) => o.status === 'LIVE');
 }
 

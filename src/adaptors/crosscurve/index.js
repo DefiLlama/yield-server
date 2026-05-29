@@ -62,10 +62,10 @@ const getConfig = async () => {
 
 const merkl = async () => {
   try {
-    const merklData = await merklGet(
-      '/v4/opportunities?mainProtocolId=crosscurve',
-      { timeout: 10000 }
-    );
+    const merklData = await merklGet('/v4/opportunities', {
+      params: { mainProtocolId: 'crosscurve' },
+      timeout: 10000,
+    });
 
     return Object.values(merklData);
   } catch (error) {

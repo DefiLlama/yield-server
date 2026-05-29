@@ -580,7 +580,9 @@ async function getMerklRewards(chain) {
       if (!poolId) return;
 
       try {
-        const data = await merklGet(`/v4/opportunities/?chainId=${config.chainId}&identifier=${poolId}`);
+        const data = await merklGet('/v4/opportunities', {
+          params: { chainId: config.chainId, identifier: poolId },
+        });
 
         if (!data || !Array.isArray(data) || data.length === 0) {
           console.log(`⚠️  No Merkl rewards data found for ${chain} pool ${poolId}`);

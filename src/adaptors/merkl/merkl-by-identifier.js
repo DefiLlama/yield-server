@@ -50,9 +50,9 @@ const getMerklRewardsByIdentifier = async (
   if (!chainId) return null;
 
   try {
-    const data = await merklGet(
-      `/v4/opportunities?chainId=${chainId}&identifier=${identifier}`
-    );
+    const data = await merklGet('/v4/opportunities', {
+      params: { chainId, identifier },
+    });
     if (!data || data.length === 0) return null;
 
     const opportunity = data[0];

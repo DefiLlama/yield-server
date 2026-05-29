@@ -7,9 +7,9 @@ const CHAIN = 'hyperliquid';
 
 const getRewardsFromMerkl = async () => {
   try {
-    const data = await merklGet(
-      '/v4/opportunities?mainProtocolId=altura'
-    );
+    const data = await merklGet('/v4/opportunities', {
+      params: { mainProtocolId: 'altura' },
+    });
 
     const vault = data.find(
       (d) => d.identifier.toLowerCase() === VAULT_ADDRESS.toLowerCase()

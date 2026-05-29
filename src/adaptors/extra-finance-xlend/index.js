@@ -172,7 +172,9 @@ const getApy = async (market) => {
   let merklRewards = [];
   try {
     merklRewards = (
-      await merklGet('/v4/opportunities?mainProtocolId=xlend')
+      await merklGet('/v4/opportunities', {
+        params: { mainProtocolId: 'xlend' },
+      })
     ).filter((i) => (i.status || '').toLowerCase() === 'live');
   } catch (err) {
     console.warn('get merkl rewards error');
