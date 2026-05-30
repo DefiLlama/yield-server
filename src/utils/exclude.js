@@ -404,6 +404,13 @@ const excludeAdaptors = [
   'blend-pools',
   'harbor-market',
   'hypurrfi-isolated', // adapter includes only deprecated/legacy market
+  'iolend',
+  'paraspace-lending-v1',
+  'prime-protocol',
+  'radiant-v1',
+  'sentiment',
+  'starlay-finance',
+  'wing-finance',
 ];
 
 const excludePools = [
