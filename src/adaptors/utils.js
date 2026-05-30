@@ -117,14 +117,12 @@ exports.withRetry = async (fn, { retries = 3, delayMs = 500 } = {}) => {
 // retrive block based on unixTimestamp array
 const getBlocksByTime = async (timestamps, chainString) => {
   const chain = chainString === 'avalanche' ? 'avax' : chainString;
-  const blocks = [];
-  for (const timestamp of timestamps) {
-    const response = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
-    );
-    blocks.push(response.data.height);
-  }
-  return blocks;
+  const responses = await Promise.all(
+    timestamps.map((timestamp) =>
+      axios.get(`https://coins.llama.fi/block/${chain}/${timestamp}`)
+    )
+  );
+  return responses.map((r) => r.data.height);
 };
 
 exports.getBlocksByTime = getBlocksByTime;
@@ -252,12 +250,12 @@ exports.tvl = async (dataNow, networkString) => {
     return data.coins;
   };
 
-  const prices = {};
+  const chunks = [];
   for (let index = 0; index < idsSet.length; index += 50) {
-    const chunk = idsSet.slice(index, index + 50);
-    const chunkPrices = await fetchTokenPrices(chunk);
-    Object.assign(prices, chunkPrices);
+    chunks.push(idsSet.slice(index, index + 50));
   }
+  const chunkResults = await Promise.all(chunks.map(fetchTokenPrices));
+  const prices = Object.assign({}, ...chunkResults);
 
   // calc tvl
   for (const el of dataNowCopy) {
