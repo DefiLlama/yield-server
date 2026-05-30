@@ -403,6 +403,7 @@ const excludeAdaptors = [
   'zest-v1',
   'blend-pools',
   'harbor-market',
+  'hypurrfi-isolated', // adapter includes only deprecated/legacy market
 ];
 
 const excludePools = [
