@@ -389,6 +389,20 @@ const excludeAdaptors = [
   'wefi',
   'gravita-protocol',
   'sendit',
+  'beraborrow',
+  'indigo',
+  'bitu-protocol',
+  'raft',
+  'aimstrong',
+  'cat-in-a-box',
+  'enzo-finance',
+  'fringe-v1',
+  'ghost',
+  'nolus-protocol',
+  'sturdy-v2',
+  'zest-v1',
+  'blend-pools',
+  'harbor-market',
 ];
 
 const excludePools = [
