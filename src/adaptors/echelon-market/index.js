@@ -206,6 +206,7 @@ async function fetchEchelonForChain(chain) {
     const totalBorrow = marketSpecificStats?.totalLiability;
     const totalSupplyUsd = totalSupply * market.price;
     const totalBorrowUsd = totalBorrow * market.price;
+    const availableBorrowUsd = Math.max(0, Math.min(totalSupply, market.borrowCap) - totalBorrow) * market.price;
     
     const lendingSupplyApr = market.supplyApr;
     const lendingBorrowApr = market.borrowApr;
@@ -248,6 +249,9 @@ async function fetchEchelonForChain(chain) {
       apyRewardBorrow: ((farmingEsINITBorrowApr ?? 0) + (farmingAPTAprBorrow ?? 0) + (farmingTHAPTAprBorrow ?? 0)) * 100,
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
+      ltv: market.ltv,
+      borrowable: availableBorrowUsd > 0,
       rewardTokens: rewardTokens.filter(token => token !== undefined),
       symbol: market.symbol,
       tvlUsd: (totalSupplyUsd - totalBorrowUsd),
