@@ -34,18 +34,13 @@ async function getChainPools(chain) {
   const vaults = logs.map(l => l.args.vault);
 
   const [
-    rates,
-    vaultSymbols,
-    coinSymbols,
     vaultAssets,
-    totalPaidDebts,
-    totalFreeDebts,
-    collateralFactors,
+    syncedTotalDebts,
     collaterals,
-    collateralsPriceData,
   ] = (await Promise.all([
+    sdk.api.abi.multiCall({ chain, abi: vaultAbi.find(a => a.name === 'totalAssets'), calls: simpleCalls(vaults) }),
     sdk.api.abi.multiCall({
-      chain, abi: lensAbi.find(a => a.name === 'getRates'), calls: lenders.map(lender => {
+      chain, abi: lensAbi.find(a => a.name === 'getSyncedTotalDebts'), calls: lenders.map(lender => {
         return {
           target: lens,
           params: [lender],
@@ -53,56 +48,117 @@ async function getChainPools(chain) {
         }
       })
     }),
-    sdk.api.abi.multiCall({ chain, abi: 'erc20:symbol', calls: simpleCalls(vaults) }),
-    sdk.api.abi.multiCall({ chain, abi: 'erc20:symbol', calls: simpleCalls(coins) }),
-    sdk.api.abi.multiCall({ chain, abi: vaultAbi.find(a => a.name === 'totalAssets'), calls: simpleCalls(vaults) }),
-    sdk.api.abi.multiCall({ chain, abi: lenderAbi.find(a => a.name === 'totalPaidDebt'), calls: simpleCalls(lenders) }),
-    sdk.api.abi.multiCall({ chain, abi: lenderAbi.find(a => a.name === 'totalFreeDebt'), calls: simpleCalls(lenders) }),
-    sdk.api.abi.multiCall({ chain, abi: lenderAbi.find(a => a.name === 'collateralFactor'), calls: simpleCalls(lenders) }),
     sdk.api.abi.multiCall({ chain, abi: lenderAbi.find(a => a.name === 'collateral'), calls: simpleCalls(lenders) }),
-    sdk.api.abi.multiCall({ chain, abi: lenderAbi.find(a => a.name === 'getCollateralPrice'), calls: simpleCalls(lenders) }),
   ])).map(r => r.output.map(o => o.output));
 
+  const collateralDeposits = (await sdk.api.abi.multiCall({
+    chain, abi: 'erc20:balanceOf', calls: collaterals.map((col,i) => {
+      return {
+        target: col,
+        params: [lenders[i]],
+        permitFailure: true,
+      }
+    })
+  })).output.map(o => o.output);
+
+  const cdpMarketIndexes = lenders
+    .map((_, i) => i)
+    .filter((i) => Number(collateralDeposits[i]) > 0 || Number(syncedTotalDebts[i].syncedTotalDebt) > 0);
+  const savingsMarketIndexes = lenders
+    .map((_, i) => i)
+    .filter((i) => Number(vaultAssets[i]) > 0);
+  const activeMarketIndexes = [
+    ...new Set(cdpMarketIndexes.concat(savingsMarketIndexes)),
+  ];
+
+  if (!activeMarketIndexes.length) return [];
+
+  const activeCalls = activeMarketIndexes.map((i) => ({
+    target: lenders[i],
+    permitFailure: true,
+  }));
+  const activeLensCalls = activeMarketIndexes.map((i) => ({
+    target: lens,
+    params: [lenders[i]],
+    permitFailure: true,
+  }));
+  const activeVaultCalls = activeMarketIndexes.map((i) => ({
+    target: vaults[i],
+    permitFailure: true,
+  }));
+  const activeCoinCalls = activeMarketIndexes.map((i) => ({
+    target: coins[i],
+    permitFailure: true,
+  }));
+  const activeCollateralCalls = activeMarketIndexes.map((i) => ({
+    target: collaterals[i],
+    permitFailure: true,
+  }));
+
   const [
+    rates,
+    vaultSymbols,
+    coinSymbols,
+    collateralFactors,
+    collateralsPriceData,
     collateralSymbols,
     collateralDecimals,
-    collateralDeposits,
     pricesData,
-  ] = (await Promise.all([
-    sdk.api.abi.multiCall({ chain, abi: 'erc20:symbol', calls: simpleCalls(collaterals) }),
-    sdk.api.abi.multiCall({ chain, abi: 'erc20:decimals', calls: simpleCalls(collaterals) }),
-    sdk.api.abi.multiCall({
-      chain, abi: 'erc20:balanceOf', calls: collaterals.map((col,i) => {
-        return {
-          target: col,
-          params: [lenders[i]],
-          permitFailure: true,
-        }
-      })
-    }),
-    utils.getPrices(coins.concat(collaterals), chain),
-  ])).map(r => r.output ? r.output.map(o => o.output) : r);
+  ] = await Promise.all([
+    sdk.api.abi.multiCall({ chain, abi: lensAbi.find(a => a.name === 'getRates'), calls: activeLensCalls }),
+    sdk.api.abi.multiCall({ chain, abi: 'erc20:symbol', calls: activeVaultCalls }),
+    sdk.api.abi.multiCall({ chain, abi: 'erc20:symbol', calls: activeCoinCalls }),
+    sdk.api.abi.multiCall({ chain, abi: lenderAbi.find(a => a.name === 'collateralFactor'), calls: activeCalls }),
+    sdk.api.abi.multiCall({ chain, abi: lenderAbi.find(a => a.name === 'getCollateralPrice'), calls: activeCalls }),
+    sdk.api.abi.multiCall({ chain, abi: 'erc20:symbol', calls: activeCollateralCalls }),
+    sdk.api.abi.multiCall({ chain, abi: 'erc20:decimals', calls: activeCollateralCalls }),
+    utils.getPrices(
+      [
+        ...new Set(
+          cdpMarketIndexes
+            .flatMap((i) => [coins[i], collaterals[i]])
+            .concat(savingsMarketIndexes.map((i) => coins[i]))
+        ),
+      ],
+      chain
+    ),
+  ]);
+
+  const byMarketIndex = (values) =>
+    Object.fromEntries(activeMarketIndexes.map((i, j) => [i, values[j]]));
+  const ratesByIndex = byMarketIndex(rates.output.map(o => o.output));
+  const vaultSymbolsByIndex = byMarketIndex(vaultSymbols.output.map(o => o.output));
+  const coinSymbolsByIndex = byMarketIndex(coinSymbols.output.map(o => o.output));
+  const collateralFactorsByIndex = byMarketIndex(collateralFactors.output.map(o => o.output));
+  const collateralsPriceDataByIndex = byMarketIndex(collateralsPriceData.output.map(o => o.output));
+  const collateralSymbolsByIndex = byMarketIndex(collateralSymbols.output.map(o => o.output));
+  const collateralDecimalsByIndex = byMarketIndex(collateralDecimals.output.map(o => o.output));
 
   const { pricesByAddress } = pricesData;
 
   // CDP markets, where coins are minted against collaterals
-  const cdpMarkets = lenders.map((m, marketIndex) => {
+  const cdpMarkets = cdpMarketIndexes.map((marketIndex) => {
+    const m = lenders[marketIndex];
     const collateral = collaterals[marketIndex];
-    const collateralSymbol = collateralSymbols[marketIndex];
-    const collateralDecimal = collateralDecimals[marketIndex];
-    const mintedCoin = coinSymbols[marketIndex];
+    const collateralSymbol = collateralSymbolsByIndex[marketIndex];
+    const collateralDecimal = collateralDecimalsByIndex[marketIndex];
+    const mintedCoin = coinSymbolsByIndex[marketIndex];
     
     const coin = coins[marketIndex];
     const coinPriceUsd = pricesByAddress[coin.toLowerCase()] || 0;
     
-    const { price: oraclePrice } = collateralsPriceData[marketIndex];
+    const { price: oraclePrice, reduceOnly } = collateralsPriceDataByIndex[marketIndex];
     const oraclePriceUsd = (Number(oraclePrice) / (10 ** (36 - collateralDecimal))) || 0;
     // use defillama if available otherwise fallback to oracle price
     const collateralPriceUsd = pricesByAddress[collateral.toLowerCase()] || oraclePriceUsd;
     const totalSupplyUsd = collateralPriceUsd * Number(collateralDeposits[marketIndex]) / (10 ** collateralDecimal)
-    const totalBorrowUsd = coinPriceUsd * (Number(totalPaidDebts[marketIndex]) / 1e18 + Number(totalFreeDebts[marketIndex]) / 1e18);
-    const borrowApr = Math.min(Number(rates[marketIndex][0]) / 1e16, 999_999_999);
+    const totalBorrowUsd = coinPriceUsd * Number(syncedTotalDebts[marketIndex].syncedTotalDebt) / 1e18;
+    const borrowApr = Math.min(Number(ratesByIndex[marketIndex][0]) / 1e16, 999_999_999);
     const borrowApy = borrowApr < 999_999_999 ? Math.min(999_999_999, utils.aprToApy(borrowApr, blocksPerYear)) : 999_999_999;
+    const ltv = Number(collateralFactorsByIndex[marketIndex]) / 1e4;
+    const availableBorrowUsd = reduceOnly
+      ? 0
+      : Math.max(totalSupplyUsd * ltv - totalBorrowUsd, 0);
 
     return {
       pool: `monolith-market-lending-${m}`,
@@ -115,22 +171,23 @@ async function getChainPools(chain) {
       // cdp => tvlUsd = totalSupplyUsd
       tvlUsd: totalSupplyUsd,
       underlyingTokens: [collateral],
-      url: 'https://app.monolith.market/1/coin/' + marketIndex,
+      url: 'https://app.monolith.market/coins',
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       apyBaseBorrow: borrowApy,
-      borrowable: true,
-      ltv: Number(collateralFactors[marketIndex]) / 1e4,
+      borrowable: availableBorrowUsd > 0,
+      ltv,
     };
   });
 
   // savings vaults (ERC4626), a vault's asset is the coin minted by the cdp markets
-  const savingsVaults = lenders.map((m, marketIndex) => {
+  const savingsVaults = savingsMarketIndexes.map((marketIndex) => {
     const underlying = coins[marketIndex];
-    const vaultSymbol = vaultSymbols[marketIndex];
+    const vaultSymbol = vaultSymbolsByIndex[marketIndex];
     const coinPriceUsd = pricesByAddress[underlying.toLowerCase()] || 0;
     const totalSupplyUsd = coinPriceUsd * Number(vaultAssets[marketIndex]) / 1e18
-    const stakingApr = Number(rates[marketIndex][1]) / 1e16;
+    const stakingApr = Number(ratesByIndex[marketIndex][1]) / 1e16;
     const apy = utils.aprToApy(stakingApr, blocksPerYear);
 
     return {
@@ -141,9 +198,7 @@ async function getChainPools(chain) {
       tvlUsd: totalSupplyUsd,
       apyBase: apy,
       underlyingTokens: [underlying],
-      url: 'https://app.monolith.market/1/coin/' + marketIndex,
-      totalSupplyUsd,
-      borrowable: false,
+      url: 'https://app.monolith.market/earn'
     };
   });
 
