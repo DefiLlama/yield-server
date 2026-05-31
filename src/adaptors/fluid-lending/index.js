@@ -24,7 +24,7 @@ const CONSTANTS = {
       ethereum: '0x814c8C7ceb1411B364c2940c4b9380e739e06686',
       arbitrum: '0xD7D455d387d7840F56C65Bb08aD639DE9244E463',
       base: '0x79B3102173EB84E6BCa182C7440AfCa5A41aBcF8',
-      polygon: '0x9edb8D8b6db9A869c3bd913E44fa416Ca7490aCA',
+      polygon: '0xA5C3E16523eeeDDcC34706b0E6bE88b4c6EA95cC',
       plasma: '0x5471195328cB443c85097A7A7fF0A74eaB3Cb497',
     },
   },
@@ -38,6 +38,27 @@ const CONSTANTS = {
 // Import ABIs
 const abiLendingResolver = require('./abiLendingResolver');
 const abiVaultResolver = require('./abiVaultResolver');
+const getVaultsEntireDataAbi = abiVaultResolver.find(
+  (m) => m.name === 'getVaultsEntireData'
+);
+const getAllVaultsAddressesAbi = {
+  inputs: [],
+  name: 'getAllVaultsAddresses',
+  outputs: [{ internalType: 'address[]', name: 'vaults_', type: 'address[]' }],
+  stateMutability: 'view',
+  type: 'function',
+};
+const getVaultsEntireDataByAddressAbi = JSON.parse(
+  JSON.stringify(getVaultsEntireDataAbi)
+);
+getVaultsEntireDataByAddressAbi.inputs = [
+  { internalType: 'address[]', name: 'vaults_', type: 'address[]' },
+];
+// Polygon's current resolver uses the address[] overload and includes these fields.
+getVaultsEntireDataByAddressAbi.outputs[0].components[9].components.push(
+  { internalType: 'uint256', name: 'decayEndTimestamp', type: 'uint256' },
+  { internalType: 'uint256', name: 'decayAmount', type: 'uint256' }
+);
 const readFromStorageAbi = {
   inputs: [{ internalType: 'bytes32', name: 'slot_', type: 'bytes32' }],
   name: 'readFromStorage',
@@ -130,10 +151,25 @@ const getLendingApy = async (chain) => {
 // Vault Functions
 const getVaultApy = async (chain) => {
   try {
+    const vaults =
+      chain === 'polygon'
+        ? (
+            await sdk.api.abi.call({
+              target: CONSTANTS.RESOLVERS.VAULT[chain],
+              abi: getAllVaultsAddressesAbi,
+              chain,
+            })
+          ).output
+        : undefined;
+
     let vaultsEntireData = (
       await sdk.api.abi.call({
         target: CONSTANTS.RESOLVERS.VAULT[chain],
-        abi: abiVaultResolver.find((m) => m.name === 'getVaultsEntireData'),
+        abi:
+          chain === 'polygon'
+            ? getVaultsEntireDataByAddressAbi
+            : getVaultsEntireDataAbi,
+        ...(vaults && { params: [vaults] }),
         chain,
       })
     ).output;
@@ -188,7 +224,13 @@ const getVaultApy = async (chain) => {
       filteredVaults,
       vaultDetails,
       tokenData
-    ).filter((pool) => utils.keepFinite(pool));
+    ).filter(
+      (pool) =>
+        utils.keepFinite(pool) &&
+        Number.isFinite(pool.totalSupplyUsd) &&
+        Number.isFinite(pool.totalBorrowUsd) &&
+        Number.isFinite(pool.availableBorrowUsd)
+    );
   } catch (error) {
     console.error(`Error fetching vault APY for ${chain}:`, error);
     return [];
@@ -223,21 +265,21 @@ const fetchTokenData = async (chain, vaultDetails) => {
   return {
     symbol: vaultDetails.supplyTokens.map(
       (token, index) =>
-        `${prices[`${chain}:${token}`].symbol}/${
-          borrowPrices[`${chain}:${vaultDetails.borrowTokens[index]}`].symbol
+        `${prices[`${chain}:${token}`]?.symbol}/${
+          borrowPrices[`${chain}:${vaultDetails.borrowTokens[index]}`]?.symbol
         }`
     ),
     decimals: vaultDetails.supplyTokens.map(
-      (token) => prices[`${chain}:${token}`].decimals
+      (token) => prices[`${chain}:${token}`]?.decimals
     ),
     borrowTokenDecimals: vaultDetails.borrowTokens.map(
-      (token) => borrowPrices[`${chain}:${token}`].decimals
+      (token) => borrowPrices[`${chain}:${token}`]?.decimals
     ),
     prices: vaultDetails.supplyTokens.map(
-      (token) => prices[`${chain}:${token}`].price
+      (token) => prices[`${chain}:${token}`]?.price
     ),
     borrowTokenPrices: vaultDetails.borrowTokens.map(
-      (token) => borrowPrices[`${chain}:${token}`].price
+      (token) => borrowPrices[`${chain}:${token}`]?.price
     ),
   };
 };
