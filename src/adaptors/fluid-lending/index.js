@@ -42,13 +42,20 @@ const abiVaultResolver = require('./abiVaultResolver');
 // Lending Functions
 const getLendingApy = async (chain) => {
   try {
-    const fTokensEntireData = (
+    let fTokensEntireData = (
       await sdk.api.abi.call({
         target: CONSTANTS.RESOLVERS.LENDING[chain],
         abi: abiLendingResolver.find((m) => m.name === 'getFTokensEntireData'),
         chain,
       })
     ).output;
+
+    const merkleRewardsTokens = (await axios.get(`https://api.fluid.instadapp.io/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/tokens`)).data.data;
+    fTokensEntireData = fTokensEntireData.filter((token) =>
+      merkleRewardsTokens.some(
+        (t) => t.address.toLowerCase() === token.tokenAddress.toLowerCase()
+      )
+    );
 
     const underlying = fTokensEntireData.map((d) => d.asset);
 
@@ -69,8 +76,6 @@ const getLendingApy = async (chain) => {
     const prices = (
       await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
     ).data.coins;
-
-    const merkleRewardsTokens = (await axios.get(`https://api.fluid.instadapp.io/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/tokens`)).data.data;
 
     return fTokensEntireData
       .map((token, i) => {
