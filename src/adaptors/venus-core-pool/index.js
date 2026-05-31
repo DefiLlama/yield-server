@@ -42,17 +42,28 @@ const poolInfo = async (chain) => {
     )
   ).then((data) => data.map(getOutput));
 
-  const borrowPaused = (
-    await sdk.api.abi.multiCall({
-      abi: abiUnitroller.find((m) => m.name === 'actionPaused'),
+  const [protocolPaused, supplyPaused, borrowPaused] = await Promise.all([
+    sdk.api.abi.call({
+      abi: abiUnitroller.find((m) => m.name === 'protocolPaused'),
       target: unitroller,
-      calls: yieldMarkets.map((pool) => ({
-        params: [pool.pool, 2],
-      })),
       chain,
       permitFailure: true,
-    })
-  ).output.map(({ output }) => output);
+    }),
+    ...[0, 2].map((action) =>
+      sdk.api.abi.multiCall({
+        abi: abiUnitroller.find((m) => m.name === 'actionPaused'),
+        target: unitroller,
+        calls: yieldMarkets.map((pool) => ({
+          params: [pool.pool, action],
+        })),
+        chain,
+        permitFailure: true,
+      })
+    ),
+  ]).then(([protocol, ...pausedActions]) => [
+    protocol.output,
+    ...pausedActions.map(({ output }) => output.map(({ output }) => output)),
+  ]);
 
   const collateralFactor = markets.map((data) => data.collateralFactorMantissa);
 
@@ -105,6 +116,7 @@ const poolInfo = async (chain) => {
   const price = await getPrices('bsc', underlyingToken);
 
   yieldMarkets.map((data, index) => {
+    data.isListed = markets[index].isListed;
     data.collateralFactor = collateralFactor[index];
     data.venusSupplySpeeds = venusSupplySpeeds[index];
     data.venusBorrowSpeeds = venusBorrowSpeeds[index];
@@ -176,6 +188,7 @@ const getApy = async () => {
 
   const yieldPools = yieldMarkets.map((pool, i) => {
     if (pool.price === undefined || pool.price === null) return null;
+    if (!pool.isListed) return null;
 
     const totalSupplyUsd = calculateTvl(
       pool.getCash,
