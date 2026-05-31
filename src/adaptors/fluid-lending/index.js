@@ -38,6 +38,14 @@ const CONSTANTS = {
 // Import ABIs
 const abiLendingResolver = require('./abiLendingResolver');
 const abiVaultResolver = require('./abiVaultResolver');
+const readFromStorageAbi = {
+  inputs: [{ internalType: 'bytes32', name: 'slot_', type: 'bytes32' }],
+  name: 'readFromStorage',
+  outputs: [{ internalType: 'uint256', name: 'result_', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function',
+};
+const USER_BORROW_IS_PAUSED = 1n << 255n;
 
 // Lending Functions
 const getLendingApy = async (chain) => {
@@ -139,6 +147,15 @@ const getVaultApy = async (chain) => {
       (vault) => vault[1] === false && vault[2] === false
     );
 
+    const userBorrowData = await sdk.api.abi.multiCall({
+      calls: filteredVaults.map((vault) => ({
+        target: vault[3][7],
+        params: [vault[3][15]],
+      })),
+      abi: readFromStorageAbi,
+      chain,
+    });
+
     const vaultDetails = {
       pools: filteredVaults.map((vault) => vault[0]),
       rewardsRates: filteredVaults.map((vault) => Math.max(0, vault[5][12])),
@@ -151,6 +168,10 @@ const getVaultApy = async (chain) => {
       ),
       suppliedTokens: filteredVaults.map((vault) => vault[8][5]),
       borrowedTokens: filteredVaults.map((vault) => vault[8][4]),
+      borrowableTokens: filteredVaults.map((vault) => vault[7][5]),
+      borrowPaused: userBorrowData.output.map(
+        ({ output }) => (BigInt(output) & USER_BORROW_IS_PAUSED) !== 0n
+      ),
       supplyTokens: filteredVaults.map((vault) =>
         normalizeAddress(vault[3][8][0])
       ),
@@ -237,6 +258,14 @@ const calculateVaultPoolData = (
       (borrowedToken * tokenData.borrowTokenPrices[index]) /
       10 ** tokenData.borrowTokenDecimals[index]
   );
+  // Fluid vaults borrow from the shared Liquidity layer, so this is not
+  // capped by vault TVL alone; the resolver value already includes borrow
+  // limits, max utilization, and available debt-token balance.
+  const availableBorrowUsd = vaultDetails.borrowableTokens.map(
+    (borrowableToken, index) =>
+      (borrowableToken * tokenData.borrowTokenPrices[index]) /
+      10 ** tokenData.borrowTokenDecimals[index]
+  );
 
   const fluidToken = CONSTANTS.FLUID_TOKEN[chain];
 
@@ -255,6 +284,7 @@ const calculateVaultPoolData = (
       tvlUsd: totalSupplyUsd[index],
       totalSupplyUsd: totalSupplyUsd[index],
       totalBorrowUsd: totalBorrowUsd[index],
+      availableBorrowUsd: availableBorrowUsd[index],
       symbol: supplySymbol,
       underlyingTokens: [vaultDetails.supplyTokens[index]],
       chain,
@@ -270,6 +300,8 @@ const calculateVaultPoolData = (
       ltv: vaultDetails.ltv[index] / 1e4,
       mintedCoin: borrowSymbol,
       borrowToken: vaultDetails.borrowTokens[index],
+      borrowable:
+        !vaultDetails.borrowPaused[index],
       url: `https://fluid.io/vaults/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${vault.VaultId}`,
     };
   });
