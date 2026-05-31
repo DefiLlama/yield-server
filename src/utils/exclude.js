@@ -411,6 +411,7 @@ const excludeAdaptors = [
   'sentiment',
   'starlay-finance',
   'wing-finance',
+  'qidao',
 ];
 
 const excludePools = [
