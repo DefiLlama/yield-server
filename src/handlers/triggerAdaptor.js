@@ -90,7 +90,6 @@ const main = async (body) => {
   const isLendingProject = ZERO_TVL_CATEGORIES.includes(
     protocolConfig[body.adaptor]?.category
   );
-  const tvlLowerBound = isLendingProject ? 0 : exclude.boundaries.tvlUsdDB.lb;
 
   // ---------- prepare prior insert
   // remove potential null/undefined objects in array
@@ -118,12 +117,16 @@ const main = async (body) => {
     availableBorrowUsd: strToNum(p.availableBorrowUsd),
   }));
 
+  const getTvlForLowerBound = (p) =>
+    isLendingProject && p.tvlUsd >= 0 && Number.isFinite(p.totalSupplyUsd)
+      ? Math.max(p.tvlUsd, p.totalSupplyUsd)
+      : p.tvlUsd;
+
   // Filter tvl to be within DB boundaries.
-  // Lending projects keep the lower bound at 0 so low-liquidity pools still update,
-  // while negative available-liquidity values are dropped.
   data = data.filter(
     (p) =>
-      p.tvlUsd >= tvlLowerBound && p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
+      getTvlForLowerBound(p) >= exclude.boundaries.tvlUsdDB.lb &&
+      p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
   );
 
   // nullify NaN, undefined or Infinity apy values
