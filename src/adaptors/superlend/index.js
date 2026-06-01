@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+const { merklGet } = require('../merkl/merkl-client');
 
 const {
   poolAbi,
@@ -11,7 +12,7 @@ const {
   UI_POOL_DATA_PROVIDER,
   PROVIDER_ADDRESS,
   CHAIN_ID,
-  MERKLE_BASE_URL,
+  MERKL_CAMPAIGNS_PATH,
   CAMPAIGN_ID_MAP,
   APPLE_REWARD_TOKEN,
 } = require('./constants');
@@ -127,11 +128,9 @@ const getApy = async () => {
   const rewardData = {};
   for (const pool of reserveTokens) {
     const campaignId = CAMPAIGN_ID_MAP[pool.symbol.toUpperCase()];
-    const url = MERKLE_BASE_URL.replace('CHAIN_ID', CHAIN_ID).replace(
-      'CAMPAIGN_ID',
-      campaignId
-    );
-    const campaign = await utils.getData(url);
+    const campaign = await merklGet(MERKL_CAMPAIGNS_PATH, {
+      params: { chainId: CHAIN_ID, campaignId, withOpportunity: true },
+    });
     rewardData[pool.symbol.toUpperCase()] = campaign[0]?.Opportunity?.apr ?? 0;
   }
 
