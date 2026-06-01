@@ -412,6 +412,7 @@ const excludeAdaptors = [
   'starlay-finance',
   'wing-finance',
   'qidao',
+  'crosscurve',
 ];
 
 const excludePools = [
