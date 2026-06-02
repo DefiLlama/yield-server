@@ -27,8 +27,7 @@ const previewRedeemAbi =
   'function previewRedeem(uint256 shares) view returns (uint256)';
 const totalAssetsAbi = 'function totalAssets() view returns (uint256)';
 const vestingPeriodAbi = 'function vestingPeriod() view returns (uint24)';
-const cooldownDurationAbi =
-  'function cooldownDuration() view returns (uint24)';
+const cooldownDurationAbi = 'function cooldownDuration() view returns (uint24)';
 const latestRoundDataAbi =
   'function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)';
 
