@@ -4,12 +4,13 @@ const { utils: ethersUtils } = require('ethers');
 
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const lensAbi = require('./lens.abi.json');
+const eulerEarnLensAbi = require('./eulerEarnLens.abi.json');
 
 // ---------------------------------------------------------------------------
-// Subgraph-based architecture (replaces event log scanning + lens multicalls)
+// Hybrid architecture:
+// - EVK lend vaults come from the subgraph for broad coverage
+// - Euler Earn vault inclusion and vault state come from live lens/governance calls
 // - Eliminates scanning millions of blocks per chain on every run
-// - Eliminates oversized getVaultInfoFull multicalls that caused bob/sonic failures
-// - Server-side filtering: only fetches vaults with active supply APY
 // - Asset symbol parsed from vault symbol (e{SYMBOL}-{N}), decimals from subgraph
 // ---------------------------------------------------------------------------
 
@@ -21,66 +22,77 @@ const chains = {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-mainnet/latest/gn`,
     urlChain: 'ethereum',
     vaultLens: '0x83801C7BbeEFa54B91F8A07E36D81515a0Fc5b60',
+    eulerEarnVaultLens: '0x20954C32Bc063a125036b2563ca74fa98b5013D9',
     eulerEarnGovernedPerspective: '0x492e9FE1289d43F8bB6275237BF16c9248C74D44',
   },
   bob: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-bob/latest/gn`,
     urlChain: 'bob',
     vaultLens: '0xC6B56a52e5823659d90F3020164b92D1c2de03CE',
+    eulerEarnVaultLens: '0xf62E75A45B1D099CaF4B04C4DA468385A2032e55',
     eulerEarnGovernedPerspective: '0x7b4065698dF1dd0DF7ad4876A5050657295f836a',
   },
   sonic: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-sonic/latest/gn`,
     urlChain: 'sonic',
     vaultLens: '0x4c7BA548032FE3eA11b7D6BeaF736B3B74F69248',
+    eulerEarnVaultLens: '0x0832b2a2060F878D3BF09eB3E600C982DD1e0fbf',
     eulerEarnGovernedPerspective: '0x044Dc2d44BC443c00f615Cc453501F881E01E021',
   },
   avax: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-avalanche/latest/gn`,
     urlChain: 'avalanche',
     vaultLens: '0xcC5F7593a4D5974F84A30B28Bd3fdb374319a254',
+    eulerEarnVaultLens: '0xe58989e0E3f20f2e56fD407C6E28fe63675fDdB8',
     eulerEarnGovernedPerspective: '0x23559eF969252b81d8DA2b86a76D85fb602860Ad',
   },
   berachain: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-berachain/latest/gn`,
     urlChain: 'berachain',
     vaultLens: '0x2ffd260BAd257C08516B649c93Ea3eb6b63a5639',
+    eulerEarnVaultLens: '0x07dB55756ED3A08e3Ab0e0B66CE42Ac304bd052B',
     eulerEarnGovernedPerspective: '0xff216ceb263b3be308De306dbC67E2D82Ed70ea9',
   },
   bsc: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-bsc/latest/gn`,
     urlChain: 'bnbsmartchain',
     vaultLens: '0x84641751808f85F54344369036594E1a7301a414',
+    eulerEarnVaultLens: '0x079E485A869d2cEca0dCbB96A8308e6d972aB57f',
     eulerEarnGovernedPerspective: '0xEF7599ef1CB0ec48ED6f4174641462D6919A7CE2',
   },
   base: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-base/latest/gn`,
     urlChain: 'base',
     vaultLens: '0x3530dA02ceC2818477888FdC77e777b566B6db4C',
+    eulerEarnVaultLens: '0x0BBf9eE761bFF1c4d64dB608781D5e3beFeed875',
     eulerEarnGovernedPerspective: '0x08B817C17d84DF89AA371084D910081a5Cc04724',
   },
   swellchain: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-swell/latest/gn`,
     urlChain: 'swellchain',
     vaultLens: '0x94Dd6A076838D6Fc5031e32138b95d810793DB1c',
+    eulerEarnVaultLens: '0x45eAFe502d50f4575C8eAeFB13891C7D200e05c7',
     eulerEarnGovernedPerspective: '0xD5491C7Da8274016244aF8a0bD3998BCc43e4b24',
   },
   unichain: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-unichain/latest/gn`,
     urlChain: 'unichain',
     vaultLens: '0xd40DD19eD88a949436f784877A1BB59660ee8DE3',
+    eulerEarnVaultLens: '0x3a373AF9759ac6546A6BFa6eAAbb0B8fc1E1d241',
     eulerEarnGovernedPerspective: '0x16F187C4EFCCbbF5B530A9c64447B89c4D73F3F2',
   },
   arbitrum: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-arbitrum/latest/gn`,
     urlChain: 'arbitrumone',
     vaultLens: '0x59d28aF1fC4A52EE402C9099BeCEf333366184Df',
+    eulerEarnVaultLens: '0x15971F66916d402646ad3DEaE482ccf37b2100ef',
     eulerEarnGovernedPerspective: '0xeE3de4507cFAc8756634dC5272B4A6BB7f00C49E',
   },
   linea: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-linea/latest/gn`,
     urlChain: 'lineamainnet',
     vaultLens: '0xd20E9D6cfa0431aC306cC9906896a7BC0BE0Db64',
+    eulerEarnVaultLens: '0xF8074bbcC6e9c04EB6d3Fc69A5D502Ca774f663C',
     eulerEarnGovernedPerspective: '0xb42a9DD67bD6b48940A862C0f0c8a6C5DD26582f',
   },
   // TAC subgraph lacks the vault state entity (no supplyApy/borrowApy) -- excluded until updated
@@ -88,17 +100,21 @@ const chains = {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-monad/latest/gn`,
     urlChain: 'monad',
     vaultLens: '0x15d1Cc54fB3f7C0498fc991a23d8Dc00DF3c32A0',
+    eulerEarnVaultLens: '0x78f40a9822d170D7bC275986Dc2a4eF02C972367',
     eulerEarnGovernedPerspective: '0xe4A695d715732db3d694E30EC57b1acc8cC4368b',
   },
   plasma: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-plasma/latest/gn`,
     urlChain: 'plasma',
     vaultLens: '0x62FF27a1fBE6024D2933A88D39E0FF877dB4FE0B',
+    eulerEarnVaultLens: '0x984F25135BEc8fCabA26A6005c1632BC0DCcFd7C',
     eulerEarnGovernedPerspective: '0xAA8b9729a047568CB0614165509229A86e345Be1',
   },
   hyperliquid: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-hyperevm/latest/gn`,
     urlChain: 'hyperliquid',
+    vaultLens: '0x34B90aeCBe2d0b1Bb337799CF0AA9939E1F39c1B',
+    eulerEarnVaultLens: '0x2b76970adEAB958956975895a9F1888Ea6E4Ac4A',
     eulerEarnGovernedPerspective: '0x7b27dED9344D9c66FeAF58D151b52d1359aeA807',
   },
 };
@@ -134,20 +150,6 @@ const EVK_QUERY = `{
   }
 }`;
 
-const EARN_QUERY = `{
-  eulerEarnVaults(first: 1000, where: { totalAssets_gt: "0" }) {
-    id
-    name
-    asset
-    totalAssets
-    performanceFee
-    strategies {
-      strategy
-      allocatedAssets
-    }
-  }
-}`;
-
 const querySubgraph = async (url, query) => {
   const { data } = await axios.post(url, { query }, { timeout: 30_000 });
   if (data.errors) throw new Error(data.errors[0].message);
@@ -160,6 +162,20 @@ const verifiedEarnVaultsAbi = {
   outputs: [{ internalType: 'address[]', name: '', type: 'address[]' }],
   stateMutability: 'view',
   type: 'function',
+};
+
+const eulerEarnVaultInfoFullAbi = eulerEarnLensAbi.find(
+  (m) => m.name === 'getVaultInfoFull'
+);
+const vaultInfoFullAbi = lensAbi.find((m) => m.name === 'getVaultInfoFull');
+const toNumber = (value) => Number(value?.toString?.() ?? value);
+
+const getSupplyApyFromVaultInfo = (info) => {
+  const rateInfo = info?.irmInfo?.interestRateInfo?.[0];
+  const supplyApy = rateInfo?.supplyAPY ?? rateInfo?.[4];
+  return supplyApy === undefined || supplyApy === null
+    ? null
+    : toNumber(supplyApy) / APY_DIVISOR;
 };
 
 const getVerifiedEarnVaults = async (chain, config) => {
@@ -182,42 +198,90 @@ const getVerifiedEarnVaults = async (chain, config) => {
   }
 };
 
+const getEulerEarnVaults = async (chain, config, verifiedEarnVaults) => {
+  if (!config.eulerEarnVaultLens || verifiedEarnVaults.size === 0) return [];
+
+  try {
+    const { output } = await sdk.api.abi.multiCall({
+      calls: [...verifiedEarnVaults].map((vault) => ({
+        target: config.eulerEarnVaultLens,
+        params: [vault],
+      })),
+      abi: eulerEarnVaultInfoFullAbi,
+      chain,
+      permitFailure: true,
+    });
+
+    return output.map((o) => o.output).filter(Boolean);
+  } catch (err) {
+    console.error(
+      `Error fetching Euler Earn vault info for ${chain}:`,
+      err.message || err
+    );
+    return [];
+  }
+};
+
+const getEarnStrategyApyMap = async (chain, config, earnVaults) => {
+  if (!config.vaultLens || earnVaults.length === 0) return {};
+
+  const strategies = [
+    ...new Set(
+      earnVaults.flatMap((v) =>
+        (v.strategies || [])
+          .filter((s) => toNumber(s.allocatedAssets || 0) > 0)
+          .filter((s) => s.info?.isEVault !== false)
+          .map((s) => s.strategy.toLowerCase())
+      )
+    ),
+  ];
+  if (strategies.length === 0) return {};
+
+  try {
+    const { output } = await sdk.api.abi.multiCall({
+      calls: strategies.map((strategy) => ({
+        target: config.vaultLens,
+        params: [strategy],
+      })),
+      abi: vaultInfoFullAbi,
+      chain,
+      permitFailure: true,
+    });
+
+    return output.reduce((acc, result, i) => {
+      const apy = result.output ? getSupplyApyFromVaultInfo(result.output) : null;
+      if (apy !== null) acc[strategies[i]] = apy;
+      return acc;
+    }, {});
+  } catch (err) {
+    console.error(
+      `Error fetching Euler Earn strategy APYs for ${chain}:`,
+      err.message || err
+    );
+    return {};
+  }
+};
+
 const getApys = async () => {
   const chainResults = await Promise.all(
     Object.entries(chains).map(async ([chain, config]) => {
       try {
-        // Fetch EVK and Earn vaults from subgraph in parallel
-        const [evkData, earnData, verifiedEarnVaults] = await Promise.all([
+        const [evkData, verifiedEarnVaults] = await Promise.all([
           querySubgraph(config.subgraph, EVK_QUERY),
-          querySubgraph(config.subgraph, EARN_QUERY).catch(() => ({
-            eulerEarnVaults: [],
-          })),
           getVerifiedEarnVaults(chain, config),
         ]);
-
-        const evkVaults = evkData.eulerVaults || [];
-        const earnVaults = (earnData.eulerEarnVaults || []).filter((v) =>
-          verifiedEarnVaults.has(v.id.toLowerCase())
+        const earnVaults = await getEulerEarnVaults(
+          chain,
+          config,
+          verifiedEarnVaults
+        );
+        const earnStrategyApyMap = await getEarnStrategyApyMap(
+          chain,
+          config,
+          earnVaults
         );
 
-        // Build maps from ALL EVK vaults (active or not) for Earn vault lookups
-        // Exclude vaults where governance has frozen caps (wind-down mode)
-        const evkApyMap = {};
-        const assetInfoMap = {};
-        for (const v of evkVaults) {
-          const frozen =
-            isCapFrozen(Number(v.supplyCap)) ||
-            isCapFrozen(Number(v.borrowCap));
-          if (v.state && Number(v.state.supplyApy) > 0 && !frozen) {
-            evkApyMap[v.id] = Number(v.state.supplyApy) / APY_DIVISOR;
-          }
-          if (!assetInfoMap[v.asset]) {
-            assetInfoMap[v.asset] = {
-              symbol: parseAssetSymbol(v.symbol),
-              decimals: Number(v.decimals),
-            };
-          }
-        }
+        const evkVaults = evkData.eulerVaults || [];
 
         // Filter to active vaults for pool output (exclude frozen caps)
         const activeEvkVaults = evkVaults.filter(
@@ -321,41 +385,40 @@ const getApys = async () => {
             const priceData = prices.coins[`${chain}:${v.asset}`];
             if (!priceData?.price) return null;
 
-            const assetInfo = assetInfoMap[v.asset];
-            const symbol = assetInfo?.symbol || priceData.symbol;
-            const decimals = assetInfo?.decimals ?? priceData.decimals;
+            const symbol = v.assetSymbol || priceData.symbol;
+            const decimals = toNumber(v.assetDecimals ?? priceData.decimals);
             const tvlUsd =
-              (Number(v.totalAssets) / 10 ** decimals) * priceData.price;
+              (toNumber(v.totalAssets) / 10 ** decimals) * priceData.price;
 
-            // Calculate APY from weighted average of underlying EVK strategy APYs
+            // Calculate APY from weighted average of live underlying EVK strategy APYs
             let apyBase = null;
-            const totalAllocated = v.strategies.reduce(
-              (sum, s) => sum + Number(s.allocatedAssets || 0),
+            const totalAllocated = (v.strategies || []).reduce(
+              (sum, s) => sum + toNumber(s.allocatedAssets || 0),
               0
             );
 
-            if (totalAllocated > 0 && v.strategies.length > 0) {
+            if (totalAllocated > 0 && v.strategies?.length > 0) {
               let weightedApy = 0;
               for (const s of v.strategies) {
-                const allocated = Number(s.allocatedAssets || 0);
+                const allocated = toNumber(s.allocatedAssets || 0);
                 if (allocated === 0) continue;
                 const strategyApy =
-                  evkApyMap[s.strategy.toLowerCase()] || 0;
+                  earnStrategyApyMap[s.strategy.toLowerCase()] || 0;
                 weightedApy += strategyApy * (allocated / totalAllocated);
               }
               // Apply performance fee
-              const feePct = Number(v.performanceFee || 0) / 1e18;
+              const feePct = toNumber(v.performanceFee || 0) / 1e18;
               apyBase = weightedApy * (1 - feePct);
             }
 
-            const earnAddr = ethersUtils.getAddress(v.id);
+            const earnAddr = ethersUtils.getAddress(v.vault);
             const earnAssetAddr = ethersUtils.getAddress(v.asset);
             return {
               pool: `euler-earn-${earnAddr}-${chain}`,
               chain,
               project: 'euler-v2',
               symbol,
-              poolMeta: v.name,
+              poolMeta: v.vaultName,
               tvlUsd,
               apyBase,
               underlyingTokens: [earnAssetAddr],
