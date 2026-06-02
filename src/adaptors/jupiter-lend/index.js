@@ -52,6 +52,9 @@ const getVaultPools = (vaults) =>
 
     const totalSupplyUsd = totalSupply * Number(supplyToken.price);
     const totalBorrowUsd = totalBorrow * Number(borrowToken.price);
+    const availableBorrowUsd =
+      (Number(vault.borrowable) / 10 ** borrowToken.decimals) *
+      Number(borrowToken.price);
 
     const apyBase = calcVaultSupplyApy(vault);
     const apyReward = calcVaultRewardApy(vault, 'supply');
@@ -83,7 +86,10 @@ const getVaultPools = (vaults) =>
       underlyingTokens: [supplyToken.address],
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       ltv: Number(vault.collateralFactor) / 1e3,
+      borrowable: Number(vault.borrowable) > 0,
+      borrowToken: borrowToken.address,
       poolMeta: `${supplyToken.symbol}/${borrowToken.symbol}`,
       url: 'https://jup.ag/lend',
     };

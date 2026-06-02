@@ -327,7 +327,7 @@ const topTvl = async (
         pool: p.id,
         chain: utils.formatChain(chainString),
         project: 'maia-cl',
-        poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
+        poolMeta,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d * 0.9, // 10% reduction for protocol fees

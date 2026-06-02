@@ -296,6 +296,13 @@ const apy = async () => {
       const totalSupplyUsd = totalSupply * price
       const totalBorrowUsd = totalBorrow * price
       const tvlUsd = totalSupplyUsd - totalBorrowUsd
+      const borrowCapRaw = toBigInt(pool.borrow_cap, 'borrow_cap')
+      const borrowCapUsd =
+        fixedPointToNumber(borrowCapRaw, meta.decimals, 'borrow_cap') * price
+      const availableBorrowUsd = Math.max(
+        Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd),
+        0
+      )
       const ltv = toSafeInteger(pool.max_ltv, 'max_ltv') / 10000
 
       const poolId = `${pool.principal.toString()}-${asset}`
@@ -314,8 +321,10 @@ const apy = async () => {
         poolMeta: `Asset chain: ${chainKey}`,
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         ltv: Number.isFinite(ltv) ? ltv : null,
-        borrowable: true,
+        borrowable: pool.frozen === false,
+        borrowToken: underlyingToken || undefined,
       }
     } catch (error) {
       const poolId = pool?.principal?.toString?.() || 'unknown_pool'

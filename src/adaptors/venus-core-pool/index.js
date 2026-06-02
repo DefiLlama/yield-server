@@ -28,8 +28,8 @@ const poolInfo = async (chain) => {
     );
 
   const getOutput = ({ output }) => output.map(({ output }) => output);
-  const [markets, venusSupplySpeeds, venusBorrowSpeeds] = await Promise.all(
-    ['markets', 'venusSupplySpeeds', 'venusBorrowSpeeds'].map((method) =>
+  const [markets, venusSupplySpeeds, venusBorrowSpeeds, borrowCaps] = await Promise.all(
+    ['markets', 'venusSupplySpeeds', 'venusBorrowSpeeds', 'borrowCaps'].map((method) =>
       sdk.api.abi.multiCall({
         abi: abiUnitroller.find((m) => m.name === method),
         target: unitroller,
@@ -41,6 +41,29 @@ const poolInfo = async (chain) => {
       })
     )
   ).then((data) => data.map(getOutput));
+
+  const [protocolPaused, supplyPaused, borrowPaused] = await Promise.all([
+    sdk.api.abi.call({
+      abi: abiUnitroller.find((m) => m.name === 'protocolPaused'),
+      target: unitroller,
+      chain,
+      permitFailure: true,
+    }),
+    ...[0, 2].map((action) =>
+      sdk.api.abi.multiCall({
+        abi: abiUnitroller.find((m) => m.name === 'actionPaused'),
+        target: unitroller,
+        calls: yieldMarkets.map((pool) => ({
+          params: [pool.pool, action],
+        })),
+        chain,
+        permitFailure: true,
+      })
+    ),
+  ]).then(([protocol, ...pausedActions]) => [
+    protocol.output,
+    ...pausedActions.map(({ output }) => output.map(({ output }) => output)),
+  ]);
 
   const collateralFactor = markets.map((data) => data.collateralFactorMantissa);
 
@@ -93,9 +116,12 @@ const poolInfo = async (chain) => {
   const price = await getPrices('bsc', underlyingToken);
 
   yieldMarkets.map((data, index) => {
+    data.isListed = markets[index].isListed;
     data.collateralFactor = collateralFactor[index];
     data.venusSupplySpeeds = venusSupplySpeeds[index];
     data.venusBorrowSpeeds = venusBorrowSpeeds[index];
+    data.borrowCap = borrowCaps[index];
+    data.borrowPaused = borrowPaused[index];
     data.borrowRatePerBlock = borrowRatePerBlock[index];
     data.supplyRatePerBlock = supplyRatePerBlock[index];
     data.getCash = getCash[index];
@@ -162,6 +188,7 @@ const getApy = async () => {
 
   const yieldPools = yieldMarkets.map((pool, i) => {
     if (pool.price === undefined || pool.price === null) return null;
+    if (!pool.isListed) return null;
 
     const totalSupplyUsd = calculateTvl(
       pool.getCash,
@@ -178,6 +205,15 @@ const getApy = async () => {
       pool.underlyingTokenDecimals
     );
     const tvl = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Math.min(
+        parseFloat(pool.getCash),
+        parseFloat(pool.borrowCap) > 0
+          ? Math.max(parseFloat(pool.borrowCap) - parseFloat(pool.totalBorrows), 0)
+          : parseFloat(pool.getCash)
+      ) /
+        pool.underlyingTokenDecimals) *
+      pool.price;
     const apyBase = calculateApy(
       pool.supplyRatePerBlock,
       pool.underlyingTokenDecimals
@@ -213,7 +249,9 @@ const getApy = async () => {
       apyRewardBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
-      ltv
+      availableBorrowUsd,
+      ltv,
+      pool.borrowPaused === false
     );
 
     return readyToExport;
@@ -235,7 +273,9 @@ function exportFormatter(
   apyRewardBorrow,
   totalSupplyUsd,
   totalBorrowUsd,
-  ltv
+  availableBorrowUsd,
+  ltv,
+  borrowable
 ) {
   return {
     pool: pool.toLowerCase(),
@@ -251,7 +291,9 @@ function exportFormatter(
     apyRewardBorrow,
     totalSupplyUsd,
     totalBorrowUsd,
+    availableBorrowUsd,
     ltv,
+    borrowable,
   };
 }
 

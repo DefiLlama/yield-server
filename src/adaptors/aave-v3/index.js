@@ -178,7 +178,7 @@ const getApy = async (market) => {
       let availableBorrowUsd = null;
       if (isEthereumGhoFacilitator) {
         availableBorrowUsd = Math.max(borrowCapUsd - totalBorrowUsd, 0);
-      } else if (borrowable) {
+      } else {
         availableBorrowUsd = hasBorrowCap
           ? Math.max(
               Math.min(reserveLiquidityUsd, borrowCapUsd - totalBorrowUsd),
@@ -215,21 +215,19 @@ const getApy = async (market) => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
-        ...(availableBorrowUsd !== null && {
-          borrowCapUsd,
-          availableBorrowUsd,
-        }),
+        availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable,
-        // TODO: Remove mintedCoin & rename debtCeilingUsd to borrowCapUsd once v2 is live
+        // TODO: Remove mintedCoin/debtCeiling once v2 is live
         ...(isEthereumGhoFacilitator && {
           debtCeilingUsd: borrowCapUsd,
           mintedCoin: 'GHO',
           borrowToken: pool.tokenAddress,
         }),
         poolMeta: ethereumMarkets[market] ?? null,
+        marketKey: protocolDataProvider.toLowerCase(),
       };
     })
     .filter((i) => Boolean(i));
@@ -266,11 +264,9 @@ const getApyAptos = async () => {
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
       const borrowCapUsd = Number(r.borrowCap) * priceUsd;
       const hasBorrowCap = Number(r.borrowCap) > 0;
-      const availableBorrowUsd = r.borrowingEnabled
-        ? hasBorrowCap
-          ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
-          : tvlUsd
-        : null;
+      const availableBorrowUsd = hasBorrowCap
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
 
       return {
         pool: `${r.aTokenAddress}-aptos`.toLowerCase(),
@@ -282,10 +278,7 @@ const getApyAptos = async () => {
         underlyingTokens: [r.underlyingAsset],
         totalSupplyUsd,
         totalBorrowUsd,
-        ...(availableBorrowUsd !== null && {
-          borrowCapUsd,
-          availableBorrowUsd,
-        }),
+        availableBorrowUsd,
         apyBaseBorrow: Number(r.variableBorrowRate) / 1e25,
         ltv: Number(r.baseLTVasCollateral) / 10000,
         url: `https://aptos.aave.com/reserve-overview/?underlyingAsset=${r.underlyingAsset}&marketName=aptos`,

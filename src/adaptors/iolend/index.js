@@ -200,6 +200,7 @@ const getApy = async () => {
           apyRewardBorrow: apyRewardBorrow,
           totalSupplyUsd,
           totalBorrowUsd,
+          availableBorrowUsd: tvlUsd,
           ltv,
           borrowable,
         };

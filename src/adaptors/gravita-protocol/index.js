@@ -190,6 +190,8 @@ const main = async () => {
 
       const totalSupplyUsd = (vesselAssetTvl * assetPrice) / 1e18;
       const totalBorrowUsd = (mintedGrai * graiPrice) / 1e18;
+      const debtCeilingUsd = (mintCap * graiPrice) / 1e18;
+      const availableBorrowUsd = Math.max(debtCeilingUsd - totalBorrowUsd, 0);
       return {
         pool: `Gravita-${symbol}-Vault`,
         chain: 'ethereum',
@@ -204,8 +206,10 @@ const main = async () => {
         apyBaseBorrow: borrowingFee / 1e16,
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
-        debtCeilingUsd: (mintCap * graiPrice) / 1e18,
+        availableBorrowUsd,
+        debtCeilingUsd,
         ltv: 1 / (mcr / 1e18), // btw [0, 1]
+        borrowable: debtCeilingUsd > 0,
       };
     })
   );

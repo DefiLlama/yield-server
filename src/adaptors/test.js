@@ -40,7 +40,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'borrowable',
       'borrowFactor',
       'debtCeilingUsd',
-      'borrowCapUsd',
       'availableBorrowUsd',
       'mintedCoin',
       'borrowToken',
@@ -55,6 +54,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'isIntrinsicSource',
       'token',
       'pricePerShare',
+      'marketKey',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
@@ -196,10 +196,6 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       totalBorrowUsd: {
         type: 'number',
       },
-      borrowCapUsd: {
-        type: 'number',
-        min: 0,
-      },
       availableBorrowUsd: {
         type: 'number',
         min: 0,
@@ -216,6 +212,9 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         type: 'boolean',
       },
       borrowToken: {
+        type: 'string',
+      },
+      marketKey: {
         type: 'string',
       },
     };

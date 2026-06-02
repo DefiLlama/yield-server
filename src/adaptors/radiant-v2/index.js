@@ -211,6 +211,7 @@ const fetchPoolsFromLendingPool = async (chain, lendingPool, protocolDataProvide
       // borrow fields
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd: tvlUsd,
       apyBaseBorrow,
       ltv,
       borrowable,

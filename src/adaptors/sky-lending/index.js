@@ -187,6 +187,24 @@ const MCD_VAT = {
       stateMutability: 'view',
       type: 'function',
     },
+    Line: {
+      constant: true,
+      inputs: [],
+      name: 'Line',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    debt: {
+      constant: true,
+      inputs: [],
+      name: 'debt',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
   },
 };
 
@@ -341,6 +359,24 @@ const main = async () => {
       requery: true,
     })
   ).output.map((x) => x.output);
+  const [globalDebtCeiling, globalDebt] = await Promise.all(
+    ['Line', 'debt'].map(
+      async (name) =>
+        new BigNumber(
+          (
+            await sdk.api.abi.call({
+              target: MCD_VAT.address,
+              abi: MCD_VAT.abis[name],
+              chain: 'ethereum',
+            })
+          ).output
+        ).div(1e45)
+    )
+  );
+  const globalAvailableBorrowUsd = BigNumber.maximum(
+    globalDebtCeiling.minus(globalDebt),
+    0
+  );
   const spots = (
     await sdk.api.abi.multiCall({
       calls: ilkIds.map((ilkId) => ({
@@ -381,6 +417,10 @@ const main = async () => {
       const debtScalingFactor = new BigNumber(ilks[index].rate).div(1e27);
       const totalBorrowUsd = debtScalingFactor.multipliedBy(art);
       const debtCeilingUsd = new BigNumber(ilks[index].line).div(1e45);
+      const availableBorrowUsd = BigNumber.minimum(
+        BigNumber.maximum(debtCeilingUsd.minus(totalBorrowUsd), 0),
+        globalAvailableBorrowUsd
+      );
       const tvlUsd = new BigNumber(tokenBalances[index])
         .dividedBy(new BigNumber(10).pow(decimals[index]))
         .multipliedBy(prices[gems[index].toLowerCase()])
@@ -402,9 +442,11 @@ const main = async () => {
         apyBaseBorrow: stabilityFee.toNumber() * 100,
         totalSupplyUsd: tvlUsd,
         totalBorrowUsd: totalBorrowUsd.toNumber(),
+        availableBorrowUsd: availableBorrowUsd.toNumber(),
         debtCeilingUsd: debtCeilingUsd.toNumber(),
         mintedCoin: 'DAI',
         borrowToken: DAI,
+        borrowable: debtCeilingUsd.gt(0),
         ltv: 1 / Number(liquidationRatio.toNumber()),
         underlyingTokens: [gems[index]],
       };

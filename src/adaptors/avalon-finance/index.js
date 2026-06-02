@@ -50,6 +50,17 @@ const getApy = async (market) => {
     })
   ).output.map((o) => o.output);
 
+  const poolsReserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: protocolDataProvider,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
   const underlyingBalances = (
     await sdk.api.abi.multiCall({
       chain,
@@ -96,6 +107,10 @@ const getApy = async (market) => {
         BigInt(p.totalStableDebt) + BigInt(p.totalVariableDebt);
       const totalBorrowUsd = toTokenAmount(totalBorrow) * price;
       const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+      const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const availableBorrowUsd = Number(poolsReserveCaps[i].borrowCap)
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
 
       const marketUrlParam =
         market === 'ethereum'
@@ -122,6 +137,7 @@ const getApy = async (market) => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,

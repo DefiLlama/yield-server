@@ -130,6 +130,7 @@ const apy = async () => {
     // cdp
     const tvlUsd = totalSupplyUsd;
     const debtCeilingUsd = debtCeiling[i] / 1e18;
+    const availableBorrowUsd = Math.max(debtCeilingUsd - totalBorrowUsd, 0);
 
     // https://docs.curve.fi/crvUSD/monetarypolicy/#interest-rates
     const apyBaseBorrow =
@@ -146,6 +147,8 @@ const apy = async () => {
       totalSupplyUsd,
       totalBorrowUsd,
       debtCeilingUsd,
+      availableBorrowUsd,
+      borrowable: availableBorrowUsd > 0,
       apyBase: 0,
       apyBaseBorrow,
       underlyingTokens: [collateralTokens[i]],

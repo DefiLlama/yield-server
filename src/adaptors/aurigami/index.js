@@ -109,6 +109,30 @@ const main = async () => {
     })
   ).output.map((o) => o.output);
 
+  const borrowCaps = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: allMarkets.map((market) => ({
+        target: UNITROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowCaps'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
+  const isBorrowPaused = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: allMarkets.map((market) => ({
+        target: UNITROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowGuardianPaused'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
   const rewardSpeeds = (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
@@ -192,6 +216,15 @@ const main = async () => {
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Math.min(
+        Number(marketsCash[i]),
+        Number(borrowCaps[i]) > 0
+          ? Math.max(Number(borrowCaps[i]) - Number(totalBorrows[i]), 0)
+          : Number(marketsCash[i])
+      ) /
+        10 ** decimals) *
+      price;
 
     const apyBase = calculateApy(supplyRate[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRate[i] / 10 ** 18);
@@ -225,11 +258,13 @@ const main = async () => {
       // borrow fields
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       apyBaseBorrow,
       apyRewardBorrow: Number.isFinite(apyRewardBorrow)
         ? apyRewardBorrow
         : null,
       ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
+      borrowable: isBorrowPaused[i] === false,
     };
   });
 

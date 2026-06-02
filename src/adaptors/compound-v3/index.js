@@ -222,6 +222,7 @@ const main = async (pool) => {
     totalSupply,
     trackingIndexScale,
     decimals,
+    isWithdrawPaused,
   ] = (
     await Promise.all(
       [
@@ -233,6 +234,7 @@ const main = async (pool) => {
         'totalSupply',
         'trackingIndexScale',
         'decimals',
+        'isWithdrawPaused',
       ].map((method) =>
         sdk.api.abi.call({
           target: pool.address,
@@ -247,26 +249,6 @@ const main = async (pool) => {
     )
   ).map((o) => o.output);
 
-  // --- pool array
-
-  // 1) collateral pools (no apy fields)
-  const collateralOnlyPools = tokens.map((t, i) => ({
-    pool: `${t}-${pool.symbol}-${pool.chain}`,
-    symbol: symbols[i],
-    chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
-    project: 'compound-v3',
-    token: null,
-    tvlUsd: collateralTotalSupplyUsd[i],
-    apy: 0,
-    underlyingTokens: [t],
-    // borrow fields
-    totalSupplyUsd: collateralTotalSupplyUsd[i],
-    ltv: assetInfo[i].borrowCollateralFactor / 1e18,
-    poolMeta: `${pool.underlyingSymbol}-pool`,
-    borrowable: false,
-  }));
-
-  // 2) usdc pool
   // --- calc apy's
   const secondsPerYear = 60 * 60 * 24 * 365;
   const compPrice = prices[`${pool.chain}:${pool.rewardToken}`]?.price;
@@ -274,6 +256,15 @@ const main = async (pool) => {
 
   // supply side
   const totalSupplyUsd = (totalSupply / 10 ** decimals) * usdcPrice;
+  const availableBorrow = (
+    await sdk.api.abi.call({
+      abi: 'erc20:balanceOf',
+      target: pool.underlying,
+      params: [pool.address],
+      chain: pool.chain,
+    })
+  ).output;
+  const availableBorrowUsd = (availableBorrow / 10 ** decimals) * usdcPrice;
   const apyBase = (supplyRate / 1e18) * secondsPerYear * 100;
   const apyReward =
     (((baseTrackingSupplySpeed / trackingIndexScale) *
@@ -292,27 +283,51 @@ const main = async (pool) => {
       totalBorrowUsd) *
     100;
 
-  return [
-    ...collateralOnlyPools,
-    {
-      pool: `${pool.address}-${pool.chain}`,
-      symbol: pool.underlyingSymbol,
-      chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
-      project: 'compound-v3',
-      tvlUsd: totalSupplyUsd - totalBorrowUsd,
-      apyBase,
-      apyReward,
-      underlyingTokens: [pool.underlying],
-      rewardTokens: [pool.rewardToken],
-      // borrow fields
-      apyBaseBorrow,
-      apyRewardBorrow,
-      totalSupplyUsd,
-      totalBorrowUsd,
-      borrowable: true,
-      ltv: 0,
-    },
-  ];
+  // --- pool array
+
+  // 1) collateral pools (no supply apy fields)
+  const collateralOnlyPools = tokens.map((t, i) => ({
+    pool: `${t}-${pool.symbol}-${pool.chain}`,
+    symbol: symbols[i],
+    chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
+    project: 'compound-v3',
+    token: null,
+    tvlUsd: collateralTotalSupplyUsd[i],
+    apy: 0,
+    underlyingTokens: [t],
+    // borrow fields
+    totalSupplyUsd: collateralTotalSupplyUsd[i],
+    totalBorrowUsd,
+    availableBorrowUsd,
+    apyBaseBorrow,
+    apyRewardBorrow,
+    borrowToken: pool.underlying,
+    ltv: assetInfo[i].borrowCollateralFactor / 1e18,
+    poolMeta: `${pool.underlyingSymbol}-pool`,
+    borrowable: !isWithdrawPaused,
+  }));
+
+  const cometPool = {
+    pool: `${pool.address}-${pool.chain}`,
+    symbol: pool.underlyingSymbol,
+    chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
+    project: 'compound-v3',
+    tvlUsd: totalSupplyUsd - totalBorrowUsd,
+    apyBase,
+    apyReward,
+    underlyingTokens: [pool.underlying],
+    rewardTokens: [pool.rewardToken],
+    // borrow fields
+    apyBaseBorrow,
+    apyRewardBorrow,
+    totalSupplyUsd,
+    totalBorrowUsd,
+    availableBorrowUsd,
+    borrowable: !isWithdrawPaused,
+    ltv: 0,
+  };
+
+  return [...collateralOnlyPools, cometPool];
 };
 
 const apy = async () => {

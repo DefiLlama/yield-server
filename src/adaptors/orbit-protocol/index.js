@@ -110,6 +110,7 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
+  const isBorrowPaused = await getRewards(allMarkets, 'borrowGuardianPaused');
 
   const supplySpeeds = await multiCallMarkets(
     allMarkets,
@@ -182,6 +183,15 @@ const apy = async () => {
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Math.min(
+        Number(marketsCash[i]),
+        Number(borrowCaps[i]) > 0
+          ? Math.max(Number(borrowCaps[i]) - Number(totalBorrows[i]), 0)
+          : Number(marketsCash[i])
+      ) /
+        10 ** decimals) *
+      price;
 
     const apyBase = calculateApy(supplySpeeds[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowSpeeds[i] / 10 ** 18);
@@ -201,6 +211,8 @@ const apy = async () => {
         // borrow fields
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
+        borrowable: isBorrowPaused[i] === false,
         apyBaseBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
         debtCeilingUsd: (borrowCaps[i] / 1e18) * price,

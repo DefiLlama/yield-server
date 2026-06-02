@@ -96,9 +96,10 @@ const getPoolsBorrow = async (req, res) => {
   const lendBorrow = data[1];
 
   // join supply side fields (all enriched fields) onto borrow object
+  const poolsMap = new Map(pools.map((i) => [i.pool, i]));
   const poolsBorrow = lendBorrow
     .map((p) => {
-      const poolSupplySide = pools.find((i) => i.pool === p.pool);
+      const poolSupplySide = poolsMap.get(p.pool);
       if (poolSupplySide === undefined) return null;
 
       return {

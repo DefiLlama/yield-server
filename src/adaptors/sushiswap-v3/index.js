@@ -286,7 +286,7 @@ const topLvl = async (
         pool: p.id,
         chain: utils.formatChain(chainString),
         project: PROJECT,
-        poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
+        poolMeta,
         symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,

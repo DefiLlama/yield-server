@@ -65,6 +65,7 @@ const main = async () => {
 
   const coins = dispoisted.map((e) => `coingecko:${e.id}`);
   const prices = await getPrices([...coins, `coingecko:${USDX_ID}`]);
+  const usdxPrice = prices[USDX_ID.toLowerCase()]
 
   return parameters
     .filter((e) => e.id)
@@ -73,10 +74,14 @@ const main = async () => {
       const collateral = dispoisted.find((e) => e.type === pool.type);
       const _borrowed = borrowed.find((e) => e.type === pool.type);
       const totalSupplyUsd = collateral.amount * prices[pool.id.toLowerCase()];
-      const totalBorrowUsd = _borrowed.amount * prices[USDX_ID.toLowerCase()];
+      const totalBorrowUsd = _borrowed.amount * usdxPrice;
       const ltv = 1 / Number(parameter.liquidation_ratio);
       const debtCeilingUsd =
-        Number(parameter.debt_limit / 10 ** 6) * prices[USDX_ID.toLowerCase()];
+        Number(parameter.debt_limit / 10 ** 6) * usdxPrice;
+      const availableBorrowUsd = Math.max(
+        Math.min(totalSupplyUsd * ltv, debtCeilingUsd) - totalBorrowUsd,
+        0
+      );
       return {
         pool: `${pool.id}-${pool.symbol}-${pool.type}`,
         chain: utils.formatChain('kava'),
@@ -91,11 +96,13 @@ const main = async () => {
             : (Number(parameter.stability_fee) ** 31536000 - 1) * 100,
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
+        availableBorrowUsd,
         ltv: ltv,
         debtCeilingUsd: debtCeilingUsd,
         underlyingTokens: [pool.denom].filter(Boolean),
         mintedCoin: 'USDX',
         borrowToken: USDX_ID,
+        borrowable: availableBorrowUsd > 0,
       };
     });
 };

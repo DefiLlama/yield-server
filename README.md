@@ -52,8 +52,10 @@ interface Pool {
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
+  availableBorrowUsd?: number; // current available borrow liquidity in USD, accounting for caps and constraints; do not zero solely because borrowable is false
   borrowToken?: string; // underlying token address/string the borrower receives; not a debt receipt token
   ltv?: number; // btw [0, 1]
+  borrowable?: boolean; // whether a new borrow can be opened right now for this asset
 }
 ```
 

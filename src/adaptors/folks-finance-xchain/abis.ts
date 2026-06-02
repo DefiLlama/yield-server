@@ -265,6 +265,71 @@ const HubPoolAbi = {
     stateMutability: 'view',
     type: 'function',
   },
+  getCapsData: {
+    inputs: [],
+    name: 'getCapsData',
+    outputs: [
+      {
+        components: [
+          {
+            internalType: 'uint64',
+            name: 'deposit',
+            type: 'uint64',
+          },
+          {
+            internalType: 'uint64',
+            name: 'borrow',
+            type: 'uint64',
+          },
+          {
+            internalType: 'uint64',
+            name: 'stableBorrowPercentage',
+            type: 'uint64',
+          },
+        ],
+        internalType: 'struct HubPoolState.CapsData',
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  getConfigData: {
+    inputs: [],
+    name: 'getConfigData',
+    outputs: [
+      {
+        components: [
+          {
+            internalType: 'bool',
+            name: 'deprecated',
+            type: 'bool',
+          },
+          {
+            internalType: 'bool',
+            name: 'stableBorrowSupported',
+            type: 'bool',
+          },
+          {
+            internalType: 'bool',
+            name: 'canMintFToken',
+            type: 'bool',
+          },
+          {
+            internalType: 'bool',
+            name: 'flashLoanSupported',
+            type: 'bool',
+          },
+        ],
+        internalType: 'struct HubPoolState.ConfigData',
+        name: '',
+        type: 'tuple',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
   getPoolId: {
     inputs: [],
     name: 'getPoolId',

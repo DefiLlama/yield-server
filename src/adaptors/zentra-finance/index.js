@@ -24,7 +24,7 @@ const apy = async () => {
   const reserves = reserveTokens.output;
   const atokens = aTokens.output;
 
-  const [reserveData, reserveConfig, totalSupply, underlyingBalances, decimals] =
+  const [reserveData, reserveConfig, reserveCaps, totalSupply, underlyingBalances, decimals] =
     await Promise.all([
       sdk.api.abi.multiCall({
         calls: reserves.map((p) => ({ target: POOL_DATA_PROVIDER, params: p.tokenAddress })),
@@ -34,6 +34,11 @@ const apy = async () => {
       sdk.api.abi.multiCall({
         calls: reserves.map((p) => ({ target: POOL_DATA_PROVIDER, params: p.tokenAddress })),
         abi: poolAbi.find((m) => m.name === 'getReserveConfigurationData'),
+        chain: CHAIN,
+      }),
+      sdk.api.abi.multiCall({
+        calls: reserves.map((p) => ({ target: POOL_DATA_PROVIDER, params: p.tokenAddress })),
+        abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
         chain: CHAIN,
       }),
       sdk.api.abi.multiCall({
@@ -72,6 +77,14 @@ const apy = async () => {
         (totalSupply.output[i].output / 10 ** dec) * price;
       const tvlUsd =
         (underlyingBalances.output[i].output / 10 ** dec) * price;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** dec) *
+        price;
+      const borrowCapUsd = Number(reserveCaps.output[i].output.borrowCap) * price;
+      const availableBorrowUsd = Number(reserveCaps.output[i].output.borrowCap)
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
 
       return {
         pool: `${atokens[i].tokenAddress}-${CHAIN}`.toLowerCase(),
@@ -82,7 +95,8 @@ const apy = async () => {
         apyBase: (p.liquidityRate / 1e27) * 100,
         underlyingTokens: [reserve.tokenAddress],
         totalSupplyUsd,
-        totalBorrowUsd: totalSupplyUsd - tvlUsd,
+        totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow: (p.variableBorrowRate / 1e27) * 100,
         ltv: cfg.ltv / 10000,
         borrowable: cfg.borrowingEnabled,

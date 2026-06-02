@@ -5,6 +5,7 @@ const axios = require('axios')
 const sdk = require('@defillama/sdk')
 const utils = require('../utils')
 const poolAbi = require('./poolAbi')
+const { merklGet } = require('../merkl/merkl-client')
 
 // ---------- chain maps ----------
 const protocolDataProviders = {
@@ -86,7 +87,7 @@ let merklCache = null
 async function fetchMerkl() {
   if (merklCache) return merklCache
   try {
-    const { data } = await axios.get('https://api.merkl.xyz/v4/opportunities', {
+    const data = await merklGet('/v4/opportunities', {
       params: { mainProtocolId: 'ploutos' },
       timeout: 15000,
     })
