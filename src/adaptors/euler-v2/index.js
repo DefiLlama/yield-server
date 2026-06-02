@@ -24,26 +24,12 @@ const chains = {
     eulerEarnVaultLens: '0x20954C32Bc063a125036b2563ca74fa98b5013D9',
     eulerEarnGovernedPerspective: '0x492e9FE1289d43F8bB6275237BF16c9248C74D44',
   },
-  sonic: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-sonic/latest/gn`,
-    urlChain: 'sonic',
-    vaultLens: '0x4c7BA548032FE3eA11b7D6BeaF736B3B74F69248',
-    eulerEarnVaultLens: '0x0832b2a2060F878D3BF09eB3E600C982DD1e0fbf',
-    eulerEarnGovernedPerspective: '0x044Dc2d44BC443c00f615Cc453501F881E01E021',
-  },
   avax: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-avalanche/latest/gn`,
     urlChain: 'avalanche',
     vaultLens: '0xcC5F7593a4D5974F84A30B28Bd3fdb374319a254',
     eulerEarnVaultLens: '0xe58989e0E3f20f2e56fD407C6E28fe63675fDdB8',
     eulerEarnGovernedPerspective: '0x23559eF969252b81d8DA2b86a76D85fb602860Ad',
-  },
-  berachain: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-berachain/latest/gn`,
-    urlChain: 'berachain',
-    vaultLens: '0x2ffd260BAd257C08516B649c93Ea3eb6b63a5639',
-    eulerEarnVaultLens: '0x07dB55756ED3A08e3Ab0e0B66CE42Ac304bd052B',
-    eulerEarnGovernedPerspective: '0xff216ceb263b3be308De306dbC67E2D82Ed70ea9',
   },
   bsc: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-bsc/latest/gn`,
@@ -58,13 +44,6 @@ const chains = {
     vaultLens: '0x3530dA02ceC2818477888FdC77e777b566B6db4C',
     eulerEarnVaultLens: '0x0BBf9eE761bFF1c4d64dB608781D5e3beFeed875',
     eulerEarnGovernedPerspective: '0x08B817C17d84DF89AA371084D910081a5Cc04724',
-  },
-  swellchain: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-swell/latest/gn`,
-    urlChain: 'swellchain',
-    vaultLens: '0x94Dd6A076838D6Fc5031e32138b95d810793DB1c',
-    eulerEarnVaultLens: '0x45eAFe502d50f4575C8eAeFB13891C7D200e05c7',
-    eulerEarnGovernedPerspective: '0xD5491C7Da8274016244aF8a0bD3998BCc43e4b24',
   },
   unichain: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-unichain/latest/gn`,
@@ -87,7 +66,6 @@ const chains = {
     eulerEarnVaultLens: '0xF8074bbcC6e9c04EB6d3Fc69A5D502Ca774f663C',
     eulerEarnGovernedPerspective: '0xb42a9DD67bD6b48940A862C0f0c8a6C5DD26582f',
   },
-  // TAC subgraph lacks the vault state entity (no supplyApy/borrowApy) -- excluded until updated
   monad: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-monad/latest/gn`,
     urlChain: 'monad',
