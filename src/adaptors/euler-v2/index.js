@@ -265,7 +265,7 @@ const getApys = async () => {
               ltv: ltv !== undefined ? ltv : undefined,
               url: chain === 'hyperliquid'
                 ? `https://hypurrfi.com/markets/elend/999/${vaultAddr}`
-                : `https://app.euler.finance/vault/${vaultAddr}?network=${config.urlChain}`,
+                : `https://app.euler.finance/lend/${vaultAddr}?network=${config.urlChain}`,
             };
           })
           .filter(Boolean);
@@ -316,7 +316,7 @@ const getApys = async () => {
               underlyingTokens: [earnAssetAddr],
               url: chain === 'hyperliquid'
                 ? `https://hypurrfi.com/markets/elend/999/${earnAddr}`
-                : `https://app.euler.finance/vault/${earnAddr}?network=${config.urlChain}`,
+                : `https://app.euler.finance/earn/${earnAddr}?network=${config.urlChain}`,
             };
           })
           .filter((p) => p && p.tvlUsd > 100);
