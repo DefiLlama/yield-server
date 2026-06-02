@@ -415,6 +415,7 @@ const excludeAdaptors = [
   'crosscurve',
   'benddao-lending-v1',
   'moar-market',
+  'tapp-exchange',
 ];
 
 const excludePools = [
