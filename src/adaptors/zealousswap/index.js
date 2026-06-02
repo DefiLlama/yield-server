@@ -1,7 +1,10 @@
-// Zealous Swap (Kasplex) — Pools adapter for DefiLlama yield-server
-// Fetches pool data from our API and reserves on-chain, calculating TVL using DefiLlama's price feeds.
+// Zealous Swap — Pools adapter for DefiLlama yield-server
+// Supports multiple chains (Kasplex, Igra). Fetches pool data from our per-chain API
+// and reserves on-chain, calculating TVL using DefiLlama's price feeds.
 //
-// Endpoint used: https://kasplex.zealousswap.com/v1/pools
+// Endpoints used:
+// - https://kasplex.zealousswap.com/v1/pools
+// - https://igra.zealousswap.com/v1/pools
 // Notes:
 // - Reserves are fetched on-chain via getReserves(), with API fallback if call fails
 // - TVL is calculated from token reserves using DefiLlama's price API
@@ -14,8 +17,21 @@ const axios = require("axios");
 const sdk = require("@defillama/sdk");
 const BigNumber = require("bignumber.js");
 
-const CHAIN = "kasplex";
-const API = "https://kasplex.zealousswap.com/v1/pools";
+// Per-chain config. Add a new entry here to support another chain.
+const CHAINS = [
+    {
+        chain: "kasplex",
+        api: "https://kasplex.zealousswap.com/v1/pools",
+        rewardToken: "0xb7a95035618354D9ADFC49Eca49F38586B624040",
+        url: "https://app.zealousswap.com/liquidity?network=kasplex",
+    },
+    {
+        chain: "igra",
+        api: "https://igra.zealousswap.com/v1/pools",
+        rewardToken: "0x76F8A377e18f79170aC2f8b34e26E2Ca7168a556",
+        url: "https://app.zealousswap.com/liquidity?network=igra",
+    },
+];
 
 function toNumber(x) {
     if (x === null || x === undefined) return 0;
@@ -38,6 +54,8 @@ function calcFeeAPR(volumeUSD, tvlUsd, feeRate) {
 }
 
 const getPrices = async (addresses, chain) => {
+    if (addresses.length === 0) return {};
+
     const prices = (
         await axios.get(
             `https://coins.llama.fi/prices/current/${addresses
@@ -79,8 +97,8 @@ const calculateReservesUSD = (
     return null;
 };
 
-async function apy() {
-    const { data } = await axios.get(API);
+async function getChainPools({ chain, api, rewardToken, url }) {
+    const { data } = await axios.get(api);
     const poolsObj = data?.pools || {};
 
     const poolAddresses = Object.keys(poolsObj);
@@ -101,7 +119,7 @@ async function apy() {
         calls: poolAddresses.map((address) => ({
             target: address,
         })),
-        chain: CHAIN,
+        chain,
         permitFailure: true,
     });
 
@@ -111,7 +129,7 @@ async function apy() {
         if (p.token1?.address) tokenAddresses.add(p.token1.address.toLowerCase());
     }
 
-    const tokenPrices = await getPrices(Array.from(tokenAddresses), CHAIN);
+    const tokenPrices = await getPrices(Array.from(tokenAddresses), chain);
 
     const results = [];
 
@@ -160,27 +178,40 @@ async function apy() {
         const apyReward = toNumber(p.farmApr) > 0 ? toNumber(p.farmApr) : null;
 
         results.push({
-            pool: `${address}-${CHAIN}`,
-            chain: CHAIN,
+            pool: `${address}-${chain}`,
+            chain,
             project: "zealousswap",
             symbol: poolSymbol(p),
             tvlUsd,
             apyBase,
             apyReward,
-            rewardTokens: p.hasActiveFarm
-                ? ["0xb7a95035618354D9ADFC49Eca49F38586B624040"]
-                : [],
+            rewardTokens: p.hasActiveFarm ? [rewardToken] : [],
             underlyingTokens: [p.token0.address, p.token1.address],
-            url: "https://app.zealousswap.com/liquidity",
+            url,
             volumeUsd1d: toNumber(p.volumeUSD),
         });
     }
 
-    return results.filter(x => Number.isFinite(x.tvlUsd) && x.tvlUsd > 0);
+    return results;
+}
+
+async function apy() {
+    const perChain = await Promise.all(
+        CHAINS.map((cfg) =>
+            getChainPools(cfg).catch((e) => {
+                console.error(`zealousswap: failed to fetch ${cfg.chain}`, e.message);
+                return [];
+            })
+        )
+    );
+
+    return perChain
+        .flat()
+        .filter((x) => Number.isFinite(x.tvlUsd) && x.tvlUsd > 0);
 }
 
 module.exports = {
     timetravel: false,
     apy,
-    url: API,
+    url: "https://app.zealousswap.com/liquidity",
 };
