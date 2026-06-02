@@ -4,8 +4,8 @@ const utils = require('../utils');
 const CONTRACT_ADDRESS = '0x04B6E42eBD94beD6AbFE18B0077d3E0614E3085a';
 
 async function apy() {
-  let chain = 'plasma';
-  let pools = (
+  const chain = 'plasma';
+  const pools = (
     await api.abi.call({
       target: CONTRACT_ADDRESS,
       abi: abi.getInfo,
@@ -13,21 +13,21 @@ async function apy() {
     })
   ).output;
 
-  let coinsKey = pools.map((pool) => `${chain}:${pool.asset}`);
-  let { coins } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${coinsKey}`,
+  const coinsKey = pools.map((pool) => `${chain}:${pool.asset}`);
+  const { coins } = await utils.getData(
+    `https://coins.llama.fi/prices/current/${coinsKey}`
   );
 
-  let farmToTvls = {};
-  let farmAddresses = {};
+  const farmToTvls = {};
+  const farmAddresses = {};
   pools
     .map((item) => item.farmAddress)
     .forEach((item) => {
       farmAddresses[item] = {};
     });
 
-  for (let item of Object.keys(farmAddresses)) {
-    let result = (
+  for (const item of Object.keys(farmAddresses)) {
+    const result = (
       await api.abi.call({
         target: item,
         abi: abi.getTvl,
@@ -37,20 +37,20 @@ async function apy() {
     farmToTvls[item.toLowerCase()] = result;
   }
 
-  let d = pools
+  const d = pools
     .map((pool) => {
-      let tvlRows = farmToTvls[pool.farmAddress.toLowerCase()] ?? [];
+      const tvlRows = farmToTvls[pool.farmAddress.toLowerCase()] ?? [];
       const tvlInfo = tvlRows.find((item) => item.pid === pool.pid);
-      let price = coins?.[`${chain}:${pool.asset}`]?.price;
+      const price = coins?.[`${chain}:${pool.asset}`]?.price;
       if (!tvlInfo || !price) return null;
 
-      let tvl = tvlInfo.tvl / 10 ** pool.assetDecimals;
+      const tvl = tvlInfo.tvl / 10 ** pool.assetDecimals;
 
-      let tvlPrice = tvl * price;
-      let apy = pool.apy / 10 ** 16;
+      const tvlPrice = tvl * price;
+      const apy = pool.apy / 10 ** 16;
       return {
         chain,
-        pool: `${pool.farmAddress}-${pool.pid}`,
+        pool: `${pool.farmAddress}-${pool.pid}`.toLowerCase(),
         symbol: pool.assetSymbol,
         underlyingTokens: [pool.asset],
         tvlUsd: tvlPrice,
@@ -63,7 +63,7 @@ async function apy() {
   return d;
 }
 
-let abi = {
+const abi = {
   getTvl:
     'function getPoolTotalTvl() view returns (tuple(uint256 pid, address assets, uint256 tvl)[])',
   getInfo:
