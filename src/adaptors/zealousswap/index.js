@@ -129,7 +129,12 @@ async function getChainPools({ chain, api, rewardToken, url }) {
         if (p.token1?.address) tokenAddresses.add(p.token1.address.toLowerCase());
     }
 
-    const tokenPrices = await getPrices(Array.from(tokenAddresses), chain);
+    const tokenPrices = await getPrices(Array.from(tokenAddresses), chain).catch(
+        (e) => {
+            console.error(`zealousswap: price fetch failed for ${chain}`, e.message);
+            return {};
+        }
+    );
 
     const results = [];
 
