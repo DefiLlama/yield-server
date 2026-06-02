@@ -24,13 +24,6 @@ const chains = {
     eulerEarnVaultLens: '0x20954C32Bc063a125036b2563ca74fa98b5013D9',
     eulerEarnGovernedPerspective: '0x492e9FE1289d43F8bB6275237BF16c9248C74D44',
   },
-  bob: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-bob/latest/gn`,
-    urlChain: 'bob',
-    vaultLens: '0xC6B56a52e5823659d90F3020164b92D1c2de03CE',
-    eulerEarnVaultLens: '0xf62E75A45B1D099CaF4B04C4DA468385A2032e55',
-    eulerEarnGovernedPerspective: '0x7b4065698dF1dd0DF7ad4876A5050657295f836a',
-  },
   sonic: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-sonic/latest/gn`,
     urlChain: 'sonic',
