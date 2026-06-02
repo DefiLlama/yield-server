@@ -47,10 +47,15 @@ const starknetTotalAssetsAbi = {
 
 const DAY = 24 * 3600;
 const YEAR = 365 * DAY;
-// Strategies report (rebalance) roughly every 24h with up to ~10min slack.
-// Sampling exactly at `now - 1d` / `now - 7d` can land *before* the previous
-// report, which would underreport yield by a full period. Push samples back by
-// 1h to guarantee we're past the previous report on both windows.
+// ForgeYields strategies report (rebalance) on a ~24h cadence with up to
+// ~10min of late-reporting slack, so the most recent report lands around
+// `now - 23h50m`. By offsetting the lookback windows back by 1h
+// (tYest = now-25h, t7d = now-7d-1h) we ensure pYest / p7d fall *before*
+// that report — so pYest reflects the previous cycle and pNow the latest,
+// capturing exactly one (resp. seven) full yield cycle(s) in the ratio.
+// Using `now - 24h` directly would risk placing both samples inside the
+// same cycle (pNow/pYest ≈ 1 → APY ≈ 0). The `^(YEAR / Δt)` annualization
+// below correctly handles the resulting ~25h vs 24h denominator bias.
 const REPORT_MARGIN = 60 * 60;
 const SHARE_UNIT = '1000000000000000000'; // 1e18 shares
 const convertToAssetsAbi =
