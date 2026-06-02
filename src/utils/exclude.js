@@ -414,6 +414,7 @@ const excludeAdaptors = [
   'qidao',
   'crosscurve',
   'benddao-lending-v1',
+  'moar-market',
 ];
 
 const excludePools = [
