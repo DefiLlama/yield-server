@@ -8,10 +8,9 @@ const eulerEarnLensAbi = require('./eulerEarnLens.abi.json');
 
 // ---------------------------------------------------------------------------
 // Hybrid architecture:
-// - EVK lend vaults come from the subgraph for broad coverage
+// - EVK lend vaults are discovered from the subgraph, then priced from live lens data
 // - Euler Earn vault inclusion and vault state come from live lens/governance calls
 // - Eliminates scanning millions of blocks per chain on every run
-// - Asset symbol parsed from vault symbol (e{SYMBOL}-{N}), decimals from subgraph
 // ---------------------------------------------------------------------------
 
 const SUBGRAPH_BASE =
@@ -137,16 +136,6 @@ const EVK_QUERY = `{
     id
     name
     symbol
-    asset
-    decimals
-    supplyCap
-    borrowCap
-    state {
-      cash
-      totalBorrows
-      supplyApy
-      borrowApy
-    }
   }
 }`;
 
@@ -169,6 +158,10 @@ const eulerEarnVaultInfoFullAbi = eulerEarnLensAbi.find(
 );
 const vaultInfoFullAbi = lensAbi.find((m) => m.name === 'getVaultInfoFull');
 const toNumber = (value) => Number(value?.toString?.() ?? value);
+const chunk = (arr, size) =>
+  Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+    arr.slice(i * size, i * size + size)
+  );
 
 const getSupplyApyFromVaultInfo = (info) => {
   const rateInfo = info?.irmInfo?.interestRateInfo?.[0];
@@ -176,6 +169,14 @@ const getSupplyApyFromVaultInfo = (info) => {
   return supplyApy === undefined || supplyApy === null
     ? null
     : toNumber(supplyApy) / APY_DIVISOR;
+};
+
+const getBorrowApyFromVaultInfo = (info) => {
+  const rateInfo = info?.irmInfo?.interestRateInfo?.[0];
+  const borrowApy = rateInfo?.borrowAPY ?? rateInfo?.[3];
+  return borrowApy === undefined || borrowApy === null
+    ? null
+    : toNumber(borrowApy) / APY_DIVISOR;
 };
 
 const getVerifiedEarnVaults = async (chain, config) => {
@@ -220,6 +221,36 @@ const getEulerEarnVaults = async (chain, config, verifiedEarnVaults) => {
     );
     return [];
   }
+};
+
+const getEvkVaultInfoMap = async (chain, config, evkVaults) => {
+  if (!config.vaultLens || evkVaults.length === 0) return {};
+
+  const map = {};
+  for (const vaultChunk of chunk(evkVaults, 25)) {
+    try {
+      const { output } = await sdk.api.abi.multiCall({
+        calls: vaultChunk.map((v) => ({
+          target: config.vaultLens,
+          params: [v.id],
+        })),
+        abi: vaultInfoFullAbi,
+        chain,
+        permitFailure: true,
+      });
+
+      output.forEach((result, i) => {
+        if (result?.output) map[vaultChunk[i].id.toLowerCase()] = result.output;
+      });
+    } catch (err) {
+      console.error(
+        `Error fetching EVK vault info batch for ${chain}:`,
+        err.message || err
+      );
+    }
+  }
+
+  return map;
 };
 
 const getEarnStrategyApyMap = async (chain, config, earnVaults) => {
@@ -282,14 +313,23 @@ const getApys = async () => {
         );
 
         const evkVaults = evkData.eulerVaults || [];
+        const evkVaultInfoMap = await getEvkVaultInfoMap(
+          chain,
+          config,
+          evkVaults
+        );
 
         // Filter to active vaults for pool output (exclude frozen caps)
         const activeEvkVaults = evkVaults.filter(
-          (v) =>
-            v.state &&
-            Number(v.state.supplyApy) > 0 &&
-            !isCapFrozen(Number(v.supplyCap)) &&
-            !isCapFrozen(Number(v.borrowCap))
+          (v) => {
+            const info = evkVaultInfoMap[v.id.toLowerCase()];
+            return (
+              info &&
+              getSupplyApyFromVaultInfo(info) > 0 &&
+              !isCapFrozen(toNumber(info.supplyCap)) &&
+              !isCapFrozen(toNumber(info.borrowCap))
+            );
+          }
         );
 
         // Fetch real LTV from lens contract so vaults appear in lendBorrow API
@@ -320,7 +360,8 @@ const getApys = async () => {
                 ...ltvInfo.map((l) => Number(l.borrowLTV))
               );
               if (maxBorrowLTV > 0) {
-                ltvMap[activeEvkVaults[i].id] = maxBorrowLTV / 10000;
+                ltvMap[activeEvkVaults[i].id.toLowerCase()] =
+                  maxBorrowLTV / 10000;
               }
             }
           } catch (err) {
@@ -333,7 +374,9 @@ const getApys = async () => {
 
         // Collect unique asset addresses and fetch prices
         const assets = new Set([
-          ...activeEvkVaults.map((v) => v.asset),
+          ...activeEvkVaults.map(
+            (v) => evkVaultInfoMap[v.id.toLowerCase()].asset
+          ),
           ...earnVaults.map((v) => v.asset),
         ]);
         const priceKeys = [...assets].map((a) => `${chain}:${a}`).join(',');
@@ -346,30 +389,33 @@ const getApys = async () => {
         // --- Build EVK pools ---
         const evkPools = activeEvkVaults
           .map((v) => {
-            const price = prices.coins[`${chain}:${v.asset}`]?.price;
+            const info = evkVaultInfoMap[v.id.toLowerCase()];
+            const price = prices.coins[`${chain}:${info.asset}`]?.price;
             if (price === undefined || price === null) return null;
 
-            const assetSymbol = parseAssetSymbol(v.symbol);
-            const assetDecimals = Number(v.decimals);
-            const cash = Number(v.state.cash) / 10 ** assetDecimals;
-            const borrows = Number(v.state.totalBorrows) / 10 ** assetDecimals;
-            const totalSupplyUsd = (cash + borrows) * price;
+            const assetSymbol = info.assetSymbol || parseAssetSymbol(v.symbol);
+            const assetDecimals = toNumber(info.assetDecimals);
+            const totalSupply =
+              toNumber(info.totalAssets) / 10 ** assetDecimals;
+            const borrows =
+              toNumber(info.totalBorrowed) / 10 ** assetDecimals;
+            const totalSupplyUsd = totalSupply * price;
             const totalBorrowUsd = borrows * price;
 
-            const vaultAddr = ethersUtils.getAddress(v.id);
-            const assetAddr = ethersUtils.getAddress(v.asset);
-            const ltv = ltvMap[v.id];
+            const vaultAddr = ethersUtils.getAddress(info.vault || v.id);
+            const assetAddr = ethersUtils.getAddress(info.asset);
+            const ltv = ltvMap[v.id.toLowerCase()];
             return {
               pool: vaultAddr,
               chain,
               project: 'euler-v2',
               symbol: assetSymbol,
-              poolMeta: v.name,
+              poolMeta: info.vaultName || v.name,
               tvlUsd: totalSupplyUsd - totalBorrowUsd,
               totalSupplyUsd,
               totalBorrowUsd,
-              apyBase: Number(v.state.supplyApy) / APY_DIVISOR,
-              apyBaseBorrow: Number(v.state.borrowApy) / APY_DIVISOR,
+              apyBase: getSupplyApyFromVaultInfo(info),
+              apyBaseBorrow: getBorrowApyFromVaultInfo(info),
               underlyingTokens: [assetAddr],
               ltv: ltv !== undefined ? ltv : undefined,
               url: `https://app.euler.finance/lend/${vaultAddr}?network=${config.urlChain}`,
