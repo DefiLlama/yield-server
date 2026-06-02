@@ -9,7 +9,7 @@ const USTB = {
     solana: 'CCz3SGVziFeLYk2xfEstkiqJfYkjaSWb2GCABYsVcjo2',
 };
 const USTB_ORACLE = '0x289B5036cd942e619E1Ee48670F98d214E745AAC';
-const project = 'superstate-ustb';
+const project = 'invesco-ustb';
 const symbol = 'USTB';
 
 const apy = async () => {

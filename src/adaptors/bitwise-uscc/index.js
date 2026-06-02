@@ -8,7 +8,7 @@ const USCC = {
     solana: 'BTRR3sj1Bn2ZjuemgbeQ6SCtf84iXS81CS7UDTSxUCaK',
 };
 const USCC_ORACLE = '0xAfFd8F5578E8590665de561bdE9E7BAdb99300d9';
-const project = 'superstate-uscc';
+const project = 'bitwise-uscc';
 const symbol = 'USCC';
 
 const apy = async () => {
