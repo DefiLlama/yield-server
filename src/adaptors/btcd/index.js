@@ -64,6 +64,20 @@ async function computeApyBase() {
   } catch (e) {
     return 0;
   }
+  if (
+    !latest ||
+    typeof latest.number !== 'number' ||
+    typeof latest.timestamp !== 'number'
+  ) {
+    return 0;
+  }
+  if (
+    !old ||
+    typeof old.block !== 'number' ||
+    typeof old.timestamp !== 'number'
+  ) {
+    return 0;
+  }
   if (old.block < SBTCD_YIELD_TURNED_ON_BLOCK) return 0;
   let nowVal, oldVal;
   try {
