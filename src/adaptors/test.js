@@ -55,6 +55,8 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'token',
       'pricePerShare',
       'marketKey',
+      'collateralMarketKey',
+      'poolKind',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
@@ -217,6 +219,13 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       marketKey: {
         type: 'string',
       },
+      collateralMarketKey: {
+        type: 'string',
+      },
+      poolKind: {
+        type: 'string',
+        values: ['routing_collateral'],
+      },
     };
 
     apy.forEach((pool) => {
@@ -231,6 +240,11 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
           if (rule.type !== undefined) {
             test(`${field} field of pool with id ${pool.pool} should be a ${rule.type}`, () => {
               expect(typeof pool[field]).toBe(rule.type);
+            });
+          }
+          if (rule.values !== undefined) {
+            test(`${field} field of pool with id ${pool.pool} should be one of ${rule.values.join(', ')}`, () => {
+              expect(rule.values).toContain(pool[field]);
             });
           }
           if (rule.max !== undefined && rule.min !== undefined) {
