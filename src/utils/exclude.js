@@ -433,6 +433,7 @@ const excludeAdaptors = [
   'affine-defi-earn',
   'maverick-v1',
   'sensi',
+  'wasabi-perps',
 ];
 
 const excludePools = [
