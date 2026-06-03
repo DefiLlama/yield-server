@@ -76,11 +76,11 @@ const apy = async () => {
   );
   events.sort((a, b) => a.ts - b.ts);
 
-  // Anchor selection. With <2 events we still try with whatever we have
-  // (early launch days); the fallback collapses both anchors to the same
-  // point, yielding apyBase = 0 rather than null — preserves a stable
-  // last value for downstream charts.
-  let apyBase = 0;
+  // Anchor selection. With <2 events we can't compute a meaningful
+  // 7-day rate (early launch days). Leave apyBase as null so the value
+  // is not ingested into the DefiLlama time-series — a 0 would be read
+  // as "APY was 0%" and skew downstream smoothing / averages.
+  let apyBase = null;
   if (events.length >= 2) {
     const endEvent = events[events.length - 1];
     const startTarget = endEvent.ts - LOOKBACK_DAYS * SECONDS_PER_DAY;
@@ -127,6 +127,11 @@ const apy = async () => {
   const iTryPrice = priceResp.data.coins[priceKey]?.price ?? 0;
   const tvlUsd = (Number(totalAssetsRaw) / 1e18) * iTryPrice;
 
+  // Current pricePerShare for the ERC-4626 vault: 1 wiTRY → N iTRY at the
+  // latest block. Sampled live (not from the APY anchors) so the UI always
+  // shows the current redemption rate.
+  const pricePerShare = await getRateAtBlock(latest.number);
+
   return [
     {
       pool: `${WITRY.toLowerCase()}-ethereum`,
@@ -136,6 +141,7 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       underlyingTokens: [ITRY],
+      pricePerShare,
       poolMeta: 'APY · distribution-anchored 7d',
       url: 'https://app.brix.money',
     },
