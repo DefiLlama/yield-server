@@ -686,7 +686,7 @@ async function getPoolData(
       apyRewardBorrow,
       underlyingTokens: [token],
       url: `https://app.evaa.finance/token/${tokenSymbol}?pool=${poolName}`,
-      marketKey: masterAddress,
+      routeGroupKey: masterAddress,
       totalSupplyUsd,
       totalBorrowUsd,
       availableBorrowUsd,

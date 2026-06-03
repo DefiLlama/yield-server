@@ -57,7 +57,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'isIntrinsicSource',
       'token',
       'pricePerShare',
-      'marketKey',
+      'routeGroupKey',
       'underlyingStateKey',
       'poolKind',
     ];
@@ -221,7 +221,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       borrowToken: {
         type: 'string',
       },
-      marketKey: {
+      routeGroupKey: {
         type: 'string',
       },
       underlyingStateKey: {

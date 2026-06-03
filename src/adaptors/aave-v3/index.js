@@ -227,7 +227,7 @@ const getApy = async (market) => {
           borrowToken: pool.tokenAddress,
         }),
         poolMeta: ethereumMarkets[market] ?? null,
-        marketKey: protocolDataProvider.toLowerCase(),
+        routeGroupKey: protocolDataProvider.toLowerCase(),
       };
     })
     .filter((i) => Boolean(i));

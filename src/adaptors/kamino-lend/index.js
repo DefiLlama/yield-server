@@ -123,7 +123,7 @@ const getApy = async () => {
                     ltv: Number(r.maxLtv),
                     borrowable:
                         reserveData?.status === 0 && reserveData.borrowLimit > 0n,
-                    marketKey: market.lendingMarket,
+                    routeGroupKey: market.lendingMarket,
                 };
             });
         })

@@ -86,7 +86,7 @@ const main = async () => {
       project: 'save',
       symbol: `${reserveConfig.liquidityToken.symbol}`,
       poolMeta: secondaryString,
-      marketKey: reserveData.reserve.lendingMarket,
+      routeGroupKey: reserveData.reserve.lendingMarket,
       tvlUsd,
       apyBase,
       apyReward,

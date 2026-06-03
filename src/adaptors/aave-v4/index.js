@@ -318,7 +318,7 @@ const getApy = async (chain) => {
         poolKind: 'routing_reserve',
         ltv,
         borrowable,
-        marketKey: entry.spoke.toLowerCase(),
+        routeGroupKey: entry.spoke.toLowerCase(),
         url: asset.url,
         poolMeta: `${asset.poolMeta} / ${spokeName}`,
       };

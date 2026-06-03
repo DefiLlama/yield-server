@@ -9,7 +9,7 @@ const eulerEarnLensAbi = require('./eulerEarnLens.abi.json');
 // Euler v2 EVK vaults are both lend/debt markets and possible collateral assets
 // for other EVK markets. Vault rows keep the real supply/borrow state; separate
 // `routing_collateral` rows model the allowed collateral -> debt links for
-// downstream borrow routers using `marketKey` and `underlyingStateKey`.
+// downstream borrow routers using `routeGroupKey` and `underlyingStateKey`.
 // ---------------------------------------------------------------------------
 // Hybrid architecture:
 // - EVK lend vaults are discovered from the subgraph, then priced from live lens data
@@ -384,7 +384,7 @@ const getApys = async () => {
               pool: vaultAddr,
               chain,
               project: 'euler-v2',
-              marketKey: vaultAddr.toLowerCase(),
+              routeGroupKey: vaultAddr.toLowerCase(),
               symbol: assetSymbol,
               poolMeta: info.vaultName || v.name,
               tvlUsd: totalSupplyUsd - totalBorrowUsd,
@@ -401,15 +401,17 @@ const getApys = async () => {
             };
           })
           .filter(Boolean);
-        const evkPoolMarketKeys = new Set(evkPools.map((p) => p.marketKey));
+        const evkPoolRouteGroupKeys = new Set(
+          evkPools.map((p) => p.routeGroupKey)
+        );
 
         const collateralRoutePools = activeEvkVaults
           .flatMap((v) => {
             const debtInfo = evkVaultInfoMap[v.id.toLowerCase()];
             const debtAssetAddr = ethersUtils.getAddress(debtInfo.asset);
             const debtVaultAddr = ethersUtils.getAddress(debtInfo.vault || v.id);
-            const debtMarketKey = debtVaultAddr.toLowerCase();
-            if (!evkPoolMarketKeys.has(debtMarketKey)) return [];
+            const debtRouteGroupKey = debtVaultAddr.toLowerCase();
+            if (!evkPoolRouteGroupKeys.has(debtRouteGroupKey)) return [];
 
             return (debtInfo.collateralLTVInfo || []).map((ltvInfo) => {
               const borrowLtv = getBorrowLtv(ltvInfo);
@@ -451,8 +453,8 @@ const getApys = async () => {
                 chain,
                 project: 'euler-v2',
                 poolKind: 'routing_collateral',
-                marketKey: debtMarketKey,
-                ...(evkPoolMarketKeys.has(underlyingStateKey) && {
+                routeGroupKey: debtRouteGroupKey,
+                ...(evkPoolRouteGroupKeys.has(underlyingStateKey) && {
                   underlyingStateKey,
                 }),
                 symbol: collateralSymbol,

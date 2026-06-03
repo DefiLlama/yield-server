@@ -92,7 +92,7 @@ const poolsFunction = async () => {
         borrowable: !pool.borrowPaused,
         underlyingTokens: [`0x${pool.token}`],
         poolMeta: pool.name,
-        marketKey: pool.marketID,
+        routeGroupKey: pool.marketID,
         url: `https://app.current.finance/market/${pool.marketType}/${pool.token}`,
       };
     });

@@ -8,7 +8,7 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 // Compound v3 has one Comet per base/debt asset, with shared borrow state and
 // separate collateral configs. The Comet row carries the debt-side metrics;
 // `routing_collateral` rows identify valid collateral legs so downstream borrow
-// routers can join them by `marketKey` without duplicating Comet borrow data.
+// routers can join them by `routeGroupKey` without duplicating Comet borrow data.
 const markets = [
   {
     address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3',
@@ -300,7 +300,7 @@ const main = async (pool) => {
     tvlUsd: collateralTotalSupplyUsd[i],
     apy: 0,
     underlyingTokens: [t],
-    marketKey: pool.address.toLowerCase(),
+    routeGroupKey: pool.address.toLowerCase(),
     totalSupplyUsd: collateralTotalSupplyUsd[i],
     borrowToken: pool.underlying,
     ltv: assetInfo[i].borrowCollateralFactor / 1e18,
@@ -313,7 +313,7 @@ const main = async (pool) => {
     symbol: pool.underlyingSymbol,
     chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
     project: 'compound-v3',
-    marketKey: pool.address.toLowerCase(),
+    routeGroupKey: pool.address.toLowerCase(),
     tvlUsd: totalSupplyUsd - totalBorrowUsd,
     apyBase,
     apyReward,
