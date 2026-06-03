@@ -418,6 +418,21 @@ const excludeAdaptors = [
   'tapp-exchange',
   'primex-finance',
   'y2k-v1',
+  'joe-v2',
+  'aurelius',
+  'metavault.trade',
+  'goat-protocol',
+  'strx-finance',
+  'libre-swap',
+  'line-token-rewards',
+  'chateau',
+  'superlend',
+  'adrastea-lst',
+  'openleverage',
+  'clober-v2',
+  'affine-defi-earn',
+  'maverick-v1',
+  'sensi',
 ];
 
 const excludePools = [
