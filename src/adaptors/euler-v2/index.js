@@ -6,6 +6,10 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const lensAbi = require('./lens.abi.json');
 const eulerEarnLensAbi = require('./eulerEarnLens.abi.json');
 
+// Euler v2 EVK vaults are both lend/debt markets and possible collateral assets
+// for other EVK markets. Vault rows keep the real supply/borrow state; separate
+// `routing_collateral` rows model the allowed collateral -> debt links for
+// downstream borrow routers using `marketKey` and `underlyingStateKey`.
 // ---------------------------------------------------------------------------
 // Hybrid architecture:
 // - EVK lend vaults are discovered from the subgraph, then priced from live lens data
@@ -432,7 +436,7 @@ const getApys = async () => {
               const collateralVaultAddr = ethersUtils.getAddress(
                 collateralInfo.vault || collateralVault
               );
-              const collateralMarketKey = collateralVaultAddr.toLowerCase();
+              const underlyingStateKey = collateralVaultAddr.toLowerCase();
               const collateralAssetAddr = ethersUtils.getAddress(
                 collateralInfo.asset
               );
@@ -448,8 +452,8 @@ const getApys = async () => {
                 project: 'euler-v2',
                 poolKind: 'routing_collateral',
                 marketKey: debtMarketKey,
-                ...(evkPoolMarketKeys.has(collateralMarketKey) && {
-                  collateralMarketKey,
+                ...(evkPoolMarketKeys.has(underlyingStateKey) && {
+                  underlyingStateKey,
                 }),
                 symbol: collateralSymbol,
                 token: null,
