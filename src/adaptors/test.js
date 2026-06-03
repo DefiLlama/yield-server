@@ -23,6 +23,9 @@ if (process.env.npm_config_fast) {
 } else {
 
 describe(`Running ${process.env.npm_config_adapter} Test`, () => {
+  const isRoutingOnlyPool = (pool) =>
+    ['routing_collateral', 'routing_reserve'].includes(pool.poolKind);
+
   describe('Check for allowed field names', () => {
     const optionalFields = [
       'apy',
@@ -55,7 +58,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'token',
       'pricePerShare',
       'marketKey',
-      'collateralMarketKey',
+      'underlyingStateKey',
       'poolKind',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
@@ -90,6 +93,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
 
     apy.forEach((pool) => {
       test(`Expects pool with id ${pool.pool} to have at least one number apy field`, () => {
+        if (isRoutingOnlyPool(pool)) return;
         expect(
           apyFields.map((field) => Number.isFinite(pool[field]))
         ).toContain(true);
@@ -100,6 +104,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   describe('Check tvl data type', () => {
     apy.forEach((pool) => {
       test(`tvlUsd field of pool with id ${pool.pool} should be number `, () => {
+        if (isRoutingOnlyPool(pool)) return;
         expect(Number.isFinite(pool.tvlUsd)).toBe(true);
       });
     });
@@ -219,12 +224,12 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       marketKey: {
         type: 'string',
       },
-      collateralMarketKey: {
+      underlyingStateKey: {
         type: 'string',
       },
       poolKind: {
         type: 'string',
-        values: ['routing_collateral'],
+        values: ['routing_collateral', 'routing_reserve'],
       },
     };
 
