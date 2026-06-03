@@ -95,9 +95,10 @@ const main = async (body) => {
   // remove potential null/undefined objects in array
   data = data.filter((p) => p);
 
-  // Do not persist Euler route helper rows as v1 yield pools.
-  if (body.adaptor === 'euler-v2') {
+  // Skip routing-only rows in the legacy DB.
+  if (['euler-v2', 'aave-v4'].includes(body.adaptor)) {
     data = data.filter((p) => p.poolKind !== 'routing_collateral');
+    data = data.filter((p) => p.poolKind !== 'routing_reserve');
   }
 
   // cast dtypes
