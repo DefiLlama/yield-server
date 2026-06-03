@@ -5,6 +5,10 @@ const abi = require('./abi.js');
 const { keepFinite } = require('../utils.js');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
+// Compound v3 has one Comet per base/debt asset, with shared borrow state and
+// separate collateral configs. The Comet row carries the debt-side metrics;
+// `routing_collateral` rows identify valid collateral legs so downstream borrow
+// routers can join them by `marketKey` without duplicating Comet borrow data.
 const markets = [
   {
     address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3',
