@@ -244,6 +244,7 @@ const main = async () => {
         availableBorrowUsd,
         borrowable: isBorrowPaused[i] === false,
         apyBaseBorrow,
+        borrowToken: token,
         apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
         debtCeilingUsd: (borrowCaps[i] / 1e18) * price,

@@ -73,6 +73,7 @@ const main = async () => {
       availableBorrowUsd,
       apyBaseBorrow: parseFloat(pool.borrowApy * 100),
       apyRewardBorrow: borrowRewards[pool.coinType] ? parseFloat(borrowRewards[pool.coinType].reduce((prev, curr) => prev + curr.rewardApr, 0) * 100) : null,
+      borrowToken: pool.coinType,
       ltv: Number(parseFloat(collateralFactor ? collateralFactor.collateralFactor : 0).toFixed(2)),
       borrowable: parseFloat(pool.maxBorrowCoin) > 0,
       underlyingTokens: [pool.coinType],

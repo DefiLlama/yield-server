@@ -87,6 +87,7 @@ const poolsFunction = async () => {
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: pool.borrowAPY * 100,
+        borrowToken: `0x${pool.token}`,
         apyRewardBorrow,
         ltv: pool.maxLTV,
         borrowable: !pool.borrowPaused,

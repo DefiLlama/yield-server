@@ -86,6 +86,7 @@ const getApy = async () => {
       totalBorrowUsd: totalBorrowsUsd,
       availableBorrowUsd,
       apyBaseBorrow: apyBaseBorrow,
+      ...(mint && { borrowToken: mint }),
       borrowable: availableBorrowUsd > 0,
     };
   });

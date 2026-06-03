@@ -197,6 +197,7 @@ const fetchMarketData = async (target) => {
       totalBorrowUsd,
       availableBorrowUsd,
       apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+      borrowToken: pool.tokenAddress,
       ltv: poolsReservesConfigurationData.output[i].output.ltv / 10000,
       url,
       borrowable: poolsReservesConfigurationData.output[i].output.borrowingEnabled,

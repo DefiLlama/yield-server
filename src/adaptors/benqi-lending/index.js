@@ -263,6 +263,7 @@ const getApy = async () => {
       availableBorrowUsd,
       borrowable: isBorrowPaused[i] === false,
       apyBaseBorrow,
+      borrowToken: token,
       apyRewardBorrow: Number.isFinite(apyRewardBorrow) ? apyRewardBorrow : 0,
       ltv: marketsInfo[i].collateralFactorMantissa / 10 ** 18,
       url: `https://app.benqi.fi/lending/core/${symbol.toLowerCase()}`,

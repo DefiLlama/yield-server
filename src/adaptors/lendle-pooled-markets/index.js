@@ -132,6 +132,7 @@ const getApy = async () => {
             totalBorrowUsd,
             availableBorrowUsd: tvlUsd,
             apyBaseBorrow,
+            borrowToken: t,
             ltv,
             borrowable,
             poolMeta: frozen ? 'frozen' : null,

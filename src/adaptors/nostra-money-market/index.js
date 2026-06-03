@@ -239,6 +239,7 @@ async function apy() {
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           underlyingTokens: [address],
           apyBaseBorrow: borrowApy,
+          borrowToken: address,
           totalSupplyUsd,
           totalBorrowUsd,
           url: `https://app.nostra.finance/lend-borrow/${name}/deposit`,

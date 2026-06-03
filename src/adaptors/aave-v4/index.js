@@ -257,6 +257,7 @@ const getApy = async (chain) => {
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
+        borrowToken: underlying,
         url: `https://pro.aave.com/explore/asset/${chainId}/${underlying}`,
         poolMeta: c.name,
       };

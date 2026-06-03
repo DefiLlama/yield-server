@@ -44,6 +44,7 @@ const buildDataSource = async (poolArr, depositsStakingInfo, loanType) => {
       totalBorrowUsd,
       apyBase,
       apyBaseBorrow,
+      borrowToken: String(pool.assetId == 0 ? 1 : pool.assetId),
       ltv,
       borrowable,
       availableBorrowUsd,

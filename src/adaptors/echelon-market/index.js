@@ -247,6 +247,7 @@ async function fetchEchelonForChain(chain) {
       apyReward: ((farmingAPTApr ?? 0) + (farmingTHAPTApr ?? 0) + (farmingEsINITApr ?? 0) + (market.symbol.toLowerCase() === 'susde' ? 0 : stakingSupplyApr ?? 0)) * 100,
       apyBaseBorrow: (lendingBorrowApr ?? 0) * 100,
       apyRewardBorrow: ((farmingEsINITBorrowApr ?? 0) + (farmingAPTAprBorrow ?? 0) + (farmingTHAPTAprBorrow ?? 0)) * 100,
+      borrowToken: assetAddress,
       totalSupplyUsd,
       totalBorrowUsd,
       availableBorrowUsd,

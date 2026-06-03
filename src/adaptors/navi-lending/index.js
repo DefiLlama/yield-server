@@ -30,6 +30,7 @@ const poolsFunction = async () => {
       totalBorrowUsd: borrowUsd,
       availableBorrowUsd,
       apyBaseBorrow: parseFloat(pool.base_borrow_rate),
+      ...(pool.coin_type && { borrowToken: pool.coin_type }),
       ltv: parseFloat(pool.max_ltv),
       borrowable: availableBorrowUsd > 0,
       underlyingTokens: pool.coin_type ? [pool.coin_type] : undefined,

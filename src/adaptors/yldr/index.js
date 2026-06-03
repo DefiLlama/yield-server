@@ -51,6 +51,7 @@ async function apy() {
                         availableBorrowUsd,
                         apyBaseBorrow:
                             calculateAPY(reserve.variableBorrowRate).toNumber() * 100,
+                        borrowToken: reserve.underlyingAsset,
                         ltv: reserve.baseLTVasCollateral / 10000,
                         url: `https://yldr.com/lending`,
                         borrowable: reserve.borrowingEnabled,

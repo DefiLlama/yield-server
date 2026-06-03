@@ -217,6 +217,7 @@ const getApy = async (market) => {
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        borrowToken: pool.tokenAddress,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable,
@@ -224,7 +225,6 @@ const getApy = async (market) => {
         ...(isEthereumGhoFacilitator && {
           debtCeilingUsd: borrowCapUsd,
           mintedCoin: 'GHO',
-          borrowToken: pool.tokenAddress,
         }),
         poolMeta: ethereumMarkets[market] ?? null,
         routeGroupKey: protocolDataProvider.toLowerCase(),
@@ -280,6 +280,7 @@ const getApyAptos = async () => {
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: Number(r.variableBorrowRate) / 1e25,
+        borrowToken: r.underlyingAsset,
         ltv: Number(r.baseLTVasCollateral) / 10000,
         url: `https://aptos.aave.com/reserve-overview/?underlyingAsset=${r.underlyingAsset}&marketName=aptos`,
         borrowable: r.borrowingEnabled,

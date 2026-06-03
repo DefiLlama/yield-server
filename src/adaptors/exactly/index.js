@@ -184,6 +184,7 @@ const apy = async () =>
               pool: `${market}-${chain}`.toLowerCase(),
               apyBase: aprToApy(apr),
               apyBaseBorrow: aprToApy(borrowAPR),
+              borrowToken: assets[i],
               ...(shareValue / 1e18 > 0 && { pricePerShare: shareValue / 1e18 }),
               totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / baseUnit,
               totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / baseUnit,
@@ -245,6 +246,7 @@ const apy = async () =>
                 poolMeta,
                 apyBase: aprToApy(fixedDepositAPR, secsToMaturity / 86_400),
                 apyBaseBorrow: aprToApy(minFixedRate / 1e16, secsToMaturity / 86_400),
+                borrowToken: assets[i],
                 totalSupplyUsd:
                   (Number(
                     BigInt(supplied) +

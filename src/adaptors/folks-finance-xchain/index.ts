@@ -65,6 +65,7 @@ async function initPools() {
         symbol: pool.underlyingSymbol,
         tvlUsd: toUsdValue(poolTvl, price, decimals),
         underlyingTokens: [pool.tokenAddress],
+        borrowToken: pool.tokenAddress,
         rewardTokens: [],
         apyReward: 0,
         meta: {

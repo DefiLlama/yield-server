@@ -217,6 +217,7 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
           apyBaseBorrow,
           totalSupplyUsd,
           totalBorrowUsd,
+          borrowToken: underlying,
           borrowable: true,
         }),
         underlyingTokens: [underlying],

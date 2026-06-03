@@ -225,6 +225,7 @@ const getApy = async () => {
       availableBorrowUsd,
       borrowable: isBorrowPaused[i] === false,
       apyBaseBorrow,
+      borrowToken: token,
       apyRewardBorrow,
       ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
     };
