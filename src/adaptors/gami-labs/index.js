@@ -174,7 +174,6 @@ async function processChain(sdkChain, vaults) {
       tvlUsd,
       apyBase,
       apyBase7d,
-      apyBase30d,
       pricePerShare,
       underlyingTokens: [asset.toLowerCase()],
       poolMeta: v.name,
