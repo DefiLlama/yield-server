@@ -95,6 +95,11 @@ const main = async (body) => {
   // remove potential null/undefined objects in array
   data = data.filter((p) => p);
 
+  // Do not persist Euler route helper rows as v1 yield pools.
+  if (body.adaptor === 'euler-v2') {
+    data = data.filter((p) => p.poolKind !== 'routing_collateral');
+  }
+
   // cast dtypes
   // even though we have tests for datatypes, will need to guard against sudden changes
   // from api responses in terms of data types (eg have seen this on lido stETH) which went from
