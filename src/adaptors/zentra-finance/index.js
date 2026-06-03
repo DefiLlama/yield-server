@@ -98,6 +98,7 @@ const apy = async () => {
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: (p.variableBorrowRate / 1e27) * 100,
+        borrowToken: reserve.tokenAddress,
         ltv: cfg.ltv / 10000,
         borrowable: cfg.borrowingEnabled,
         url: `https://zentra.finance/markets/${reserve.symbol.toLowerCase().replace(/\.e$/, '')}`, // remove .e suffix

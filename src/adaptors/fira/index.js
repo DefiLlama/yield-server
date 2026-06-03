@@ -212,6 +212,7 @@ const getUzrPool = async (prices) => {
     totalBorrowUsd,
     availableBorrowUsd,
     underlyingTokens: [USD0PP],
+    borrowToken: USD0,
     rewardTokens: [],
     borrowable: availableBorrowUsd > 0,
     ltv: LTV,

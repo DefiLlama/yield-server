@@ -298,6 +298,7 @@ const apy = async () => {
       totalBorrowUsd: borrowedUsd,
       availableBorrowUsd,
       apyBaseBorrow: borrowAPY,
+      borrowToken: underlyingAsset,
       apyRewardBorrow: borrowRewards.apyReward + merkleBorrowApy,
       ltv: Number(baseLTVasCollateral) / 10000,
       url,

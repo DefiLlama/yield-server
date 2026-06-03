@@ -73,6 +73,7 @@ const apy = async () => {
         market.borrowAPY * 100 > 100
           ? market.borrowAPY
           : market.borrowAPY * 100,
+      ...(underlyingToken && { borrowToken: underlyingToken }),
       totalSupplyUsd: market.supply * market.asset.price,
       totalBorrowUsd: market.borrow * market.asset.price,
     };

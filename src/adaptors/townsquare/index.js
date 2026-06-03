@@ -132,6 +132,7 @@ const apy = async () => {
           apyBaseBorrow,
           borrowable,
           totalBorrowUsd,
+          borrowToken: tokenAddr,
         })
       };
     })

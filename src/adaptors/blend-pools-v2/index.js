@@ -82,6 +82,7 @@ const getApy = async (poolId, backstop, blndPrice) => {
           reserve.config.l_factor > 0,
         // Estimated daily compounding
         apyBaseBorrow: reserve.estBorrowApy * 100,
+        borrowToken: reserve.assetId,
         apyRewardBorrow: borrowEmissionsAPR * 100,
         ltv: FixedMath.toFloat(BigInt(reserve.config.c_factor), 7),
         poolMeta: `${pool.metadata.name} Pool`,

@@ -288,6 +288,7 @@ function exportFormatter(
     underlyingTokens: [underlyingTokens],
     rewardTokens,
     apyBaseBorrow,
+    borrowToken: underlyingTokens,
     apyRewardBorrow,
     totalSupplyUsd,
     totalBorrowUsd,

@@ -88,6 +88,7 @@ const utils = require('../utils');
 
             apyBase: utils.aprToApy(depositApr, 365),
             apyBaseBorrow: utils.aprToApy(borrowApr, 365),
+            borrowToken: denom,
 
             ltv:
               p?.max_loan_to_value != null

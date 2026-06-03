@@ -247,6 +247,12 @@ const getApy = async () => {
           ((supplyRateScaled * SECONDS_PER_DAY + 1) ** DAYS_PER_YEAR - 1) * 100;
         const borrowApy =
           ((borrowRateScaled * SECONDS_PER_DAY + 1) ** DAYS_PER_YEAR - 1) * 100;
+        const underlyingTokenAddress =
+          market_info.underlyingTokenAddress.toLowerCase();
+        const underlyingToken =
+          underlyingTokenAddress === '0x0000000000000000000000000000000000000000'
+            ? '0xAcc15dC74880C9944775448304B263D191c6077F'.toLowerCase()
+            : underlyingTokenAddress;
 
         return {
           pool: `${market.toLowerCase()}-moonbeam`,
@@ -256,12 +262,7 @@ const getApy = async () => {
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           apyBase: supplyApy,
           apyReward: 0,
-          underlyingTokens: [
-            market_info.underlyingTokenAddress.toLowerCase() ===
-            '0x0000000000000000000000000000000000000000'
-              ? '0xAcc15dC74880C9944775448304B263D191c6077F'.toLowerCase()
-              : market_info.underlyingTokenAddress.toLowerCase(),
-          ],
+          underlyingTokens: [underlyingToken],
           rewardTokens: [
             '0x511ab53f793683763e5a8829738301368a2411e3',
             '0xacc15dc74880c9944775448304b263d191c6077f',
@@ -271,6 +272,7 @@ const getApy = async () => {
           totalBorrowUsd,
           availableBorrowUsd,
           apyBaseBorrow: borrowApy,
+          borrowToken: underlyingToken,
           apyRewardBorrow: 0,
           ltv: collateralFactorScaled,
           borrowable: !borrowPaused,
@@ -480,6 +482,7 @@ const getApy = async () => {
           totalBorrowUsd,
           availableBorrowUsd,
           apyBaseBorrow: borrowApy,
+          borrowToken: token_info.address,
           apyRewardBorrow: 0,
           ltv: Number(collateralFactorScaled),
           borrowable: !borrowPaused,
@@ -710,6 +713,7 @@ const getApy = async () => {
           availableBorrowUsd,
           borrowable: !borrowPaused,
           apyBaseBorrow: borrowApy,
+          borrowToken: token_info.address,
           apyRewardBorrow: 0,
           ltv: Number(collateralFactorScaled),
           incentives: [], //helper

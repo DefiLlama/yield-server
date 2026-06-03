@@ -232,6 +232,7 @@ const getApy = async (market) => {
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        borrowToken: pool.tokenAddress,
         apyReward,
         apyRewardBorrow,
         rewardTokens,

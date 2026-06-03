@@ -699,6 +699,7 @@ const main = async () => {
               underlyingTokens: [siloInfo.assetAddress],
               ltv: Number(siloInfo.assetMaxLtvFormatted),
               totalBorrowUsd: Number(Number(siloInfo.totalBorrowValueUSD).toFixed(2)),
+              borrowToken: siloInfo.assetAddress,
               totalSupplyUsd: Number(Number(siloInfo.totalSupplyValueUSD).toFixed(2)),
               poolMeta: `${siloInfo.marketId}`,
               ...(siloInfo.boostedAprFormatted && {

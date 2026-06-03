@@ -183,6 +183,7 @@ const apy = async () => {
       availableBorrowUsd: tvlUsd,
       apyBase,
       apyBaseBorrow,
+      borrowToken: marketInfo.underlying,
       borrowable: true,
       apyReward: apyReward,
       rewardTokens: rewardTokens,

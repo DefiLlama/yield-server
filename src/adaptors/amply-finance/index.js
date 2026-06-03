@@ -127,6 +127,7 @@ const getApy = async (chain) => {
       totalBorrowUsd,
       availableBorrowUsd,
       apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+      borrowToken: pool.tokenAddress,
       ltv: poolsReservesConfigurationData[i].ltv / 10000,
       borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
     };

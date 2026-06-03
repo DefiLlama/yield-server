@@ -120,6 +120,7 @@ const getApy = async () => {
                     totalBorrowUsd: Number(r.totalBorrowUsd),
                     availableBorrowUsd: getAvailableBorrowUsd(r, reserveData),
                     apyBaseBorrow: Number(r.borrowApy) * 100,
+                    borrowToken: r.liquidityTokenMint,
                     ltv: Number(r.maxLtv),
                     borrowable:
                         reserveData?.status === 0 && reserveData.borrowLimit > 0n,

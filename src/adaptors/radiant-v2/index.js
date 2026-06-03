@@ -213,6 +213,7 @@ const fetchPoolsFromLendingPool = async (chain, lendingPool, protocolDataProvide
       totalBorrowUsd,
       availableBorrowUsd: tvlUsd,
       apyBaseBorrow,
+      borrowToken: t,
       ltv,
       borrowable,
       poolMeta: poolMeta || (frozen ? 'frozen' : null),

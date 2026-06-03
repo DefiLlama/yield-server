@@ -24,6 +24,7 @@ const apy = async () => {
       tvlUsd,
       apyBase: Number(p.deposit_apy),
       apyBaseBorrow: Number(p.borrow_apy),
+      borrowToken: handler.tokenAddress,
       totalSupplyUsd,
       totalBorrowUsd,
       underlyingTokens: [handler.tokenAddress],
