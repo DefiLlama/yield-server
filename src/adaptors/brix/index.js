@@ -142,6 +142,7 @@ const apy = async () => {
       apyBase,
       underlyingTokens: [ITRY],
       pricePerShare,
+      isIntrinsicSource: true,
       poolMeta: 'APY · distribution-anchored 7d',
       url: 'https://app.brix.money',
     },
