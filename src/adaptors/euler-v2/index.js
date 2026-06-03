@@ -20,6 +20,7 @@ const chains = {
   ethereum: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-mainnet/latest/gn`,
     urlChain: 'ethereum',
+    networkId: 1,
     vaultLens: '0x83801C7BbeEFa54B91F8A07E36D81515a0Fc5b60',
     eulerEarnVaultLens: '0x20954C32Bc063a125036b2563ca74fa98b5013D9',
     eulerEarnGovernedPerspective: '0x492e9FE1289d43F8bB6275237BF16c9248C74D44',
@@ -27,6 +28,7 @@ const chains = {
   avax: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-avalanche/latest/gn`,
     urlChain: 'avalanche',
+    networkId: 43114,
     vaultLens: '0xcC5F7593a4D5974F84A30B28Bd3fdb374319a254',
     eulerEarnVaultLens: '0xe58989e0E3f20f2e56fD407C6E28fe63675fDdB8',
     eulerEarnGovernedPerspective: '0x23559eF969252b81d8DA2b86a76D85fb602860Ad',
@@ -34,6 +36,7 @@ const chains = {
   bsc: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-bsc/latest/gn`,
     urlChain: 'bnbsmartchain',
+    networkId: 56,
     vaultLens: '0x84641751808f85F54344369036594E1a7301a414',
     eulerEarnVaultLens: '0x079E485A869d2cEca0dCbB96A8308e6d972aB57f',
     eulerEarnGovernedPerspective: '0xEF7599ef1CB0ec48ED6f4174641462D6919A7CE2',
@@ -41,6 +44,7 @@ const chains = {
   base: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-base/latest/gn`,
     urlChain: 'base',
+    networkId: 8453,
     vaultLens: '0x3530dA02ceC2818477888FdC77e777b566B6db4C',
     eulerEarnVaultLens: '0x0BBf9eE761bFF1c4d64dB608781D5e3beFeed875',
     eulerEarnGovernedPerspective: '0x08B817C17d84DF89AA371084D910081a5Cc04724',
@@ -48,6 +52,7 @@ const chains = {
   unichain: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-unichain/latest/gn`,
     urlChain: 'unichain',
+    networkId: 130,
     vaultLens: '0xd40DD19eD88a949436f784877A1BB59660ee8DE3',
     eulerEarnVaultLens: '0x3a373AF9759ac6546A6BFa6eAAbb0B8fc1E1d241',
     eulerEarnGovernedPerspective: '0x16F187C4EFCCbbF5B530A9c64447B89c4D73F3F2',
@@ -55,6 +60,7 @@ const chains = {
   arbitrum: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-arbitrum/latest/gn`,
     urlChain: 'arbitrumone',
+    networkId: 42161,
     vaultLens: '0x59d28aF1fC4A52EE402C9099BeCEf333366184Df',
     eulerEarnVaultLens: '0x15971F66916d402646ad3DEaE482ccf37b2100ef',
     eulerEarnGovernedPerspective: '0xeE3de4507cFAc8756634dC5272B4A6BB7f00C49E',
@@ -62,6 +68,7 @@ const chains = {
   linea: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-linea/latest/gn`,
     urlChain: 'lineamainnet',
+    networkId: 59144,
     vaultLens: '0xd20E9D6cfa0431aC306cC9906896a7BC0BE0Db64',
     eulerEarnVaultLens: '0xF8074bbcC6e9c04EB6d3Fc69A5D502Ca774f663C',
     eulerEarnGovernedPerspective: '0xb42a9DD67bD6b48940A862C0f0c8a6C5DD26582f',
@@ -69,6 +76,7 @@ const chains = {
   monad: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-monad/latest/gn`,
     urlChain: 'monad',
+    networkId: 143,
     vaultLens: '0x15d1Cc54fB3f7C0498fc991a23d8Dc00DF3c32A0',
     eulerEarnVaultLens: '0x78f40a9822d170D7bC275986Dc2a4eF02C972367',
     eulerEarnGovernedPerspective: '0xe4A695d715732db3d694E30EC57b1acc8cC4368b',
@@ -76,6 +84,7 @@ const chains = {
   plasma: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-plasma/latest/gn`,
     urlChain: 'plasma',
+    networkId: 9745,
     vaultLens: '0x62FF27a1fBE6024D2933A88D39E0FF877dB4FE0B',
     eulerEarnVaultLens: '0x984F25135BEc8fCabA26A6005c1632BC0DCcFd7C',
     eulerEarnGovernedPerspective: '0xAA8b9729a047568CB0614165509229A86e345Be1',
@@ -83,6 +92,7 @@ const chains = {
   hyperliquid: {
     subgraph: `${SUBGRAPH_BASE}/euler-v2-hyperevm/latest/gn`,
     urlChain: 'hyperliquid',
+    networkId: 999,
     vaultLens: '0x34B90aeCBe2d0b1Bb337799CF0AA9939E1F39c1B',
     eulerEarnVaultLens: '0x2b76970adEAB958956975895a9F1888Ea6E4Ac4A',
     eulerEarnGovernedPerspective: '0x7b27dED9344D9c66FeAF58D151b52d1359aeA807',
@@ -96,11 +106,27 @@ const APY_DIVISOR = 1e25;
 const parseAssetSymbol = (vaultSymbol) =>
   vaultSymbol.replace(/^e/, '').replace(/-\d+$/, '');
 
-// Euler v2 caps use AmountCap encoding (uint16). A value of 0 means "no cap" (unlimited).
-// Values 1-63 decode to at most 64 smallest units (effectively dust/zero).
+const toNumber = (value) => Number(value?.toString?.() ?? value);
+
+// Euler lens returns resolved cap amounts. Tiny non-zero caps mean dust/frozen.
 // Governance sets caps to these tiny values to freeze a vault for wind-down.
 const CAP_FROZEN_THRESHOLD = 64;
 const isCapFrozen = (cap) => cap > 0 && cap < CAP_FROZEN_THRESHOLD;
+const toBigInt = (value) =>
+  value === undefined || value === null ? 0n : BigInt(value.toString());
+
+const getAvailableBorrowUsd = (info, price, decimals) => {
+  const cash = toBigInt(info.totalCash);
+  const borrowed = toBigInt(info.totalBorrowed);
+  const borrowCap = toBigInt(info.borrowCap);
+  const capHeadroom = borrowCap > borrowed ? borrowCap - borrowed : 0n;
+  const availableRaw = cash < capHeadroom ? cash : capHeadroom;
+
+  return (Number(availableRaw.toString()) / 10 ** decimals) * price;
+};
+
+const getBorrowLtv = (ltvInfo) => toNumber(ltvInfo.borrowLTV ?? ltvInfo[1]);
+const getCollateralVault = (ltvInfo) => ltvInfo.collateral ?? ltvInfo[0];
 
 const EVK_QUERY = `{
   eulerVaults(first: 1000) {
@@ -128,7 +154,6 @@ const eulerEarnVaultInfoFullAbi = eulerEarnLensAbi.find(
   (m) => m.name === 'getVaultInfoFull'
 );
 const vaultInfoFullAbi = lensAbi.find((m) => m.name === 'getVaultInfoFull');
-const toNumber = (value) => Number(value?.toString?.() ?? value);
 const chunk = (arr, size) =>
   Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
     arr.slice(i * size, i * size + size)
@@ -303,53 +328,24 @@ const getApys = async () => {
           }
         );
 
-        // Fetch real LTV from lens contract so vaults appear in lendBorrow API
-        const ltvMap = {};
-        if (config.vaultLens && activeEvkVaults.length > 0) {
-          try {
-            const ltvAbi = lensAbi.find(
-              (m) => m.name === 'getRecognizedCollateralsLTVInfo'
-            );
-            const ltvResults = await sdk.api.abi
-              .multiCall({
-                calls: activeEvkVaults.map((v) => ({
-                  target: config.vaultLens,
-                  params: [v.id],
-                })),
-                abi: ltvAbi,
-                chain,
-                permitFailure: true,
-              })
-              .then((r) => r.output.map((o) => o.output));
-
-            for (let i = 0; i < activeEvkVaults.length; i++) {
-              const ltvInfo = ltvResults[i];
-              if (!ltvInfo || ltvInfo.length === 0) continue;
-              // Take max borrowLTV across all recognized collaterals
-              // EVK stores LTV in basis points (10000 = 100%), convert to [0, 1]
-              const maxBorrowLTV = Math.max(
-                ...ltvInfo.map((l) => Number(l.borrowLTV))
-              );
-              if (maxBorrowLTV > 0) {
-                ltvMap[activeEvkVaults[i].id.toLowerCase()] =
-                  maxBorrowLTV / 10000;
-              }
-            }
-          } catch (err) {
-            console.error(
-              `Error fetching LTV for ${chain}:`,
-              err.message || err
-            );
-          }
-        }
-
         // Collect unique asset addresses and fetch prices
-        const assets = new Set([
-          ...activeEvkVaults.map(
+        const assets = new Set(
+          activeEvkVaults.map(
             (v) => evkVaultInfoMap[v.id.toLowerCase()].asset
-          ),
-          ...earnVaults.map((v) => v.asset),
-        ]);
+          )
+        );
+        activeEvkVaults.forEach((v) => {
+          const info = evkVaultInfoMap[v.id.toLowerCase()];
+          (info.collateralLTVInfo || []).forEach((ltvInfo) => {
+            if (getBorrowLtv(ltvInfo) <= 0) return;
+            const collateralVault = getCollateralVault(ltvInfo);
+            if (!collateralVault) return;
+            const collateralInfo =
+              evkVaultInfoMap[collateralVault.toLowerCase()];
+            if (collateralInfo) assets.add(collateralInfo.asset);
+          });
+        });
+        earnVaults.forEach((v) => assets.add(v.asset));
         const priceKeys = [...assets].map((a) => `${chain}:${a}`).join(',');
         if (!priceKeys) return [];
 
@@ -372,25 +368,102 @@ const getApys = async () => {
               toNumber(info.totalBorrowed) / 10 ** assetDecimals;
             const totalSupplyUsd = totalSupply * price;
             const totalBorrowUsd = borrows * price;
+            const availableBorrowUsd = getAvailableBorrowUsd(
+              info,
+              price,
+              assetDecimals
+            );
 
             const vaultAddr = ethersUtils.getAddress(info.vault || v.id);
             const assetAddr = ethersUtils.getAddress(info.asset);
-            const ltv = ltvMap[v.id.toLowerCase()];
             return {
               pool: vaultAddr,
               chain,
               project: 'euler-v2',
+              marketKey: vaultAddr.toLowerCase(),
               symbol: assetSymbol,
               poolMeta: info.vaultName || v.name,
               tvlUsd: totalSupplyUsd - totalBorrowUsd,
               totalSupplyUsd,
               totalBorrowUsd,
+              availableBorrowUsd,
               apyBase: getSupplyApyFromVaultInfo(info),
               apyBaseBorrow: getBorrowApyFromVaultInfo(info),
               underlyingTokens: [assetAddr],
-              ltv: ltv !== undefined ? ltv : undefined,
+              borrowToken: assetAddr,
+              borrowable: availableBorrowUsd > 0,
+              ltv: 0,
               url: `https://app.euler.finance/lend/${vaultAddr}?network=${config.urlChain}`,
             };
+          })
+          .filter(Boolean);
+        const evkPoolMarketKeys = new Set(evkPools.map((p) => p.marketKey));
+
+        const collateralRoutePools = activeEvkVaults
+          .flatMap((v) => {
+            const debtInfo = evkVaultInfoMap[v.id.toLowerCase()];
+            const debtAssetAddr = ethersUtils.getAddress(debtInfo.asset);
+            const debtVaultAddr = ethersUtils.getAddress(debtInfo.vault || v.id);
+            const debtMarketKey = debtVaultAddr.toLowerCase();
+            if (!evkPoolMarketKeys.has(debtMarketKey)) return [];
+
+            return (debtInfo.collateralLTVInfo || []).map((ltvInfo) => {
+              const borrowLtv = getBorrowLtv(ltvInfo);
+              if (borrowLtv <= 0) return null;
+
+              const collateralVault = getCollateralVault(ltvInfo);
+              if (!collateralVault) return null;
+              const collateralInfo =
+                evkVaultInfoMap[collateralVault.toLowerCase()];
+              if (!collateralInfo) return null;
+              if (isCapFrozen(toNumber(collateralInfo.supplyCap))) return null;
+
+              const collateralPrice =
+                prices.coins[`${chain}:${collateralInfo.asset}`]?.price;
+              if (collateralPrice === undefined || collateralPrice === null) {
+                return null;
+              }
+
+              const collateralDecimals = toNumber(collateralInfo.assetDecimals);
+              const collateralTotalSupplyUsd =
+                (toNumber(collateralInfo.totalAssets) /
+                  10 ** collateralDecimals) *
+                collateralPrice;
+              const collateralVaultAddr = ethersUtils.getAddress(
+                collateralInfo.vault || collateralVault
+              );
+              const collateralMarketKey = collateralVaultAddr.toLowerCase();
+              const collateralAssetAddr = ethersUtils.getAddress(
+                collateralInfo.asset
+              );
+              const collateralSymbol =
+                collateralInfo.assetSymbol ||
+                parseAssetSymbol(collateralInfo.vaultSymbol || '');
+              const debtSymbol =
+                debtInfo.assetSymbol || parseAssetSymbol(debtInfo.vaultSymbol);
+
+              return {
+                pool: `${collateralVaultAddr}-${debtVaultAddr}-${chain}`,
+                chain,
+                project: 'euler-v2',
+                poolKind: 'routing_collateral',
+                marketKey: debtMarketKey,
+                ...(evkPoolMarketKeys.has(collateralMarketKey) && {
+                  collateralMarketKey,
+                }),
+                symbol: collateralSymbol,
+                token: null,
+                apy: 0,
+                poolMeta: `${collateralSymbol}/${debtSymbol}`,
+                tvlUsd: collateralTotalSupplyUsd,
+                totalSupplyUsd: collateralTotalSupplyUsd,
+                underlyingTokens: [collateralAssetAddr],
+                borrowToken: debtAssetAddr,
+                borrowable: true,
+                ltv: borrowLtv / 10000,
+                url: `https://app.euler.finance/borrow/${collateralVaultAddr}/${debtVaultAddr}?network=${config.networkId}`,
+              };
+            });
           })
           .filter(Boolean);
 
@@ -442,7 +515,7 @@ const getApys = async () => {
           })
           .filter((p) => p && p.tvlUsd > 100);
 
-        return [...evkPools, ...earnPools];
+        return [...evkPools, ...collateralRoutePools, ...earnPools];
       } catch (err) {
         console.error(`Error processing chain ${chain}:`, err.message || err);
         return [];
@@ -451,6 +524,7 @@ const getApys = async () => {
   );
 
   return await addMerklRewardApy(chainResults.flat(), 'euler', (p) => {
+    if (p.poolKind === 'routing_collateral') return '';
     const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
     return match ? match[0] : p.pool;
   });
