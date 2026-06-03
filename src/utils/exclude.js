@@ -2387,6 +2387,7 @@ const excludePools = [
   'euler-earn-0xa5EeD1615cd883dD6883ca3a385F525e3bEB4E79-plasma',
   'euler-earn-0x9c46EE1f01d2b551048F5fF99a4659D98d04BED1-plasma',
   'euler-earn-0x1c66a1f2E5D9E739DFdee0787f5d0Cc33B5D6189-plasma',
+  '0x0059fd16bc019ffe788d37807533edcf4df06c06-berachain',
 ];
 
 const boundaries = {
