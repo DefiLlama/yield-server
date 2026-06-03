@@ -23,7 +23,7 @@ function mapBackendPoolToDefiLlama(pool) {
   return {
     pool: pool.pool.toLowerCase(),
     chain: utils.formatChain(pool.chain),
-    project: 'nest-amm',
+    project: 'nest-clmm',
     symbol: pool.symbol,
     tvlUsd,
     apyBase:  pool.apyBase === undefined || pool.apyBase === null
