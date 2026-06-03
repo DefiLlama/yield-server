@@ -13,9 +13,9 @@ const VAULTS = [
   // ETHEREUM — Gearbox
   { sdkChain: 'ethereum', address: '0x683faf5bafd88d4c383ccaf3d61c26af2e164409', name: 'Gami Gearbox WBTC', url: 'https://gamilabs.io/vaults/1/0x683faf5bafd88d4c383ccaf3d61c26af2e164409' },
   // BASE — Spectra
-  { sdkChain: 'base', address: '0x776f95321a0285f8bcde149e3264d16dc08da69a', name: 'Gami Spectra USDC', url: 'https://gamilabs.io/vaults/8453/0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a' },
+  { sdkChain: 'base', address: '0x776f95321a0285f8bcde149e3264d16dc08da69a', name: 'Gami Spectra USDC', url: 'https://gamilabs.io/vaults/8453/0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a', isSpectra: true },
   // FLARE — Spectra
-  { sdkChain: 'flare', address: '0x6420a613e936602ca3f1ad5680b3f4d47d473bf1', name: 'Flare XRP Yield Prime', url: 'https://gamilabs.io/vaults/14/0x0c4f32c53d4b91a019c7c9d8da14af140295eef6' },
+  { sdkChain: 'flare', address: '0x6420a613e936602ca3f1ad5680b3f4d47d473bf1', name: 'Flare XRP Yield Prime', url: 'https://gamilabs.io/vaults/14/0x0c4f32c53d4b91a019c7c9d8da14af140295eef6', isSpectra: true },
   // HEMI — Lagoon
   { sdkChain: 'hemi', address: '0x1e32c96757c07775ca4fc796c4f4311722eaf35e', name: 'Hemi USDC', url: 'https://gamilabs.io/vaults/43111/0x1e32c96757c07775ca4fc796c4f4311722eaf35e' },
   // AVAX — Lagoon
@@ -62,6 +62,13 @@ function ppsRatio(ta, ts) {
   const tsNum = Number(ts);
   if (tsNum === 0 || !isFinite(taNum) || !isFinite(tsNum)) return null;
   return taNum / tsNum;
+}
+
+// Spectra MetaVaults use discrete mark-to-market: between revaluations totalAssets exactly
+// equals totalSupply (pps = 1.0). Such a reading carries no measurable yield, so it must not
+// be used as a baseline (annualizing against pps=1.0 produces artificial spikes) nor reported.
+function isResetState(ta, ts) {
+  return ta != null && ts != null && String(ta) === String(ts);
 }
 
 function annualizedApy(ppsNow, ppsPast, days) {
@@ -148,13 +155,16 @@ async function processChain(sdkChain, vaults) {
     const priceUsd = priceMap[`${sdkChain}:${asset.toLowerCase()}`]?.price;
     if (priceUsd == null) return null;
 
+    const isSpectra = !!v.isSpectra;
+
     const tvlUsd = (Number(ta) / 10 ** undDec) * priceUsd;
     const pricePerShare = Number(pps) / 10 ** undDec;
 
     const rNow = ppsRatio(ta, ts);
-    const r1d = ppsRatio(taHist1d[i], tsHist1d[i]);
-    const r7d = ppsRatio(taHist7d[i], tsHist7d[i]);
-    const r30d = ppsRatio(taHist30d[i], tsHist30d[i]);
+    // Spectra: drop historical baselines that are in the reset state (pps=1.0).
+    const r1d = isSpectra && isResetState(taHist1d[i], tsHist1d[i]) ? null : ppsRatio(taHist1d[i], tsHist1d[i]);
+    const r7d = isSpectra && isResetState(taHist7d[i], tsHist7d[i]) ? null : ppsRatio(taHist7d[i], tsHist7d[i]);
+    const r30d = isSpectra && isResetState(taHist30d[i], tsHist30d[i]) ? null : ppsRatio(taHist30d[i], tsHist30d[i]);
 
     const apy1d = annualizedApy(rNow, r1d, 1);
     const apyBase7d = annualizedApy(rNow, r7d, 7);
