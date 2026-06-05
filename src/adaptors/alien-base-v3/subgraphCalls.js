@@ -20,7 +20,7 @@ const query = gql`
       totalValueLockedToken1
       volumeUSD
       feeTier
-      feeProtocol
+      feeProtocol liquidity
       token0 {
         symbol
         id
