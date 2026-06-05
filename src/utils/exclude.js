@@ -352,6 +352,7 @@ const excludeAdaptors = [
   'amnis-finance', // temp only, until fix is in
   'aave-v2',
   'aura', // winding down
+  'bakerfi', // wound down
   'acryptos',
   'mover',
   'velocimeter-v2',
