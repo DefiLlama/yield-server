@@ -435,6 +435,7 @@ const excludeAdaptors = [
   'maverick-v1',
   'sensi',
   'wasabi-perps',
+  'silo-v1',
 ];
 
 const excludePools = [
