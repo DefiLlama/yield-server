@@ -436,6 +436,7 @@ const excludeAdaptors = [
   'sensi',
   'wasabi-perps',
   'silo-v1',
+  'stafi',
 ];
 
 const excludePools = [
