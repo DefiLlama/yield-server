@@ -437,6 +437,7 @@ const excludeAdaptors = [
   'wasabi-perps',
   'silo-v1',
   'stafi',
+  'stlos-liquid-staking',
 ];
 
 const excludePools = [
