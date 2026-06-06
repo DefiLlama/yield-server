@@ -438,6 +438,8 @@ const excludeAdaptors = [
   'silo-v1',
   'stafi',
   'stlos-liquid-staking',
+  'olympus-dao',
+  'tangible-rwa',
 ];
 
 const excludePools = [
