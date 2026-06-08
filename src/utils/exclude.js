@@ -442,6 +442,16 @@ const excludeAdaptors = [
   'olympus-dao',
   'tangible-rwa',
   'radiant-v2',
+  'thorchain-dex',
+  'verse',
+  'superfund',
+  'smartcredit',
+  'sft-protocol',
+  'saucerswap-v1',
+  'nucleus',
+  'blazeswap',
+  'babydogeswap',
+  'apeswap-amm',
 ];
 
 const excludePools = [
