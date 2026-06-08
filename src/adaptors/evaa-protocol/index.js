@@ -694,7 +694,7 @@ async function getPoolData(
       borrowToken: token,
       ltv: Number(assetConfig.collateralFactor) / 10000,
       borrowable,
-      poolMeta: poolName
+      poolMeta: `${poolName} Pool`
     };
   });
 }
