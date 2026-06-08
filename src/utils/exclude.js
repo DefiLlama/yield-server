@@ -249,6 +249,7 @@ const excludeAdaptors = [
   'yieldoor',
   'cove-protocol',
   'lendle-earn',
+  'lendle-pooled-markets',
   'polynomial-liquidity',
   'supervaults',
   'prismalst',
