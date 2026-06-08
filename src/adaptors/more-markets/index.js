@@ -303,7 +303,6 @@ const apy = async () => {
       ltv: Number(baseLTVasCollateral) / 10000,
       url,
       borrowable: borrowingEnabled && isActive && !isPaused,
-      poolMeta: `${name} on Flow EVM`,
     };
   });
 
