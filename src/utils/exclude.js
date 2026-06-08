@@ -441,6 +441,7 @@ const excludeAdaptors = [
   'stlos-liquid-staking',
   'olympus-dao',
   'tangible-rwa',
+  'radiant-v2',
 ];
 
 const excludePools = [
