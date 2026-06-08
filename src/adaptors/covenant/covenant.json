@@ -1,0 +1,64 @@
+[
+  {
+    "type": "event",
+    "name": "CreateMarket",
+    "inputs": [
+      { "name": "marketId", "type": "bytes20", "indexed": true },
+      {
+        "name": "marketParams",
+        "type": "tuple",
+        "components": [
+          { "name": "baseToken", "type": "address" },
+          { "name": "quoteToken", "type": "address" },
+          { "name": "curator", "type": "address" },
+          { "name": "lex", "type": "address" }
+        ]
+      },
+      {
+        "name": "synthTokens",
+        "type": "tuple",
+        "components": [
+          { "name": "aToken", "type": "address" },
+          { "name": "zToken", "type": "address" }
+        ]
+      },
+      { "name": "initData", "type": "bytes" },
+      { "name": "lexData", "type": "bytes" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "function",
+    "name": "getIdToMarketParams",
+    "stateMutability": "view",
+    "inputs": [{ "name": "marketId", "type": "bytes20" }],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          { "name": "baseToken", "type": "address" },
+          { "name": "quoteToken", "type": "address" },
+          { "name": "curator", "type": "address" },
+          { "name": "lex", "type": "address" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "getMarketState",
+    "stateMutability": "view",
+    "inputs": [{ "name": "marketId", "type": "bytes20" }],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          { "name": "baseSupply", "type": "uint256" },
+          { "name": "protocolFeeGrowth", "type": "uint128" },
+          { "name": "authorizedPauseAddress", "type": "address" },
+          { "name": "statusFlag", "type": "uint8" }
+        ]
+      }
+    ]
+  }
+]
