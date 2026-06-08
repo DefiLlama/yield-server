@@ -35,6 +35,8 @@ const scale = (value, decimals) => toNumber(value) / 10 ** Number(decimals);
 const getAssetKey = (hub, assetId) => `${hub.toLowerCase()}:${assetId}`;
 const getReserveKey = (hub, assetId, spoke) =>
   `${getAssetKey(hub, assetId)}:${spoke.toLowerCase()}`;
+const formatPoolMeta = (value) =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 const isUncapped = (cap, maxCap) => toNumber(cap) >= toNumber(maxCap);
 const isReserveActive = (reserve) =>
   reserve.spokeConfig.active &&
@@ -286,7 +288,7 @@ const getApy = async (chain) => {
         apyBaseBorrow,
         borrowToken: underlying,
         url: `https://pro.aave.com/explore/asset/${chainId}/${underlying}`,
-        poolMeta: c.name,
+        poolMeta: formatPoolMeta(c.name),
       };
 
       assetsByKey[underlyingStateKey] = {

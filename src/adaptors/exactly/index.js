@@ -249,7 +249,7 @@ const apy = async () =>
               pool: `${market}-${chain}`.toLowerCase(),
               routeGroupKey: debtRouteGroupKey,
               underlyingStateKey: debtRouteGroupKey,
-              poolMeta: "Variable",
+              poolMeta: "Variable Rate",
               apyBase: aprToApy(apr),
               apyBaseBorrow: aprToApy(borrowAPR),
               borrowToken: assets[i],

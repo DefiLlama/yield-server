@@ -1,6 +1,9 @@
 const axios = require('axios');
 const utils = require('../utils');
 const USDX_ID = 'usdx';
+const EXCLUDED_COLLATERAL_TYPES = new Set([
+  'hbtc-a', // legacy market returned by the Kava CDP API, no longer shown in the Mint UI
+]);
 
 const getPrices = async (addresses) => {
   const prices = (
@@ -69,12 +72,16 @@ const main = async () => {
 
   return parameters
     .filter((e) => e.id)
+    .filter((e) => !EXCLUDED_COLLATERAL_TYPES.has(e.type))
     .map((pool) => {
       const parameter = parameters.find((e) => e.type === pool.type);
       const collateral = dispoisted.find((e) => e.type === pool.type);
       const _borrowed = borrowed.find((e) => e.type === pool.type);
-      const totalSupplyUsd = collateral.amount * prices[pool.id.toLowerCase()];
-      const totalBorrowUsd = _borrowed.amount * usdxPrice;
+      const collateralAmount = collateral?.amount || 0;
+      const borrowedAmount = _borrowed?.amount || 0;
+      const collateralPrice = prices[pool.id.toLowerCase()] || 0;
+      const totalSupplyUsd = collateralAmount * collateralPrice;
+      const totalBorrowUsd = borrowedAmount * usdxPrice;
       const ltv = 1 / Number(parameter.liquidation_ratio);
       const debtCeilingUsd =
         Number(parameter.debt_limit / 10 ** 6) * usdxPrice;
@@ -89,7 +96,6 @@ const main = async () => {
         symbol: pool.symbol,
         tvlUsd: totalSupplyUsd,
         apy: 0,
-        poolMeta: pool.type,
         apyBaseBorrow:
           pool.type === 'busd-b'
             ? 50
@@ -119,6 +125,9 @@ function convertSymbol(symbol) {
       return { id: 'kava-lend', decimals: 6, symbol: 'HARD' };
     case 'hbtc':
       return { id: 'bitcoin', decimals: 8, symbol: 'WBTC' };
+    case 'erc20/tether/usdt':
+    case 'usdt':
+      return { id: 'tether', decimals: 6, symbol: 'USDT' };
     case 'swp':
       return { id: 'kava-swap', decimals: 6, symbol: 'SWP' };
     case 'ukava':
