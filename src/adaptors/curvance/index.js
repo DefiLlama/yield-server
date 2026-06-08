@@ -271,25 +271,27 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
         return [];
       }
 
-      return debtPools.map((debtPool) => ({
-        chain: collateralPool.chain,
-        project: 'curvance',
-        pool: getBorrowPoolId(collateralPool.market, debtPool.market, chain),
-        symbol: collateralPool.symbol,
-        token: null,
-        tvlUsd: debtPool.availableBorrowUsd,
-        apy: 0,
-        apyBaseBorrow: debtPool.apyBaseBorrow,
-        poolMeta: `${debtPool.symbol} borrow`,
-        underlyingTokens: collateralPool.underlyingTokens,
-        borrowToken: debtPool.borrowToken,
-        totalSupplyUsd: collateralPool.totalSupplyUsd,
-        totalBorrowUsd: debtPool.totalBorrowUsd,
-        availableBorrowUsd: debtPool.availableBorrowUsd,
-        borrowable: collateralPool.collateralLtv > 0,
-        ltv: collateralPool.collateralLtv,
-        url: 'https://app.curvance.com',
-      }));
+      return debtPools
+        .filter((debtPool) => debtPool.market !== collateralPool.market)
+        .map((debtPool) => ({
+          chain: collateralPool.chain,
+          project: 'curvance',
+          pool: getBorrowPoolId(collateralPool.market, debtPool.market, chain),
+          symbol: collateralPool.symbol,
+          token: null,
+          tvlUsd: debtPool.availableBorrowUsd,
+          apy: 0,
+          apyBaseBorrow: debtPool.apyBaseBorrow,
+          poolMeta: `${debtPool.symbol} borrow`,
+          underlyingTokens: collateralPool.underlyingTokens,
+          borrowToken: debtPool.borrowToken,
+          totalSupplyUsd: collateralPool.totalSupplyUsd,
+          totalBorrowUsd: debtPool.totalBorrowUsd,
+          availableBorrowUsd: debtPool.availableBorrowUsd,
+          borrowable: collateralPool.collateralLtv > 0,
+          ltv: collateralPool.collateralLtv,
+          url: 'https://app.curvance.com',
+        }));
     });
   });
 
