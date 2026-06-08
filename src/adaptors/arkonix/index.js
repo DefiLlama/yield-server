@@ -77,7 +77,7 @@ const buildPool = async (vault) => {
   const apyBase = vault.apy_7d == null ? NaN : Number(vault.apy_7d);
 
   const pool = {
-    pool: `${vaultAddress}-${chain}`,
+    pool: `${vaultAddress}-${chain}-arkonix`,
     chain: utils.formatChain(chain),
     project: 'arkonix',
     symbol: vault.deposit_asset_symbol || 'UNKNOWN',
