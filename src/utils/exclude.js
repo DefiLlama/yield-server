@@ -452,6 +452,7 @@ const excludeAdaptors = [
   'blazeswap',
   'babydogeswap',
   'apeswap-amm',
+  'd2-finance',
 ];
 
 const excludePools = [
