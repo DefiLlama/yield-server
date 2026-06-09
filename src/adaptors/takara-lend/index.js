@@ -109,7 +109,6 @@ const apy = async () => {
     const pool = `${marketInfo.token}-${chain}`.toLowerCase();
     const underlyingSymbol = marketInfo.underlyingSymbol;
 
-    const poolMeta = `Takara Lend ${underlyingSymbol} Market`;
     const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl));
     const ltv = Number(ethers.utils.formatEther(marketInfo.ltv));
     const totalBorrowUsd = Number(
@@ -175,7 +174,6 @@ const apy = async () => {
       pool,
       chain,
       project,
-      poolMeta,
       ltv,
       tvlUsd,
       totalSupplyUsd,
@@ -183,6 +181,7 @@ const apy = async () => {
       availableBorrowUsd: tvlUsd,
       apyBase,
       apyBaseBorrow,
+      borrowToken: marketInfo.underlying,
       borrowable: true,
       apyReward: apyReward,
       rewardTokens: rewardTokens,

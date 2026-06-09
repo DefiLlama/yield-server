@@ -96,6 +96,7 @@ const main = async () => {
       totalBorrowUsd,
       availableBorrowUsd,
       apyBaseBorrow,
+      borrowToken: reserveData.reserve.liquidity.mintPubkey,
       apyRewardBorrow: apyRewardBorrow > 0 ? apyRewardBorrow : null,
       ltv: reserveData.reserve.config.loanToValueRatio / 100,
       borrowable: borrowLimitUsd > 0,
@@ -106,5 +107,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://solend.fi/pools',
+  url: 'https://save.finance/',
 };

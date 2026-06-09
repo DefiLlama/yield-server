@@ -42,6 +42,9 @@ const getApy = async () => {
   );
 
   const pools = marketsData.map(({ data: market }) => {
+    const collateralToken =
+      market.collateralAddress === TRX_NATIVE ? WTRX : market.collateralAddress;
+
     return {
       pool: market.jtokenAddress,
       chain: utils.formatChain('tron'),
@@ -53,12 +56,9 @@ const getApy = async () => {
         100,
       apyReward: rewards[market.jtokenAddress]['USDDNEW'] * 100,
       rewardTokens: ['TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn'],
-      underlyingTokens: [
-        market.collateralAddress === TRX_NATIVE
-          ? WTRX
-          : market.collateralAddress,
-      ],
+      underlyingTokens: [collateralToken],
       apyBaseBorrow: market.borrowedAPY * 100,
+      borrowToken: collateralToken,
       totalSupplyUsd: Number(market.depositedUSD),
       totalBorrowUsd: Number(market.borrowedUSD),
       ltv: market.collateralFactor,

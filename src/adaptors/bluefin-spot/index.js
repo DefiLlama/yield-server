@@ -27,7 +27,7 @@ const apy = async () => {
         tvlUsd: Number(stats.tvlUsd),
         apyBase,
         apyReward: apyReward > 0 ? apyReward : 0,
-        poolMeta: `(${Number(p.feeRate)}%)`,
+        poolMeta: `${Number(p.feeRate)}%`,
         url: `https://trade.bluefin.io/deposit/${p.pool}`,
       };
     })

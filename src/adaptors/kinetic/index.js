@@ -313,6 +313,7 @@ const getApy = async (comptroller) => {
       availableBorrowUsd,
       borrowable: marketsInfo[i].isListed,
       apyBaseBorrow,
+      borrowToken: token,
       apyRewardBorrow: Number.isFinite(apyRewardBorrow) ? apyRewardBorrow : 0,
       ltv: marketsInfo[i].collateralFactorMantissa / 10 ** 18,
     };

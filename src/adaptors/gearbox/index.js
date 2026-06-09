@@ -1148,6 +1148,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
           (Number(pool.baseInterestRate) / 1e27)) /
         100,
       apyRewardBorrow: 0,
+      borrowToken: pool.underlying,
       totalSupplyUsd: Number(totalSupplyUsd) || 0,
       totalBorrowUsd: Number(totalBorrowUsd) || 0,
       ltv: 0,

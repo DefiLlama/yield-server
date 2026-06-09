@@ -202,7 +202,7 @@ module.exports.EstimatedFees = (
   feeTier,
   volume,
   feeProtocol,
-  poolTicks
+  liquidity
 ) => {
   const P = priceAssumptionValue;
   let Pl = priceRangeValue[0];
@@ -231,13 +231,12 @@ module.exports.EstimatedFees = (
     Number(decimalsToken1 || 18)
   );
 
-  let currentTick = getTickFromPrice(
-    P,
-    decimalsToken0 || '18',
-    decimalsToken1 || '18'
-  );
-
-  const L = getLiquidityFromTick(poolTicks, currentTick);
+  const L = Array.isArray(liquidity)
+    ? getLiquidityFromTick(
+        liquidity,
+        getTickFromPrice(P, decimalsToken0 || '18', decimalsToken1 || '18')
+      )
+    : new bn(liquidity);
 
   const estimatedFee =
     P >= Pl && P <= Pu ? estimateFee(deltaL, L, volume, feeTier) : 0;

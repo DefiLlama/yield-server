@@ -1,12 +1,18 @@
 const utils = require('../utils');
 
+// Your Blaze API helper endpoint (adjust host/port as needed)
 const BACKEND_POOLS_URL =
   process.env.NEST_DEFI_LLAMA_POOLS_URL ||
   'https://blaze.nest.aegas.it/api/defillama/pools';
 
+/**
+ * Map backend DefiLlamaPoolDto into DefiLlama Pool interface.
+ * Performs basic validation on required fields to avoid corrupted records.
+ */
 function mapBackendPoolToDefiLlama(pool) {
   if (!pool) return null;
 
+  // Validate required fields
   if (!pool.pool || typeof pool.pool !== 'string') return null;
   if (!pool.chain || typeof pool.chain !== 'string') return null;
   if (!pool.symbol || typeof pool.symbol !== 'string') return null;
@@ -17,16 +23,15 @@ function mapBackendPoolToDefiLlama(pool) {
   return {
     pool: pool.pool.toLowerCase(),
     chain: utils.formatChain(pool.chain),
-    project: 'nest-amm',
+    project: 'nest-cl',
     symbol: pool.symbol,
-    apyBase:
-      pool.apyBase === undefined || pool.apyBase === null
-        ? null
-        : Number(pool.apyBase),
-    apyReward:
-      pool.apyReward === undefined || pool.apyReward === null
-        ? null
-        : Number(pool.apyReward),
+    tvlUsd,
+    apyBase:  pool.apyBase === undefined || pool.apyBase === null
+    ? null
+    : Number(pool.apyBase),
+    apyReward: pool.apyReward === undefined || pool.apyReward === null
+      ? null
+      : Number(pool.apyReward),
     rewardTokens:
       Array.isArray(pool.rewardTokens) && pool.rewardTokens.length > 0
         ? pool.rewardTokens
@@ -35,11 +40,15 @@ function mapBackendPoolToDefiLlama(pool) {
       Array.isArray(pool.underlyingTokens) && pool.underlyingTokens.length > 0
         ? pool.underlyingTokens
         : null,
+    // poolMeta contains fee info
     poolMeta: pool.poolMeta || null,
-    tvlUsd,
   };
 }
 
+/**
+ * Main APY function required by DefiLlama.
+ * Returns an array of Pool objects.
+ */
 const apy = async () => {
   const backendPools = await utils.getData(BACKEND_POOLS_URL);
 
@@ -49,10 +58,12 @@ const apy = async () => {
     );
   }
 
-  return backendPools
-    .filter((p) => p && p.poolType === 'v2')
+  const pools = backendPools
+    .filter((p) => p && p.poolType === 'v3')
     .map(mapBackendPoolToDefiLlama)
     .filter((p) => p !== null);
+
+  return pools;
 };
 
 module.exports = {

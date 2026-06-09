@@ -691,9 +691,10 @@ async function getPoolData(
       totalBorrowUsd,
       availableBorrowUsd,
       apyBaseBorrow: borrowApy * 100,
+      borrowToken: token,
       ltv: Number(assetConfig.collateralFactor) / 10000,
       borrowable,
-      poolMeta: poolName
+      poolMeta: `${poolName} Pool`
     };
   });
 }

@@ -188,6 +188,7 @@ const apy = async () => {
         totalBorrowUsd,
         availableBorrowUsd: tvlUsd,
         apyBaseBorrow,
+        borrowToken: t,
         apyRewardBorrow,
         ltv,
       };

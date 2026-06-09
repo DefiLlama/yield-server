@@ -159,8 +159,9 @@ const apy = async () => {
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow,
+        borrowToken: asset,
         ltv: ltv / 10000,
-        url: `https://hypurrfi.com/markets/pooled/999/${asset}`,
+        url: `https://app.hypurrfi.com/markets/pooled/999/${asset}?from=pooled`,
         borrowable,
       };
     })

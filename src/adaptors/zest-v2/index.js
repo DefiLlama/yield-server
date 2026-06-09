@@ -150,6 +150,7 @@ async function getZestV2Pools() {
           tvlUsd: tvlUsd,
           apyBase: apys.supplyApy,
           apyBaseBorrow: apys.borrowApy,
+          borrowToken: `${pool.assetAddress}.${pool.contractName}`,
           underlyingTokens: [`${pool.assetAddress}.${pool.contractName}`],
           token: `${pool.assetAddress}.${pool.contractName}`,
           url: 'https://app.zestprotocol.com/market/main',

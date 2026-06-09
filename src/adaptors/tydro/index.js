@@ -132,6 +132,7 @@ const getApy = async () => {
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        borrowToken: pool.tokenAddress,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url: `https://app.tydro.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_ink_v3`,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,

@@ -35,7 +35,14 @@ const scale = (value, decimals) => toNumber(value) / 10 ** Number(decimals);
 const getAssetKey = (hub, assetId) => `${hub.toLowerCase()}:${assetId}`;
 const getReserveKey = (hub, assetId, spoke) =>
   `${getAssetKey(hub, assetId)}:${spoke.toLowerCase()}`;
+const formatPoolMeta = (value) =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 const isUncapped = (cap, maxCap) => toNumber(cap) >= toNumber(maxCap);
+const isReserveActive = (reserve) =>
+  reserve.spokeConfig.active &&
+  !reserve.spokeConfig.halted &&
+  !reserve.reserveConfig.paused &&
+  !reserve.reserveConfig.frozen;
 
 const getSpokeCalls = (assetCalls, spokeCounts) =>
   assetCalls.flatMap((asset, i) =>
@@ -147,6 +154,18 @@ const getReserveAvailableBorrowUsd = ({
   return Math.max(Math.min(tvlUsd, (drawCap - borrowed) * price), 0);
 };
 
+const getAssetAvailableBorrowUsd = ({ reserves, ...asset }) =>
+  Math.min(
+    asset.tvlUsd,
+    reserves
+      .filter(isReserveActive)
+      .reduce(
+        (sum, reserve) =>
+          sum + getReserveAvailableBorrowUsd({ reserve, ...asset }),
+        0
+      )
+  );
+
 const getApy = async (chain) => {
   const hubs = hubsByChain[chain];
   const api = new sdk.ChainApi({ chain });
@@ -244,6 +263,15 @@ const getApy = async (chain) => {
         apyBaseBorrow * utilization * (1 - liquidityFee / 10000);
 
       const underlyingStateKey = getAssetKey(c.hub, c.assetId);
+      const availableBorrowUsd = getAssetAvailableBorrowUsd({
+        reserves: Object.entries(reservesBySpoke)
+          .filter(([key]) => key.startsWith(`${underlyingStateKey}:`))
+          .map(([, reserve]) => reserve),
+        tvlUsd,
+        price,
+        decimals,
+        maxSpokeCap: maxSpokeCaps[c.hubIndex],
+      });
       const pool = {
         pool: `${c.hub}-${c.assetId}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
@@ -256,9 +284,11 @@ const getApy = async (chain) => {
         token: null,
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow,
+        borrowToken: underlying,
         url: `https://pro.aave.com/explore/asset/${chainId}/${underlying}`,
-        poolMeta: c.name,
+        poolMeta: formatPoolMeta(c.name),
       };
 
       assetsByKey[underlyingStateKey] = {
@@ -284,11 +314,7 @@ const getApy = async (chain) => {
         reservesBySpoke[getReserveKey(entry.hub, entry.assetId, entry.spoke)];
       if (!asset || !reserve) return null;
 
-      const active =
-        reserve.spokeConfig.active &&
-        !reserve.spokeConfig.halted &&
-        !reserve.reserveConfig.paused &&
-        !reserve.reserveConfig.frozen;
+      const active = isReserveActive(reserve);
       const ltv =
         active && reserve.reserveConfig.receiveSharesEnabled
           ? toNumber(reserve.dynamicConfig.collateralFactor) / 10000

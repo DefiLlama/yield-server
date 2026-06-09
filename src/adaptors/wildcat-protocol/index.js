@@ -72,9 +72,9 @@ const apy = async () => {
     })
   ).output.map((i) => i.output);
 
-  const priceApiKeys = asset.map((i) => `${chain}:${i}`);
+  const priceApiKeys = [...new Set(asset.map((i) => `${chain}:${i}`))];
   const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceApiKeys}`)
+    await axios.get(`https://coins.llama.fi/prices/current/${priceApiKeys.join(',')}`)
   ).data.coins;
 
   const pools = [];

@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
-const chainIdToName = { 143: 'monad', 4114: 'citrea' };
+const chainIdToName = { 1: 'ethereum', 143: 'monad', 4114: 'citrea' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const abis = {
@@ -205,7 +205,10 @@ const apy = async() => {
                 chain: utils.formatChain(chainName),
                 project: 'accountable',
                 symbol: item.asset_symbol,
-                tvlUsd: toUsd(stats.tvl),
+                // Vault size (total deposited), straight from the API. These
+                // credit vaults run ~fully lent, so the on-chain idle-liquidity
+                // figure is ~$0 and would hide them below DefiLlama's thresholds.
+                tvlUsd: item.tvl_in_usd ?? null,
                 apyBase: baseApy,
                 apyReward: totalApyReward,
                 rewardTokens: combinedRewardTokens,

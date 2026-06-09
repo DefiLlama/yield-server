@@ -164,6 +164,7 @@ async function fetchV3Pools(chain) {
           totalBorrowUsd,
           availableBorrowUsd,
           apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+          borrowToken: pool.tokenAddress,
         }),
         ltv: config.ltv / 10000,
         borrowable,

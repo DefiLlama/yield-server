@@ -111,6 +111,12 @@ const preferOnchainApy = (onchainApy, apiApy) => {
 };
 
 const mapSymbolAlias = (symbol) => API_ALIASES[symbol] || symbol;
+const formatRateTypePoolMeta = (rateType) =>
+  rateType === 'fixed'
+    ? 'Fixed Rate'
+    : rateType === 'variable'
+      ? 'Variable Rate'
+      : rateType;
 const getBtBaseTokenSymbol = (symbol = '') => {
   const match = String(symbol).match(/^BT-([^-]+)/i);
   return match ? match[1].toUpperCase() : null;
@@ -212,6 +218,7 @@ const getUzrPool = async (prices) => {
     totalBorrowUsd,
     availableBorrowUsd,
     underlyingTokens: [USD0PP],
+    borrowToken: USD0,
     rewardTokens: [],
     borrowable: availableBorrowUsd > 0,
     ltv: LTV,
@@ -415,7 +422,7 @@ const buildPool = ({
         : loanSymbol
     ),
     borrowToken: fixedRateInfo?.underlyingToken || loanToken,
-    poolMeta: rateType,
+    poolMeta: formatRateTypePoolMeta(rateType),
     url: URLS.DAPP,
   };
 };
@@ -746,7 +753,7 @@ const apy = async () => {
         tvlUsd,
         apyBase,
         underlyingTokens: [underlyingToken],
-        poolMeta: market.rateType,
+        poolMeta: formatRateTypePoolMeta(market.rateType),
         url: URLS.DAPP,
       };
       return acc;
@@ -777,7 +784,7 @@ const apy = async () => {
         symbol: utils.formatSymbol(
           tokenMeta[underlyingToken?.toLowerCase()]?.symbol || pool.symbol
         ),
-        poolMeta: vault.rateType,
+        poolMeta: formatRateTypePoolMeta(vault.rateType),
         url: pool.url || URLS.DAPP,
       };
     })

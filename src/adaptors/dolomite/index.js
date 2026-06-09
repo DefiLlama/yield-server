@@ -255,6 +255,7 @@ async function apy() {
               ...(Number(indices[i].supply) / 1e18 > 0 && { pricePerShare: Number(indices[i].supply) / 1e18 }),
               underlyingTokens: [tokens[i]],
               apyBaseBorrow: borrowInterestRateApys[i],
+              borrowToken: tokens[i],
               totalSupplyUsd: supplyUsds[i],
               totalBorrowUsd: borrowUsds[i],
               availableBorrowUsd,

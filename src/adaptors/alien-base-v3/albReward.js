@@ -5,7 +5,7 @@ const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
 const fetch = require('node-fetch');
-const { fetchPoolAvgInfo, fetchPoolsFromSubgraph, fetchTokenPricesFromSubgraph } = require('./subgraphCalls');
+const { fetchPoolsFromSubgraph, fetchTokenPricesFromSubgraph } = require('./subgraphCalls');
 
 const ALB = {
   base: '0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4',
@@ -61,7 +61,15 @@ const calculateApyBase = (avgVolume, liquidity, totalSupply, poolLiquidity, fee,
   );
 };
 
-const processPoolInfos = async (poolInfos) => {
+const mapInBatches = async (items, batchSize, fn) => {
+  const results = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    results.push(...(await Promise.all(items.slice(i, i + batchSize).map(fn))));
+  }
+  return results;
+};
+
+const processPoolInfos = async (poolInfos, volumeUsd7dByPool) => {
   const pools = await fetchPoolsFromSubgraph();
   const {protocolFee, newProtocolFee} = await getProtocolFee();
 
@@ -73,10 +81,16 @@ const processPoolInfos = async (poolInfos) => {
   const subgraphPrices = await fetchTokenPricesFromSubgraph();
 
   const results = [];
+  const poolsWithVaults = (
+    await mapInBatches(pools, 10, async (pool) => ({
+      pool,
+      bunniVaults: await getBunniVaultsForPool(pool.id),
+    }))
+  ).filter(({ bunniVaults }) => bunniVaults.length);
 
-  for (const pool of pools) {
-    const bunniVaults = await getBunniVaultsForPool(pool.id);
-    const avgInfo = await fetchPoolAvgInfo(pool.id);
+  for (const { pool, bunniVaults } of poolsWithVaults) {
+    const avgVolumeUsd =
+      (volumeUsd7dByPool[pool.id.toLowerCase()] ?? 0) / 7;
 
     for (const bunniVault of bunniVaults) {
       const tokens = await getTokensForPool(bunniVault.poolAddress, 'base');
@@ -116,7 +130,7 @@ const processPoolInfos = async (poolInfos) => {
 
       const apyBase = isInRange
         ? calculateApyBase(
-            avgInfo.volumeUSD,
+            avgVolumeUsd,
             Number(pricePerShare.liquidity),
             Number(totalSupply),
             Number(liquidity),
@@ -179,7 +193,7 @@ const processPoolInfos = async (poolInfos) => {
 };
 
 
-const getAlbAprs = async (chain) => {
+const getAlbAprs = async (chain, volumeUsd7dByPool = {}) => {
   if (chainIds[chain] === undefined) return [];
 
   const masterChef = chainIds[chain].mchef;
@@ -264,7 +278,7 @@ const getAlbAprs = async (chain) => {
     };
   });
   
-  const processedInfo = await processPoolInfos(mergedPools);
+  const processedInfo = await processPoolInfos(mergedPools, volumeUsd7dByPool);
 
   return processedInfo;
 };

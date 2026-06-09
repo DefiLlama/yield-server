@@ -237,6 +237,7 @@ const makePool = async (market, tokens, prices) => {
     underlyingTokens: [marketParams.loanToken],
     apyBase: Number(supplyApy) / 10 ** 16,
     apyBaseBorrow: Number(getBorrowAPY(borrowRate)) / 10 ** 16,
+    borrowToken: marketParams.loanToken,
     totalSupplyUsd,
     totalBorrowUsd,
     ltv: Number(marketParams.loanToValue) / 10 ** 18,

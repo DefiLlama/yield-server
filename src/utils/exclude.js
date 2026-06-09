@@ -249,6 +249,7 @@ const excludeAdaptors = [
   'yieldoor',
   'cove-protocol',
   'lendle-earn',
+  'lendle-pooled-markets',
   'polynomial-liquidity',
   'supervaults',
   'prismalst',
@@ -352,6 +353,7 @@ const excludeAdaptors = [
   'amnis-finance', // temp only, until fix is in
   'aave-v2',
   'aura', // winding down
+  'bakerfi', // wound down
   'acryptos',
   'mover',
   'velocimeter-v2',
@@ -434,6 +436,23 @@ const excludeAdaptors = [
   'maverick-v1',
   'sensi',
   'wasabi-perps',
+  'silo-v1',
+  'stafi',
+  'stlos-liquid-staking',
+  'olympus-dao',
+  'tangible-rwa',
+  'radiant-v2',
+  'thorchain-dex',
+  'verse',
+  'superfund',
+  'smartcredit',
+  'sft-protocol',
+  'saucerswap-v1',
+  'nucleus',
+  'blazeswap',
+  'babydogeswap',
+  'apeswap-amm',
+  'd2-finance',
 ];
 
 const excludePools = [
@@ -2389,6 +2408,8 @@ const excludePools = [
   'euler-earn-0x9c46EE1f01d2b551048F5fF99a4659D98d04BED1-plasma',
   'euler-earn-0x1c66a1f2E5D9E739DFdee0787f5d0Cc33B5D6189-plasma',
   '0x0059fd16bc019ffe788d37807533edcf4df06c06-berachain',
+  '0xe16722b52fe814f5d551a12f0ec89574a130a0b7-arbitrum',
+  '0xeae33e9f53fc405f834d4678e6c07a2523b2126e-arbitrum',
 ];
 
 const boundaries = {

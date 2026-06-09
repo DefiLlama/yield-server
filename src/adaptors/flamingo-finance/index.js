@@ -39,7 +39,6 @@ const poolsFunction = async () => {
             : [p.rewardTokens]
           : [],
         underlyingTokens: (p.underlyingTokens || []).map(resolveNeoToken),
-        poolMeta: p.poolMeta || null,
       });
     }
     return acc;
