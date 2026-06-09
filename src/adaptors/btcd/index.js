@@ -51,9 +51,12 @@ function formatDuration(seconds) {
  * reads to real blocks and uses actual block timestamps as the divisor, the
  * same shape as services/vault/sbtcdror/sbtcdrorcalculator.go.
  *
- * Returns 0 on any RPC failure, a pre-yield lookback, or non-positive growth
- * so the pool publishes without an APY rather than poisoning the cycle.
- * @returns {Promise<number>} APR as a percentage (e.g. 11.88 for 11.88%).
+ * Returns null on any RPC failure, a pre-yield lookback, or non-positive
+ * growth so the pool publishes with no APY rather than ingesting a misleading
+ * 0% that would skew the trailing 30-day average — a failed read is "no data",
+ * not a real zero return.
+ * @returns {Promise<number | null>} APR as a percentage (e.g. 11.88 for
+ *   11.88%), or null when it cannot be computed.
  */
 async function computeApyBase() {
   let latest, old;
@@ -62,23 +65,23 @@ async function computeApyBase() {
     const oldTarget = latest.timestamp - LOOKBACK_DAYS * SECONDS_PER_DAY;
     old = await sdk.api.util.lookupBlock(oldTarget, { chain: CHAIN });
   } catch (e) {
-    return 0;
+    return null;
   }
   if (
     !latest ||
     typeof latest.number !== 'number' ||
     typeof latest.timestamp !== 'number'
   ) {
-    return 0;
+    return null;
   }
   if (
     !old ||
     typeof old.block !== 'number' ||
     typeof old.timestamp !== 'number'
   ) {
-    return 0;
+    return null;
   }
-  if (old.block < SBTCD_YIELD_TURNED_ON_BLOCK) return 0;
+  if (old.block < SBTCD_YIELD_TURNED_ON_BLOCK) return null;
   let nowVal, oldVal;
   try {
     const [nowRes, oldRes] = await Promise.all([
@@ -100,14 +103,14 @@ async function computeApyBase() {
     nowVal = BigInt(nowRes.output);
     oldVal = BigInt(oldRes.output);
   } catch (e) {
-    return 0;
+    return null;
   }
-  if (oldVal <= 0n || nowVal <= oldVal) return 0;
+  if (oldVal <= 0n || nowVal <= oldVal) return null;
   const rateScaled = ((nowVal - oldVal) * SCALE) / oldVal;
   const rate = Number(rateScaled) / 1e18;
-  if (!isFinite(rate) || rate <= 0) return 0;
+  if (!isFinite(rate) || rate <= 0) return null;
   const secondsElapsed = latest.timestamp - old.timestamp;
-  if (secondsElapsed <= 0) return 0;
+  if (secondsElapsed <= 0) return null;
   return ((rate * SECONDS_PER_YEAR) / secondsElapsed) * 100;
 }
 
@@ -150,7 +153,8 @@ async function btcdPriceUsd() {
  *   project: string,
  *   symbol: string,
  *   tvlUsd: number,
- *   apyBase: number,
+ *   apyBase: number | null,
+ *   pricePerShare: number | null,
  *   underlyingTokens: string[],
  *   poolMeta: string,
  *   url: string,
@@ -158,20 +162,34 @@ async function btcdPriceUsd() {
  * }>>}
  */
 const apy = async () => {
-  const [sBtcdAssetsRes, price, sBtcdApyBase, vestingRes, cooldownRes] =
-    await Promise.all([
-      sdk.api.abi
-        .call({ chain: CHAIN, target: SBTCD, abi: totalAssetsAbi })
-        .catch(() => null),
-      btcdPriceUsd(),
-      computeApyBase(),
-      sdk.api.abi
-        .call({ chain: CHAIN, target: SBTCD, abi: vestingPeriodAbi })
-        .catch(() => null),
-      sdk.api.abi
-        .call({ chain: CHAIN, target: SBTCD, abi: cooldownDurationAbi })
-        .catch(() => null),
-    ]);
+  const [
+    sBtcdAssetsRes,
+    price,
+    sBtcdApyBase,
+    vestingRes,
+    cooldownRes,
+    previewRedeemRes,
+  ] = await Promise.all([
+    sdk.api.abi
+      .call({ chain: CHAIN, target: SBTCD, abi: totalAssetsAbi })
+      .catch(() => null),
+    btcdPriceUsd(),
+    computeApyBase(),
+    sdk.api.abi
+      .call({ chain: CHAIN, target: SBTCD, abi: vestingPeriodAbi })
+      .catch(() => null),
+    sdk.api.abi
+      .call({ chain: CHAIN, target: SBTCD, abi: cooldownDurationAbi })
+      .catch(() => null),
+    sdk.api.abi
+      .call({
+        chain: CHAIN,
+        target: SBTCD,
+        abi: previewRedeemAbi,
+        params: [SCALE.toString()],
+      })
+      .catch(() => null),
+  ]);
   if (!sBtcdAssetsRes?.output || price == null) return [];
   let sBtcdAssets;
   try {
@@ -180,6 +198,19 @@ const apy = async () => {
     return [];
   }
   const sBtcdTvlUsd = (Number(sBtcdAssets) / 1e18) * price;
+
+  // ERC-4626 share price: BTCD assets redeemable per 1 sBTCD share. null when
+  // the read fails or the result is non-finite/<=0 so we never publish a bogus
+  // price-per-share alongside an otherwise valid pool.
+  let pricePerShare = null;
+  if (previewRedeemRes?.output != null) {
+    try {
+      const pps = Number(BigInt(previewRedeemRes.output)) / 1e18;
+      if (isFinite(pps) && pps > 0) pricePerShare = pps;
+    } catch (e) {
+      pricePerShare = null;
+    }
+  }
 
   const metaParts = [];
   const vestingLabel =
@@ -205,6 +236,7 @@ const apy = async () => {
       symbol: 'sBTCD',
       tvlUsd: sBtcdTvlUsd,
       apyBase: sBtcdApyBase,
+      pricePerShare,
       underlyingTokens: [BTCD],
       poolMeta,
       url: 'https://btcd.fi/app/stake/btcd',
