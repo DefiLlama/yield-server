@@ -9,6 +9,7 @@ const appUrl = 'https://app.everything.inc/liquidity';
 const EV_TOKEN_ADDRESS = '0xe7e7e741c23a4767831a56a8c99f522c5ac1e7e7';
 const SECONDS_IN_DAY = 86400;
 const DAYS_IN_YEAR = 365;
+const PAGE_SIZE = 1000;
 
 const CONFIG = {
   arbitrum: {
@@ -65,29 +66,44 @@ const queryPairs = gql`
   }
 `;
 
-/**
- * Query recent swaps for a set of pairs to compute 24h volume.
- * Uses timestamp filter since subgraph prunes old blocks.
- */
-const queryRecentSwaps = gql`
-  {
-    swaps(
-      first: 1000
-      where: { timestamp_gte: "<TIMESTAMP>" }
-      orderBy: timestamp
-      orderDirection: desc
-    ) {
-      pair {
-        id
-        token0 { decimals }
-        token1 { decimals }
-      }
-      amountIn
-      isZeroForOne
-      lpFee
+// Paginated swap query; uses id_gt cursor so results beyond PAGE_SIZE are not dropped.
+const queryRecentSwaps = `{
+  swaps(
+    first: ${PAGE_SIZE}
+    where: { timestamp_gte: "<TIMESTAMP>", id_gt: "<ID_CURSOR>" }
+    orderBy: id
+    orderDirection: asc
+  ) {
+    id
+    pair {
+      id
+      token0 { decimals }
+      token1 { decimals }
     }
+    amountIn
+    isZeroForOne
+    lpFee
   }
-`;
+}`;
+
+const fetchAllSwaps = async (subgraphUrl, timestamp) => {
+  const allSwaps = [];
+  let idCursor = '';
+
+  while (true) {
+    const query = queryRecentSwaps
+      .replace('<TIMESTAMP>', timestamp)
+      .replace('<ID_CURSOR>', idCursor);
+
+    const data = await request(subgraphUrl, query);
+    const page = data.swaps || [];
+    allSwaps.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    idCursor = page[page.length - 1].id;
+  }
+
+  return allSwaps;
+};
 
 /**
  * Fetch LP fee (in bps) for each pair via on-chain calls.
@@ -225,11 +241,7 @@ const getPoolsForChain = async (chainString) => {
   const timestamp24hAgo = Math.floor(Date.now() / 1000) - SECONDS_IN_DAY;
   let recentSwaps = [];
   try {
-    const swapData = await request(
-      subgraphUrl,
-      queryRecentSwaps.replace('<TIMESTAMP>', timestamp24hAgo.toString())
-    );
-    recentSwaps = swapData.swaps || [];
+    recentSwaps = await fetchAllSwaps(subgraphUrl, timestamp24hAgo);
   } catch (e) {
     // If swap query fails, continue without base APY
   }
