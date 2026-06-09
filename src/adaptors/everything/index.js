@@ -244,7 +244,7 @@ const getPoolsForChain = async (chainString) => {
   try {
     recentSwaps = await fetchAllSwaps(subgraphUrl, timestamp24hAgo);
   } catch (e) {
-    // If swap query fails, continue without base APY
+    console.error(`everything: swap query failed for ${chainString}, apyBase will be 0:`, e.message);
   }
 
   // Normalize reserves to human-readable
