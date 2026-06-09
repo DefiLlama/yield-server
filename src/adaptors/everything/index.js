@@ -195,6 +195,7 @@ const fetchFarmingRewards = async (chainString, config, poolPrices) => {
       (c) => c.success && Number(c.input.params[0]) === campaignId
     );
     if (!info || !info.output) continue;
+    if (block < Number(info.output.startBlock)) continue;
 
     const totalStaked = BigInt(info.output.totalStaked);
     if (totalStaked === 0n) continue;
