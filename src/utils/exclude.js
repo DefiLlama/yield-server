@@ -453,6 +453,10 @@ const excludeAdaptors = [
   'babydogeswap',
   'apeswap-amm',
   'd2-finance',
+  'arbor-finance',
+  'staking-rewards-sreth',
+  'zipswap',
+  'alien-base-v2',
 ];
 
 const excludePools = [
