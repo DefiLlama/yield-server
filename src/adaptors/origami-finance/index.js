@@ -52,16 +52,18 @@ function vaultApy(chain, chainId, vault) {
  */
 async function chainApy(chain, chainId) {
   /** @type {{ data: VaultApyResponse }} */
-  const { data } = await axios.get(getVaultApyUrl(chainId));
+  const { data } = await axios.get(getVaultApyUrl(chainId), {
+    timeout: 10_000,
+  });
   return data.vaults.map((vault) => vaultApy(chain, chainId, vault));
 }
 
 const apy = async () => {
-  const results = await Promise.all(
+  const results = await Promise.allSettled(
     Object.entries(CHAINS).map(([chain, chainId]) => chainApy(chain, chainId))
   );
 
-  return results.flat();
+  return results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 };
 
 module.exports = {
