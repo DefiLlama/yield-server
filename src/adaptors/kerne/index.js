@@ -1,27 +1,34 @@
 // Kerne Protocol — DefiLlama Yield Adapter
 // ===========================================================
-// Pool listed: KerneVault (ERC-4626) on Base, share symbol kLP, asset WETH.
+// Pool listed: skUSD (ERC-4626 staking vault) on Base.
+//   skUSD wraps kUSD, the protocol's synthetic dollar, which is minted
+//   1:1 against USDC through the on-chain Peg Stability Module. Yield
+//   accrues to skUSD holders through a rising share price.
 //
-// Contract (verified on Basescan):
-//   https://basescan.org/address/0x8005bc7A86AD904C20fd62788ABED7546c1cF2AC#code
+// Contracts (verified, Sourcify perfect_match):
+//   skUSD : https://basescan.org/address/0xdEd74F7E06efc76455C07418b8b74Cc2bc009DB4
+//   kUSD  : https://basescan.org/address/0x5C2EfdF0D8D286959b42308966bc2B97f5680AA3
 //
-// Data sources (all pulled at adapter run-time, no Kerne API dependency):
-//   - TVL   : KerneVault.totalAssets()          × WETH price (coins.llama.fi)
-//   - APY   : KerneVault.projectedAPY()         (returns basis points)
-//   - asset : KerneVault.asset()                (sanity-checked = WETH)
+// Data sources (pulled at adapter run-time):
+//   - TVL : skUSD.totalAssets()  (kUSD, 18 decimals)  x  USDC price
+//           (coins.llama.fi). kUSD is PSM-redeemable 1:1 for USDC, so
+//           the USDC price is the conservative, verifiable kUSD price.
+//   - APY : kerne.fi/api/apy field `expectedAPY` — the protocol's
+//           published, recomputable methodology (Lido staking SMA +
+//           Hyperliquid 180d trailing funding, costs and insurance
+//           netted out). Formula reference is public on the same
+//           endpoint and rendered on the kerne.fi homepage.
+//   - asset(): sanity-checked = kUSD (refuses to publish on mismatch).
 //
-// Strategy: delta-neutral basis trade. Long leg accrues Lido stETH staking
-// yield via off-chain accounting reported on-chain by the strategist; short
-// leg captures perpetual funding on Hyperliquid. Yield is realized in kLP
-// share price appreciation.
-//
-// Reviewer notes:
-//   - vault.symbol() currently returns the string "2" (a placeholder set at
-//     deploy time). We hardcode "kLP" which is the documented share-token
-//     symbol (kerne.fi/docs).
-//   - vault.name()  similarly returns "1". Cosmetic only.
-//   - vault.projectedAPY() returns the governance-configured projected
-//     return for the active strategy in basis points (1200 = 12.00%).
+// Reviewer notes (2026-06-11 revision):
+//   - This revision switches the tracked pool from the v1 WETH vault
+//     (kLP) to skUSD. The v1 vault is in a publicly disclosed degraded
+//     state pending a v2 redeploy and is intentionally excluded from
+//     protocol TVL by kerne.fi/api/stats; skUSD over the PSM-backed
+//     kUSD is the protocol's durable user-facing yield surface, so it
+//     is the correct pool for DefiLlama to track long-term.
+//   - Genesis-phase TVL is intentionally below the public yields
+//     display threshold, so the pool stays hidden until seeded.
 //
 // This adapter supersedes the earlier draft at
 //   https://github.com/DefiLlama/yield-server/pull/2254
@@ -29,92 +36,89 @@
 //
 // DefiLlama slug note: DefiLlama assigned this protocol the slug "kerne"
 // when the TVL adapter merged (DefiLlama-Adapters#19306, 2026-05-18), so
-// the project field below matches that slug. The TVL adapter directory in
-// DefiLlama-Adapters remains projects/kerne-protocol/ per the module field
-// on /api/protocols, but the yield-server adapter directory and project
-// field both follow the public slug "kerne".
+// the directory and project field both follow the public slug "kerne".
 
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 
 const CHAIN = 'base';
-const VAULT_ADDRESS = '0x8005bc7A86AD904C20fd62788ABED7546c1cF2AC';
-const WETH_ADDRESS = '0x4200000000000000000000000000000000000006';
+const SKUSD_ADDRESS = '0xdEd74F7E06efc76455C07418b8b74Cc2bc009DB4';
+const KUSD_ADDRESS = '0x5C2EfdF0D8D286959b42308966bc2B97f5680AA3';
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
 const apy = async () => {
   // 1. Parallel on-chain reads
-  const [totalAssetsCall, projectedApyCall, assetCall] = await Promise.all([
+  const [totalAssetsCall, assetCall] = await Promise.all([
     sdk.api.abi.call({
-      target: VAULT_ADDRESS,
+      target: SKUSD_ADDRESS,
       abi: 'uint256:totalAssets',
       chain: CHAIN,
     }),
     sdk.api.abi.call({
-      target: VAULT_ADDRESS,
-      abi: 'uint256:projectedAPY',
-      chain: CHAIN,
-    }),
-    sdk.api.abi.call({
-      target: VAULT_ADDRESS,
+      target: SKUSD_ADDRESS,
       abi: 'address:asset',
       chain: CHAIN,
     }),
   ]);
 
-  // 2. Defensive: ensure vault.asset() is still WETH (in case of redeploy).
+  // 2. Defensive: ensure skUSD.asset() is still kUSD (in case of redeploy).
   const onchainAsset = String(assetCall.output).toLowerCase();
-  if (onchainAsset !== WETH_ADDRESS.toLowerCase()) {
+  if (onchainAsset !== KUSD_ADDRESS.toLowerCase()) {
     throw new Error(
-      `KerneVault.asset() returned ${onchainAsset}, expected WETH ${WETH_ADDRESS}`
+      `skUSD.asset() returned ${onchainAsset}, expected kUSD ${KUSD_ADDRESS}`
     );
   }
 
-  // 3. Price WETH via DefiLlama's coin price API (same source the rest of
-  //    the yield-server uses; reviewers can verify pricing trivially).
-  const priceKey = `${CHAIN}:${WETH_ADDRESS}`;
+  // 3. Price the kUSD backing at the USDC price (kUSD is PSM-redeemable
+  //    1:1 for USDC; using the coins.llama.fi USDC price keeps pricing
+  //    verifiable through the same source the rest of yield-server uses).
+  const priceKey = `${CHAIN}:${USDC_ADDRESS}`;
   const priceResp = await axios.get(
     `https://coins.llama.fi/prices/current/${priceKey}`,
     { timeout: 15_000 }
   );
-  const ethPrice = priceResp?.data?.coins?.[priceKey]?.price;
-  if (!Number.isFinite(ethPrice) || ethPrice <= 0) {
+  const usdcPrice = priceResp?.data?.coins?.[priceKey]?.price;
+  if (!Number.isFinite(usdcPrice) || usdcPrice <= 0) {
     throw new Error(
-      `Invalid WETH price from coins.llama.fi for ${priceKey}: ${ethPrice}`
+      `Invalid USDC price from coins.llama.fi for ${priceKey}: ${usdcPrice}`
     );
   }
 
-  // 4. Compose TVL and APY values.
-  const totalAssetsEth = Number(totalAssetsCall.output) / 1e18;
-  const tvlUsd = totalAssetsEth * ethPrice;
-  const apyBase = Number(projectedApyCall.output) / 100;
+  // 4. Published APY from the protocol's open methodology endpoint.
+  const apyResp = await axios.get('https://kerne.fi/api/apy', {
+    timeout: 15_000,
+  });
+  const expectedAPY = apyResp?.data?.expectedAPY;
 
-  // 5. Refuse to publish nonsense.
+  // 5. Compose TVL and APY values.
+  const tvlUsd = (Number(totalAssetsCall.output) / 1e18) * usdcPrice;
+  const apyBase = Number(expectedAPY) * 100;
+
+  // 6. Refuse to publish nonsense.
   if (!Number.isFinite(tvlUsd) || tvlUsd < 0) {
     throw new Error(
       `Computed tvlUsd is not a valid non-negative number: ${tvlUsd}`
     );
   }
-  if (!Number.isFinite(apyBase) || apyBase < 0 || apyBase > 1000) {
-    throw new Error(
-      `Computed apyBase out of sane range [0, 1000]: ${apyBase}`
-    );
+  if (!Number.isFinite(apyBase) || apyBase < 0 || apyBase > 100) {
+    throw new Error(`Computed apyBase out of sane range [0, 100]: ${apyBase}`);
   }
 
   return [
     {
-      pool: `${VAULT_ADDRESS}-${CHAIN}`.toLowerCase(),
+      pool: `${SKUSD_ADDRESS}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: 'kerne',
-      symbol: 'kLP',
+      symbol: 'skUSD',
       tvlUsd,
       apyBase,
       apyReward: 0,
       rewardTokens: [],
-      underlyingTokens: [WETH_ADDRESS],
-      poolMeta: 'ERC-4626: WETH → kLP (delta-neutral basis trade)',
-      url: 'https://app.kerne.fi',
-      token: VAULT_ADDRESS,
+      underlyingTokens: [KUSD_ADDRESS],
+      poolMeta: 'ERC-4626: kUSD -> skUSD (staked delta-neutral synthetic dollar)',
+      url: 'https://app.kerne.fi/stake',
+      token: SKUSD_ADDRESS,
       isIntrinsicSource: true,
     },
   ];
