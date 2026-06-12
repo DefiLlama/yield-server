@@ -13,14 +13,14 @@ const apy = async () => {
     return (data?.result?.rows || [])
       .filter((r) => Number(r.tvl_usd) > 1000)
       .map((r) => ({
-        pool: `${r.pool_address}-${r.chain}`,
+        pool: r.pool_address,
         chain: utils.formatChain(r.chain),
         project: 'azuro',
         symbol: r.symbol,
         tvlUsd: Number(r.tvl_usd),
         apyBase: Number(r.apy_base) * 100,
         underlyingTokens: [r.underlying_token],
-        poolMeta: 'V3 Vault + locked LP; APR net of DAO/oracle/affiliate fees',
+        poolMeta: 'V3 Vault + Locked LP',
         url: 'https://azuro.org/app/liquidity',
       }));
   } catch (error) {
