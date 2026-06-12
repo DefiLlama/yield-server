@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
-const { getFeesBps, farmingRangeABI } = require('./abis');
+const { farmingRangeABI } = require('./abis');
 
 const project = 'everything';
 const appUrl = 'https://app.everything.inc/liquidity';
@@ -103,26 +103,6 @@ const fetchAllSwaps = async (subgraphUrl, timestamp) => {
   }
 
   return allSwaps;
-};
-
-/**
- * Fetch LP fee (in bps) for each pair via on-chain calls.
- * Returns a map pairAddress -> feeLpBps
- */
-const fetchFees = async (pairs, chainString) => {
-  const { output } = await sdk.api.abi.multiCall({
-    abi: getFeesBps,
-    calls: pairs.map((p) => ({ target: p.id })),
-    chain: chainString,
-  });
-
-  const fees = {};
-  for (const res of output) {
-    if (res.success) {
-      fees[res.input.target.toLowerCase()] = Number(res.output.feeLpBps_);
-    }
-  }
-  return fees;
 };
 
 /**
@@ -257,9 +237,6 @@ const getPoolsForChain = async (chainString) => {
   // Get token prices and compute TVL
   const pairsWithTvl = await utils.tvl(pairs, chainString);
 
-  // Fetch on-chain LP fees for each pair
-  const fees = await fetchFees(pairs, chainString);
-
   // Aggregate 24h fee volume per pair from swap events
   // Each swap has amountIn (raw), isZeroForOne, and lpFee (bps)
   // Fee earned by LPs = amountIn * lpFee / 10000
@@ -353,10 +330,21 @@ const getPoolsForChain = async (chainString) => {
 };
 
 const apy = async () => {
-  const pools = await Promise.all(
+  // allSettled so a single failing chain doesn't drop pools from healthy chains
+  const results = await Promise.allSettled(
     Object.keys(CONFIG).map((chain) => getPoolsForChain(chain))
   );
-  return pools.flat();
+
+  for (const r of results) {
+    if (r.status === 'rejected') {
+      console.error('everything: chain fetch failed:', r.reason?.message || r.reason);
+    }
+  }
+
+  return results
+    .filter((r) => r.status === 'fulfilled')
+    .flatMap((r) => r.value)
+    .filter(utils.keepFinite);
 };
 
 module.exports = {

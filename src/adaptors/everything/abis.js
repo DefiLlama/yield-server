@@ -1,23 +1,5 @@
 module.exports = {
-  getFeesBps: {
-    inputs: [],
-    name: 'getFeesBps',
-    outputs: [
-      { internalType: 'uint16', name: 'feeLpBps_', type: 'uint16' },
-      { internalType: 'uint16', name: 'feePoolBps_', type: 'uint16' },
-      { internalType: 'uint16', name: 'burnFeeBps_', type: 'uint16' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
   farmingRangeABI: [
-    {
-      inputs: [],
-      name: 'campaignInfoLen',
-      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-      stateMutability: 'view',
-      type: 'function',
-    },
     {
       inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
       name: 'campaignInfo',
