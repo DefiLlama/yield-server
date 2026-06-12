@@ -10,8 +10,6 @@ const abis = {
     convertToAssets: 'function convertToAssets(uint256 shares) view returns (uint256)',
 };
 
-const basisPointsToPercent = (value) => Number(value) / 1e4;
-
 const fetchVaultsByLoanIds = async(loanIds) => {
     const results = await Promise.allSettled(
         loanIds.map((id) => utils.getData(`${API_URL}/${id}`))
@@ -90,18 +88,6 @@ const getVaultStats = async(vaults, chain = 'monad') => {
     }, {});
 };
 
-const fetchBreakdowns = async(loanIds) => {
-    const results = await Promise.allSettled(
-        loanIds.map((id) => utils.getData(`${API_URL}/${id}/apy/breakdown`))
-    );
-
-    return results.reduce((acc, res, idx) => {
-        if (res.status !== 'fulfilled') return acc;
-        acc[loanIds[idx]] = res.value || {};
-        return acc;
-    }, {});
-};
-
 const apy = async() => {
     const { items } = await utils.getData(API_URL);
     const activeLoans = items.filter(
@@ -144,8 +130,6 @@ const apy = async() => {
         })
     );
 
-    const breakdowns = await fetchBreakdowns(loanIds);
-
     return Promise.all(
         activeLoans.map(async(item) => {
             const chainName = chainIdToName[item.chain_id];
@@ -159,45 +143,24 @@ const apy = async() => {
                 if (raw == null || decimals == null || priceUsd == null) return null;
                 return (Number(raw) / 10 ** decimals) * priceUsd;
             };
-            const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
+            const rewardBoostPct = Number(item?.rewards_apy_boost?.total_apy_boost_percent ?? 0);
+            const pointBoostPct = Number(item?.all_points_apy_boost?.total_apy_boost_percent ?? 0);
+            const totalApyReward = rewardBoostPct + pointBoostPct || null;
 
-            const breakdown = breakdowns[item.id]?.main || {};
-
-            const interestRate = Number(breakdown?.interest_rate);
-            const perfFeePctRaw = Number(breakdown?.performance_fee_percentage);
-            const perfFeePct =
-                !Number.isNaN(perfFeePctRaw) && perfFeePctRaw > 1 ? perfFeePctRaw / 100 : perfFeePctRaw;
-            const perfFeePoints = Number(breakdown?.performance_fee_points);
-            const netInterest = breakdown?.net_interest_rate;
             const baseApy =
-                netInterest != null
-                    ? Number(netInterest)
-                    : !Number.isNaN(interestRate) && !Number.isNaN(perfFeePct)
-                        ? interestRate * (1 - perfFeePct)
-                        : !Number.isNaN(interestRate) && !Number.isNaN(perfFeePoints)
-                            ? interestRate - perfFeePoints
-                            : basisPointsToPercent(item.apy);
+                item.apy_inception_annualized != null
+                    ? Number(item.apy_inception_annualized)
+                    : item.net_apy != null
+                        ? Number(item.net_apy) - (rewardBoostPct + pointBoostPct)
+                        : null;
 
-            const merklApy = Number(breakdown?.merkl_apy_boost?.total_apr ?? breakdown?.merkle_apy ?? 0);
-            const pointBoostsFromBreakdown = breakdown?.points_apy_boost?.boosts_by_points || pointBoosts;
-            const pointRewardApyFromBreakdown =
-                breakdown?.points_apy_boost?.total_apy_boost_percent ??
-                pointBoostsFromBreakdown.reduce((sum, b) => sum + Number(b?.apy_boost_percent || 0), 0);
-            const pointRewardTokens = pointBoostsFromBreakdown.map((b) => b?.point_name).filter(Boolean);
-
-            const merklTokens =
-                breakdown?.merkl_apy_boost?.tokens?.map((t) => t?.address?.toLowerCase()).filter(Boolean) || [];
-
-            const rewardsBoost = Number(breakdown?.rewards_apy_boost?.total_apy_boost_percent ?? 0);
-            const rewardBoostTokens =
-                breakdown?.rewards_apy_boost?.boosts_by_token
-                    ?.map((b) => b?.token?.address || b?.address || b?.token_address)
-                    .filter(Boolean)
-                    .map((addr) => addr.toLowerCase()) || [];
-
-            const totalApyReward = merklApy + pointRewardApyFromBreakdown + rewardsBoost || null;
-            const combinedRewardTokens = Array.from(
-                new Set([...(merklTokens || []), ...rewardBoostTokens, ...pointRewardTokens])
+            const rewardTokens = Array.from(
+                new Set(
+                    (item?.rewards_apy_boost?.boosts_by_token || [])
+                        .map((b) => b?.token_address)
+                        .filter(Boolean)
+                        .map((addr) => addr.toLowerCase())
+                )
             );
 
             return {
@@ -211,7 +174,7 @@ const apy = async() => {
                 tvlUsd: item.tvl_in_usd ?? null,
                 apyBase: baseApy,
                 apyReward: totalApyReward,
-                rewardTokens: combinedRewardTokens,
+                rewardTokens,
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
                 totalSupplyUsd: toUsd(stats.totalAssets),
                 totalBorrowUsd: toUsd(stats.totalBorrowed),
