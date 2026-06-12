@@ -145,7 +145,6 @@ const apy = async() => {
             };
             const rewardBoostPct = Number(item?.rewards_apy_boost?.total_apy_boost_percent ?? 0);
             const pointBoostPct = Number(item?.all_points_apy_boost?.total_apy_boost_percent ?? 0);
-            const totalApyReward = rewardBoostPct + pointBoostPct || null;
 
             const baseApy =
                 item.apy_inception_annualized != null
@@ -166,6 +165,8 @@ const apy = async() => {
                 ])
             );
 
+            const apyReward = rewardTokens.length ? rewardBoostPct + pointBoostPct || null : null;
+
             return {
                 pool: `${item.loan_address}-${chainName}`.toLowerCase(),
                 chain: utils.formatChain(chainName),
@@ -176,7 +177,7 @@ const apy = async() => {
                 // figure is ~$0 and would hide them below DefiLlama's thresholds.
                 tvlUsd: item.tvl_in_usd ?? null,
                 apyBase: baseApy,
-                apyReward: totalApyReward,
+                apyReward,
                 rewardTokens,
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
                 totalSupplyUsd: toUsd(stats.totalAssets) ?? undefined,
