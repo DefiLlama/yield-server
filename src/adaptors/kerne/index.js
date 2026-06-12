@@ -90,6 +90,11 @@ const apy = async () => {
     timeout: 15_000,
   });
   const expectedAPY = apyResp?.data?.expectedAPY;
+  if (!Number.isFinite(expectedAPY)) {
+    throw new Error(
+      `Invalid expectedAPY from kerne.fi/api/apy: ${expectedAPY}`
+    );
+  }
 
   // 5. Compose TVL and APY values.
   const tvlUsd = (Number(totalAssetsCall.output) / 1e18) * usdcPrice;
