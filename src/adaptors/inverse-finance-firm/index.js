@@ -258,7 +258,7 @@ const main = async () => {
       borrowToken: DOLA,
       symbol,
       tvlUsd: totalSupplyUsd,
-      apyBase: 0,
+      apy: 0,
       underlyingTokens: [underlying],
       poolMeta: 'Fixed Borrow Rate',
       url: 'https://inverse.finance/firm',

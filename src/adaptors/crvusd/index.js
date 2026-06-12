@@ -149,7 +149,7 @@ const apy = async () => {
       debtCeilingUsd,
       availableBorrowUsd,
       borrowable: availableBorrowUsd > 0,
-      apyBase: 0,
+      apy: 0,
       apyBaseBorrow,
       underlyingTokens: [collateralTokens[i]],
       mintedCoin: 'crvusd',

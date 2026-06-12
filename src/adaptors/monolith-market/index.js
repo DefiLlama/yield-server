@@ -167,7 +167,7 @@ async function getChainPools(chain) {
       symbol: collateralSymbol,
       mintedCoin,
       borrowToken: coin,
-      apyBase: 0,
+      apy: 0,
       // cdp => tvlUsd = totalSupplyUsd
       tvlUsd: totalSupplyUsd,
       underlyingTokens: [collateral],
