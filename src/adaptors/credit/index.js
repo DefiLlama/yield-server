@@ -53,6 +53,7 @@ const apy = async () => {
 
   const totalAssets = totalAssetsRaw / 10 ** USDC_DECIMALS;
   const totalOutstanding = totalOutstandingRaw / 10 ** USDC_DECIMALS;
+  const availableLiquidity = Math.max(totalAssets - totalOutstanding, 0);
 
   const params = {
     optimalUtilization: optimalUtilizationRaw / precision,
@@ -61,7 +62,10 @@ const apy = async () => {
   };
 
   const utilRate = totalAssets > 0 ? totalOutstanding / totalAssets : 0;
-  const tvlUsd = totalAssets * usdcPrice;
+
+  const totalSupplyUsd = totalAssets * usdcPrice;
+  const totalBorrowUsd = totalOutstanding * usdcPrice;
+  const tvlUsd = availableLiquidity * usdcPrice;
 
   return [
     {
@@ -74,6 +78,8 @@ const apy = async () => {
       underlyingTokens: [USDC],
       url: 'https://credit.cash',
       poolMeta: '$3M supply cap',
+      totalSupplyUsd,
+      totalBorrowUsd,
     },
   ];
 };
