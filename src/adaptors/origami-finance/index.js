@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const {
   utils: { getAddress },
@@ -12,8 +13,6 @@ const CHAINS = {
 };
 
 /**
- * Build the vault-apy request URL for a chain. The endpoint takes a single
- * url-encoded JSON `input`; omitting `vault` returns every vault on the chain.
  * @param {number} chainId
  * @returns {string}
  */
@@ -23,47 +22,180 @@ function getVaultApyUrl(chainId) {
 }
 
 /**
- * Map one endpoint vault into the DefiLlama yield-server pool shape.
- * @param {string} chain
- * @param {number} chainId
- * @param {VaultApy} vault
- * @returns {Pool}
+ * @param {string | number | bigint} x
+ * @returns {bigint}
  */
-function vaultApy(chain, chainId, vault) {
-  return {
-    pool: `${vault.address}-${chain}`,
-    chain: chain,
-    project: 'origami-finance',
-    symbol: vault.symbol,
-    tvlUsd: Math.max(0, vault.total_tvl_usd),
-    apyBase: vault.apy,
-    underlyingTokens: vault.underlying_tokens,
-    url: `https://origami.finance/vaults/${chainId}-${getAddress(
-      vault.address
-    )}/info`,
-  };
+const bi = (x) => BigInt(String(x));
+
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function leverageTvl(api, balances, vault) {
+  const [reserveToken, al] = await Promise.all([
+    api.call({ abi: 'address:reserveToken', target: vault }),
+    api.call({
+      abi: 'function assetsAndLiabilities() external view returns (uint256 assets, uint256 liabilities, uint256 ratio)',
+      target: vault,
+    }),
+  ]);
+  balances.addToken(reserveToken, bi(al.assets) - bi(al.liabilities));
 }
 
 /**
- * Fetch and map every vault on a single chain.
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function repricingTvl(api, balances, vault) {
+  const [decimals, supply, reserve, reserveToken] = await Promise.all([
+    api.call({ abi: 'uint8:decimals', target: vault }),
+    api.call({ abi: 'uint256:totalSupply', target: vault }),
+    api.call({ abi: 'uint256:reservesPerShare', target: vault }),
+    api.call({ abi: 'address:reserveToken', target: vault }),
+  ]);
+  const baseToken = await api.call({
+    abi: 'address:baseToken',
+    target: reserveToken,
+  });
+  const bal = (bi(reserve) * bi(supply)) / 10n ** bi(decimals);
+  balances.addToken(baseToken, bal);
+}
+
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function erc4626Tvl(api, balances, vault) {
+  const [asset, totalAssets] = await Promise.all([
+    api.call({ abi: 'address:asset', target: vault }),
+    api.call({ abi: 'uint256:totalAssets', target: vault }),
+  ]);
+  balances.addToken(asset, String(totalAssets));
+}
+
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function balanceSheetTvl(api, balances, vault) {
+  const [tokens, sheet] = await Promise.all([
+    api.call({
+      abi: 'function tokens() external view returns (address[] assetTokens, address[] liabilityTokens)',
+      target: vault,
+    }),
+    api.call({
+      abi: 'function balanceSheet() external view returns (uint256[] totalAssets, uint256[] totalLiabilities)',
+      target: vault,
+    }),
+  ]);
+  tokens.assetTokens.forEach((token, j) =>
+    balances.addToken(token, String(sheet.totalAssets[j]))
+  );
+  tokens.liabilityTokens.forEach((token, j) =>
+    balances.subtractToken(token, String(sheet.totalLiabilities[j]))
+  );
+}
+
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function autoStakingTvl(api, balances, vault) {
+  const [stakingToken, totalSupply] = await Promise.all([
+    api.call({
+      abi: 'function stakingToken() external view returns (address)',
+      target: vault,
+    }),
+    api.call({ abi: 'uint256:totalSupply', target: vault }),
+  ]);
+  balances.addToken(stakingToken, String(totalSupply));
+}
+
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {VaultKind} kind
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function vaultKindTvl(api, balances, kind, vault) {
+  switch (kind) {
+    case 'LEVERAGE':
+      return leverageTvl(api, balances, vault);
+    case 'REPRICING':
+      return repricingTvl(api, balances, vault);
+    case 'ERC4626':
+      return erc4626Tvl(api, balances, vault);
+    case 'BALANCE_SHEET':
+      return balanceSheetTvl(api, balances, vault);
+    case 'AUTO_STAKING':
+      return autoStakingTvl(api, balances, vault);
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * @param {ChainApi} api
+ * @param {string} chain
+ * @param {VaultApy} vault
+ * @returns {Promise<number>}
+ */
+async function vaultTvlUsd(api, chain, vault) {
+  const balances = new sdk.Balances({ chain });
+  try {
+    for (const kind of vault.vault_kinds) {
+      await vaultKindTvl(api, balances, kind, vault.address);
+    }
+    return Math.max(0, await balances.getUSDValue());
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * @param {string} chain
  * @param {number} chainId
  * @returns {Promise<Pool[]>}
  */
-async function chainApy(chain, chainId) {
-  /** @type {{ data: VaultApyResponse }} */
+async function chainPools(chain, chainId) {
+  const api = new sdk.ChainApi({ chain });
   const { data } = await axios.get(getVaultApyUrl(chainId), {
     timeout: 10_000,
   });
-  return data.vaults.map((vault) => vaultApy(chain, chainId, vault));
+
+  const results = await Promise.allSettled(
+    data.vaults.map(async (vault) => ({
+      pool: `${vault.address}-${chain}`,
+      chain: chain,
+      project: 'origami-finance',
+      symbol: vault.symbol,
+      tvlUsd: await vaultTvlUsd(api, chain, vault),
+      apyBase: vault.apy,
+      underlyingTokens: vault.underlying_tokens,
+      url: `https://origami.finance/vaults/${chainId}-${getAddress(
+        vault.address
+      )}/info`,
+    }))
+  );
+  return results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 }
 
 const apy = async () => {
-  const results = await Promise.allSettled(
-    Object.entries(CHAINS).map(([chain, chainId]) => chainApy(chain, chainId))
+  const results = await Promise.all(
+    Object.entries(CHAINS).map(([chain, chainId]) => chainPools(chain, chainId))
   );
-
-  return results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+  return results.flat();
 };
 
 module.exports = {
@@ -71,25 +203,27 @@ module.exports = {
   apy,
 };
 
+/** @typedef {import('@defillama/sdk').ChainApi} ChainApi */
+/** @typedef {import('@defillama/sdk').Balances} Balances */
+
 /**
- * @typedef {Object} VaultApy
- * @property {string} address - Vault contract address (lowercased).
- * @property {string} symbol - Vault token symbol.
- * @property {number} total_tvl_usd - Vault TVL in USD.
- * @property {string[]} underlying_tokens - Underlying token addresses.
- * @property {number} apy - Net APY in percent (already compounded server-side).
+ * @typedef {'ERC4626' | 'REPRICING' | 'LEVERAGE' | 'BALANCE_SHEET' | 'AUTO_STAKING'} VaultKind
  */
 
 /**
- * @typedef {Object} VaultApyResponse
- * @property {VaultApy[]} vaults
+ * @typedef {Object} VaultApy
+ * @property {string} address
+ * @property {string} symbol
+ * @property {VaultKind[]} vault_kinds
+ * @property {string[]} underlying_tokens
+ * @property {number} apy
  */
 
 /**
  * @typedef {Object} Pool
- * @property {string} pool - Stable unique id: `<vaultAddress>-<chain>`.
+ * @property {string} pool
  * @property {string} chain
- * @property {string} project - Always `origami-finance`.
+ * @property {string} project
  * @property {string} symbol
  * @property {number} tvlUsd
  * @property {number} apyBase
