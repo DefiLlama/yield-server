@@ -40,15 +40,22 @@ const CONFIG = {
       '0xce3b00f6badbceb506d97b6b32e0ac68c2cafd6b': 20,
     },
   },
+  ethereum: {
+    SUBGRAPH:
+      'https://graphnode.prod.everything.inc/subgraphs/name/unipool-ethereum-v0-0-1',
+    FARMING_ADDRESS: '0x7d85c0905a6e1ab5837a0b57cd94a419d3a77523',
+    TIME_BETWEEN_BLOCK: 12.0,
+    FARMING_CAMPAIGNS: {
+      '0x048af8f22d76cd832aba6acba15009bb618db261': 24, // sUSDe/USDT
+      '0x3231d6aea7a71b3e8e8541995ae4e8a2e61081b4': 25, // WstETH/WETH
+      '0xbb34cd8fea10a49cb5caf811b0a568f465bd4c6c': 26, // wNVDAx/USDT
+    },
+  },
 };
 
 const queryPairs = gql`
   {
-    pairs(
-      first: 1000
-      orderBy: reserveToken0
-      orderDirection: desc
-    ) {
+    pairs(first: 1000, orderBy: reserveToken0, orderDirection: desc) {
       id
       token0 {
         id
@@ -161,12 +168,13 @@ const fetchFarmingRewards = async (chainString, config, poolPrices) => {
     rewardInfos = output;
   }
 
-  // Get EV token price
+  // EV reward token price. EV is deployed at the same address on every
+  // supported chain (arbitrum/base/bsc/ethereum) and is the reward token for
+  // all campaigns, so we price it via Arbitrum, its most liquid market.
   const evPriceData = await utils.getData(
     `https://coins.llama.fi/prices/current/arbitrum:${EV_TOKEN_ADDRESS}`
   );
-  const evPrice =
-    evPriceData.coins[`arbitrum:${EV_TOKEN_ADDRESS}`]?.price || 0;
+  const evPrice = evPriceData.coins[`arbitrum:${EV_TOKEN_ADDRESS}`]?.price || 0;
 
   // Build rewards map: pairAddress -> apyReward
   const rewards = {};
@@ -224,7 +232,10 @@ const getPoolsForChain = async (chainString) => {
   try {
     recentSwaps = await fetchAllSwaps(subgraphUrl, timestamp24hAgo);
   } catch (e) {
-    console.error(`everything: swap query failed for ${chainString}, apyBase will be 0:`, e.message);
+    console.error(
+      `everything: swap query failed for ${chainString}, apyBase will be 0:`,
+      e.message
+    );
   }
 
   // Normalize reserves to human-readable
@@ -337,7 +348,10 @@ const apy = async () => {
 
   for (const r of results) {
     if (r.status === 'rejected') {
-      console.error('everything: chain fetch failed:', r.reason?.message || r.reason);
+      console.error(
+        'everything: chain fetch failed:',
+        r.reason?.message || r.reason
+      );
     }
   }
 
