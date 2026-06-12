@@ -141,7 +141,7 @@ async function vaultKindTvl(api, balances, kind, vault) {
     case 'AUTO_STAKING':
       return autoStakingTvl(api, balances, vault);
     default:
-      return undefined;
+      throw new Error(`Unsupported vault kind: ${kind}`);
   }
 }
 
@@ -153,14 +153,10 @@ async function vaultKindTvl(api, balances, kind, vault) {
  */
 async function vaultTvlUsd(api, chain, vault) {
   const balances = new sdk.Balances({ chain });
-  try {
-    for (const kind of vault.vault_kinds) {
-      await vaultKindTvl(api, balances, kind, vault.address);
-    }
-    return Math.max(0, await balances.getUSDValue());
-  } catch {
-    return 0;
+  for (const kind of vault.vault_kinds) {
+    await vaultKindTvl(api, balances, kind, vault.address);
   }
+  return Math.max(0, await balances.getUSDValue());
 }
 
 /**
