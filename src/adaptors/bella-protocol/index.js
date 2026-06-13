@@ -18,7 +18,7 @@ const buildPool =
       pool: [pool, chain].join('-'),
       chain: utils.formatChain(chain),
       project: 'bella-protocol',
-      symbol: utils.formatSymbol(name.toUpperCase()),
+      symbol: name,
       rewardTokens: ['0xcA7aE36A38eA4dE50DFEeCF6A4c44fC074811a6c'],
       apyBase: strategyApy,
       apyReward: distributionApy,

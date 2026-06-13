@@ -140,7 +140,7 @@ const main = async () => {
         pool: `${address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: 'woofi-earn',
-        symbol: utils.formatSymbol(info['symbol']),
+        symbol: info['symbol'],
         poolMeta: `Supercharger${version}`,
         tvlUsd: parseFloat(BigNumber(info['tvl']).div(10 ** decimals)),
         apyBase: info['weighted_average_apr'],

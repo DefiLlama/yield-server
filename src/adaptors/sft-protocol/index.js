@@ -47,5 +47,5 @@ const getApy = async () => {
 module.exports = {
   timetravel: false,
   apy: getApy,
-  url: 'https://www.sftproject.io/#/mint',
+  url: 'https://sft.network/#/stake',
 };

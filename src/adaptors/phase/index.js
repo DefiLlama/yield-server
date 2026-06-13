@@ -95,7 +95,7 @@ const poolsFunction = async () => {
         pool: `${chain}:${vault}`,
         chain: noAPIUtils.formatChain(chain),
         project: 'phase',
-        symbol: noAPIUtils.formatSymbol(symbol),
+        symbol: symbol,
         tvlUsd: tvl,
         apyBase: apy,
         underlyingTokens: [asset],

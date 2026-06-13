@@ -150,6 +150,7 @@ const main = async () => {
       chain: 'Ethereum',
       tvlUsd: (totalSupply / 10 ** 18) * price / 10 ** 8,
       apy: ((1 + rate / 10 ** 12) ** 365 - 1) * 100,
+      ...(Number(price) / 10 ** 8 > 0 && { pricePerShare: Number(price) / 10 ** 8 }),
       underlyingTokens: [RUSD],
     },
     {
@@ -159,6 +160,7 @@ const main = async () => {
       chain: 'Ethereum',
       tvlUsd: (totalSupplyW / 10 ** 18) * priceW / 10 ** 18,
       apy: ((1 + rateW / 10 ** 27) ** 31557600 - 1) * 100,
+      ...(Number(priceW) / 10 ** 18 > 0 && { pricePerShare: Number(priceW) / 10 ** 18 }),
       underlyingTokens: [RUSD],
     }
   ];

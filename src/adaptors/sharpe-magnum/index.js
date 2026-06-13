@@ -92,7 +92,7 @@ const getApy = async () => {
     pool: '0xfc85db895e070017ab9c84cb65b911d56b729ee9-ethereum',
     chain: utils.formatChain('Ethereum'),
     project: 'sharpe-magnum',
-    symbol: utils.formatSymbol('ETH'),
+    symbol: 'ETH',
     tvlUsd : tvlUSD,
     apy: apyVal,
     underlyingTokens: [WETH],

@@ -22,12 +22,18 @@ async function apy() {
   const stats = await getStats();
   const trxPrice = await getTrxPrice();
 
+  const {
+    profit_percent = 0,
+    static_percent = 0,
+    landing_percent = 0
+  } = cfg ?? {};
+
   // TVL
   const tvlTrx = Number((stats.total_energy / cfg.trx_staking_energy_rate).toFixed(2));
   const tvlUsd = Number((tvlTrx * trxPrice['coingecko:tron'].price).toFixed(2));
 
-  // APY  (profit_percent + static_percent) * percent_cef
-  const baseApy = Number(((cfg.profit_percent + cfg.static_percent) * 100).toFixed(2));
+  // APY
+  const baseApy = Number(((profit_percent + static_percent + landing_percent) * 100).toFixed(2));
   
   return [
     {

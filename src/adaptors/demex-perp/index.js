@@ -28,7 +28,7 @@ const apr = async () => {
   for (const pool of pools) {
     const tokenAInfo = tokens.find((o) => o.denom === pool.denomA);
     const tokenBInfo = tokens.find((o) => o.denom === pool.denomB);
-    const symbol = `${tokenAInfo.symbol.toUpperCase()}-${tokenBInfo.symbol.toUpperCase()}`;
+    const symbol = `${tokenAInfo.symbol}-${tokenBInfo.symbol}`;
     const poolTVL = poolsTVL.find((o) => o.poolId === pool.id)?.amountValue;
     result.push({
       pool: pool.denom.toString(),

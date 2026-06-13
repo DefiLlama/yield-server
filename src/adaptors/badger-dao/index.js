@@ -130,7 +130,7 @@ async function queryVaults(chain) {
         pool,
         chain: utils.formatChain(chain),
         project,
-        symbol: utils.formatSymbol(e.name),
+        symbol: e.name,
         tvlUsd,
         apyBase,
         apyReward,

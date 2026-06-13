@@ -15,9 +15,11 @@ async function apy() {
       symbol: 'savUSD',
       tvlUsd: savUSDData.tvlUsd,
       apyBase: savUSDData.apyBase,
+      ...(savUSDData.pricePerShare > 0 && { pricePerShare: savUSDData.pricePerShare }),
       underlyingTokens: [avUSD],
       poolMeta: 'ERC-4626: savUSD → avUSD',
       url: 'https://www.avantprotocol.com',
+      isIntrinsicSource: true,
     },
   ]
 }

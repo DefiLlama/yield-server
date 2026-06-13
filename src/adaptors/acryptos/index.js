@@ -153,7 +153,7 @@ const main = async () => {
       pool: vault.id,
       chain: utils.formatChain(displayChain),
       project: 'acryptos',
-      symbol: utils.formatSymbol(vault.symbol),
+      symbol: vault.symbol,
       poolMeta: vault.platform.charAt(0).toUpperCase() + vault.platform.slice(1),
       tvlUsd: Number(vault.tvl),
       apy: Number(vault.apy),

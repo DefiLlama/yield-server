@@ -456,7 +456,7 @@ const apy = async () => {
             pool: `${vaultRow.id}-${chainKey}`,
             chain: utils.formatChain(chainKey),
             project: "gammaswap-yield-tokens",
-            symbol: utils.formatSymbol(tokenSymbol),
+            symbol: tokenSymbol,
             tvlUsd: (() => {
               try {
                 // Calculate TVL as NAV * assetTokenPriceUSD

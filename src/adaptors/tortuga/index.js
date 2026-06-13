@@ -67,7 +67,7 @@ async function main() {
       pool: `${TGOV_ADDRESS}-tortuga`,
       chain: utils.formatChain('aptos'),
       project: 'tortuga',
-      symbol: utils.formatSymbol('tAPT'),
+      symbol: 'tAPT',
       tvlUsd: aptStaked
         .multipliedBy(aptPrice.coins[aptosCoinName].price)
         .dividedBy(DECIMALS)

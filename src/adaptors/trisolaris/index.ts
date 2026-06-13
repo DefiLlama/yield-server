@@ -39,7 +39,7 @@ const apy = async () => {
       pool: `${farm.lpAddress}-${farm.id}`,
       chain: utils.formatChain('aurora'),
       project: 'trisolaris',
-      symbol: utils.formatSymbol(name),
+      symbol: name,
       tvlUsd: farm.totalStakedInUSD,
       apyReward: farm.apr + extraApr,
       underlyingTokens: isStablePool

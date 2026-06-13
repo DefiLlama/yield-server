@@ -53,6 +53,7 @@ const apy = async () => {
       apyBase,
       poolMeta: '7 days unstaking',
       underlyingTokens: [USDe],
+      isIntrinsicSource: true,
     },
   ];
 };

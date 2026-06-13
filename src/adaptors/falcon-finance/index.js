@@ -19,7 +19,9 @@ const SHARES = BigInt('1000000000000000000000000')  // 1e24
 const SCALE  = BigInt('1000000000000')  
 
 async function getBlockAt(ts, chain = CHAIN) {
-  const { data } = await axios.get(`https://coins.llama.fi/block/${chain}/${ts}`)
+  const { data } = await utils.withRetry(() =>
+    axios.get(`https://coins.llama.fi/block/${chain}/${ts}`)
+  )
   return { block: data.height || data.number, ts: data.timestamp || ts }
 }
 
@@ -45,7 +47,8 @@ function ratioToDaily(rNow, rPrev, secondsBigOrNum) {
 }
 
 async function computeApyBase(vault) {
-  const nowTs = Math.floor(Date.now() / 1e3)
+  // 60s safety margin so coins.llama.fi/block never 400s on "timestamp after now"
+  const nowTs = Math.floor(Date.now() / 1e3) - 60
   const WEEK = 7 * DAY
 
   const [{ block: bNow, ts: tNow }, { block: bPast, ts: tPast }] = await Promise.all([
@@ -80,7 +83,18 @@ async function getData(vault, underlying) {
   const tvlUsd = (Number(totalAssetsBn) / 1e18) * price
   const apyBase = await computeApyBase(vault)
 
-  return { tvlUsd, apyBase }
+  let pricePerShare
+  try {
+    const { output: pricePerShareBn } = await sdk.api.abi.call({
+      target: vault,
+      abi: abi.convertToAssets,
+      params: ['1000000000000000000'],
+      chain: CHAIN,
+    })
+    pricePerShare = Number(pricePerShareBn) / 1e18
+  } catch (_) {}
+
+  return { tvlUsd, apyBase, pricePerShare }
 }
 
 async function apy() {
@@ -97,6 +111,7 @@ async function apy() {
       symbol: 'sUSDf',
       tvlUsd: sUSDfData.tvlUsd,
       apyBase: sUSDfData.apyBase,
+      ...(sUSDfData.pricePerShare > 0 && { pricePerShare: sUSDfData.pricePerShare }),
       underlyingTokens: [USDf],
       poolMeta: 'ERC-4626: USDf → sUSDf',
       url: 'https://app.falcon.finance/earn/classic',
@@ -108,6 +123,7 @@ async function apy() {
       symbol: 'sFF',
       tvlUsd: sFFData.tvlUsd,
       apyBase: sFFData.apyBase,
+      ...(sFFData.pricePerShare > 0 && { pricePerShare: sFFData.pricePerShare }),
       underlyingTokens: [FF],
       poolMeta: 'ERC-4626: FF → sFF',
       url: 'https://app.falcon.finance/earn/classic',

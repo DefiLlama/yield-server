@@ -12,7 +12,7 @@ const poolsFunction = async () => {
     pool: '0xD4b06218C545C047ac3ACc7cE49d124C172DB409',
     chain: utils.formatChain('ethereum'),
     project: 'jpegd',
-    symbol: utils.formatSymbol('APE'),
+    symbol: 'APE',
     rewardTokens: [APE],
     underlyingTokens: [APE],
     tvlUsd: Number(tvlData.tokenBalancesUsd.ape),

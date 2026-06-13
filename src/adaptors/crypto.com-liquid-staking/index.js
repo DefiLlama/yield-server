@@ -68,7 +68,10 @@ const apy = async () => {
       tvlUsd: totalSupply * price,
       apyBase: apr7d,
       apyBase7d: apr7d,
+      ...(Number(exchangeRates[0].output) / 1e18 > 0 && { pricePerShare: Number(exchangeRates[0].output) / 1e18 }),
       underlyingTokens: ['0xe44fd7fcb2b1581822d0c862b68222998a0c299a'],
+      searchTokenOverride: cdceth.cronos,
+      isIntrinsicSource: true,
     },
   ];
 };

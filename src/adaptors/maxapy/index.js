@@ -50,7 +50,7 @@ class MaxApyAdapter {
       pool: `${vaultAddress}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
       project: 'maxapy',
-      symbol: utils.formatSymbol(vaultInfo.symbol),
+      symbol: vaultInfo.symbol,
       tvlUsd: 0,
       apyBase: 0,
       underlyingTokens: [vaultInfo.underlying],

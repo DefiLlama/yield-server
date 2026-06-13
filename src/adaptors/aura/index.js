@@ -68,7 +68,7 @@ async function poolsFunction() {
           pool: `${pool.lptoken.toLowerCase()}-aura`,
           chain: chainConfig.llamaChainName,
           project: 'aura',
-          symbol: utils.formatSymbol(symbolsData[idx] ?? 'Unknown'),
+          symbol: symbolsData[idx] ?? 'Unknown',
           tvlUsd: tvlsData[poolIndex] ?? 0,
           apyBase: poolBalancerData.apyBase,
           apyReward,

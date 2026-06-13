@@ -65,6 +65,17 @@ async function fetchV3Pools(chain) {
     })
   ).output.map((o) => o.output);
 
+  const reserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupplyEthereum = (
     await sdk.api.abi.multiCall({
       chain,
@@ -106,6 +117,15 @@ async function fetchV3Pools(chain) {
   return reserveTokens
     .map((pool, i) => {
       const p = poolsReserveData[i];
+      const config = poolsReservesConfigurationData[i];
+      if (config.isFrozen) return null;
+
+      const decimals = BigInt(underlyingDecimalsEthereum[i]);
+      const borrowCap = BigInt(reserveCaps[i].borrowCap);
+      const borrowCapReached =
+        borrowCap > 0n &&
+        BigInt(p.totalStableDebt) + BigInt(p.totalVariableDebt) >=
+          borrowCap * 10n ** decimals;
       const price = pricesEthereum[`${chain}:${pool.tokenAddress}`]?.price;
 
       const supply = totalSupplyEthereum[i];
@@ -115,6 +135,20 @@ async function fetchV3Pools(chain) {
       const currentSupply = underlyingBalancesEthereum[i];
       const tvlUsd =
         (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
+
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** underlyingDecimalsEthereum[i]) *
+        price;
+      const borrowCapUsd = Number(reserveCaps[i].borrowCap) * price;
+      const availableBorrowUsd = borrowCap > 0n
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
+      // Omit borrow fields when Spark disables borrowing; cap-reached markets
+      // still expose borrow data but are marked as not borrowable.
+      const hasBorrowSide = config.borrowingEnabled && config.isActive;
+      const borrowable = hasBorrowSide && !borrowCapReached;
+      const sparkChainId = chain === 'xdai' ? 100 : 1;
 
       return {
         pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
@@ -126,56 +160,67 @@ async function fetchV3Pools(chain) {
         apyBase: (p.liquidityRate / 10 ** 27) * 100,
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
-        totalBorrowUsd: totalSupplyUsd - tvlUsd,
-        apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
-        ltv: poolsReservesConfigurationData[i].ltv / 10000,
-        borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        ...(hasBorrowSide && {
+          totalBorrowUsd,
+          availableBorrowUsd,
+          apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+          borrowToken: pool.tokenAddress,
+        }),
+        ltv: config.ltv / 10000,
+        borrowable,
+        url: `https://app.spark.fi/markets/${sparkChainId}/${pool.tokenAddress}`,
       };
     })
+    .filter(Boolean)
     .filter((p) => utils.keepFinite(p));
 }
 
-const skyFarm = async () => {
-  const stakingRewards = '0x0650CAF159C5A49f711e8169D4336ECB9b950275';
+const spkFarm = async () => {
+  const stakingRewards = '0x173e314C7635B45322cd8Cb14f44b312e079F3af';
   const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
-  const SKY = '0x56072C95FAA701256059aa122697B133aDEd9279';
+  const SPK = '0xc20059e0317DE91738d13af027DfC4a50781b066';
 
-  const totalSupply =
-    (
-      await sdk.api.abi.call({
+  const [totalSupplyRes, stakingTokenRes, rewardRateRes, periodFinishRes] =
+    await Promise.all([
+      sdk.api.abi.call({
         target: stakingRewards,
         abi: 'erc20:totalSupply',
-      })
-    ).output / 1e18;
+      }),
+      sdk.api.abi.call({
+        target: stakingRewards,
+        abi: abiSKYFarm.find((m) => m.name === 'stakingToken'),
+      }),
+      sdk.api.abi.call({
+        target: stakingRewards,
+        abi: abiSKYFarm.find((m) => m.name === 'rewardRate'),
+      }),
+      sdk.api.abi.call({
+        target: stakingRewards,
+        abi: abiSKYFarm.find((m) => m.name === 'periodFinish'),
+      }),
+    ]);
 
-  const stakingToken = (
-    await sdk.api.abi.call({
-      target: stakingRewards,
-      abi: abiSKYFarm.find((m) => m.name === 'stakingToken'),
-    })
-  ).output;
+  const totalSupply = totalSupplyRes.output / 1e18;
+  const stakingToken = stakingTokenRes.output;
+  const rewardRate = rewardRateRes.output / 1e18;
+  const periodFinish = Number(periodFinishRes.output);
 
   const prices = await axios.get(
-    `https://coins.llama.fi/prices/current/${[USDS, SKY]
+    `https://coins.llama.fi/prices/current/${[USDS, SPK]
       .map((i) => `ethereum:${i}`)
       .join(',')}`
   );
 
   const priceUSDS = prices.data.coins[`ethereum:${USDS}`].price;
-  const priceSKY = prices.data.coins[`ethereum:${SKY}`].price;
+  const priceSPK = prices.data.coins[`ethereum:${SPK}`].price;
 
   const tvlUsd = totalSupply * priceUSDS;
 
-  const rewardRate =
-    (
-      await sdk.api.abi.call({
-        target: stakingRewards,
-        abi: abiSKYFarm.find((m) => m.name === 'rewardRate'),
-      })
-    ).output / 1e18;
-
+  const isActive = Date.now() / 1000 < periodFinish;
   const secPerDay = 86400;
-  const apyReward = ((rewardRate * secPerDay * 365 * priceSKY) / tvlUsd) * 100;
+  const apyReward = isActive
+    ? ((rewardRate * secPerDay * 365 * priceSPK) / tvlUsd) * 100
+    : 0;
 
   return [
     {
@@ -183,54 +228,25 @@ const skyFarm = async () => {
       chain: 'Ethereum',
       project: 'sparklend',
       symbol: 'USDS',
-      poolMeta: 'SKY Farming Pool',
-      tvlUsd: totalSupply * priceUSDS,
+      token: stakingRewards,
+      poolMeta: 'SPK Farming Pool',
+      tvlUsd,
       apyReward,
       underlyingTokens: [stakingToken],
-      rewardTokens: [SKY],
+      rewardTokens: [SPK],
+      url: 'https://app.spark.fi/spk/farm',
     },
   ];
 };
 
 const apy = async () => {
-  const skyFarmPool = await skyFarm();
+  const spkFarmPool = await spkFarm();
 
   const v3Pools = [
     ...(await Promise.all(sparkChains.map(fetchV3Pools))),
   ].flat();
 
-  const ilk = (
-    await sdk.api.abi.call({
-      target: '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B',
-      params: [
-        '0x4449524543542d535041524b2d44414900000000000000000000000000000000',
-      ],
-      abi: {
-        constant: true,
-        inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
-        name: 'ilks',
-        outputs: [
-          { internalType: 'uint256', name: 'Art', type: 'uint256' },
-          { internalType: 'uint256', name: 'rate', type: 'uint256' },
-          { internalType: 'uint256', name: 'spot', type: 'uint256' },
-          { internalType: 'uint256', name: 'line', type: 'uint256' },
-          { internalType: 'uint256', name: 'dust', type: 'uint256' },
-        ],
-        payable: false,
-        stateMutability: 'view',
-        type: 'function',
-      },
-    })
-  ).output;
-
-  const ethereumDaiPool = v3Pools.find(
-    (p) => p.symbol === 'DAI' && p.chain === 'Ethereum'
-  );
-  ethereumDaiPool.totalSupplyUsd = Number(ilk.line) / 1e45;
-  ethereumDaiPool.tvlUsd =
-    ethereumDaiPool.totalSupplyUsd - ethereumDaiPool.totalBorrowUsd;
-
-  return [...v3Pools, ...skyFarmPool];
+  return [...v3Pools, ...spkFarmPool];
 };
 
 module.exports = {

@@ -163,7 +163,7 @@ async function getPoolsFor(chain) {
         pool: `${lender.address}-${chain}`.toLowerCase(),
         chain,
         project: 'aloe',
-        symbol: symbol.toUpperCase(),
+        symbol: symbol,
         tvlUsd: tvl * price,
         apyBase: apyBaseLend * 100,
         underlyingTokens: [info.asset],

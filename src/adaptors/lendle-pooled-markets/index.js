@@ -130,7 +130,9 @@ const getApy = async () => {
             // borrow fields
             totalSupplyUsd,
             totalBorrowUsd,
+            availableBorrowUsd: tvlUsd,
             apyBaseBorrow,
+            borrowToken: t,
             ltv,
             borrowable,
             poolMeta: frozen ? 'frozen' : null,

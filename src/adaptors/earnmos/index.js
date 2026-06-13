@@ -11,7 +11,7 @@ const poolsFunction = async () => {
       pool: poolInfo.pool,
       chain: utils.formatChain(poolInfo.chain),
       project: 'earnmos',
-      symbol: utils.formatSymbol(name[0]),
+      symbol: name[0],
       poolMeta: name[1].replace(')', ''),
       tvlUsd: Number(poolInfo.totalValueLock),
       apy: poolInfo.apy * 100,

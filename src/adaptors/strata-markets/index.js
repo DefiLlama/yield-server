@@ -11,6 +11,30 @@ const Addresses = {
     jrUSDe: '0xC58D044404d8B14e953C115E67823784dEA53d8F',
     underlying: '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3', // USDe
   },
+  neutrl: {
+    cdo: '0x7b6c960cf185fb27ECb91c174FAe065978beDd10',
+    srNUSD: '0x65a44528e8868166401eA08b549E19552af589dB',
+    jrNUSD: '0xFC807058A352b61aEef6A38e2D0fC3990225E772',
+    underlying: '0xE556ABa6fe6036275Ec1f87eda296BE72C811BCE', // NUSD
+  },
+  mhyper: {
+    cdo: '0x39C7E67b25fB14eAec8717B20664C2E35327e6cf',
+    srmHYPER: '0x627EA69929212916Ec57B1b26d2E1a19F6129B53',
+    jrmHYPER: '0xEb205d26E9E605Ec82d1C0d652E00037C278714b',
+    underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
+  },
+  mm1usd: {
+    cdo: '0x613D1790d9BA381D27B4071C04380Db8ED120E5f',
+    srmM1USD: '0xCcEd21d609CaC4A272d0c01a8FF4de9cEBc40d60',
+    jrmM1USD: '0xf7eB8dfec75C42D2d2247FE76Ccaedc59f821688',
+    underlying: '0xCc5C22C7A6BCC25e66726AeF011dDE74289ED203', // MM1USD
+  },
+  saturn: {
+    cdo: '0xa617763cEB808f43eC9D532cbE8C65819afb846b',
+    srUSDat: '0xFaa9a0e1Db9E22AE3A20B2B58a68DC24D053d066',
+    jrUSDat: '0x011e55d2b28306458e37Ca7E997C879BB25A455D',
+    underlying: '0x23238f20b894f29041f48D88eE91131C395Aaa71', // USDat
+  },
 };
 
 const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
@@ -20,7 +44,7 @@ const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
       abi: 'erc20:totalSupply',
       chain,
     });
-    return output / 1e18;
+    return output / (10 ** 18); 
   } catch (error) {
     console.error(`Error fetching total supply for ${tokenAddress}:`, error);
     throw error;
@@ -28,7 +52,7 @@ const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
 };
 
 const getTokenPrice = async (tokenAddress) => {
-  try {
+try {
     const priceKey = `ethereum:${tokenAddress}`;
     const { data } = await axios.get(
       `https://coins.llama.fi/prices/current/${priceKey}`
@@ -65,7 +89,7 @@ async function loadPool(tranche, symbol) {
   const vault = Addresses[tranche][symbol];
 
   const [totalSupply, price, aprs] = await Promise.all([
-    getTotalSupply(vault),
+    getTotalSupply(vault, 'ethereum'),
     getTokenPrice(vault),
     getAprs(cdo),
   ]);
@@ -87,6 +111,14 @@ const apy = async () => {
     return await Promise.all([
       loadPool('ethena', 'srUSDe'),
       loadPool('ethena', 'jrUSDe'),
+      loadPool('neutrl', 'srNUSD'),
+      loadPool('neutrl', 'jrNUSD'),
+      loadPool('mhyper', 'srmHYPER'),
+      loadPool('mhyper', 'jrmHYPER'),
+      loadPool('mm1usd', 'srmM1USD'),
+      loadPool('mm1usd', 'jrmM1USD'),
+      loadPool('saturn', 'srUSDat'),
+      loadPool('saturn', 'jrUSDat'),
     ]);
   } catch (error) {
     console.error('Error fetching APYs:', error);

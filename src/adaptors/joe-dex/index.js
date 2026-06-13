@@ -43,9 +43,7 @@ const queryPrior = gql`
 const buildPool = (entry, chainString) => {
   const apyFee = Number(entry.apy1d);
   const apyJoe = isNaN(entry.apyJoe) ? null : entry.apyJoe;
-  const symbol = utils.formatSymbol(
-    `${entry.token0.symbol}-${entry.token1.symbol}`
-  );
+  const symbol = `${entry.token0.symbol}-${entry.token1.symbol}`;
   const newObj = {
     pool: entry.id,
     chain: utils.formatChain(chainString),

@@ -95,7 +95,7 @@ async function getPoolGmx(
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(chainString),
     project,
-    symbol: utils.formatSymbol('GMX'),
+    symbol: 'GMX',
     tvlUsd: tvlGmx,
     apyBase: apyFee,
     apyReward: apyInflation,

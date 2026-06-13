@@ -20,7 +20,7 @@ const getApy = async () => {
       pool: p.strategy,
       chain: 'Solana',
       project: 'kamino-liquidity',
-      symbol: utils.formatSymbol(`${p.tokenA}-${p.tokenB}`),
+      symbol: `${p.tokenA}-${p.tokenB}`,
       underlyingTokens: [p.tokenAMint, p.tokenBMint],
       rewardTokens: p.krewardMints,
       tvlUsd: Number(p.totalValueLocked),

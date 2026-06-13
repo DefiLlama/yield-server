@@ -85,7 +85,7 @@ const buildPool = (entry) => {
     pool: entry.poolId,
     chain: 'Ethereum',
     project: 'jelly',
-    symbol: utils.formatSymbol(entry.symbol),
+    symbol: entry.symbol,
     poolMeta: entry.poolName,
     tvlUsd: parseInt(entry.tvl, 10),
     apy: parseFloat(entry.apy),

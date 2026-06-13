@@ -43,7 +43,7 @@ const poolsFunction = async () => {
     pool: arcUSD.address,
     chain: utils.formatChain('real'),
     project: 'tangible-arcana',
-    symbol: utils.formatSymbol('arcUSD'),
+    symbol: 'arcUSD',
     tvlUsd: Number(totalSupply) / 1e18,
     apyBase: apy_given_staked,
     apyReward: 0,

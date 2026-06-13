@@ -38,7 +38,7 @@ const getApy = async () => {
   const poolInfo = await Promise.all(
     pairs.map(async (pool) => {
       const underlyingTokens = [pool.token0.id, pool.token1.id];
-      const symbol = utils.formatSymbol(`${pool.token0.symbol}-${pool.token1.symbol}`)
+      const symbol = `${pool.token0.symbol}-${pool.token1.symbol}`
       const { pairdaydatas: pairDayData } = await request(API_URL, dayDataQuery.replace('<PLACEHOLDER>', pool.id),);
       const dailyFee = pairDayData[0] ? pairDayData[0].dailyVolumeUSD * pool.feeTier / FEE_PRECISION : 0
       const apy = (dailyFee * 36500) / pool.totalValueLockedUSD;

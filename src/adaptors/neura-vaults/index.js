@@ -33,7 +33,7 @@ const poolsFunction = async () => {
       pool: `${vault.address}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: 'neura-vaults',
-      symbol: utils.formatSymbol(vault.underlyingSymbol || vault.symbol),
+      symbol: vault.underlyingSymbol || vault.symbol,
       tvlUsd,
       apyBase,
       apyBase7d,

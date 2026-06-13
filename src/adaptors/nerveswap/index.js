@@ -11,7 +11,7 @@ const getApy = async () => {
       pool: p.address,
       chain: 'Nuls',
       project: 'nerveswap',
-      symbol: utils.formatSymbol(`${p.token0Symbol}-${p.token1Symbol}`),
+      symbol: `${p.token0Symbol}-${p.token1Symbol}`,
       tvlUsd: Number(new BigNumber(p.reserveUsdtValue).shiftedBy(-18).toFixed(6)),
       apyBase: p.feeUsdtValueARP / 100,
       apyReward: apyReward > 0 ? apyReward : null,

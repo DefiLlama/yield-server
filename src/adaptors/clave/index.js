@@ -80,7 +80,7 @@ const getV1PoolData = async ({ abi, contract, chain, name, token }) => {
     pool: name,
     chain: utils.formatChain(chain),
     project: 'clave',
-    symbol: utils.formatSymbol(symbol),
+    symbol: symbol,
     tvlUsd,
     apyReward,
     rewardTokens: [ZK],

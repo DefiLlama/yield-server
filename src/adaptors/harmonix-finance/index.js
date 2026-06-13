@@ -55,6 +55,7 @@ const assets = {
   hyperevm: {
     hype: '0x5555555555555555555555555555555555555555',
     khype: '0xfD739d4e423301CE9385c1fb8850539D657C296D',
+    usdc: '0xb88339CB7199b77E23DB6E890353E22632Ba630f',
   },
   base: {
     usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -121,7 +122,7 @@ const getApy = async () => {
         pool: v.contract_address, // unique identifier for the pool
         chain: chainId || null, // map chain name to chain ID
         project: 'harmonix-finance', // project slug
-        symbol: utils.formatSymbol(v.vault_currency), // format the symbol
+        symbol: v.vault_currency,
         tvlUsd, // total value locked in USD
         apyBase: v.apy, // APY from the vault
         apyReward: 0, // hardcoded for now

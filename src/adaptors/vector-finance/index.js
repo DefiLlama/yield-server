@@ -50,7 +50,7 @@ async function apy() {
         pool: `vector-${k}-${i < lockingLength ? 'locking' : 'staking'}`,
         chain: 'Avalanche',
         project: 'vector-finance',
-        symbol: utils.formatSymbol(k.replace(/_/g, '-')),
+        symbol: k.replace(/_/g, '-'),
         tvlUsd:
           Number(tvls[i < lockingLength ? 'Locking' : 'Staking'][k]) *
           prices[k],

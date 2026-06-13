@@ -39,7 +39,7 @@ const poolsFunction = async () => {
     pool: '0xceF63C8507004a8d079daE3c83e369De0Adfa7Aa',
     chain: utils.formatChain('arbitrum'),
     project: 'thegoblins',
-    symbol: utils.formatSymbol('USDC.e'),
+    symbol: 'USDC.e',
     tvlUsd: (tvl / 1e6) * price,
     apy: bankApy.last24hApy * 100,
     underlyingTokens: ['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'],

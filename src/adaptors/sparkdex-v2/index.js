@@ -79,7 +79,7 @@ const fetchSparkDexV2Data = async (timestamp = null) => {
 
     // Format pools
     return dataNow.map((p) => {
-      const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+      const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
       const underlyingTokens = [p.token0.id, p.token1.id];
       
       return {

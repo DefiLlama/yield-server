@@ -74,7 +74,7 @@ async function apy() {
       pool: pool.contractAddress,
       chain: 'Ethereum',
       project: 'harvest-finance',
-      symbol: utils.formatSymbol(vaultId).replace(/[{()}]/g, ''),
+      symbol: vaultId.replace(/[{()}]/g, ''),
       tvlUsd:
         vaultId === 'farm-weth'
           ? Number(pool.lpTokenData.liquidity)

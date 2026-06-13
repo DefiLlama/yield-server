@@ -102,8 +102,10 @@ const getApy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase: apyBase7d,
       apyBase7d,
+      ...(Number(exchangeRates[0].output) / 1e18 > 0 && { pricePerShare: Number(exchangeRates[0].output) / 1e18 }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      token: token,
+      searchTokenOverride: token,
+      isIntrinsicSource: true,
     },
     {
       pool: stakeManagerContract,
@@ -113,8 +115,10 @@ const getApy = async () => {
       tvlUsd: tvlPolygon * maticxPrice,
       apyBase: apyBase7dPolygon,
       apyBase7d: apyBase7dPolygon,
+      ...(Number(exchangeRatesPolygon[0].output[0]) / 1e18 > 0 && { pricePerShare: Number(exchangeRatesPolygon[0].output[0]) / 1e18 }),
       underlyingTokens: ['coingecko:polygon-ecosystem-token'],
-      token: stakeManagerContract,
+      searchTokenOverride: stakeManagerContract,
+      isIntrinsicSource: true,
     },
   ];
 };

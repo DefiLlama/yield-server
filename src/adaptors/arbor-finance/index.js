@@ -63,7 +63,7 @@ const poolsFunction = async () => {
       pool: `${bond.id}-ethereum`.toLowerCase(),
       chain: utils.formatChain('ethereum'),
       project: 'arbor-finance',
-      symbol: utils.formatSymbol(bond.paymentToken.symbol),
+      symbol: bond.paymentToken.symbol,
       tvlUsd: tvl,
       apy: ((1 / bondPrice) ** (1 / yearsUntilMaturity) - 1) * 100,
       poolMeta: bond.symbol,

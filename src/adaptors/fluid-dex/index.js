@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const ethers = require('ethers');
 const abis = require('./abi.json');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const PROJECT = 'fluid-dex';
 
@@ -171,7 +172,7 @@ const main = async (unixTimestamp) => {
         chain: utils.formatChain(chain),
         project: PROJECT,
         pool: `${chain}-${p.pool}`, // there are same pools addresses
-        symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
+        symbol: `${p.token0.symbol}-${p.token1.symbol}`,
         underlyingTokens: [p.token0.address, p.token1.address],
         tvlUsd: p.tvlUsd,
         apyBase: feeUsd * 100 * 365 / p.tvlUsd,
@@ -183,7 +184,7 @@ const main = async (unixTimestamp) => {
     }
   }
 
-  return yieldPools;
+  return addMerklRewardApy(yieldPools, 'fluid', (p) => p.pool.split('-').slice(1).join('-'));
 };
 
 module.exports = {

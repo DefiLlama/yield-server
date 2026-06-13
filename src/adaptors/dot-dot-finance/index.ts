@@ -54,9 +54,7 @@ const getApy = async () => {
       pool: `${pool.pool}-dot-dot-finance`,
       chain: utils.formatChain('binance'),
       project: 'dot-dot-finance',
-      symbol: utils.formatSymbol(
-        pool.symbol.replace('val3EPS', 'valBUSD/valUSDC/valUSDT')
-      ),
+      symbol: pool.symbol.replace('val3EPS', 'valBUSD/valUSDC/valUSDT'),
       tvlUsd: pool.dddTvlUSD,
       apyReward,
       apyBase: pool.baseApr || 0,

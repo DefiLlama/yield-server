@@ -164,13 +164,16 @@ const apy = async () => {
       liquidityRate,
       variableBorrowRate,
       availableLiquidity,
+      totalPrincipalStableDebt,
       totalScaledVariableDebt,
+      variableBorrowIndex,
       baseLTVasCollateral,
       borrowingEnabled,
       isActive,
       isPaused,
       aTokenAddress,
       variableDebtTokenAddress,
+      borrowCap,
     } = reserve;
 
     // Get price using chain:address format
@@ -203,12 +206,19 @@ const apy = async () => {
 
     // Calculate TVL and borrow amounts
     const liquidity = Number(availableLiquidity) / 10 ** Number(decimals);
-    const borrowed = Number(totalScaledVariableDebt) / 10 ** Number(decimals);
+    const borrowed =
+      (Number(totalPrincipalStableDebt) +
+        (Number(totalScaledVariableDebt) * Number(variableBorrowIndex)) / 1e27) /
+      10 ** Number(decimals);
 
     const liquidityUsd = tokenPrice?.price ? liquidity * tokenPrice.price : 0;
     const borrowedUsd = tokenPrice?.price ? borrowed * tokenPrice.price : 0;
     const totalSupplyUsd = liquidityUsd + borrowedUsd;
     const tvlUsd = liquidityUsd;
+    const borrowCapUsd = Number(borrowCap) * (tokenPrice?.price || 0);
+    const availableBorrowUsd = Number(borrowCap)
+      ? Math.max(Math.min(tvlUsd, borrowCapUsd - borrowedUsd), 0)
+      : tvlUsd;
 
     // Find matching incentive data for this reserve
     const matchingIncentive = incentivesData.find(
@@ -286,14 +296,13 @@ const apy = async () => {
       underlyingTokens: [underlyingAsset],
       totalSupplyUsd,
       totalBorrowUsd: borrowedUsd,
-      debtCeilingUsd: null,
+      availableBorrowUsd,
       apyBaseBorrow: borrowAPY,
+      borrowToken: underlyingAsset,
       apyRewardBorrow: borrowRewards.apyReward + merkleBorrowApy,
       ltv: Number(baseLTVasCollateral) / 10000,
       url,
       borrowable: borrowingEnabled && isActive && !isPaused,
-      mintedCoin: null,
-      poolMeta: `${name} on Flow EVM`,
     };
   });
 

@@ -51,7 +51,7 @@ const apy = async () => {
       pool: tokens.sMORE,
       chain: 'real',
       project: 'stack',
-      symbol: utils.formatSymbol('sMORE'),
+      symbol: 'sMORE',
       tvlUsd,
       underlyingTokens: [tokens.MORE],
       apyBase: apr * 100,

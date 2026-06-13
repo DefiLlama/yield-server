@@ -40,26 +40,36 @@ const getApy = async () => {
 
   // Fetch pair length
   try {
-    pairLength = await Promise.all([
+    const [len] = await Promise.all([
       factoryContract.methods.allPairsLength().call(),
     ]);
+    pairLength = Number(len);
   } catch (error) {
     console.log('Error fetching pairs length: ', error);
-    return;
+    return [];
   }
 
-  // Fetch pool info
+  // Fetch pool info.
+  // `getAllPair` reverts when amounts is large (seen at 333) — gas/memory limit.
+  // Paginate in chunks and concat. Runs chunks in parallel.
+  const CHUNK = 25;
   try {
-    const [v2pools, gammaPools] = await Promise.all([
-      pairAPIContract.methods
-        .getAllPair(TEST_ACCOUNT, Number(pairLength), 0)
-        .call(),
+    const offsets = [];
+    for (let o = 0; o < pairLength; o += CHUNK) offsets.push(o);
+    const [v2PagesSettled, gammaPools] = await Promise.all([
+      Promise.all(
+        offsets.map((o) =>
+          pairAPIContract.methods
+            .getAllPair(TEST_ACCOUNT, Math.min(CHUNK, pairLength - o), o)
+            .call()
+        )
+      ),
       fetchGammaInfo(activeStrategies),
     ]);
-    poolInfos = [...v2pools, ...gammaPools];
+    poolInfos = [...v2PagesSettled.flat(), ...gammaPools];
   } catch (error) {
     console.log('Error fetching Pool Info: ', error);
-    return;
+    return [];
   }
 
   // Format pool info
@@ -118,14 +128,14 @@ const getApy = async () => {
     periodFinishes = await fetchPeriodFinish(pools);
   } catch (error) {
     console.log(`Gauge Period Finish Fetch Error: ${error}`);
-    return;
+    return [];
   }
   let poolExtraRewrards;
   try {
     poolExtraRewrards = await fetchExtraPoolRewards(pools);
   } catch (error) {
     console.log(`Extra Rewards Fetch Error: ${error}`);
-    return;
+    return [];
   }
 
   // Get tokens
@@ -141,7 +151,7 @@ const getApy = async () => {
     });
   } catch {
     console.log('Error getting the pools tokens: ', error);
-    return;
+    return [];
   }
 
   // Fetch token prices
@@ -150,7 +160,7 @@ const getApy = async () => {
     prices = await getPrices(tokens);
   } catch {
     console.log("Error getting the token's prices: ", error);
-    return;
+    return [];
   }
 
   // Put all together

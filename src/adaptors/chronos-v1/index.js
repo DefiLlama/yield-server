@@ -142,7 +142,7 @@ const getApy = async () => {
       pool: p,
       chain: utils.formatChain('arbitrum'),
       project,
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      symbol: s.split('-')[1],
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [CHR] : [],

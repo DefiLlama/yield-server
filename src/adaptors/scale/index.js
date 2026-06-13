@@ -126,7 +126,7 @@ const getApy = async () => {
       pool: p,
       chain: utils.formatChain('base'),
       project: 'scale',
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      symbol: s.split('-')[1],
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [SCALE] : [],

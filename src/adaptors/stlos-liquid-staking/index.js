@@ -29,11 +29,12 @@ async function poolsFunction(timestamp, block, chainBlocks) {
       pool: sTLOS,
       chain: utils.formatChain('telos'),
       project: 'stlos-liquid-staking',
-      symbol: utils.formatSymbol('sTLOS'),
+      symbol: 'sTLOS',
       tvlUsd: pooledTLOS * telosPrice,
       apyBase: apyPercentage,
       underlyingTokens: [WTLOS],
-      token: sTLOS,
+      searchTokenOverride: sTLOS,
+      isIntrinsicSource: true,
     },
   ];
 }

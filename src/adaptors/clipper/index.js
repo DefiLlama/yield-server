@@ -241,8 +241,8 @@ const getPoolData = async (chainKey, sailPrice) => {
     // Calculate base APY from LP token price appreciation (fee accrual)
     const apyBase = await calculateApyBase(pool, chainKey, tokens);
 
-    // Format symbol from token symbols
-    const symbol = utils.formatSymbol(tokenSymbols.join('-'));
+    // Build symbol from token symbols
+    const symbol = tokenSymbols.join('-');
 
     // Use contract address as pool identifier
     // Append chain for non-ethereum to maintain uniqueness

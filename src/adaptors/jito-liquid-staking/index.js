@@ -2,6 +2,7 @@ const axios = require('axios');
 const { getTotalSupply } = require('../utils');
 
 const JITOSOL_ADDRESS = 'J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn';
+const SOL = 'So11111111111111111111111111111111111111112'
 const priceKey = `solana:${JITOSOL_ADDRESS}`;
 
 const apy = async () => {
@@ -25,7 +26,9 @@ const apy = async () => {
       symbol: 'JITOSOL',
       tvlUsd: totalSupply * currentPrice,
       apyBase: Number(apy),
-      underlyingTokens: [JITOSOL_ADDRESS],
+      underlyingTokens: [SOL],
+      searchTokenOverride: JITOSOL_ADDRESS,
+      isIntrinsicSource: true,
     },
   ];
 };

@@ -1,7 +1,6 @@
 const axios = require('axios');
+const sdk = require('@defillama/sdk');
 const { mapKeys, camelCase } = require('lodash');
-
-const utils = require('../utils');
 
 // Token addresses by chain
 const tokenAddresses = {
@@ -51,6 +50,9 @@ const tokenAddresses = {
     WING: 'coingecko:wing-finance',
     pSUSD: 'coingecko:nusd',
     prenBTC: 'coingecko:bitcoin',
+    pNEO: 'coingecko:neo',
+    FLM: 'coingecko:flamingo-finance',
+    pYFI: 'coingecko:yearn-finance',
   },
   ontologyEvm: {
     WING: '0x004835c1Df02F9128b6d88dEb52E808eb2B2714e',
@@ -63,11 +65,161 @@ const tokenAddresses = {
   },
 };
 
+const normalizedTokenAddresses = Object.fromEntries(
+  Object.entries(tokenAddresses).map(([chain, tokens]) => [
+    chain,
+    Object.fromEntries(
+      Object.entries(tokens).map(([symbol, address]) => [
+        symbol.toLowerCase(),
+        address,
+      ])
+    ),
+  ])
+);
+
 const API_URL = {
   ontology: 'https://flashapi.wing.finance/api/v1/userflashpooloverview',
   binance: 'https://ethapi.wing.finance/bsc/flash-pool/overview',
   ontologyEvm: 'https://ethapi.wing.finance/ontevm/flash-pool/overview',
   ethereum: 'https://ethapi.wing.finance/eth/flash-pool/overview',
+};
+
+const EVM_MARKET_SOURCES = {
+  binance: {
+    sdkChain: 'bsc',
+    comptroller: '0x49620e9bfd117c7b05b4732980b05b7afee60a69',
+    nativeToken: tokenAddresses.binance.BNB,
+    nativeSymbols: ['bnb'],
+  },
+  ontologyEvm: {
+    sdkChain: 'ontology_evm',
+    comptroller: '0x000A4d6b9E553a7f4bc1B8F94bB7Dd37BfF6d79b',
+    nativeToken: tokenAddresses.ontologyEvm.ONG,
+    nativeSymbols: ['ong'],
+  },
+  ethereum: {
+    sdkChain: 'ethereum',
+    comptroller: '0x2F9fa63066cfA2d727F57ddf1991557bA86F12c9',
+    nativeToken: tokenAddresses.ethereum.ETH,
+    nativeSymbols: ['eth'],
+  },
+};
+
+const abi = {
+  getAllMarkets: 'function getAllMarkets() view returns (address[])',
+  symbol: 'function symbol() view returns (string)',
+  underlying: 'function underlying() view returns (address)',
+};
+
+const normalizeSymbol = (symbol) => String(symbol || '').toLowerCase();
+
+const stripMarketPrefix = (symbol) => {
+  const value = String(symbol || '');
+  return value[0]?.toLowerCase() === 'f' ? value.slice(1) : value;
+};
+
+const isZeroAddress = (address) =>
+  !address || /^0x0{40}$/i.test(String(address));
+
+const addToken = (tokens, symbol, address, stripPrefix = false) => {
+  if (!symbol || isZeroAddress(address)) return;
+
+  const symbols = [symbol];
+  if (stripPrefix) symbols.push(stripMarketPrefix(symbol));
+
+  for (const value of symbols) {
+    if (!value) continue;
+    if (!tokens[value]) tokens[value] = address;
+
+    const normalized = normalizeSymbol(value);
+    if (normalized && !tokens[normalized]) tokens[normalized] = address;
+  }
+};
+
+const getSymbols = async (chain, targets) => {
+  return (
+    await sdk.api.abi.multiCall({
+      chain,
+      calls: targets.map((target) => ({ target })),
+      abi: abi.symbol,
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+};
+
+const discoverUnderlyingTokens = async (chains) => {
+  const entries = await Promise.all(
+    chains.map(async (chain) => [chain, await discoverChainTokens(chain)])
+  );
+
+  return Object.fromEntries(entries);
+};
+
+const discoverChainTokens = async (chain) => {
+  const source = EVM_MARKET_SOURCES[chain];
+  if (!source) return {};
+
+  const { output: markets } = await sdk.api.abi.call({
+    target: source.comptroller,
+    chain: source.sdkChain,
+    abi: abi.getAllMarkets,
+  });
+
+  const [marketSymbols, underlyingResults] = await Promise.all([
+    getSymbols(source.sdkChain, markets),
+    sdk.api.abi.multiCall({
+      chain: source.sdkChain,
+      calls: markets.map((target) => ({ target })),
+      abi: abi.underlying,
+      permitFailure: true,
+    }),
+  ]);
+
+  const rows = markets.map((market, index) => {
+    const marketSymbol = marketSymbols[index];
+    let underlying = underlyingResults.output[index]?.output;
+    const symbol = normalizeSymbol(stripMarketPrefix(marketSymbol));
+
+    if (!underlying && source.nativeSymbols.includes(symbol)) {
+      underlying = source.nativeToken;
+    }
+
+    return {
+      market,
+      marketSymbol,
+      underlying,
+    };
+  });
+
+  const tokens = {};
+  rows.forEach(({ marketSymbol, underlying }) => {
+    addToken(tokens, marketSymbol, underlying, true);
+  });
+
+  const rowsWithUnderlying = rows.filter(({ underlying }) => underlying);
+  const underlyingSymbols = await getSymbols(
+    source.sdkChain,
+    rowsWithUnderlying.map(({ underlying }) => underlying)
+  );
+
+  rowsWithUnderlying.forEach(({ underlying }, index) => {
+    addToken(tokens, underlyingSymbols[index], underlying);
+  });
+
+  return tokens;
+};
+
+const getUnderlyingToken = (chain, poolName, discoveredTokens) => {
+  const staticTokens = tokenAddresses[chain] || {};
+  const normalizedStaticTokens = normalizedTokenAddresses[chain] || {};
+  const discoveredChainTokens = discoveredTokens[chain] || {};
+
+  return (
+    staticTokens[poolName] ||
+    normalizedStaticTokens[normalizeSymbol(poolName)] ||
+    discoveredChainTokens[poolName] ||
+    discoveredChainTokens[normalizeSymbol(poolName)]
+  );
 };
 
 const apy = async () => {
@@ -85,13 +237,33 @@ const apy = async () => {
       : data.allMarket,
   ]);
 
+  const discoveryChains = normalizedData
+    .filter(([chain, chainPools]) => {
+      if (!EVM_MARKET_SOURCES[chain]) return false;
+
+      return chainPools.some((pool) => {
+        const poolName = pool.name || pool.Name;
+        return !getUnderlyingToken(chain, poolName, {});
+      });
+    })
+    .map(([chain]) => chain);
+
+  const discoveredTokens = await discoverUnderlyingTokens(discoveryChains);
+
   const pools = normalizedData.map(([chain, chainPools]) => {
     return chainPools
       .map((pool) => mapKeys(pool, (v, k) => camelCase(k)))
       .map((pool) => {
         // Get underlying token address
-        const chainTokens = tokenAddresses[chain] || {};
-        const underlyingToken = chainTokens[pool.name];
+        const underlyingToken = getUnderlyingToken(
+          chain,
+          pool.name,
+          discoveredTokens
+        );
+        const apyReward =
+          (Number(pool.annualSupplyWingDistributedDollar) /
+            Number(pool.totalSupplyDollar)) *
+          100;
 
         return {
           pool: `${pool.name}-wing-finance-${chain}`,
@@ -102,11 +274,10 @@ const apy = async () => {
             Number(pool.totalSupplyDollar) -
             Number(pool.totalValidBorrowDollar),
           apyBase: Number(pool.supplyApy) * 100,
-          apyReward:
-            (Number(pool.annualSupplyWingDistributedDollar) /
-              Number(pool.totalSupplyDollar)) *
-            100,
-          rewardTokens: ['0xDb0f18081b505A7DE20B18ac41856BCB4Ba86A1a'],
+          apyReward,
+          ...(apyReward > 0 && {
+            rewardTokens: ['coingecko:wing-finance'],
+          }),
           // borrow fields
           totalSupplyUsd: Number(pool.totalSupplyDollar),
           totalBorrowUsd: Number(pool.totalValidBorrowDollar),

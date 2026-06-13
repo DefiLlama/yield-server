@@ -244,7 +244,7 @@ const getApy = async () => {
       pool: p,
       chain: utils.formatChain(chain),
       project: 'velocimeter-v2',
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      symbol: s.split('-')[1],
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [...new Set(rewardTokens)] : [],

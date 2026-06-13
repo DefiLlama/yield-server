@@ -46,7 +46,7 @@ const poolsFunction = async () => {
     pool: STAKING_ADDRESS,
     chain: utils.formatChain('tron'),
     project: 'strx-finance',
-    symbol: utils.formatSymbol('TRX'),
+    symbol: 'TRX',
     tvlUsd: dataTvl,
     apyBase: dailyAPY > 0 ? Number(dailyAPY) : 0,
     underlyingTokens: [WTRX],

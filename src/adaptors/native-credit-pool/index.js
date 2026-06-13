@@ -249,8 +249,7 @@ const apy = async () => {
           continue;
         }
 
-        // Format symbol with 'n' prefix
-        const symbol = `n${utils.formatSymbol(tokenInfo.symbol)}`;
+        const symbol = `n${tokenInfo.symbol}`;
 
         // Format pool identifier
         const poolId = `${lpAddr}-${chain}`;
@@ -295,4 +294,3 @@ module.exports = {
   apy: apy,
   url: 'https://native.org',
 };
-

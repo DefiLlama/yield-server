@@ -51,7 +51,7 @@ const main = async () => {
           pool: p.id,
           chain: utils.formatChain(chainString),
           project: 'granary-finance',
-          symbol: utils.formatSymbol(p.symbol),
+          symbol: p.symbol,
           tvlUsd,
           apyBase: Number(p.liquidityRate) / 1e25,
           underlyingTokens: [p.underlyingAsset],

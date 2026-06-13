@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 const BigNumber = require('bignumber.js');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const CHAIN = 'monad';
 const PROJECT = 'monday-trade-spot';
@@ -277,7 +278,7 @@ const apy = async () => {
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
         poolMeta: `${pool.fee / 1e4}%`,
-        symbol: utils.formatSymbol(`${pool.symbol0}-${pool.symbol1}`),
+        symbol: `${pool.symbol0}-${pool.symbol1}`,
         tvlUsd,
         apyBase,
         underlyingTokens: [pool.token0, pool.token1],
@@ -285,7 +286,7 @@ const apy = async () => {
       });
     }
 
-    return results.sort((a, b) => b.tvlUsd - a.tvlUsd);
+    return addMerklRewardApy(results.sort((a, b) => b.tvlUsd - a.tvlUsd), 'monday-trade');
   } catch (e) {
     console.error('Error fetching Monday Trade Spot pools:', e);
     return [];

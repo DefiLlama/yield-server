@@ -147,9 +147,11 @@ const apy = async () => {
         chain: chainNames[chain],
         project,
         symbol: chain === 'solana' ? 'cUSDO' : 'USDO',
+        token: tokenAddress,
         tvlUsd,
         apyBase,
         apyBase7d,
+        ...(chain === 'solana' && { pricePerShare: rateNow.toNumber() }),
         underlyingTokens: [tokenAddress],
         url: 'https://app.openeden.com/usdo',
       };

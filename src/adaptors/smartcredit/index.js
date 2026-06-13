@@ -63,7 +63,7 @@ const poolsFunction = async () => {
     pool: (`${item.ethAddress}-smartcredit`).toLowerCase(),
     chain: utils.formatChain("Ethereum"),
     project: "smartcredit",
-    symbol: utils.formatSymbol(item.symbol),
+    symbol: item.symbol,
     tvlUsd: item.totalLendedValueInUSD - item.totalBorrowedValueInUSD,
     apyBase: +(item.maxAPY),
     apyReward: +(item.lendersAPY),

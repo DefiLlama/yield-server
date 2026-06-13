@@ -43,8 +43,10 @@ const apy = async () => {
       tvlUsd,
       apyBase: apyBase7d,
       apyBase7d,
+      ...(rate > 0 && { pricePerShare: rate }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      token: swETH,
+      searchTokenOverride: swETH,
+      isIntrinsicSource: true,
     },
   ];
 };

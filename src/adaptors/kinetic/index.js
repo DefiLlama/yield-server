@@ -164,13 +164,12 @@ const getApy = async (comptroller) => {
     cToken
   );
 
-  const tempMarkets = allMarkets.filter(m => m.toLocaleLowerCase() != C_ETH_MARKET.toLocaleLowerCase())
-
-  let underlyingTokens = await multiCallMarkets(
-    tempMarkets,
+  // Call underlying() on all markets - native FLR markets return null
+  let underlyingTokens = (await multiCallMarkets(
+    allMarkets,
     'underlying',
     cToken
-  );
+  )).map(t => t ?? FLR.address);
 
   let underlyingSymbols = await multiCallMarkets(
     underlyingTokens,
@@ -183,12 +182,6 @@ const getApy = async (comptroller) => {
     'decimals',
     cToken
   );
-
-  if(underlyingTokens.length != allMarkets.length){
-    underlyingTokens = underlyingTokens.concat([FLR.address]);
-    underlyingSymbols = underlyingSymbols.concat('FLR');
-    underlyingDecimals = underlyingDecimals.concat(18);
-  }
 
   const prices = await getPrices(
     underlyingTokens.concat([FLR.address, JOULE.address]).map((token) => 'flare:' + token)
@@ -226,6 +219,8 @@ const getApy = async (comptroller) => {
     const totalBorrowUsd =
       (Number(totalBorrows[i]) / 10 ** decimals) * prices[token.toLowerCase()];
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Number(marketsCash[i]) / 10 ** decimals) * prices[token.toLowerCase()];
 
     const apyBase = calculateApy(supplyRatePerTimestamp[i]);
     const apyBaseBorrow = calculateApy(borrowRatePerTimestamp[i]);
@@ -315,7 +310,10 @@ const getApy = async (comptroller) => {
       ].filter(Boolean),
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
+      borrowable: marketsInfo[i].isListed,
       apyBaseBorrow,
+      borrowToken: token,
       apyRewardBorrow: Number.isFinite(apyRewardBorrow) ? apyRewardBorrow : 0,
       ltv: marketsInfo[i].collateralFactorMantissa / 10 ** 18,
     };

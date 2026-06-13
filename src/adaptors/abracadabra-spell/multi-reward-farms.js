@@ -4,6 +4,7 @@ module.exports = () => multiRewardFarmsApy({
   arbitrum: {
     "0x6d2070b13929Df15B13D96cFC509C574168988Cd": {
       stakingTokenPool: "0bf3cb38-1908-4d85-87c3-af62651d5a03",
+      stakingTokenPriceFunction: 'get_virtual_price',
       pool: {
         project: 'abracadabra-spell',
         underlyingTokens: [
@@ -16,7 +17,8 @@ module.exports = () => multiRewardFarmsApy({
           "0x3E6648C5a70A150A88bCE65F4aD4d506Fe15d2AF" // SPELL
         ],
         symbol: "MIM-USDC.e-USDT",
-        url: "https://app.abracadabra.money/#/farm/4",
+        apyBase: 0,
+        url: "https://app.abracadabra.money/#/farm/4/42161",
       },
     },
   },

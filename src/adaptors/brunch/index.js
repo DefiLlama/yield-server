@@ -66,7 +66,7 @@ const apy = async () => {
       pool: SBUSD_ADDRESS,
       chain: CHAIN,
       project: 'brunch',
-      symbol: utils.formatSymbol('sbUSD'),
+      symbol: 'sbUSD',
       tvlUsd,
       underlyingTokens: [BUSD_ADDRESS],
       apyBase: apr,

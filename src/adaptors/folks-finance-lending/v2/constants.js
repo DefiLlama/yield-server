@@ -209,6 +209,24 @@ const pools = [
     hasReward: true,
     loanType: LoanType.ALGORAND_ECOSYSTEM,
   },
+  // WBTC_NTT
+  {
+    appId: 3514794123,
+    assetId: 3495558025,
+    fAssetId: 3514808410,
+    symbol: 'WBTC_NTT',
+    hasReward: false,
+    loanType: LoanType.GENERAL,
+  },
+  // WETH_NTT
+  {
+    appId: 3514795114,
+    assetId: 3495722210,
+    fAssetId: 3514808788,
+    symbol: 'WETH_NTT',
+    hasReward: false,
+    loanType: LoanType.GENERAL,
+  },
 ];
 
 const oracleAppId = 1040271396;

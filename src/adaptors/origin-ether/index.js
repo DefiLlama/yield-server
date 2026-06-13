@@ -79,7 +79,7 @@ const fetchPoolData = async ({
     tvlUsd,
     apy,
     underlyingTokens: [underlyingToken],
-    token: tokenAddress,
+    searchTokenOverride: tokenAddress,
   };
 };
 
@@ -94,6 +94,7 @@ const apy = async () => {
       project: 'origin-ether',
       underlyingToken: '0x0000000000000000000000000000000000000000',
       tokenAddress: ETHEREUM_OETH_TOKEN,
+      isIntrinsicSource: true,
     }),
     fetchPoolData({
       chain: 'base',
@@ -104,6 +105,7 @@ const apy = async () => {
       project: 'origin-ether',
       underlyingToken: '0x0000000000000000000000000000000000000000',
       tokenAddress: BASE_SUPER_OETH_TOKEN,
+      isIntrinsicSource: true,
     }),
     fetchPoolData({
       chain: 'plume_mainnet',
@@ -114,6 +116,7 @@ const apy = async () => {
       project: 'origin-ether',
       underlyingToken: '0x0000000000000000000000000000000000000000',
       tokenAddress: PLUME_SUPER_OETH_TOKEN,
+      isIntrinsicSource: true,
     }),
   ]);
   return pools.filter((i) => i.status === 'fulfilled').map((i) => i.value);

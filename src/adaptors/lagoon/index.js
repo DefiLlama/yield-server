@@ -33,7 +33,6 @@ const gqlQueries = {
           asset {
             address
             decimals
-            priceUsd
             symbol
           }
           state {
@@ -65,18 +64,23 @@ const apy = async () => {
       if (!vaults.pageInfo.hasNextPage) break;
       skip += 100;
     }
-    const _pools = allVaults.map((vault) => {
-      return {
-        pool: `lagoon-${vault.address}-${chain}`,
-        chain,
-        project: 'lagoon',
-        symbol: vault.symbol,
-        apyBase: vault.state.weeklyApr.linearNetAprWithoutExtraYields,
-        tvlUsd: vault.state.totalAssetsUsd || 0,
-        underlyingTokens: [vault.asset.address],
-        url: `https://app.lagoon.finance/vault/${vault.chain.id}/${vault.address}`,
-      };
-    });
+    const _pools = allVaults
+      .filter(
+        (vault) =>
+          Number.isFinite(vault.state?.weeklyApr?.linearNetAprWithoutExtraYields)
+      )
+      .map((vault) => {
+        return {
+          pool: `lagoon-${vault.address}-${chain}`,
+          chain,
+          project: 'lagoon',
+          symbol: vault.symbol,
+          apyBase: vault.state.weeklyApr.linearNetAprWithoutExtraYields,
+          tvlUsd: vault.state.totalAssetsUsd || 0,
+          underlyingTokens: [vault.asset.address],
+          url: `https://app.lagoon.finance/vault/${vault.chain.id}/${vault.address}`,
+        };
+      });
     pools = pools.concat(_pools);
   }
 

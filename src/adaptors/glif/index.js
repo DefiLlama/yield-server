@@ -36,12 +36,13 @@ const getFilecoinPool = async () => {
     pool: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd-filecoin',
     chain: utils.formatChain('filecoin'),
     project: 'glif',
-    symbol: utils.formatSymbol('IFIL'),
+    symbol: 'IFIL',
     tvlUsd: tvlFIL * filPrice,
-    apy: Number(apyData.apy),
+    apyBase: Number(apyData.apy),
     poolMeta: 'GLIF',
     underlyingTokens: [WFIL],
-    token: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd', // iFIL
+    searchTokenOverride: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd', // iFIL
+    isIntrinsicSource: true,
   };
 };
 
@@ -52,7 +53,7 @@ const getICNTPool = async () => {
     pool: '0xAeD7C2eD7Bb84396AfCB55fF72c8F8E87FFb68f3-base',
     chain: utils.formatChain('base'),
     project: 'glif',
-    symbol: utils.formatSymbol('stICNT'),
+    symbol: 'stICNT',
     tvlUsd: 0,
     apy: 0,
     poolMeta: 'GLIF',

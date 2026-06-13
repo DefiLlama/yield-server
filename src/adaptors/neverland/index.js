@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const poolAbi = require('./poolAbi');
 const {
   dustRewardsControllerAbi,
@@ -88,6 +89,17 @@ const getApy = async () => {
         params: p.tokenAddress,
       })),
       abi: poolAbi.find((m) => m.name === 'getReserveConfigurationData'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
+  const poolsReserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: protocolDataProvider,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
       chain,
     })
   ).output.map((o) => o.output);
@@ -249,7 +261,14 @@ const getApy = async () => {
       const currentSupply = underlyingBalances[i];
       const tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
 
-      const totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** underlyingDecimals[i]) *
+        price;
+      const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const availableBorrowUsd = Number(poolsReserveCaps[i].borrowCap)
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
 
       const apyBase = (p.liquidityRate / 10 ** 27) * 100;
       const apyBaseBorrow = Number(p.variableBorrowRate) / 1e25;
@@ -292,14 +311,16 @@ const getApy = async () => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow,
         apyRewardBorrow: debtRewardsData.length > 0 ? apyRewardBorrow : null,
         ltv: config.ltv / 10000,
         url,
         borrowable: config.borrowingEnabled,
+        borrowToken: pool.tokenAddress,
       };
     })
-    .filter((p) => utils.keepFinite(p));
+    .filter((p) => p !== null && utils.keepFinite(p));
 };
 
 const getVeDustPool = async (chain, prices, rewardTokensList) => {
@@ -377,6 +398,7 @@ const getVeDustPool = async (chain, prices, rewardTokensList) => {
       apyReward: totalApyReward,
       rewardTokens: rewardTokensList,
       underlyingTokens: [dustToken.output],
+      token: null,
       url: 'https://app.neverland.money',
     };
   } catch (error) {
@@ -414,7 +436,8 @@ const apy = async () => {
     rewardTokensList.output
   );
 
-  return veDustPool ? [...lendingPools, veDustPool] : lendingPools;
+  const pools = veDustPool ? [...lendingPools, veDustPool] : lendingPools;
+  return addMerklRewardApy(pools, 'neverland', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

@@ -3,16 +3,19 @@ const utils = require('../utils');
 
 const XTOKENS = {
   xusdc: {
+    symbol: 'xUSDC',
     address: '0xE9bE066a32c854dBbBc797823c445ec3fB0C42Ee',
     underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     statsKey: 'usdc',
   },
   xusdt: {
+    symbol: 'xUSDT',
     address: '0x721E483FE764d3A6B636aEB87Ab391d23E6ffD3B',
     underlying: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
     statsKey: 'usdt',
   },
   xwbtc: {
+    symbol: 'xWBTC',
     address: '0x889Af8a5a5Cc6Db869c967b3f9e86B76a17145e1',
     underlying: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
     statsKey: 'btc',
@@ -38,13 +41,22 @@ const RWAUSD_UNDERLYING_BASE = [
 ];
 
 async function apy() {
+  // multipli.fi endpoints 500 intermittently; retry transient failures.
   const [apyRes, statsRes, tvlRes, rwaRes] = await Promise.all([
-    axios.get('https://api.multipli.fi/multipli/v2/get-apy/'),
-    axios.get('https://api.multipli.fi/multipli/v2/platform-stats/'),
-    axios.get(
-      'https://api.multipli.fi/multipli/v1/external-aggregator/defillama/tvl/'
+    utils.withRetry(() =>
+      axios.get('https://api.multipli.fi/multipli/v2/get-apy/')
     ),
-    axios.get('https://api.multipli.fi/multipli/v1/rwausd-stats'),
+    utils.withRetry(() =>
+      axios.get('https://api.multipli.fi/multipli/v2/platform-stats/')
+    ),
+    utils.withRetry(() =>
+      axios.get(
+        'https://api.multipli.fi/multipli/v1/external-aggregator/defillama/tvl/'
+      )
+    ),
+    utils.withRetry(() =>
+      axios.get('https://api.multipli.fi/multipli/v1/rwausd-stats')
+    ),
   ]);
 
   const apyData = apyRes.data.payload;
@@ -85,7 +97,7 @@ async function apy() {
       pool: token.address,
       chain: utils.formatChain('ethereum'),
       project: 'multipli.fi',
-      symbol: currency.toUpperCase(),
+      symbol: token.symbol,
       tvlUsd,
       apy: apyMap[currency] || 0,
       underlyingTokens: [token.underlying],

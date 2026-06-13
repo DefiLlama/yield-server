@@ -147,7 +147,7 @@ const getApy = async () => {
       pool: p.toLowerCase(),
       chain: utils.formatChain('kava'),
       project: 'equilibre',
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      symbol: s.split('-')[1],
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [VARA] : [],

@@ -17,7 +17,7 @@ const getApy = async () => {
             pool: APETH,
             chain: utils.formatChain('ethereum'),
             project: 'aqua-patina',
-            symbol: utils.formatSymbol('APETH'),
+            symbol: 'APETH',
             tvlUsd: tvl,
             apy: apy.data.apy,
             underlyingTokens: [ETH],

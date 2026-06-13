@@ -59,12 +59,14 @@ const main = async () => {
   return data
     .filter((p) => p)
     .map((p) => {
+      const { apyReward, ...pool } = p;
       // if - in symbol -> split, keep 1 in array, otherwise don't split
       let symbolSplit = p.symbol.split('-');
       symbolSplit = symbolSplit.length > 1 ? symbolSplit[1] : symbolSplit[0];
       const symbol = symbolSplit.replace(/ *\([^)]*\) */g, '');
-      // extract content within () -> meta data
-      const poolMeta = /\(([^)]+)\)/.exec(symbolSplit)[1];
+      // extract content within () -> meta data; handle case where no parentheses exist
+      const poolMetaMatch = /\(([^)]+)\)/.exec(symbolSplit);
+      const poolMeta = poolMetaMatch ? poolMetaMatch[1] : "";
 
       // Filter out zero addresses from underlyingTokens
       const filteredUnderlyingTokens = p.underlyingTokens
@@ -72,7 +74,7 @@ const main = async () => {
         || undefined;
 
       return {
-        ...p,
+        ...pool,
         symbol,
         poolMeta,
         project: 'cian-yield-layer',

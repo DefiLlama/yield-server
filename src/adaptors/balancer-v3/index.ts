@@ -66,7 +66,7 @@ const getV3Pools = async (backendChain, chainString) => {
         pool: pool.address,
         chain: utils.formatChain(chainString),
         project: 'balancer-v3',
-        symbol: utils.formatSymbol(pool.symbol),
+        symbol: pool.symbol,
         tvlUsd: Number(pool.dynamicData.totalLiquidity),
         apyBase: baseApr * 100,
         apyReward: stakingApr * 100,
@@ -94,6 +94,8 @@ const poolsFunction = async () => {
     basePools,
     hyperliquidPools,
     plasmaPools,
+    monadPools,
+  
   ] = await Promise.all([
     getV3Pools('MAINNET', 'ethereum'),
     getV3Pools('GNOSIS', 'xdai'),
@@ -103,6 +105,7 @@ const poolsFunction = async () => {
     getV3Pools('BASE', 'base'),
     getV3Pools('HYPEREVM', 'hyperliquid'),
     getV3Pools('PLASMA', 'plasma'),
+    getV3Pools('MONAD', 'monad'),
   ]);
 
   return [
@@ -114,6 +117,7 @@ const poolsFunction = async () => {
     ...basePools,
     ...hyperliquidPools,
     ...plasmaPools,
+    ...monadPools,
   ];
 };
 

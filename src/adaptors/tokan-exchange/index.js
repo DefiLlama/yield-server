@@ -199,7 +199,7 @@ function formatPool(p) {
     pool: p.pair_address,
     chain: utils.formatChain('Scroll'),
     project: 'tokan-exchange',
-    symbol: utils.formatSymbol(p.symbol.split('-')[1]),
+    symbol: p.symbol.split('-')[1],
     poolMeta: p.stable ? 'stable' : 'volatile',
     tvlUsd: p.pairTvlUsd,
     apyReward,

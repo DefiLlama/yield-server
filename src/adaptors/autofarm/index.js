@@ -59,7 +59,7 @@ function autofarmApyItem(chain, item) {
     pool: `${item.wantAddress.toLowerCase()}-${item.pid}-${chainsMapping[chain]}-autofarm`,
     chain: utils.formatChain(chainsMapping[chain]),
     project: "autofarm",
-    symbol: utils.formatSymbol(cleanLP(item.wantName)),
+    symbol: cleanLP(item.wantName),
     poolMeta: item.farmName,
     tvlUsd: Number(item.poolWantTVL),
     apy: item.APY_total * 100,

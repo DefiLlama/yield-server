@@ -134,7 +134,7 @@ const main = async () => {
         pool: `${m}-euler`,
         chain: 'Ethereum',
         project: 'euler',
-        symbol: utils.formatSymbol(data[i].symbol),
+        symbol: data[i].symbol,
         tvlUsd,
         apyBase,
         apyBaseBorrow,

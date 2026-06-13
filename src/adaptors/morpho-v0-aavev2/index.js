@@ -127,7 +127,7 @@ const apy = async () => {
       pool: `morpho-aave-${marketFromGraph.token.address}`,
       chain: 'ethereum',
       project: 'morpho-v0-aavev2',
-      symbol: utils.formatSymbol(marketFromGraph.token.symbol),
+      symbol: marketFromGraph.token.symbol,
       apyBase: avgSupplyAPY,
       tvlUsd: totalSupplyUsd,
       underlyingTokens: [marketFromGraph.token.address],

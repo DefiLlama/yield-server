@@ -17,7 +17,7 @@ const apy = async () => {
     tvlUsd: Number(data.tvl),
     apyBase: Number(data.estimatedApyRate),
     underlyingTokens: ['0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'], // cbBTC address
-    url: 'https://btcfi.one/',
+    url: 'https://boost.btcfi.one/dashboard',
   };
 
   return [cbBTCPool];
@@ -25,5 +25,4 @@ const apy = async () => {
 
 module.exports = {
   apy: apy,
-  url: 'https://btcfi.one/',
 };

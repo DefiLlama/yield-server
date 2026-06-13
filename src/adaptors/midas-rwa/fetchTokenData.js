@@ -11,10 +11,18 @@ async function fetchTokenData(basePrices = null) {
         return { chain, data: {} };
       }
 
-      const { priceResults, supplyResults } = await fetchCurrentData(
-        chain,
-        tokens
-      );
+      let priceResults, supplyResults;
+      try {
+        ({ priceResults, supplyResults } = await fetchCurrentData(
+          chain,
+          tokens
+        ));
+      } catch (error) {
+        console.warn(
+          `MidasRWA: Skipping chain ${chain} — multicall failed: ${error.message}`
+        );
+        return { chain, data: {} };
+      }
       const chainData = {};
 
       const tokenPromises = Object.entries(tokens).map(

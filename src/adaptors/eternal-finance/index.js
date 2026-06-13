@@ -105,7 +105,7 @@ async function main() {
             pool: `${lendingToken}-aptos`.toLowerCase(),
             chain: utils.formatChain('aptos'),
             project: 'eternal-finance',
-            symbol: utils.formatSymbol(tokenPrice.symbol),
+            symbol: tokenPrice.symbol,
             tvlUsd: new BigNumber(vaultInfo.balance).multipliedBy(priceConversionFactor).toNumber(),
             apyBase: lendingApy,
             underlyingTokens: [lendingToken],

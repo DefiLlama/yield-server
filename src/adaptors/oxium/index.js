@@ -21,7 +21,7 @@ const poolsFunction = async () => {
       pool: `${vault.address}-${CHAIN_MAPPING[vault.chainId] || vault.chainId}`.toLowerCase(),
       chain: utils.formatChain(CHAIN_MAPPING[vault.chainId] || 'Sei'),
       project: 'oxium',
-      symbol: utils.formatSymbol(`${vault.market.base.symbol}-${vault.market.quote.symbol}`),
+      symbol: `${vault.market.base.symbol}-${vault.market.quote.symbol}`,
       tvlUsd: vault.snapshot.TVL.total || 0,
       apyBase: (vault.snapshot.base?.total || 0) + (vault.snapshot.strategy?.total || 0),
       apyReward: vault.snapshot.rewards?.total || 0,

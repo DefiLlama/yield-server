@@ -33,9 +33,7 @@ const getApy = async () => {
       pool: pool.key,
       chain: utils.formatChain('solana'),
       project: 'atrix',
-      symbol: utils.formatSymbol(
-        `${pool.mints.base.symbol}-${pool.mints.quote.symbol}`
-      ),
+      symbol: `${pool.mints.base.symbol}-${pool.mints.quote.symbol}`,
       tvlUsd: pool.farms[0]?.tvlUsd || 0,
       apy: pool.farms[0]?.apr || 0,
       apyReward: pool.farms[0]?.apr || 0,

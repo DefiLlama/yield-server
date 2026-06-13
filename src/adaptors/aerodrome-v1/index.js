@@ -271,7 +271,7 @@ const getGaugeApy = async () => {
       pool: utils.formatAddress(p),
       chain: utils.formatChain(CHAIN),
       project: PROJECT,
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      symbol: s.split('-')[1],
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [AERO] : [],

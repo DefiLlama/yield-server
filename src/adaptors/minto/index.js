@@ -33,7 +33,7 @@ const poolsFunction = async () => {
     pool: staking,
     chain: utils.formatChain('binance'),
     project: 'minto',
-    symbol: utils.formatSymbol('staking'),
+    symbol: 'staking',
     tvlUsd: totalStaked * price,
     apy: apyData.apy['365'],
     underlyingTokens: [minto],

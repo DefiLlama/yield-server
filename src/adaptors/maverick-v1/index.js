@@ -97,7 +97,7 @@ const main = async (unixTimestamp) => {
         chain: utils.formatChain(chain),
         project: PROJECT,
         pool: address,
-        symbol: utils.formatSymbol(`${pool.token0.symbol}-${pool.token1.symbol}`),
+        symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
         underlyingTokens: [pool.token0.address, pool.token1.address],
         tvlUsd: pool.balanceUSD,
         apyBase: pool.balanceUSD > 0 ? feeUsd1d * 365 * 100 / pool.balanceUSD : 0,

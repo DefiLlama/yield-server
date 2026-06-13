@@ -51,7 +51,7 @@ const apy = async () => {
         pool: `${oTokenID}-${chain}`.toLowerCase(),
         chain,
         project: 'liquidops',
-        symbol: utils.formatSymbol(`o${ticker}`),
+        symbol: `o${ticker}`,
         tvlUsd: totalLends * tokenUSDPrice,
         apyBase: supplyAPY,
         underlyingTokens: [tokenID],

@@ -140,7 +140,7 @@ const getApy = async () => {
       pool: p,
       chain: utils.formatChain('bsc'),
       project: 'veplus',
-      symbol: utils.formatSymbol(s.replace('/', '-')),
+      symbol: s.replace('/', '-'),
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [VEP] : [],

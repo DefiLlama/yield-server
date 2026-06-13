@@ -124,7 +124,7 @@ const getApy = async () => {
             pool: p.address,
             chain: 'Solana',
             project: 'orca-dex',
-            symbol: utils.formatSymbol(`${symbolA}-${symbolB}`),
+            symbol: `${symbolA}-${symbolB}`,
             underlyingTokens: [p.tokenA.address, p.tokenB.address],
             rewardTokens,
             tvlUsd,

@@ -1,4 +1,5 @@
 const { request, gql } = require('graphql-request');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const yieldnestGatewayUrl = 'https://gateway.yieldnest.finance/api/v1/graphql';
 const yieldnestRestakePoolBaseUrl = 'https://app.yieldnest.finance/restake/';
@@ -84,6 +85,7 @@ const apy = async () => {
       chain: chain,
       project: 'yieldnest',
       symbol: symbol,
+      ...(symbol === 'veYND' && { token: '0x23d2923e15f5cce8a131cb37f0c7bcc5cad15639' }),
       tvlUsd: tvl,
       apy: apy,
       underlyingTokens: underlyingAssets,
@@ -91,7 +93,7 @@ const apy = async () => {
     };
   }));
 
-  return pools;
+  return addMerklRewardApy(pools.filter(Boolean), 'yieldnest', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = { timetravel: false, apy };

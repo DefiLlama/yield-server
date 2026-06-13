@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const API_URL = 'https://api.kuru.io/api/v2/vaults';
 
@@ -60,7 +61,7 @@ const apy = async () => {
     })
   );
 
-  return pools;
+  return addMerklRewardApy(pools, 'kuru', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

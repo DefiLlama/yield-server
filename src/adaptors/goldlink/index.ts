@@ -1,4 +1,3 @@
-const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const reserveAbi = require('./abis/reserve-abi.json');
 const bankAbi = require('./abis/bank-abi.json');
@@ -59,7 +58,7 @@ async function getInterestRate() {
     pool: arbitrumReserveAddress,
     chain: 'arbitrum',
     project: 'goldlink',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     tvlUsd: total / 1e6,
     apyBase:
       (baseInterestRate + rateBelowOptimal + rateAboveOptimal) *

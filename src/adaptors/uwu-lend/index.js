@@ -174,7 +174,7 @@ const apy = async () => {
 
       return {
         pool: reserveData[i].aTokenAddress,
-        symbol: utils.formatSymbol(symbols[i]),
+        symbol: symbols[i],
         project: 'uwu-lend',
         chain: 'Ethereum',
         tvlUsd,
@@ -186,7 +186,9 @@ const apy = async () => {
         // borrow fields
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd: tvlUsd,
         apyBaseBorrow,
+        borrowToken: t,
         apyRewardBorrow,
         ltv,
       };

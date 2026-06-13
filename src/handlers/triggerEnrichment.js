@@ -4,15 +4,17 @@ const ss = require('simple-statistics');
 const utils = require('../utils/s3');
 const {
   getYieldFiltered,
-  getLatestYieldForPool,
   getYieldOffset,
   getYieldAvg30d,
   getYieldLendBorrow,
 } = require('../queries/yield');
 const { getStat } = require('../queries/stat');
+
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
 const { getExcludedAdaptors } = require('../utils/exclude');
+
+const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -21,13 +23,16 @@ module.exports.handler = async (event, context) => {
 const main = async () => {
   console.log('START DATA ENRICHMENT');
 
+  const config = (
+    await axios.get('https://api.llama.fi/config/yields?a=1')
+  ).data.protocols;
+  const lendingProjects = Object.entries(config)
+    .filter(([, protocol]) => ZERO_TVL_CATEGORIES.includes(protocol?.category))
+    .map(([project]) => project);
+
   // ---------- get lastet unique pool
   console.log('\ngetting pools');
-  let data = await getYieldFiltered();
-  const aaveGHO = await getLatestYieldForPool(
-    '1e00ac2b-0c3c-4b1f-95be-9378f98d2b40'
-  );
-  data = [...data, ...aaveGHO];
+  let data = await getYieldFiltered(lendingProjects);
 
   const excludedProjects = await getExcludedAdaptors();
   data = data.filter((p) => !excludedProjects.has(p.project));
@@ -115,9 +120,6 @@ const main = async () => {
   if (!stablecoins.includes('aiusd')) stablecoins.push('aiusd');
 
   // get catgory data (we hardcode IL to true for options protocols)
-  const config = (
-    await axios.get('https://api.llama.fi/config/yields?a=1')
-  ).data.protocols;
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
 
   // add ML and overview plot fields

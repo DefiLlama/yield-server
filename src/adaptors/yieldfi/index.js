@@ -10,6 +10,8 @@ const DECIMALS = {
   vyETH: 18,
   yBTC: 18,
   vyBTC: 18,
+  yPYMN: 18,
+  yValos: 18
 };
 
 // Contract addresses - Multi-chain configuration
@@ -70,6 +72,18 @@ const YPRISM_CONTRACTS = {
   ethereum: '0xdd5eff0756db08bad0ff16b66f88f506e7318894',
   bsc: '0xdd5eff0756db08bad0ff16b66f88f506e7318894',
 };
+
+const YHLP_CONTRACTS = {
+  ethereum: '0x386e0983d0e05f5239fd029793ef3ba37b468e9c',
+};
+
+const YVALOS_CONTRACTS = {
+  ethereum: "0xd04ae722b3fe56812e13bb212a79cea7c1b08ff0",
+}
+
+const YPYMN_CONTRACTS = {
+  ethereum: "0x06c2c73f30135c831d010ec7b82d0f32321c4f27",
+}
 // Underlying token addresses per chain (USDC for yUSD/vyUSD, WETH for yETH/vyETH, WBTC for yBTC/vyBTC)
 const UNDERLYING_TOKENS = {
   ethereum: {
@@ -211,15 +225,19 @@ const getUnderlying = (symbol, chain) => {
  * @param {number} apy - Annual Percentage Yield
  * @returns {Object} Pool object
  */
+const BASE_URL = 'https://yield.fi';
+
 const createPool = (tokenAddress, symbol, chain, tvl, apy) => {
   const underlying = getUnderlying(symbol, chain);
+  const vaultSlug = symbol.toLowerCase();
   return {
     pool: `${tokenAddress}-${chain}`,
     chain: chain,
     project: 'yieldfi',
-    symbol: utils.formatSymbol(symbol),
+    symbol: symbol,
     tvlUsd: tvl,
     apyBase: apy,
+    url: `${BASE_URL}/vaults/${vaultSlug}`,
     ...(underlying && { underlyingTokens: [underlying] }),
   };
 };
@@ -271,7 +289,10 @@ const poolsFunction = async () => {
         processToken(VYETH_CONTRACTS[chain], 'vyETH', chain),
         processToken(YBTC_CONTRACTS[chain], 'yBTC', chain),
         processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain),
-        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain)
+        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain),
+        processToken(YHLP_CONTRACTS[chain], 'yHLP', chain),
+        processToken(YVALOS_CONTRACTS[chain], 'yValos', chain),
+        processToken(YPYMN_CONTRACTS[chain], 'yPYMN', chain)
       );
     }
     if (chain === 'arbitrum' || chain === 'base') {
@@ -310,5 +331,5 @@ const poolsFunction = async () => {
 module.exports = {
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://yield.fi/vaults/yprism',
+  url: BASE_URL + '/',
 };

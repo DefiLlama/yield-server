@@ -42,9 +42,7 @@ async function main() {
         pool: pool.poolId + '-move',
         chain: utils.formatChain('move'),
         project: 'interest-curve',
-        symbol: pool.symbols
-          .map((symbol) => utils.formatSymbol(symbol))
-          .join('-'),
+        symbol: pool.symbols.join('-'),
         tvlUsd: parseFloat(pool.metrics.tvl),
         apyBase: +pool.metrics.apr,
         apyReward: +pool.metrics.farmApr,

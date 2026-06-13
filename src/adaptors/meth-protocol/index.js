@@ -72,8 +72,10 @@ const apy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase,
       apyBase7d,
+      ...(Number(exchangeRates[0].output) / 1e18 > 0 && { pricePerShare: Number(exchangeRates[0].output) / 1e18 }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      token: mETH,
+      searchTokenOverride: mETH,
+      isIntrinsicSource: true
     },
   ];
 };

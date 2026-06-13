@@ -11,7 +11,7 @@ const getPoolsData = async () => {
     return {
       chain: utils.formatChain(SHIBARIUM_CHAIN_NAME),
       pool: pool.pool,
-      symbol: `${utils.formatSymbol(pool.symbol)}`,
+      symbol: pool.symbol,
       underlyingTokens: [pool.underlying_token],
       rewardTokens: [pool.reward_token],
       tvlUsd: pool.tvlUsd,

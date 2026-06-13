@@ -32,18 +32,43 @@ exports.formatChain = (chain) => {
       chain.toLowerCase() === 'era' ||
       chain.toLowerCase() === 'zksync')
   )
-    return 'zkSync Era';
+    return 'ZKsync Era';
   if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
-  if (chain && chain.toLowerCase() === 'real') return 're.al';
-  if (chain && chain.toLowerCase() === 'plume_mainnet') return 'Plume Mainnet';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'real' || chain.toLowerCase() === 're.al')
+  )
+    return 're.al';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'plume_mainnet' || chain.toLowerCase() === 'plume')
+  )
+    return 'Plume Mainnet';
   if (chain && chain.toLowerCase() === 'megaeth') return 'MegaETH';
   if (chain && chain.toLowerCase() === 'ripple') return 'XRPL';
+  if (chain && chain.toLowerCase() === 'xrplevm') return 'XRPL EVM';
+  if (chain && chain.toLowerCase() === 'etlk') return 'Etherlink';
+  if (chain && chain.toLowerCase() === 'rsk') return 'RSK';
+  if (chain && chain.toLowerCase() === '0g') return '0G';
+  if (chain && chain.toLowerCase() === 'tac') return 'TAC';
   if (
     chain &&
     (chain.toLowerCase() === 'hyperevm' ||
       chain.toLowerCase() === 'hyperliquid')
   )
     return 'Hyperliquid L1';
+  if (chain && chain.toLowerCase() === 'core') return 'CORE';
+  if (chain && chain.toLowerCase() === 'cronos_zkevm') return 'Cronos zkEVM';
+  if (chain && chain.toLowerCase() === 'echelon_initia')
+    return 'Echelon Initia';
+  if (chain && chain.toLowerCase() === 'fuel-ignition') return 'Fuel Ignition';
+  if (chain && chain.toLowerCase() === 'icp') return 'ICP';
+  if (chain && chain.toLowerCase() === 'mainnet') return 'Ethereum';
+  if (chain && chain.toLowerCase() === 'op_bnb') return 'Opbnb';
+  if (chain && chain.toLowerCase() === 'optimism') return 'OP Mainnet';
+  if (chain && chain.toLowerCase() === 'ton') return 'TON';
+  if (chain && chain.toLowerCase() === 'zklink') return 'zkLink Nova';
+
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
 
@@ -64,14 +89,29 @@ exports.formatSymbol = (symbol) => {
     .toUpperCase();
 };
 
-exports.getData = async (url, query = null) => {
+exports.getData = async (url, query = null, headers = {}) => {
   let res;
   if (query !== null) {
-    res = await axios.post(url, query);
+    res = await axios.post(url, query, { headers });
   } else {
     res = await axios.get(url);
   }
   return res.data;
+};
+
+// Retry helper for flaky endpoints. Only retries transient failures
+// (429 + 5xx); permanent 4xx and non-HTTP errors fail fast.
+exports.withRetry = async (fn, { retries = 3, delayMs = 500 } = {}) => {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const status = e.response?.status;
+      const retryable = status === 429 || (status >= 500 && status < 600);
+      if (i === retries || !retryable) throw e;
+      await new Promise((r) => setTimeout(r, delayMs * 2 ** i));
+    }
+  }
 };
 
 // retrive block based on unixTimestamp array
@@ -486,7 +526,7 @@ exports.getERC4626Info = async (
         .then((r) => r.data.height)
     )
   );
-  const [tvl, priceNow, priceYesterday] = await Promise.all([
+  const [tvl, priceNow, priceYesterday, asset, shareDecimalsRes] = await Promise.all([
     sdk.api.abi.call({
       target: address,
       block: blockNow,
@@ -507,13 +547,48 @@ exports.getERC4626Info = async (
       params: [assetUnit],
       chain: chain,
     }),
+    sdk.api.abi
+      .call({
+        target: address,
+        abi: 'address:asset',
+        chain: chain,
+      })
+      .catch(() => null),
+    sdk.api.abi
+      .call({
+        target: address,
+        abi: 'erc20:decimals',
+        chain: chain,
+      })
+      .catch(() => null),
   ]);
   const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
+  let assetDecimals = 18;
+  if (asset && asset.output) {
+    try {
+      const decRes = await sdk.api.abi.call({
+        target: asset.output,
+        abi: 'erc20:decimals',
+        chain,
+      });
+      const parsed = Number(decRes.output);
+      if (Number.isFinite(parsed) && parsed > 0) assetDecimals = parsed;
+    } catch (_) {}
+  }
+  let shareDecimals = 18;
+  if (shareDecimalsRes && shareDecimalsRes.output) {
+    const parsed = Number(shareDecimalsRes.output);
+    if (Number.isFinite(parsed) && parsed > 0) shareDecimals = parsed;
+  }
+  const pricePerShare =
+    (Number(priceNow.output) * 10 ** shareDecimals) /
+    (Number(assetUnit) * 10 ** assetDecimals);
   return {
     pool: address,
     chain,
     tvl: tvl.output,
     apyBase: apy,
+    pricePerShare,
   };
 };
 
@@ -625,6 +700,14 @@ exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl = 'https://api.mainne
   };
 };
 
+// Current pricePerShare (lamports per pool token) for SPL Stake Pool LSTs
+exports.solanaLstPricePerShare = (stakePoolInfo) => {
+  const { totalLamports, poolTokenSupply } = stakePoolInfo || {};
+  if (!totalLamports || !poolTokenSupply) return null;
+  const pps = Number(totalLamports) / Number(poolTokenSupply);
+  return Number.isFinite(pps) && pps > 0 ? pps : null;
+};
+
 // On-chain single-epoch APY for SPL Stake Pool LSTs
 // Uses previous-epoch snapshots stored in the stake pool account
 exports.calcSolanaLstApy = (stakePoolInfo) => {
@@ -679,4 +762,43 @@ exports.calcSolanaLstApyFromPriceRatio = async (currentExchangeRate, lstMint, da
   } catch {
     return null;
   }
+};
+
+// Sanctum LST APY (percent). Primary: ironforge (requires SANCTUM_API_KEY).
+// Fallback: extra-api `indiv-epochs` mean of non-zero values. Returns null if neither has data.
+const _fetchJson = async (url) => {
+  try {
+    const res = await fetch(url);
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+};
+
+exports.getSanctumLstApy = async (
+  mint,
+  { window = 15, minNonZero = 3 } = {}
+) => {
+  if (!mint) return null;
+
+  const apiKey = process.env.SANCTUM_API_KEY;
+  if (apiKey) {
+    const data = await _fetchJson(
+      `https://sanctum-api.ironforge.network/lsts/${mint}?apiKey=${apiKey}`
+    );
+    const lst = Array.isArray(data?.data) ? data.data[0] : data?.data;
+    const apy = lst?.avgApy;
+    if (Number.isFinite(apy) && apy > 0.001) return apy * 100;
+  }
+
+  const data = await _fetchJson(
+    `https://extra-api.sanctum.so/v1/apy/indiv-epochs?lst=${mint}&n=${window}`
+  );
+  const epochs = data?.apys?.[mint];
+  if (!Array.isArray(epochs)) return null;
+  const nonzero = epochs
+    .map((e) => e.apy)
+    .filter((a) => Number.isFinite(a) && a > 0.001);
+  if (nonzero.length < minNonZero) return null;
+  return (nonzero.reduce((s, a) => s + a, 0) / nonzero.length) * 100;
 };

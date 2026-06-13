@@ -2,45 +2,14 @@ const validator = require('validator');
 
 const AppError = require('../../utils/appError');
 const { conn } = require('../db');
-const exclude = require('../../utils/exclude');
+const { readFromS3 } = require('../../utils/s3');
 
 // get pool urls (filtered to only include pools that appear in /pools response)
 const getUrl = async (req, res) => {
-  const query = `
-    SELECT
-        c.config_id,
-        c.url
-    FROM
-        config c
-    WHERE
-        c.pool NOT IN ($<excludePools:csv>)
-        AND c.project NOT IN ($<excludeProjects:csv>)
-        AND c.symbol NOT LIKE '%RENBTC%'
-        AND EXISTS (
-            SELECT 1
-            FROM yield y
-            WHERE y."configID" = c.config_id
-              AND y."tvlUsd" >= $<tvlLB>
-              AND y.timestamp >= NOW() - INTERVAL '$<age> DAY'
-        )
-    `;
-
-  const response = await conn.query(query, {
-    excludePools: exclude.excludePools,
-    excludeProjects: exclude.excludeAdaptors,
-    tvlLB: exclude.boundaries.tvlUsdUI.lb,
-    age: exclude.boundaries.age,
-  });
-
-  console.log(response.length)
-
-  if (!response) {
-    return new AppError(`Couldn't get data`, 404);
-  }
-
   const out = {};
-  for (const e of response) {
-    out[e.config_id] = e.url;
+  const data = await readFromS3('llama-apy-prod-data', 'enriched/dataEnriched.json');
+  for (const p of data) {
+    out[p.pool] = p.url;
   }
   res.status(200).json(out);
 };

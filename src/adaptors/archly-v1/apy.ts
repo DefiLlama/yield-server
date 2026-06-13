@@ -76,7 +76,7 @@ const getApy = async () => {
         pool: address,
         chain: utils.formatChain('telos'),
         project: 'archly-v1',
-        symbol: `${token0.symbol}-${token1.symbol}`.toUpperCase(),
+        symbol: `${token0.symbol}-${token1.symbol}`,
         tvlUsd: Number(reserveUSD),
         apyReward: apyReward,
         underlyingTokens: [token0.address, token1.address],

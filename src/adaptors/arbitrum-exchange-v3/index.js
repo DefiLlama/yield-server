@@ -206,10 +206,11 @@ const topLvl = async (
     // add the symbol for the stablecoin (we need to distinguish btw stable and non stable pools
     // so we apply the correct tick range)
     dataNow = dataNow.map((p) => {
-      const symbol = utils.formatSymbol(
-        `${p.token0.symbol}-${p.token1.symbol}`
+      const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
+      const stablecoin = checkStablecoin(
+        { ...p, symbol: utils.formatSymbol(symbol) },
+        stablecoins
       );
-      const stablecoin = checkStablecoin({ ...p, symbol }, stablecoins);
       return {
         ...p,
         symbol,
@@ -262,7 +263,7 @@ const topLvl = async (
         pool: p.id,
         chain: utils.formatChain(chainString),
         project: 'arbitrum-exchange-v3',
-        poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
+        poolMeta,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyReward,

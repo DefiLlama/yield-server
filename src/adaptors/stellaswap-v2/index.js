@@ -118,7 +118,7 @@ const apyBase = async (
   dataNow = dataNow.map((p) => utils.apy(p, dataPrior, dataPrior7d, version));
 
   dataNow = dataNow.map((p) => {
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
@@ -183,9 +183,7 @@ const apyBase = async (
       ((pool.dailyVolumes[0].volume * pool.swapFee) / 1e8 / tvlUsd) * 100;
     const apyBase7d =
       ((pool.weeklyVolumes[0].volume * pool.swapFee) / 1e8 / tvlUsd) * 100;
-    const symbol = utils.formatSymbol(
-      pool.tokens.map((t) => t.symbol).join('-')
-    );
+    const symbol = pool.tokens.map((t) => t.symbol).join('-');
     const underlyingTokens = pool.tokens.map((t) => t.address);
 
     return {

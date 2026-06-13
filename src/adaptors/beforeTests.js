@@ -7,6 +7,11 @@ try {
   require('dotenv').config({ path: envPath });
 } catch (e) {}
 
+// Some adapter dependencies install SIGINT listeners that swallow Ctrl+C.
+process.prependOnceListener('SIGINT', () => {
+  process.exit(130);
+});
+
 // support requiring TS adapters directly (eg: index.ts)
 try {
   const tsConfigPath = path.resolve(__dirname, '../../tsconfig.json');

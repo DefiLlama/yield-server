@@ -28,8 +28,8 @@ const poolInfo = async (chain) => {
     );
 
   const getOutput = ({ output }) => output.map(({ output }) => output);
-  const [markets, venusSupplySpeeds, venusBorrowSpeeds] = await Promise.all(
-    ['markets', 'venusSupplySpeeds', 'venusBorrowSpeeds'].map((method) =>
+  const [markets, venusSupplySpeeds, venusBorrowSpeeds, borrowCaps] = await Promise.all(
+    ['markets', 'venusSupplySpeeds', 'venusBorrowSpeeds', 'borrowCaps'].map((method) =>
       sdk.api.abi.multiCall({
         abi: abiUnitroller.find((m) => m.name === method),
         target: unitroller,
@@ -41,6 +41,29 @@ const poolInfo = async (chain) => {
       })
     )
   ).then((data) => data.map(getOutput));
+
+  const [protocolPaused, supplyPaused, borrowPaused] = await Promise.all([
+    sdk.api.abi.call({
+      abi: abiUnitroller.find((m) => m.name === 'protocolPaused'),
+      target: unitroller,
+      chain,
+      permitFailure: true,
+    }),
+    ...[0, 2].map((action) =>
+      sdk.api.abi.multiCall({
+        abi: abiUnitroller.find((m) => m.name === 'actionPaused'),
+        target: unitroller,
+        calls: yieldMarkets.map((pool) => ({
+          params: [pool.pool, action],
+        })),
+        chain,
+        permitFailure: true,
+      })
+    ),
+  ]).then(([protocol, ...pausedActions]) => [
+    protocol.output,
+    ...pausedActions.map(({ output }) => output.map(({ output }) => output)),
+  ]);
 
   const collateralFactor = markets.map((data) => data.collateralFactorMantissa);
 
@@ -93,9 +116,12 @@ const poolInfo = async (chain) => {
   const price = await getPrices('bsc', underlyingToken);
 
   yieldMarkets.map((data, index) => {
+    data.isListed = markets[index].isListed;
     data.collateralFactor = collateralFactor[index];
     data.venusSupplySpeeds = venusSupplySpeeds[index];
     data.venusBorrowSpeeds = venusBorrowSpeeds[index];
+    data.borrowCap = borrowCaps[index];
+    data.borrowPaused = borrowPaused[index];
     data.borrowRatePerBlock = borrowRatePerBlock[index];
     data.supplyRatePerBlock = supplyRatePerBlock[index];
     data.getCash = getCash[index];
@@ -130,9 +156,9 @@ const getPrices = async (chain, addresses) => {
 
 function calculateApy(rate, decimals, price = 1, tvl = 1) {
   // APR compounded daily
-  const BLOCK_TIME = 0.75; // https://x.com/BNBCHAIN/status/1939374483833335935
+  const BLOCK_TIME = 0.45;
   const DAILY_BLOCKS = (24 * 60 * 60) / BLOCK_TIME;
-  const dailyApr = rate * price * DAILY_BLOCKS / tvl;
+  const dailyApr = (rate * price * DAILY_BLOCKS) / tvl;
   const apy = ((dailyApr / decimals + 1) ** 364 - 1) * 100;
   return apy;
 }
@@ -161,6 +187,9 @@ const getApy = async () => {
   ).output.map((o) => o.output);
 
   const yieldPools = yieldMarkets.map((pool, i) => {
+    if (pool.price === undefined || pool.price === null) return null;
+    if (!pool.isListed) return null;
+
     const totalSupplyUsd = calculateTvl(
       pool.getCash,
       pool.totalBorrows,
@@ -176,7 +205,19 @@ const getApy = async () => {
       pool.underlyingTokenDecimals
     );
     const tvl = totalSupplyUsd - totalBorrowUsd;
-    const apyBase = calculateApy(pool.supplyRatePerBlock, pool.underlyingTokenDecimals);
+    const availableBorrowUsd =
+      (Math.min(
+        parseFloat(pool.getCash),
+        parseFloat(pool.borrowCap) > 0
+          ? Math.max(parseFloat(pool.borrowCap) - parseFloat(pool.totalBorrows), 0)
+          : parseFloat(pool.getCash)
+      ) /
+        pool.underlyingTokenDecimals) *
+      pool.price;
+    const apyBase = calculateApy(
+      pool.supplyRatePerBlock,
+      pool.underlyingTokenDecimals
+    );
     const apyReward = calculateApy(
       pool.venusSupplySpeeds,
       1e18, // XVS decimals
@@ -184,7 +225,10 @@ const getApy = async () => {
       totalSupplyUsd
     );
 
-    const apyBaseBorrow = calculateApy(pool.borrowRatePerBlock, pool.underlyingTokenDecimals);
+    const apyBaseBorrow = calculateApy(
+      pool.borrowRatePerBlock,
+      pool.underlyingTokenDecimals
+    );
     const apyRewardBorrow = calculateApy(
       pool.venusBorrowSpeeds,
       1e18, // XVS decimals
@@ -205,11 +249,13 @@ const getApy = async () => {
       apyRewardBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
-      ltv
+      availableBorrowUsd,
+      ltv,
+      pool.borrowPaused === false
     );
 
     return readyToExport;
-  });
+  }).filter(Boolean);
 
   return yieldPools;
 };
@@ -227,7 +273,9 @@ function exportFormatter(
   apyRewardBorrow,
   totalSupplyUsd,
   totalBorrowUsd,
-  ltv
+  availableBorrowUsd,
+  ltv,
+  borrowable
 ) {
   return {
     pool: pool.toLowerCase(),
@@ -240,10 +288,13 @@ function exportFormatter(
     underlyingTokens: [underlyingTokens],
     rewardTokens,
     apyBaseBorrow,
+    borrowToken: underlyingTokens,
     apyRewardBorrow,
     totalSupplyUsd,
     totalBorrowUsd,
+    availableBorrowUsd,
     ltv,
+    borrowable,
   };
 }
 

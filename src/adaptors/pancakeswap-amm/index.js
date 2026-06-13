@@ -5,12 +5,9 @@ const axios = require('axios');
 
 const { masterChefABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
-const { fetchURL } = require('../../helper/utils');
 
 const PROJECT = 'pancakeswap-amm';
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';
-const LP_APRS =
-  'https://raw.githubusercontent.com/pancakeswap/pancake-frontend/develop/apps/web/src/config/constants/lpAprs/56.json';
 const MASTERCHEF_ADDRESS = '0xa5f8C5Dbd5F286960b9d90548680aE5ebFf07652';
 const CAKE = '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82';
 
@@ -22,28 +19,96 @@ const web3 = new Web3(RPC_URL);
 const CHAINS = ['bsc', 'base', 'ethereum', 'linea', 'zksync', 'arbitrum', 'opbnb', 'monad']
 const EXPLORER_API = 'https://explorer.pancakeswap.com/api/cached';
 
-async function getPoolsApy(chain) {
-  const response = await axios.get(`${EXPLORER_API}/pools/v2/${chain}/list/top`, { timeout: 0 });
-  return response.data.map(p => {
-    const symbol = p.token0.symbol + '-' + p.token1.symbol;
-
-    // 0.25% fee per swap
-    const feeUsd = Number(p.volumeUSD24h) * 0.0025;
-    const feeUsd7d = Number(p.volumeUSD7d) * 0.0025;
-
-    return {
-      pool: utils.formatAddress(p.id),
-      chain: utils.formatChain(chain),
-      project: PROJECT,
-      symbol,
-      tvlUsd: Number(p.tvlUSD),
-      apyBase: feeUsd * 365 * 100 / Number(p.tvlUSD),
-      apyBase7d: feeUsd7d * 365 * 100 / 7 / Number(p.tvlUSD),
-      volumeUsd1d: Number(p.volumeUSD24h),
-      volumeUsd7d: Number(p.volumeUSD7d),
-      underlyingTokens: [p.token0.id, p.token1.id],
+async function fetchExplorerJson(url, { retries = 3, timeoutMs = 15000 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const { data } = await axios.get(url, { timeout: timeoutMs });
+      return data;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+      }
     }
-  })
+  }
+  throw lastErr;
+}
+
+async function fetchExplorerPools(chain) {
+  return fetchExplorerJson(`${EXPLORER_API}/pools/v2/${chain}/list/top`);
+}
+
+async function fetchExplorerPool(chain, lpAddress) {
+  try {
+    return await fetchExplorerJson(
+      `${EXPLORER_API}/pools/v2/${chain}/${lpAddress}`,
+      { retries: 2, timeoutMs: 10000 }
+    );
+  } catch (e) {
+    return null;
+  }
+}
+
+async function fetchExplorerPoolsByAddress(chain, lpAddresses, concurrency = 10) {
+  const results = new Array(lpAddresses.length);
+  let cursor = 0;
+  const workers = Array.from({ length: concurrency }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= lpAddresses.length) return;
+      results[i] = await fetchExplorerPool(chain, lpAddresses[i]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+const computeFeeApr = (p) => {
+  const tvl = Number(p.tvlUSD);
+  if (!tvl) return undefined;
+  const apr = (Number(p.volumeUSD24h) * 0.0025 * 365 * 100) / tvl;
+  return Number.isFinite(apr) ? apr : undefined;
+};
+
+function buildPoolFromExplorer(p, chain) {
+  if (!p || !p.id) return null;
+  if (!p.token0?.id || !p.token1?.id || !p.token0?.symbol || !p.token1?.symbol) return null;
+  const tvlUsd = Number(p.tvlUSD);
+  if (!tvlUsd) return null;
+
+  const feeUsd7d = Number(p.volumeUSD7d) * 0.0025;
+  return {
+    pool: utils.formatAddress(p.id),
+    chain: utils.formatChain(chain),
+    project: PROJECT,
+    symbol: p.token0.symbol + '-' + p.token1.symbol,
+    tvlUsd,
+    apyBase: computeFeeApr(p),
+    apyBase7d: (feeUsd7d * 365 * 100) / 7 / tvlUsd,
+    volumeUsd1d: Number(p.volumeUSD24h),
+    volumeUsd7d: Number(p.volumeUSD7d),
+    underlyingTokens: [p.token0.id, p.token1.id],
+  };
+}
+
+async function getPoolsApy(chain) {
+  let data;
+  try {
+    data = await fetchExplorerPools(chain);
+  } catch (e) {
+    console.error(`pancakeswap-amm: failed to fetch ${chain} pools after retries: ${e.message}`);
+    return [];
+  }
+  if (!Array.isArray(data)) {
+    console.error(
+      `pancakeswap-amm: unexpected ${chain} pools payload shape (expected array, got ${
+        data === null ? 'null' : typeof data
+      }): ${JSON.stringify(data)?.slice(0, 200)}`
+    );
+    return [];
+  }
+  return data.map((p) => buildPoolFromExplorer(p, chain)).filter(Boolean);
 }
 
 const calculateApy = (
@@ -111,10 +176,6 @@ const getBaseTokensPrice = async () => {
 const getPoolsBsc = async () => {
   const { cakePrice, ethPrice, bnbPrice } = await getBaseTokensPrice();
   const masterChef = new web3.eth.Contract(masterChefABI, MASTERCHEF_ADDRESS);
-  let { data: lpAprs } = await fetchURL(LP_APRS);
-  lpAprs = Object.fromEntries(
-    Object.entries(lpAprs).map(([k, v]) => [k.toLowerCase(), v])
-  );
 
   const poolsCount = await masterChef.methods.poolLength().call();
   const totalAllocPoint = await masterChef.methods
@@ -140,6 +201,27 @@ const getPoolsBsc = async () => {
   );
   const poolsInfo = poolsRes.output.map((res) => res.output);
   const lpTokens = lpTokensRes.output.map((res) => res.output);
+
+  const explorerPools = await fetchExplorerPools('bsc').catch(() => []);
+  const feeAprByLp = {};
+  for (const p of explorerPools) {
+    const apr = computeFeeApr(p);
+    if (apr !== undefined) feeAprByLp[p.id.toLowerCase()] = apr;
+  }
+  const missingLps = Array.from(
+    new Set(
+      lpTokens
+        .filter((lp) => lp)
+        .map((lp) => lp.toLowerCase())
+        .filter((lp) => !(lp in feeAprByLp))
+    )
+  );
+  const fallback = await fetchExplorerPoolsByAddress('bsc', missingLps);
+  fallback.forEach((p, i) => {
+    if (!p) return;
+    const apr = computeFeeApr(p);
+    if (apr !== undefined) feeAprByLp[missingLps[i]] = apr;
+  });
 
   // note: exchange subgraph is broken giving duplicated ids on pairs
   // reading token info data from contracts instead
@@ -241,7 +323,7 @@ const getPoolsBsc = async () => {
         project: PROJECT,
         symbol,
         tvlUsd: Number(reserveUSD),
-        apyBase: lpAprs[lpTokens[i].toLowerCase()],
+        apyBase: feeAprByLp[lpTokens[i].toLowerCase()],
         apyReward,
         rewardTokens: apyReward > 0 ? [CAKE] : [],
         underlyingTokens: [token0[i], token1[i]],

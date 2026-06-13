@@ -7,6 +7,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aave/aave-v3-aptos-ts-sdk": "^0.0.61",
     "@blend-capital/blend-sdk": "3.0.1",
     "@defillama/sdk": "^5.0.207",
     "@stacks/network": "^6.13.0",

@@ -64,17 +64,20 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const collateralDecimals = (
+    await sdk.api.abi.multiCall({
+      calls: collateralTokens.map((i) => ({
+        target: i,
+      })),
+      abi: 'erc20:decimals',
+    })
+  ).output.map((o) => o.output);
+
   const maxBorrowable = (
     await sdk.api.abi.multiCall({
-      calls: controllers.map((i) => ({
+      calls: controllers.map((i, idx) => ({
         target: i,
-        params: [
-          // wbtc
-          i === '0x4e59541306910aD6dC1daC0AC9dFB29bD9F15c67'
-            ? 100000000n
-            : 1000000000000000000n,
-          4,
-        ],
+        params: [10n ** BigInt(collateralDecimals[idx]), 4],
       })),
       abi: abiControllers.find((m) => m.name === 'max_borrowable'),
     })
@@ -127,6 +130,7 @@ const apy = async () => {
     // cdp
     const tvlUsd = totalSupplyUsd;
     const debtCeilingUsd = debtCeiling[i] / 1e18;
+    const availableBorrowUsd = Math.max(debtCeilingUsd - totalBorrowUsd, 0);
 
     // https://docs.curve.fi/crvUSD/monetarypolicy/#interest-rates
     const apyBaseBorrow =
@@ -143,10 +147,13 @@ const apy = async () => {
       totalSupplyUsd,
       totalBorrowUsd,
       debtCeilingUsd,
-      apyBase: 0,
+      availableBorrowUsd,
+      borrowable: availableBorrowUsd > 0,
+      apy: 0,
       apyBaseBorrow,
       underlyingTokens: [collateralTokens[i]],
       mintedCoin: 'crvusd',
+      borrowToken: crvUsd,
       ltv,
     };
   });
@@ -165,7 +172,9 @@ const apy = async () => {
         chain: 'ethereum',
         tvlUsd: scrvusd.tvl / 1e18,
         apyBase: scrvusd.apyBase,
+        pricePerShare: scrvusd.pricePerShare,
         underlyingTokens: [crvUsd],
+        url: 'https://www.curve.finance/crvusd/ethereum/scrvUSD',
       },
     ])
     .filter(
@@ -175,5 +184,5 @@ const apy = async () => {
 
 module.exports = {
   apy,
-  url: 'https://crvusd.curve.fi/#/ethereum/markets',
+  url: 'https://www.curve.finance/llamalend/ethereum/markets',
 };

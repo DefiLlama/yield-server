@@ -93,7 +93,7 @@ async function getPoolMPX(
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(pChain),
     project,
-    symbol: utils.formatSymbol('MPX'),
+    symbol: 'MPX',
     tvlUsd: tvlMpx,
     apyBase: apyFee,
     apyReward: apyInflation,
@@ -127,8 +127,8 @@ async function getPoolMLP(
     project,
     symbol:
       pChain === 'fantom'
-        ? utils.formatSymbol('MLP (FTM-BTC-ETH-USDC-USDT-DAI)')
-        : utils.formatSymbol('MLP (BNB-BTC-ETH-XRP-ADA-USDT-USDC)'),
+        ? 'MLP (FTM-BTC-ETH-USDC-USDT-DAI)'
+        : 'MLP (BNB-BTC-ETH-XRP-ADA-USDT-USDC)',
     tvlUsd: parseFloat(pTvl),
     apyBase: apyFee,
     apyReward: apyInflation,

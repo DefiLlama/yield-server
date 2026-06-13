@@ -24,7 +24,7 @@ const getApy = async () => {
           pool: `${vault_token.asset.native}-${chain[0]}`,
           chain: utils.formatChain(chain[0]),
           project: 'apollodao',
-          symbol: utils.formatSymbol(`${v.label.split(' ')[0]}-VT`),
+          symbol: `${v.label.split(' ')[0]}-VT`,
           tvlUsd:
             (v.tvl.amount / Math.pow(10, lp_token.decimals)) * lp_token.price,
           apy: formatApyBreakdown(v.apr) * 100,

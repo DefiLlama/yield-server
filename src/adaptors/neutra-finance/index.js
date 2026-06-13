@@ -43,7 +43,7 @@ const poolsFunction = async () => {
     pool: '0x6Bfa4F1DfAfeb9c37E4E8d436E1d0C5973E47e25',
     chain: utils.formatChain('arbitrum'),
     project: 'neutra-finance',
-    symbol: utils.formatSymbol('DAI'),
+    symbol: 'DAI',
     tvlUsd: Number(tvl[1]),
     apyReward:
       (Number(nGlpAPY.vaults[0].esNeuApr) + Number(nGlpAPY.vaults[0].nGlpApr)) /
@@ -59,7 +59,7 @@ const poolsFunction = async () => {
     pool: '0x2a958665bC9A1680135241133569C7014230Cb21',
     chain: utils.formatChain('arbitrum'),
     project: 'neutra-finance',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     tvlUsd: Number(tvl[0]),
     apyReward: getAPY,
     apyBase: nusdcAPY.VaultApy.apy1d * 100,

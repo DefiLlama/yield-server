@@ -209,6 +209,14 @@ async function apy() {
             : rawInfo.poolType === 'MAGPIE_VLMGP_POOL'
             ? mgpAddress
             : rawInfo.stakingToken,
+        receiptToken:
+          rawInfo.poolType === 'WOMBAT_POOL'
+            ? rawInfo.wombatHelperInfo.lpToken
+            : rawInfo.poolType === 'MAGPIE_VLMGP_POOL'
+            ? vlmgpAddress
+            : (rawInfo.wombatHelperInfo?.lpToken && rawInfo.wombatHelperInfo.lpToken !== ZERO_ADDRESS)
+            ? rawInfo.wombatHelperInfo.lpToken
+            : rawInfo.stakingToken,
         rewarder: rawInfo.rewarder,
         isPoolFeeFree:
           rawInfo.poolType === 'WOMBAT_POOL' && rawInfo.isActive
@@ -520,6 +528,7 @@ async function apy() {
         symbol: poolInfo.stakingTokenInfo.showSymbol,
         tvlUsd: poolInfo.tvlInfo.totalAmount,
         url: 'https://magpiexyz.io/stake',
+        token: poolInfo.receiptToken,
         underlyingTokens: [poolInfo.stakingToken],
         // apy: totalApr.multipliedBy(100).toNumber(),
         apyReward: new BigNumber(poolInfo.aprInfo.totalApr)

@@ -5,10 +5,10 @@ const API_URL =
 
 // ICP ledger canister IDs
 const ICP_TOKENS = {
-  ICP: 'ryjl3-tyaaa-aaaaa-aaaba-cai',
-  BTC: 'mxzaz-hqaaa-aaaar-qaada-cai',
-  USDC: 'xevnm-gaaaa-aaaar-qafnq-cai',
-  USDT: 'cngnf-vqaaa-aaaar-qag4q-cai',
+  ICP: 'coingecko:internet-computer',
+  BTC: 'coingecko:bitcoin',
+  USDC: 'coingecko:usd-coin',
+  USDT: 'coingecko:tether',
 };
 
 const getApy = async () => {

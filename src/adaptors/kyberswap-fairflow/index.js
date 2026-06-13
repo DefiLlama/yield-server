@@ -75,13 +75,13 @@ const topLvl = async (timestamp) => {
           let underlyingTokens = [];
           
           if (token0.symbol && token1.symbol) {
-            symbol = utils.formatSymbol(`${token0.symbol}-${token1.symbol}`);
+            symbol = `${token0.symbol}-${token1.symbol}`;
             underlyingTokens = [token0.address, token1.address];
           } else if (token0.symbol) {
-            symbol = utils.formatSymbol(token0.symbol);
+            symbol = token0.symbol;
             underlyingTokens = [token0.address];
           } else if (token1.symbol) {
-            symbol = utils.formatSymbol(token1.symbol);
+            symbol = token1.symbol;
             underlyingTokens = [token1.address];
           } else {
             symbol = 'UNKNOWN';

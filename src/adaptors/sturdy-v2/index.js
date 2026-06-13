@@ -62,7 +62,7 @@ const aggregators = async () => {
       pool: address,
       chain: chainName,
       project: 'sturdy-v2',
-      symbol: utils.formatSymbol(assetSymbol),
+      symbol: assetSymbol,
       tvlUsd: tvl.toNumber(),
       apyBase,
       apyReward,

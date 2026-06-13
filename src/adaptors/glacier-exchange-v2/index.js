@@ -123,7 +123,7 @@ const getApy = async () => {
       pool: p,
       chain: utils.formatChain('avax'),
       project: 'glacier-exchange-v2',
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      symbol: s.split('-')[1],
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [GLCR] : [],

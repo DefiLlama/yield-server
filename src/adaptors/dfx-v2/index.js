@@ -78,9 +78,7 @@ const web3_Arb = new Web3(process.env.ALCHEMY_CONNECTION_ARBITRUM);
 
 //functional code starts here
 const buildPool = (entry, chainString) => {
-  const symbol = utils.formatSymbol(
-    `${entry.token0.symbol}-${entry.token1.symbol}`
-  );
+  const symbol = `${entry.token0.symbol}-${entry.token1.symbol}`;
 
   const newPool = {
     pool: entry.id,

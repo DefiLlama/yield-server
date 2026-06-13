@@ -20,11 +20,9 @@ async function apy() {
     pool: `${s.contract}-${s.id.toLowerCase().replace(/ /g, '')}`,
     chain: utils.formatChain(s.chain == 'eth' ? 'ethereum' : s.chain),
     project: 'pickle',
-    symbol: utils.formatSymbol(
-      s.depositToken.components
+    symbol: s.depositToken.components
         ? s.depositToken.components.join('-').toUpperCase()
-        : s.depositToken.name
-    ),
+        : s.depositToken.name,
     tvlUsd: s.details.harvestStats.balanceUSD ?? 0,
     apy: aggregateApys(s),
   }));

@@ -83,7 +83,7 @@ async function main() {
         pool: `meso-finance-${coinSymbol}`,
         chain: utils.formatChain('aptos'),
         project: 'meso-finance',
-        symbol: utils.formatSymbol(coinSymbol),
+        symbol: coinSymbol,
         tvlUsd:
           ((pool.poolSupply - pool.totalDebt) * coinPrice) /
           10 ** pool['token']['decimals'],

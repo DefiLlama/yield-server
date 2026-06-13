@@ -6,37 +6,37 @@ const axios = require('axios');
 const utils = require('../utils');
 const { default: BigNumber } = require('bignumber.js');
 
-openleve_address = {
+const openleve_address = {
   eth: '0x03bf707deb2808f711bb0086fc17c5cafa6e8aaf',
   bsc: '0x6A75aC4b8d8E76d15502E69Be4cb6325422833B4',
   arb: '0x2925671dc7f2def9e4ad3fa878afd997f0b4db45',
 };
 
-llama_chain_name = {
+const llama_chain_name = {
   bsc: 'Binance',
   arb: 'Arbitrum',
   eth: 'Ethereum',
 };
 
-coins_llama_name = {
+const coins_llama_name = {
   bsc: 'bsc',
   arb: 'arbitrum',
   eth: 'ethereum',
 };
 
-opl_chain_name = {
+const opl_chain_name = {
   bsc: 'bnb',
   arb: 'arbitrum',
   eth: 'eth',
 };
 
-block_of_year = {
+const block_of_year = {
   eth: 2102400,
   bsc: 10512000,
   arb: 2628000,
 };
 
-oleAddr = {
+const oleAddr = {
   eth: '0x92cfbec26c206c90aee3b7c66a9ae673754fab7e',
   bsc: '0xa865197a84e780957422237b5d152772654341f3',
   arb: '0xd4d026322c88c2d49942a75dff920fcfbc5614c1',
@@ -217,7 +217,7 @@ const main = async () => {
         pool: `${poolAddr}-${llama_chain_name[chain]}`.toLowerCase(),
         chain: utils.formatChain(llama_chain_name[chain]),
         project: 'openleverage',
-        symbol: utils.formatSymbol(poolDetails.name).split('->')[0],
+        symbol: poolDetails.name.split('->')[0],
         tvlUsd: new BigNumber(poolBalance)
           .multipliedBy(new BigNumber(tokenPriceInUsdt))
           .dividedBy(new BigNumber(10).pow(poolDetails.tokenDecimal))

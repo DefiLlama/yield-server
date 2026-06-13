@@ -63,9 +63,7 @@ const main = async () => {
   // 3. Get 1INCH price
   const priceKey = `${CHAIN}:${CONTRACTS.INCH_TOKEN}`;
   const prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKey}`
-    )
+    await utils.getData(`https://coins.llama.fi/prices/current/${priceKey}`)
   ).coins;
   const inchPrice = prices[priceKey]?.price;
 
@@ -75,13 +73,19 @@ const main = async () => {
   const [registrations, farms] = await Promise.all([
     sdk.api.abi.multiCall({
       abi: abi.registration,
-      calls: resolvers.map((r) => ({ target: CONTRACTS.POWER_POD, params: [r] })),
+      calls: resolvers.map((r) => ({
+        target: CONTRACTS.POWER_POD,
+        params: [r],
+      })),
       chain: CHAIN,
       permitFailure: true,
     }),
     sdk.api.abi.multiCall({
       abi: abi.defaultFarms,
-      calls: resolvers.map((r) => ({ target: CONTRACTS.POWER_POD, params: [r] })),
+      calls: resolvers.map((r) => ({
+        target: CONTRACTS.POWER_POD,
+        params: [r],
+      })),
       chain: CHAIN,
       permitFailure: true,
     }),
@@ -143,6 +147,7 @@ const main = async () => {
       chain: utils.formatChain(CHAIN),
       project: PROJECT,
       symbol: '1INCH',
+      token: delegatedShareAddrs[i],
       tvlUsd,
       apyReward,
       url: `https://1inch.network/resolver/${resolver}`,

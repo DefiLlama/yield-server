@@ -673,7 +673,7 @@ const main = async () => {
               poolMeta: `${poolMeta}`,
               chain: chain,
               project: protocolSlug,
-              symbol: utils.formatSymbol(borrowable.tokenSymbol),
+              symbol: borrowable.tokenSymbol,
               tvlUsd: totalTvl.toNumber(),
               apyBase: supplyRateAPY.times(BigNumber(100)).toNumber(),
               underlyingTokens: [borrowable.token0, borrowable.token1],

@@ -121,7 +121,7 @@ const topLvl = async (chainString, timestamp, url) => {
     const apyReward =
       (((x / totalAllocPoint) * zyberPerYearUsd) / p.totalValueLockedUSD) * 100;
 
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),

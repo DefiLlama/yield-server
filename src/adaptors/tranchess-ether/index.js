@@ -52,7 +52,7 @@ const topLvl = async (chainString, token, address) => {
     pool: `${address}-${chainString}`.toLowerCase(),
     chain: utils.formatChain(chainString),
     project: 'tranchess-ether',
-    symbol: utils.formatSymbol(token),
+    symbol: token,
     tvlUsd: tvlUsd,
     apyBase,
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],

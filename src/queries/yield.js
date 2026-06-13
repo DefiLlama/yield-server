@@ -6,11 +6,12 @@ const { tableName: configTableName } = require('./config');
 const tableName = 'yield';
 
 // get last DB entry per unique pool (with exclusion; this is what we use in enrichment handler)
-const getYieldFiltered = async () => {
+const getYieldFiltered = async (lendingProjects = []) => {
   const conn = await connect();
 
   // -- get latest yield row per unique configID (a pool)
-  // -- exclude if tvlUsd is < LB
+  // -- for lending rows, use totalSupplyUsd for the UI threshold when it is at least tvlUsd
+  // -- otherwise exclude if latest tvlUsd is < LB
   // -- exclude if pool age > 7days (speeds up query)
   // -- join config data
   const query = `
@@ -31,6 +32,7 @@ const getYieldFiltered = async () => {
       c."poolMeta",
       c."underlyingTokens",
       c."rewardTokens",
+      c.token              AS "poolTokenAddress",
       y."tvlUsd",
       y.apy,
       y."apyBase",
@@ -46,14 +48,22 @@ const getYieldFiltered = async () => {
           SELECT *
           FROM   $<yieldTable:name>
           WHERE  "configID" = c.config_id
-            AND "tvlUsd" >= $<tvlLB>
             AND  timestamp >= NOW() - INTERVAL '$<age> DAY'
           ORDER  BY timestamp DESC
           LIMIT  1
   ) AS y
+  WHERE  (
+          CASE
+            WHEN c.project IN ($<lendingProjects:csv>)
+              AND y."tvlUsd" >= 0
+              THEN GREATEST(y."tvlUsd", COALESCE(y."totalSupplyUsd", y."tvlUsd"))
+            ELSE y."tvlUsd"
+          END
+     ) >= $<tvlLB>
   `;
 
   const response = await conn.query(query, {
+    lendingProjects,
     tvlLB: exclude.boundaries.tvlUsdUI.lb,
     age: exclude.boundaries.age,
     yieldTable: tableName,
@@ -343,6 +353,8 @@ const buildInsertYieldQuery = (payload) => {
     { name: 'totalSupplyUsd', def: null },
     { name: 'totalBorrowUsd', def: null },
     { name: 'debtCeilingUsd', def: null },
+    { name: 'availableBorrowUsd', def: null },
+    { name: 'pricePerShare', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   return pgp.helpers.insert(payload, cs);

@@ -346,8 +346,9 @@ const apy = async () => {
       tvlUsd: liquidETHTvl,
       apyBase: liquidETHApr1d > 0 ? liquidETHApr1d : liquidETHApr7d,
       apyBase7d: liquidETHApr7d,
+      ...(liquidETHRateCurrent / 1e18 > 0 && { pricePerShare: liquidETHRateCurrent / 1e18 }),
       underlyingTokens: [weETH],
-      token: liquidETH,
+      searchTokenOverride: liquidETH,
       url: 'https://app.ether.fi/liquid/eth',
     },
     {
@@ -358,8 +359,9 @@ const apy = async () => {
       tvlUsd: liquidUSDTvl,
       apyBase: liquidUSDApr1d > 0 ? liquidUSDApr1d : liquidUSDApr7d,
       apyBase7d: liquidUSDApr7d,
+      ...(liquidUSDRateCurrent / 1e6 > 0 && { pricePerShare: liquidUSDRateCurrent / 1e6 }),
       underlyingTokens: [USDC],
-      token: liquidUSD,
+      searchTokenOverride: liquidUSD,
       url: 'https://app.ether.fi/liquid/usd',
     },
     {
@@ -370,8 +372,9 @@ const apy = async () => {
       tvlUsd: liquidBTCTvl,
       apyBase: liquidBTCApr1d > 0 ? liquidBTCApr1d : liquidBTCApr7d,
       apyBase7d: liquidBTCApr7d,
+      ...(liquidBTCRateCurrent / 1e8 > 0 && { pricePerShare: liquidBTCRateCurrent / 1e8 }),
       underlyingTokens: [WBTC],
-      token: liquidBTC,
+      searchTokenOverride: liquidBTC,
       url: 'https://app.ether.fi/liquid/btc',
     },
     {
@@ -382,8 +385,9 @@ const apy = async () => {
       tvlUsd: liquidHYPETvl,
       apyBase: liquidHYPEApr1d > 0 ? liquidHYPEApr1d : liquidHYPEApr7d,
       apyBase7d: liquidHYPEApr7d > 0 ? liquidHYPEApr7d : undefined,
+      ...(Number.isFinite(liquidHYPEOracleData?.currentRate) && liquidHYPEOracleData.currentRate > 0 && { pricePerShare: liquidHYPEOracleData.currentRate }),
       underlyingTokens: [HYPE, beHYPE],
-      token: liquidHYPE,
+      searchTokenOverride: liquidHYPE,
       url: 'https://app.ether.fi/liquid/hype',
     },
   ];

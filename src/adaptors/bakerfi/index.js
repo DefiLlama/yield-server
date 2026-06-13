@@ -22,7 +22,7 @@ const vaults = [
     chain: 'ethereum',
     contract: '0x01280b3683fE20Dc9cCF4D9526418F252871E4F7',
     project: 'bakerfi',
-    symbol: utils.formatSymbol('ETH'),
+    symbol: 'ETH',
     apyReward: 0, // APY from pool LM rewards in %,
     rewardTokens: ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
@@ -34,7 +34,7 @@ const vaults = [
     chain: 'base',
     contract: '0x37327c99bBc522e677a97d01021dB20227faF60A',
     project: 'bakerfi',
-    symbol: utils.formatSymbol('ETH'),
+    symbol: 'ETH',
     apyReward: 0, // APY from pool LM rewards in %,
     rewardTokens: ['0x4200000000000000000000000000000000000006'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0x4200000000000000000000000000000000000006'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
@@ -46,7 +46,7 @@ const vaults = [
     chain: 'base',
     contract: '0x892022FE1431fdE03836725BBD0f0380e21E2095',
     project: 'bakerfi',
-    symbol: utils.formatSymbol('ETH'),
+    symbol: 'ETH',
     apyReward: 0, // APY from pool LM rewards in %,
     rewardTokens: ['0x4200000000000000000000000000000000000006'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0x4200000000000000000000000000000000000006'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
@@ -58,7 +58,7 @@ const vaults = [
     chain: 'arbitrum',
     contract: '0x4c6d58749126FEBb1D28E8B8FdE97DC3107996d3',
     project: 'bakerfi',
-    symbol: utils.formatSymbol('ETH'),
+    symbol: 'ETH',
     apyReward: 0, // APY from pool LM rewards in %,
     rewardTokens: ['0x82af49447d8a07e3bd95bd0d56f35241523fbab1'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0x82af49447d8a07e3bd95bd0d56f35241523fbab1'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
@@ -70,7 +70,7 @@ const vaults = [
     chain: 'ethereum',
     contract: '0x909d587c482766814B368d5b136d98819B9373d7',
     project: 'bakerfi',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     apyReward: 0, // APY from pool LM rewards in %,
     underlyingTokens: ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
     poolMeta: 'Stable USD Ethereum Vault', // A string value which can stand for any specif
@@ -81,7 +81,7 @@ const vaults = [
     chain: 'base',
     contract: '0x4BA3f77a8072217dabd7FeD28DB244A5d32C572E',
     project: 'bakerfi',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     apyReward: 0, // APY from pool LM rewards in %,
     underlyingTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
     poolMeta: 'Stable USD Base Vault', // A string value which can stand for any specif

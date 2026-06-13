@@ -2,6 +2,7 @@ const axios = require('axios');
 const { getTotalSupply } = require('../utils');
 
 const MSOL_ADDRESS = 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So';
+const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${MSOL_ADDRESS}`;
 
 const apy = async () => {
@@ -23,7 +24,9 @@ const apy = async () => {
       symbol: 'MSOL',
       tvlUsd: tvlUsd,
       apyBase: apyValue * 100,
-      underlyingTokens: [MSOL_ADDRESS],
+      underlyingTokens: [SOL],
+      searchTokenOverride: MSOL_ADDRESS,
+      isIntrinsicSource: true,
     },
   ];
 };

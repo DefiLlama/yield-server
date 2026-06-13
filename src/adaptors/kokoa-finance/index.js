@@ -19,7 +19,7 @@ const poolsFunction = async () => {
     pool: `0x5e6215dfb33b1fb71e48000a47ed2ebb86d5bf3d`, //dKSD pool address
     chain: utils.formatChain('klaytn'),
     project: 'kokoa-finance',
-    symbol: utils.formatSymbol('KSD'), //Users deposit KSD and claims the realized APY upon withdrawal
+    symbol: 'KSD', //Users deposit KSD and claims the realized APY upon withdrawal
     tvlUsd: Number(dksdData.dKsdTotalSupply),
     apy: Number(dksdData.apy),
     underlyingTokens: [KSD],

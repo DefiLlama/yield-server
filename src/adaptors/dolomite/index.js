@@ -1,11 +1,25 @@
 const dolomiteMarginAbi = require('./dolomite-margin-abi.js');
 const isolationModeAbi = require('./isolation-mode-token-abi.js');
 const sdk = require('@defillama/sdk');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const DOLOMITE_MARGIN_ADDRESS_MAP = {
   arbitrum: '0x6Bd780E7fDf01D77e4d475c821f1e7AE05409072',
   berachain: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
   ethereum: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
+};
+const getMarketMaxBorrowWeiAbi = {
+  name: 'getMarketMaxBorrowWei',
+  type: 'function',
+  inputs: [{ name: 'marketId', type: 'uint256' }],
+  outputs: [{
+    type: 'tuple',
+    components: [
+      { name: 'sign', type: 'bool' },
+      { name: 'value', type: 'uint256' },
+    ],
+  }],
+  stateMutability: 'view',
 };
 
 async function apy() {
@@ -115,6 +129,17 @@ async function apy() {
         });
         const interestRates = interestRatesRes.output.map((o) => o.output);
 
+        const maxBorrowWeiRes = await sdk.api.abi.multiCall({
+          abi: getMarketMaxBorrowWeiAbi,
+          calls: range.map((i) => ({
+            target: dolomiteMargin,
+            params: i,
+          })),
+          chain: chain,
+          permitFailure: true,
+        });
+        const maxBorrowWeis = maxBorrowWeiRes.output.map((o) => o.success ? o.output : null);
+
         const marginPremiumsRes = await sdk.api.abi.multiCall({
           abi: dolomiteMarginAbi.find((i) => i.name === 'getMarketMarginPremium'),
           calls: range.map((i) => ({
@@ -148,6 +173,8 @@ async function apy() {
         });
         const names = namesRes.output.map((o) => o.output);
 
+        // Track which tokens are isolation mode dTokens (ERC20 receipt tokens)
+        const receiptTokens = new Array(names.length).fill(null);
         for (let i = 0; i < names.length; i++) {
           if (names[i] === 'Dolomite Isolation: Arbitrum' || names[i] === 'GMX' || names[i] === 'Infrared BGT') {
             tokens[i] = undefined;
@@ -156,6 +183,7 @@ async function apy() {
             names[i] === 'Dolomite: Fee + Staked GLP' ||
             names[i].includes('Dolomite Isolation:')
           ) {
+            receiptTokens[i] = tokens[i]; // preserve dToken as receipt
             const underlyingToken = await sdk.api.abi.call({
               abi: isolationModeAbi.find((i) => i.name === 'UNDERLYING_TOKEN'),
               target: tokens[i],
@@ -180,6 +208,11 @@ async function apy() {
         const borrowUsds = borrowWeis.map(
           (borrowWei, i) => (borrowWei * prices[i]) / 1e36
         );
+        const maxBorrowUsds = maxBorrowWeis.map((maxBorrowWei, i) =>
+          maxBorrowWei && Number(maxBorrowWei.value) > 0
+            ? (Number(maxBorrowWei.value) * prices[i]) / 1e36
+            : null
+        );
 
         const secondsInYear = 31_536_000;
         const borrowInterestRateApys = interestRates.map((interestRate) => {
@@ -200,22 +233,33 @@ async function apy() {
 
         return range.reduce((acc, i) => {
           if (tokens[i]) {
+            const availableBorrowUsd = borrowables[i]
+              ? Math.max(
+                  Math.min(
+                    supplyUsds[i] - borrowUsds[i],
+                    maxBorrowUsds[i] === null
+                      ? Infinity
+                      : maxBorrowUsds[i] - borrowUsds[i]
+                  ),
+                  0
+                )
+              : 0;
             acc.push({
               pool: `${tokens[i]}-dolomite-${chain}`.toLowerCase(),
               symbol: symbols[i],
               chain: chain.charAt(0).toUpperCase() + chain.slice(1),
               project: 'dolomite',
+              token: receiptTokens[i] || null,
               tvlUsd: supplyUsds[i] - borrowUsds[i],
               apyBase: supplyInterestRateApys[i],
-              apyReward: 0,
+              ...(Number(indices[i].supply) / 1e18 > 0 && { pricePerShare: Number(indices[i].supply) / 1e18 }),
               underlyingTokens: [tokens[i]],
-              rewardTokens: [],
               apyBaseBorrow: borrowInterestRateApys[i],
-              apyRewardBorrow: 0,
+              borrowToken: tokens[i],
               totalSupplyUsd: supplyUsds[i],
               totalBorrowUsd: borrowUsds[i],
+              availableBorrowUsd,
               ltv: 1 / (1 + marginRatio + (1 + marginRatio) * marginPremiums[i]),
-              poolMeta: 'Dolomite Balance',
               url: `https://app.dolomite.io/stats/token/${tokens[
                 i
               ].toLowerCase()}`,
@@ -227,7 +271,7 @@ async function apy() {
     })
   );
 
-  return allPools.flat();
+  return addMerklRewardApy(allPools.flat(), 'dolomite', (p) => p.pool.split('-')[0]);
 }
 
 module.exports = {

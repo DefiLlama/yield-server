@@ -20,7 +20,7 @@ const main = async () => {
       pool: `${entry.poolId}-${entry.gaugeId}-${entry.token}`,
       chain: utils.formatChain('Stride'),
       project: 'stride',
-      symbol: utils.formatSymbol(symbol),
+      symbol: symbol,
       poolMeta: `${entry.lockupDuration} day(s)`,
       tvlUsd: entry.tvl,
       apy: entry.apr,

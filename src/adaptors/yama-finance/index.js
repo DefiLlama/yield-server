@@ -68,7 +68,7 @@ const calcYield = async (chain, lockupAddress, extStableAddress) => {
     pool: lockupAddress + '-' + chain,
     chain: utils.formatChain(chain),
     project: 'yama-finance',
-    symbol: utils.formatSymbol('USDT'),
+    symbol: 'USDT',
     tvlUsd: totalSupply * value,
     apyBase: apy,
     apyBase7d: apy7d,

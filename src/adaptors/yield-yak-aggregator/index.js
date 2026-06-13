@@ -58,7 +58,7 @@ const VAULTS = [
     accountant: '0x00da610F7b9bc42fa2EF2D4BA312f8cD95131fA2',
     symbol: 'aiBTC',
     underlyingToken: '0x152b9d0FdC40C096757F570A51E494bd4b943E50',
-    rateDecimals: 6,
+    rateDecimals: 8,
   },
   {
     chainId: '43114',
@@ -198,6 +198,7 @@ const getVaultData = async (vaultConfig) => {
     poolMeta: 'Milk Vault',
     apyBase: apy1d,
     apyBase7d: apy7d,
+    ...(currentRateNormalized > 0 && { pricePerShare: currentRateNormalized }),
     underlyingTokens: [vaultConfig.underlyingToken],
     tvlUsd: tvlUsd,
   };

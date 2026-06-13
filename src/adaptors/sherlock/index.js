@@ -23,7 +23,7 @@ const apy = async () => {
     pool: 'sherlock-v2-usdc',
     chain: utils.formatChain('ethereum'),
     project: 'sherlock',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     tvlUsd: v2TVL / 1e6,
     apy: apyData.usdc_apy,
     underlyingTokens: ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'],

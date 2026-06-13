@@ -208,7 +208,7 @@ const topLvl = async (chainString, timestamp, url) => {
     // rewards are 20% in liquid torch and 80% in non-transferable xtorch (which can be used to boost though)
     // gonna report 20% torch only
 
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),

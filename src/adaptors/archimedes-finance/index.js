@@ -75,7 +75,7 @@ const main = async () => {
     pool: POOL_CONTRACT_LVUSD_3CRV,
     chain: utils.formatChain('Ethereum'),
     project: 'archimedes-finance',
-    symbol: utils.formatSymbol('LvUSD'),
+    symbol: 'lvUSD',
     tvlUsd: tvl,
     apy: await getApy(tvl),
     underlyingTokens: [LVUSD, THREE_CRV],

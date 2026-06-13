@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const BigNumber = require('bignumber.js');
 const ethers = require('ethers');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const utils = require('../utils');
 
@@ -348,7 +349,7 @@ const main = async () => {
         pool: `${market.id}-ethereum`,
         chain: 'Ethereum',
         project: 'silo-v1',
-        symbol: utils.formatSymbol(name),
+        symbol: name,
         tvlUsd: tvlUsd.toNumber(),
         apyBase: Number(inputTokenSupplyRateObject.rate),
         apyBaseBorrow: Number(inputTokenBorrowRateObject.rate),
@@ -361,7 +362,7 @@ const main = async () => {
     }
   }
 
-  return markets;
+  return addMerklRewardApy(markets, 'silo', (p) => p.pool.split('-')[0]);
 };
 
 module.exports = {

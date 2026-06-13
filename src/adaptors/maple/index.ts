@@ -80,6 +80,7 @@ const apy = async () => {
           // borrow fields
           ltv: 0, // permissioned
           url: 'https://app.maple.finance/earn', // Direct to earn page
+          isIntrinsicSource: true,
         };
       })
       .filter((p) => p !== null && p.tvlUsd > 0); // Filter out pools with no TVL

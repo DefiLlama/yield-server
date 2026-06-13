@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
-const chainIdToName = { 143: 'monad' };
+const chainIdToName = { 1: 'ethereum', 143: 'monad', 4114: 'citrea' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const abis = {
@@ -11,7 +11,6 @@ const abis = {
 };
 
 const basisPointsToPercent = (value) => Number(value) / 1e4;
-const formatAmount = (value, decimals = 18) => (value == null ? null : Number(value) / 10 ** decimals);
 
 const fetchVaultsByLoanIds = async(loanIds) => {
     const results = await Promise.allSettled(
@@ -82,7 +81,7 @@ const getVaultStats = async(vaults, chain = 'monad') => {
     const liquidity = liquidityRes.output.map((o) => o.output);
     return vaults.reduce((acc, address, i) => {
         acc[address] = {
-            totalSupplied: supplies[i],
+            totalAssets: totalAssets[i],
             totalBorrowed: Number(totalAssets[i]) - Number(liquidity[i] || 0),
             tvl: liquidity[i],
             underlying: underlyings[i],
@@ -105,19 +104,61 @@ const fetchBreakdowns = async(loanIds) => {
 
 const apy = async() => {
     const { items } = await utils.getData(API_URL);
-    const activeLoans = items.filter((item) => item.loan_state === 3);
+    const activeLoans = items.filter(
+        (item) => item.loan_state === 3 && chainIdToName[item.chain_id]
+    );
     const loanIds = activeLoans.map((item) => item.id);
 
     const loanVaultMap = await fetchVaultsByLoanIds(loanIds);
-    const vaultAddresses = Object.values(loanVaultMap);
-    const vaultStats = await getVaultStats(vaultAddresses);
+
+    const vaultsByChain = {};
+    activeLoans.forEach((item) => {
+        const vault = loanVaultMap[item.id];
+        if (!vault) return;
+        const chain = chainIdToName[item.chain_id];
+        (vaultsByChain[chain] ||= new Set()).add(vault);
+    });
+    const vaultStats = {};
+    await Promise.all(
+        Object.entries(vaultsByChain).map(async([chain, vaultSet]) => {
+            const stats = await getVaultStats(Array.from(vaultSet), chain);
+            for (const [address, s] of Object.entries(stats)) {
+                vaultStats[`${chain}:${address}`] = s;
+            }
+        })
+    );
+
+    const underlyingsByChain = {};
+    Object.entries(vaultStats).forEach(([key, s]) => {
+        if (!s.underlying) return;
+        const chain = key.split(':')[0];
+        (underlyingsByChain[chain] ||= new Set()).add(s.underlying.toLowerCase());
+    });
+    const pricesByChainToken = {};
+    await Promise.all(
+        Object.entries(underlyingsByChain).map(async([chain, addressSet]) => {
+            const { pricesByAddress } = await utils.getPrices(Array.from(addressSet), chain);
+            for (const [address, price] of Object.entries(pricesByAddress)) {
+                pricesByChainToken[`${chain}:${address.toLowerCase()}`] = price;
+            }
+        })
+    );
+
     const breakdowns = await fetchBreakdowns(loanIds);
 
     return Promise.all(
         activeLoans.map(async(item) => {
-            const chainName = chainIdToName[item.chain_id] || 'unknown';
+            const chainName = chainIdToName[item.chain_id];
             const vaultAddress = loanVaultMap[item.id];
-            const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
+            const stats = vaultAddress ? vaultStats[`${chainName}:${vaultAddress}`] || {} : {};
+            const d = Number(item.asset_decimals);
+            const decimals = Number.isFinite(d) ? d : null;
+            const underlying = stats.underlying?.toLowerCase();
+            const priceUsd = underlying ? pricesByChainToken[`${chainName}:${underlying}`] : undefined;
+            const toUsd = (raw) => {
+                if (raw == null || decimals == null || priceUsd == null) return null;
+                return (Number(raw) / 10 ** decimals) * priceUsd;
+            };
             const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
 
             const breakdown = breakdowns[item.id]?.main || {};
@@ -163,14 +204,17 @@ const apy = async() => {
                 pool: `${item.loan_address}-${chainName}`.toLowerCase(),
                 chain: utils.formatChain(chainName),
                 project: 'accountable',
-                symbol: utils.formatSymbol(item.asset_symbol),
-                tvlUsd: formatAmount(stats.tvl, 6),
+                symbol: item.asset_symbol,
+                // Vault size (total deposited), straight from the API. These
+                // credit vaults run ~fully lent, so the on-chain idle-liquidity
+                // figure is ~$0 and would hide them below DefiLlama's thresholds.
+                tvlUsd: item.tvl_in_usd ?? null,
                 apyBase: baseApy,
                 apyReward: totalApyReward,
                 rewardTokens: combinedRewardTokens,
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
-                totalSupplyUsd: formatAmount(stats.totalSupplied, 6),
-                totalBorrowUsd: formatAmount(stats.totalBorrowed, 6),
+                totalSupplyUsd: toUsd(stats.totalAssets),
+                totalBorrowUsd: toUsd(stats.totalBorrowed),
                 underlyingTokens: stats.underlying ? [stats.underlying] : undefined,
             };
         })

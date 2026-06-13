@@ -5,7 +5,7 @@ const buildPool = (entry) => {
     pool: `${entry.token.token.symbol}-${entry.chain.id}`,
     chain: utils.formatChain(entry.chainString),
     project: 'cbridge',
-    symbol: utils.formatSymbol(entry.token.token.symbol),
+    symbol: entry.token.token.symbol,
     tvlUsd: entry.total_liquidity,
     apyBase: entry.lp_fee_earning_apy * 100,
     apyReward: entry.farming_apy * 100,

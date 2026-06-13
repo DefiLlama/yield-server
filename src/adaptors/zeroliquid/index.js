@@ -62,7 +62,7 @@ const poolsFunction = async () => {
     pool: '0xb2C57D651dB0FcCc96cABda11191DF25E05B88b6',
     chain: utils.formatChain('Ethereum'),
     project: 'zeroliquid',
-    symbol: utils.formatSymbol('zETH-WETH'),
+    symbol: 'zETH-WETH',
     tvlUsd:
       (data_pricing.zethPrice.drivedUSD * data_liquidity.amountZETH) / 1e18 +
       (data_pricing.wethPrice.drivedUSD * data_liquidity.amountETH) / 1e18,

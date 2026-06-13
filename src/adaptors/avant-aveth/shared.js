@@ -63,8 +63,7 @@ async function getPrice(chain, token, tokenSubstitute) {
   async function _getPrice(chain, tokenAddress) {
     const priceKey = `${chain}:${tokenAddress}`
     const { data } = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-    price = data.coins?.[priceKey]?.price ?? 0
-    return price
+    return data.coins?.[priceKey]?.price ?? 0
   }
   const price = await _getPrice(chain, token)
   if (price) {
@@ -76,17 +75,58 @@ async function getPrice(chain, token, tokenSubstitute) {
 }
 
 async function getData(chain, vault, underlying, underlyingSubstitute = undefined) {
-  const { output: totalAssetsBn } = await sdk.api.abi.call({
-    target: vault,
-    abi: abi.totalAssets,
-    chain,
-  })
+  let totalAssetsBn
+  let price
 
-  const price = await getPrice(chain, underlying, underlyingSubstitute)
-  const tvlUsd = (Number(totalAssetsBn) / 1e18) * price
-  const apyBase = await computeApyBase(chain, vault)
+  try {
+    ;({ output: totalAssetsBn } = await sdk.api.abi.call({
+      target: vault,
+      abi: abi.totalAssets,
+      chain,
+    }))
+    price = await getPrice(chain, underlying, underlyingSubstitute)
+  } catch (error) {
+    console.warn(
+      `[avant] failed to fetch TVL data for ${vault} on ${chain}: ${error.message ?? error}`
+    )
+    return { tvlUsd: 0, apyBase: 0 }
+  }
 
-  return { tvlUsd, apyBase }
+  let apyBase = 0
+  try {
+    apyBase = await computeApyBase(chain, vault)
+  } catch (error) {
+    console.warn(
+      `[avant] failed to fetch APY data for ${vault} on ${chain}: ${error.message ?? error}`
+    )
+  }
+
+  // Shares are 18-dec; underlying varies (avETH 18, avUSD/avBTC may not be).
+  let assetDecimals = 18
+  try {
+    const { output: dec } = await sdk.api.abi.call({
+      target: underlying,
+      abi: 'erc20:decimals',
+      chain,
+    })
+    const parsed = Number(dec)
+    if (Number.isFinite(parsed) && parsed > 0) assetDecimals = parsed
+  } catch (_) {}
+
+  let pricePerShare
+  try {
+    const { output } = await sdk.api.abi.call({
+      target: vault,
+      abi: abi.convertToAssets,
+      params: [SHARES.toString()],
+      chain,
+    })
+    pricePerShare = (Number(output) * 10 ** (18 - assetDecimals)) / 1e18
+  } catch (_) {}
+
+  const tvlUsd = (Number(totalAssetsBn) / 10 ** assetDecimals) * price
+
+  return { tvlUsd, apyBase, ...(pricePerShare > 0 && { pricePerShare }) }
 }
 
 module.exports = {

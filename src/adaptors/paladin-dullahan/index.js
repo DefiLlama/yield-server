@@ -357,6 +357,7 @@ const getApy = async () => {
       totalBorrowUsd,
       tvlUsd: totalSupplyUsd,
       mintedCoin: 'GHO',
+      borrowToken: GHO,
       debtCeilingUsd,
     };
     pools.push(pool);

@@ -191,6 +191,41 @@ const main = async () => {
     })
   ).output;
 
+  const allBorrowControllers = (
+    await sdk.api.abi.multiCall({
+      chain: 'ethereum',
+      calls: markets.map((m) => ({
+        target: m,
+        params: [],
+      })),
+      abi: 'function borrowController() view returns (address)',
+    })
+  ).output;
+
+  const borrowControllerCalls = allBorrowControllers
+    .map((c, marketIndex) => ({
+      target: c.output,
+      params: [markets[marketIndex]],
+      marketIndex,
+    }))
+    .filter((c) => c.target !== ethers.constants.AddressZero);
+
+  const allBorrowLimits = (
+    await sdk.api.abi.multiCall({
+      chain: 'ethereum',
+      calls: borrowControllerCalls,
+      abi: 'function availableBorrowLimit(address) view returns (uint256)',
+      permitFailure: true,
+    })
+  ).output;
+
+  const borrowLimits = {};
+  allBorrowLimits.map((b, i) => {
+    if (b.success !== false) {
+      borrowLimits[borrowControllerCalls[i].marketIndex] = Number(b.output) / 1e18;
+    }
+  });
+
   allBalances.map((b, i) => {
     const market = escrowsWithMarkets[i].market;
     if (!balances[market]) {
@@ -214,14 +249,16 @@ const main = async () => {
     const totalBorrowUsd = Number(allDebt[marketIndex].output) / 1e18;
     const debtCeilingUsd =
       (Number(allLiquidity[marketIndex].output) / 1e18) * prices[DOLA].price;
+    const availableBorrowUsd = Math.min(debtCeilingUsd, (borrowLimits[marketIndex] ?? Infinity) * prices[DOLA].price);
     return {
       pool: `firm-${m}`,
       chain: 'Ethereum',
       project: 'inverse-finance-firm',
       mintedCoin: 'DOLA',
+      borrowToken: DOLA,
       symbol,
       tvlUsd: totalSupplyUsd,
-      apyBase: 0,
+      apy: 0,
       underlyingTokens: [underlying],
       poolMeta: 'Fixed Borrow Rate',
       url: 'https://inverse.finance/firm',
@@ -229,6 +266,7 @@ const main = async () => {
       debtCeilingUsd: debtCeilingUsd + totalBorrowUsd,
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       borrowable: !allBorrowPaused[marketIndex].output,
       ltv: Number(allCfs[marketIndex].output) / 1e4,
     };
@@ -271,15 +309,13 @@ const main = async () => {
 
   // add sDOLA
   pools.push({
-    pool: `sDOLA`,
+    pool: SDOLA_ADDRESS,
     chain: 'Ethereum',
     project: 'inverse-finance-firm',
-    mintedCoin: 'sDOLA',
     symbol: 'sDOLA',
     tvlUsd: sDolaTotalAssets * prices[DOLA].price,
     apyBase: aprToApy(sDOLAapr, WEEKS_PER_YEAR),
     underlyingTokens: [DOLA],
-    poolMeta: 'Yield-Bearing stable',
     url: 'https://inverse.finance/sDOLA',
   });
 
@@ -332,10 +368,9 @@ const main = async () => {
 
   // add sINV
   pools.push({
-    pool: `sINV`,
+    pool: SINV_ADDRESS,
     chain: 'Ethereum',
     project: 'inverse-finance-firm',
-    mintedCoin: 'sINV',
     symbol: 'sINV',
     tvlUsd: sInvTotalAssets * prices[INV].price,
     apyBase: aprToApy(sINVapr, WEEKS_PER_YEAR),

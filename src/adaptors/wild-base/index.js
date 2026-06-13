@@ -304,7 +304,7 @@ const topLv = async (chainString, version, timestamp) => {
     const isWILDxStake = p.id == WILDx;
     const symbol = isWILDxStake
       ? p.token0.symbol
-      : utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+      : `${p.token0.symbol}-${p.token1.symbol}`;
     const underlyingTokens = [p.token0.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];

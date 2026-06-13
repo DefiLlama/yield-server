@@ -15,7 +15,7 @@ const collectPools = async () => {
         pool: poolAddress[i],
         chain: utils.formatChain('solana'),
         project: 'optifi',
-        symbol: utils.formatSymbol('USDC'),
+        symbol: 'USDC',
         tvlUsd: tvl[i],
         apy: apy,
         poolMeta: poolMeta[i]

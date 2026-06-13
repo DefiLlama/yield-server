@@ -1,6 +1,5 @@
 const {
   formatChain,
-  formatSymbol,
   getData,
   removeDuplicates,
 } = require('../utils');
@@ -97,7 +96,7 @@ const main = async () => {
             pool: `${vaultAddress}-${network}`.toLowerCase(),
             chain: formatChain(network),
             project: 'dyson',
-            symbol: formatSymbol(symbols.join('-')),
+            symbol: symbols.join('-'),
             tvlUsd,
             apy,
             poolMeta: formatChain(platform), // provide base platform

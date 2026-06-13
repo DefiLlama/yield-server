@@ -104,6 +104,20 @@ const ABIS = {
       stateMutability: 'view',
       type: 'function',
     },
+    getCCR: {
+      inputs: [],
+      name: 'CCR',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    hasBeenShutDown: {
+      inputs: [],
+      name: 'hasBeenShutDown',
+      outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
     getNewApproxAvgInterestRateFromTroveChange: {
       inputs: [
         {
@@ -378,6 +392,26 @@ const ABIS = {
 
     return 1 / (res.output / 1e18);
   }
+  const getCCR = async (borrowerOpsAddr) =>{
+    const res = (await sdk.api.abi.call({
+        target: borrowerOpsAddr,
+        abi: ABIS.getCCR,
+        chain: 'ethereum',
+      })
+    );
+
+    return res.output / 1e18;
+  }
+  const getBranchShutdown = async (borrowerOpsAddr) =>{
+    const res = (await sdk.api.abi.call({
+        target: borrowerOpsAddr,
+        abi: ABIS.hasBeenShutDown,
+        chain: 'ethereum',
+      })
+    );
+
+    return res.output;
+  }
   const getNewApproxAvgInterestRateFromTroveChange = async(activePoolAddr) => {
     const res = await sdk.api.abi.call({
         target: activePoolAddr,
@@ -427,10 +461,15 @@ const ABIS = {
       const totalCollUsd = totalColl * branch.price
 
       const ltv = await getLTV(branch.borrowerOperations);
+      const ccr = await getCCR(branch.borrowerOperations);
+      const isShutDown = await getBranchShutdown(branch.borrowerOperations);
       const borrowApy = await getNewApproxAvgInterestRateFromTroveChange(branch.activePool);
       
       const totalDebt = await getBranchDebt(collPools);
       const totalDebtUsd = totalDebt * prices[BOLD_TOKEN];
+      const availableBorrowUsd = isShutDown
+        ? 0
+        : Math.max(totalCollUsd / ccr - totalDebtUsd, 0);
 
       const [spSupply, spApy] = await getSPSupplyAndApy(branch.stabilityPool, borrowApy, totalDebt);
       const spSupplyUsd = spSupply * prices[BOLD_TOKEN];
@@ -441,12 +480,13 @@ const ABIS = {
       );
       const totalSpApy = spApy + liquidationApy;
 
-      const spPool = 
+      const spPool =
         {
           pool: branch.stabilityPool,
           project: 'liquity-v2',
           symbol: 'BOLD',
           chain: 'ethereum',
+          token: null,
           apy: totalSpApy,
           tvlUsd: spSupplyUsd,
           underlyingTokens: [BOLD_TOKEN],
@@ -454,19 +494,23 @@ const ABIS = {
           poolMeta: `BOLD deposited in the ${branch.symbol} Stability Pool earns continuous BOLD yield and periodic ${branch.symbol} rewards from Trove liquidations`
         }
 
-      const borrowPool = 
+      const borrowPool =
         {
           pool: branch.activePool,
           project: 'liquity-v2',
           symbol: branch.symbol,
           chain: 'ethereum',
+          token: null,
           apy: 0,
           tvlUsd: totalCollUsd,
           apyBaseBorrow: borrowApy,
           totalSupplyUsd: totalCollUsd,
           totalBorrowUsd: totalDebtUsd,
+          availableBorrowUsd,
           ltv: ltv,
           mintedCoin: 'BOLD',
+          borrowToken: BOLD_TOKEN,
+          borrowable: !isShutDown,
           underlyingTokens: [branch.collToken], 
         }
 

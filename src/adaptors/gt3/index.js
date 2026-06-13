@@ -46,9 +46,10 @@ const transformPool = async (pool, config, chainName) => {
     const apyBase = utils.aprToApy(aprValue);
 
     // Get pool symbol - use pool name/id as symbol for better distinction
-    const symbol = poolConfig && poolConfig.name ? 
-      utils.formatSymbol(poolConfig.name) : 
-      `GT3-${pool.id}`;
+    const symbol = poolConfig && poolConfig.name ? poolConfig.name : `GT3-${pool.id}`;
+    const poolMetaSymbol = poolConfig && poolConfig.name
+      ? utils.formatSymbol(poolConfig.name)
+      : symbol;
 
     // Get underlying tokens
     const underlyingTokens = getUnderlyingTokens(poolConfig, addresses);
@@ -69,7 +70,7 @@ const transformPool = async (pool, config, chainName) => {
     };
 
     // Add poolMeta with descriptive suffix
-    poolData.poolMeta = `${symbol} Liquidity Pool`;
+    poolData.poolMeta = `${poolMetaSymbol} Liquidity Pool`;
 
     if (rewardTokens.length > 0) {
       poolData.rewardTokens = rewardTokens;

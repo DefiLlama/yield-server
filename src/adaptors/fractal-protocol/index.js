@@ -50,7 +50,7 @@ const fractalMetrics = async () => {
     pool: '0x3eB82f2eD4d992dc0Bed328214A0907250f4Ec82',
     chain: utils.formatChain('ethereum'),
     project: 'fractal-protocol',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     tvlUsd: tvl,
     apy: Number(apyData),
     underlyingTokens: [USDC],

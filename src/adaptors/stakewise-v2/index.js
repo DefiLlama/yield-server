@@ -61,9 +61,10 @@ const getApy = async () => {
       project: 'stakewise-v2',
       symbol: 'osETH',
       tvlUsd: tvl * ethPrice,
-      apy: Number(apyBN) / 100,
+      apyBase: Number(apyBN) / 100,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      token: osTokenAddress,
+      searchTokenOverride: osTokenAddress,
+      isIntrinsicSource: true,
     },
   ];
 };

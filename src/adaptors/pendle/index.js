@@ -2,6 +2,7 @@ const utils = require('../utils');
 const axios = require('axios');
 const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const UNRESOLVABLE_TOKENS = {
   '0xae8fc9288685516d2eca717056ca69303b348752': 'coingecko:universal-btc',
@@ -65,6 +66,12 @@ const chains = {
     chainName: 'berachain',
     chainSlug: 'berachain',
     PENDLE: '0xFf9c599D51C407A45D631c6e89cB047Efb88AeF6',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+  },
+  9745: {
+    chainName: 'plasma',
+    chainSlug: 'plasma',
+    PENDLE: '0x17Bac5F906c9A0282aC06a59958D85796c831f24',
     ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
   },
 };
@@ -239,21 +246,27 @@ async function poolApys(chainId, pools) {
   // support swap volumes on pool
   const poolWithVolumes = chains[chainId].disabledVolume ? pools : await fetchPoolsVolumes(chains[chainId].chainName, pools, chains[chainId].ROUTERS)
 
-  return poolWithVolumes.map((p) => ({
-    pool: p.address,
-    chain: utils.formatChain(chains[chainId].chainName),
-    project: 'pendle',
-    symbol: utils.formatSymbol(p.name),
-    tvlUsd: p.details.liquidity,
-    apyBase: (p.details.aggregatedApy - p.details.pendleApy) * 100,
-    apyReward: p.details.pendleApy * 100,
-    rewardTokens: [chains[chainId].PENDLE],
-    underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address].map(resolveToken),
-    volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
-    volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
-    poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
-    url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
-  }));
+  return poolWithVolumes.map((p) => {
+    const apyReward = p.details.pendleApy * 100;
+    return {
+      pool: p.address,
+      chain: utils.formatChain(chains[chainId].chainName),
+      project: 'pendle',
+      symbol: p.name,
+      tvlUsd: p.details.liquidity,
+      apyBase: (p.details.aggregatedApy - p.details.pendleApy) * 100,
+      ...(apyReward > 0 && {
+        apyReward,
+        rewardTokens: [chains[chainId].PENDLE],
+      }),
+      underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address].map(resolveToken),
+      searchTokenOverride: resolveToken(splitId(p.underlyingAsset).address),
+      volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
+      volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
+      poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
+      url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
+    };
+  });
 }
 
 function ptApys(chainId, pools) {
@@ -261,7 +274,7 @@ function ptApys(chainId, pools) {
     pool: splitId(p.pt).address,
     chain: utils.formatChain(chains[chainId].chainName),
     project: 'pendle',
-    symbol: utils.formatSymbol(p.name),
+    symbol: p.name,
     tvlUsd: p.details.liquidity,
     apyBase: p.details.impliedApy * 100,
     underlyingTokens: [splitId(p.underlyingAsset).address].map(resolveToken),
@@ -297,7 +310,7 @@ async function apy() {
     })
   );
 
-  return poolsFiltered;
+  return addMerklRewardApy(poolsFiltered, 'pendle');
 }
 
 module.exports = {

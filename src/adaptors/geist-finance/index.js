@@ -67,7 +67,7 @@ const main = async () => {
         pool: p.aTokenAddress,
         chain: 'Fantom',
         project: 'geist-finance',
-        symbol: utils.formatSymbol(symbolsData[i]),
+        symbol: symbolsData[i],
         // note(!) this is total supply instead of available liquidity, will need to update
         tvlUsd: interest.poolValue,
         apyBase: p.currentLiquidityRate / 1e25,

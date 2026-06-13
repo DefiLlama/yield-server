@@ -47,7 +47,7 @@ const main = async () => {
         symbol:
           poolMeta === undefined
             ? 'CRCT'
-            : utils.formatSymbol(poolMeta?.assets.join('-')),
+            : poolMeta?.assets.join('-'),
         tvlUsd: poolData[pool],
         apy: isActive ? apy[pool] * 100 : 0,
         poolMeta:

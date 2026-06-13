@@ -93,6 +93,7 @@ async function apy() {
         chain: utils.formatChain(CHAIN),
         project: 'realt-tokens',
         symbol: pool.symbol,
+        token: aTokens[i].tokenAddress,
         tvlUsd,
         apyBase: utils.aprToApy((p.liquidityRate / 1e27) * 100),
         underlyingTokens: [pool.tokenAddress],

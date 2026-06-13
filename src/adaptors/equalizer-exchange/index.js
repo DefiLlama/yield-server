@@ -142,7 +142,7 @@ const getApy = async (chain) => {
       pool: p,
       chain: utils.formatChain(chain),
       project: 'equalizer-exchange',
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      symbol: s.split('-')[1],
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [EQUAL] : [],

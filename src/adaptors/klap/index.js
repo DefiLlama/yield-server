@@ -188,7 +188,7 @@ const apy = async () => {
 
     return {
       pool: reserveData[i].aTokenAddress,
-      symbol: utils.formatSymbol(symbols[i]),
+      symbol: symbols[i],
       project: 'klap',
       chain: utils.formatChain(chain),
       tvlUsd,

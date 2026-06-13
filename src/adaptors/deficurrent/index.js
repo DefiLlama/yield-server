@@ -68,7 +68,7 @@ const main = async () => {
         pool: `${vault.shipTokenAddress}-${chain}`.toLowerCase(),
         poolMeta: platform === undefined ? null : utils.formatChain(platform),
         project: 'deficurrent',
-        symbol: utils.formatSymbol(vault.id.split('-').slice(1).join('-')),
+        symbol: vault.id.split('-').slice(1).join('-'),
         tvlUsd: dicVaultAndTvl[vault.id],
         underlyingTokens: vault.tokenAddress ? [vault.tokenAddress] : undefined,
       };

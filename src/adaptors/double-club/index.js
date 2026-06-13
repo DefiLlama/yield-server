@@ -16,7 +16,7 @@ const main = async () => {
         pool: pool.poolAddress,
         chain: utils.formatChain('binance'),
         project: 'double-club',
-        symbol: utils.formatSymbol(pool.symbol.split('-')[1]),
+        symbol: pool.symbol.split('-')[1],
         tvlUsd: Number(pool.DoubleTVL.usdBalance),
         apy: apy,
         underlyingTokens: [pool.token0, pool.token1],

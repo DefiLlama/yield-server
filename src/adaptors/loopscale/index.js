@@ -11,7 +11,7 @@ const getApy = async () => {
             pool: vault.vaultAddress,
             chain: 'Solana',
             project: 'loopscale',
-            symbol: utils.formatSymbol(vault.vaultSymbol),
+            symbol: vault.vaultSymbol,
             underlyingTokens: [vault.principalMint],
             tvlUsd: Number(vault.principalDepositsUsd - vault.principalDeployedUsd),
             url: `https://app.loopscale.com/vault/${vault.vaultAddress}`,

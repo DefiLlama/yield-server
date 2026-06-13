@@ -59,6 +59,7 @@ const getApy = async () => {
               project: 'kiloex',
               pool: token.originToken,
               symbol: token.tokenName,
+              token: null,
               tvlUsd: balance * token.price,
               apyBase: parseFloat((apr * 100 * token.ltv /10000).toFixed(2)),
               underlyingTokens: [token.originToken],

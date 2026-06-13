@@ -9,11 +9,13 @@
     "build": "sls package",
     "test": "jest",
     "migrate": "node-pg-migrate",
-    "start:api": "node src/api/server"
+    "start:api": "node src/api/server",
+    "start:holder-daily": "node src/scheduled/holderDaily.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aave/aave-v3-aptos-ts-sdk": "^0.0.61",
     "@blend-capital/blend-sdk": "3.0.1",
     "@defillama/sdk": "^5.0.207",
     "@solana/spl-stake-pool": "^1.1.8",
@@ -40,6 +42,7 @@
     "limiter": "^2.1.0",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
+    "node-cron": "^4.0.7",
     "node-fetch": "^2.6.1",
     "pg-promise": "^10.11.1",
     "simple-statistics": "^7.7.5",

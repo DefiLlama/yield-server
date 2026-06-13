@@ -48,6 +48,17 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const poolsReserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupplyEthereum = (
     await sdk.api.abi.multiCall({
       chain,
@@ -98,6 +109,14 @@ const apy = async () => {
       const currentSupply = underlyingBalancesEthereum[i];
       const tvlUsd =
         (currentSupply / 10 ** underlyingDecimalsEthereum[i]) * price;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** underlyingDecimalsEthereum[i]) *
+        price;
+      const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const availableBorrowUsd = Number(poolsReserveCaps[i].borrowCap)
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
 
       return {
         pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
@@ -108,8 +127,10 @@ const apy = async () => {
         apyBase: (p.liquidityRate / 10 ** 27) * 100,
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
-        totalBorrowUsd: totalSupplyUsd - tvlUsd,
+        totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        borrowToken: pool.tokenAddress,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
       };

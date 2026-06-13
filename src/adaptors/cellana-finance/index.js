@@ -275,7 +275,7 @@ async function calculateRewardApy(poolAddress, aptPrice, cellPrice) {
         pool: `cellana-finance-${utils.formatSymbol(coinSymbol)}`,
         chain: utils.formatChain('aptos'),
         project: 'cellana-finance',
-        symbol: utils.formatSymbol(coinSymbol),
+        symbol: coinSymbol,
         tvlUsd: total,
         apyBase: 0,
         apyReward: apyReward,

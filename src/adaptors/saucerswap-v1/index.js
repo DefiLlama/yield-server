@@ -163,7 +163,7 @@ const main = async () => {
         // poolMeta: `${poolName}`,
         chain: chain,
         project: protocolSlug,
-        symbol: utils.formatSymbol(poolSymbol),
+        symbol: poolSymbol,
         tvlUsd: farmingStakedTvlUsd.toNumber(),
         apyBase: lpAwardApr.toNumber(),
         apyReward: baseFarmApr.toNumber(),

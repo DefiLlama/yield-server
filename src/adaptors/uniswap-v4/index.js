@@ -28,10 +28,14 @@ const chains = {
 };
 
 const DYNAMIC_FEE_FLAG = 0x800000;
+const PAGE_SIZE = 1000;
+const TVL_MIN = 50000;
+const SUSPECT_TVL_USD = 1e8;
+const MIN_VOLUME_TO_TVL_RATIO = 1e-5;
 
-const query = gql`
+const queryWithSkip = (skip) => gql`
   {
-    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc, block: {number: <PLACEHOLDER>}) {
+    pools(first: ${PAGE_SIZE}, skip: ${skip}, orderBy: totalValueLockedUSD, orderDirection: desc, where: {totalValueLockedUSD_gte: ${TVL_MIN}}, block: {number: <PLACEHOLDER>}) {
       id
       feeTier
       totalValueLockedUSD
@@ -52,29 +56,48 @@ const query = gql`
   }
 `;
 
+const fetchAllPools = async (url, block) => {
+  let allPools = [];
+  let skip = 0;
+
+  while (true) {
+    const q = queryWithSkip(skip).replace('<PLACEHOLDER>', block);
+    const data = await request(url, q);
+    if (!data.pools || data.pools.length === 0) break;
+    allPools = allPools.concat(data.pools);
+    if (data.pools.length < PAGE_SIZE) break;
+    skip += PAGE_SIZE;
+  }
+
+  return allPools;
+};
+
 const isDynamicFeePool = (feeTier) => Number(feeTier) === DYNAMIC_FEE_FLAG;
 
-const topLvl = async (chainString, url, query, timestamp) => {
+const hasInvalidTokenTvl = (pool) =>
+  Number(pool.totalValueLockedToken0) < 0 ||
+  Number(pool.totalValueLockedToken1) < 0;
+
+const hasSuspiciousTvlVolume = (pool) =>
+  pool.tvlUsd > SUSPECT_TVL_USD &&
+  Number(pool.volumeUsd1d || 0) / pool.tvlUsd < MIN_VOLUME_TO_TVL_RATIO;
+
+const topLvl = async (chainString, url, timestamp) => {
   try {
     const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
       url,
     ]);
 
-    let queryC = query;
-    let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
-    dataNow = dataNow.pools;
+    let dataNow = await fetchAllPools(url, block);
 
-    let dataPrior = await request(
-      url,
-      queryC.replace('<PLACEHOLDER>', blockPrior)
-    );
-    dataPrior = dataPrior.pools;
+    let dataPrior = await fetchAllPools(url, blockPrior);
 
     dataNow = dataNow.map((p) => ({
       ...p,
       reserve0: p.totalValueLockedToken0,
       reserve1: p.totalValueLockedToken1,
     }));
+    dataNow = dataNow.filter((p) => !hasInvalidTokenTvl(p));
 
     dataNow = await utils.tvl(dataNow, chainString);
 
@@ -120,6 +143,7 @@ const topLvl = async (chainString, url, query, timestamp) => {
         pool: `${p.id}-${chainString}-uniswap-v4`,
         chain: utils.formatChain(chainString),
         project: 'uniswap-v4',
+        token: null,
         poolMeta,
         symbol: `${p.token0.symbol}-${p.token1.symbol}`,
         tvlUsd: p.totalValueLockedUSD,
@@ -138,12 +162,12 @@ const topLvl = async (chainString, url, query, timestamp) => {
 const main = async (timestamp = null) => {
   const data = [];
   for (const [chain, url] of Object.entries(chains)) {
-    data.push(await topLvl(chain, url, query, timestamp));
+    data.push(await topLvl(chain, url, timestamp));
   }
   return data
     .flat()
     .filter((p) => utils.keepFinite(p))
-    .filter((p) => !(p.tvlUsd > 1e7 && p.volumeUsd1d < 10));
+    .filter((p) => !hasSuspiciousTvlVolume(p));
 };
 
 module.exports = {

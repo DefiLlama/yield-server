@@ -112,11 +112,12 @@ const topLvl = async (chainString, url) => {
         pool: `${result.savETHPool}-${chainString}`.toLowerCase(),
         chain: utils.formatChain(chainString),
         project: 'stakehouse',
-        symbol: utils.formatSymbol(Object.values(aprData)[i].Ticker),
+        symbol: Object.values(aprData)[i].Ticker,
         tvlUsd: tvlUsd,
         apyBase: Number(Object.values(aprData)[i].APR),
         underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-        token: result.savETHPool,
+        searchTokenOverride: result.savETHPool,
+        isIntrinsicSource: true,
       });
 
       totalTvl += tvlUsd;
@@ -136,7 +137,8 @@ const topLvl = async (chainString, url) => {
     tvlUsd: totalTvl,
     apyBase: totalApy / noOfActiveLSDs,
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-    token: '0x3d1E5Cf16077F349e999d6b21A4f646e83Cd90c5',
+    searchTokenOverride: '0x3d1E5Cf16077F349e999d6b21A4f646e83Cd90c5',
+    isIntrinsicSource: true,
   });
 
   return apyList;

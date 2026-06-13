@@ -61,8 +61,7 @@ async function fetchAllPools() {
 
 async function apy() {
   try {
-    const pools = await fetchAllPools();
-
+    // Fetch Shadow API data first (needed for APR and gaugeV2 pool discovery)
     let shadowPools = [];
     try {
       const shadowApiData = await axios.get('https://shadow-api-v2-production.up.railway.app/mixed-pairs?includeTokens=False');
@@ -82,6 +81,31 @@ async function apy() {
       }
     }
 
+    // Fetch subgraph pools (v1 gauge)
+    const pools = await fetchAllPools();
+    const subgraphPoolIds = new Set(pools.map((p) => p.id.toLowerCase()));
+
+    // Add pools with active gaugeV2 that aren't in the subgraph results
+    for (const apiPool of shadowPools) {
+      if (!apiPool.id) continue;
+      const id = apiPool.id.toLowerCase();
+      if (subgraphPoolIds.has(id)) continue;
+      if (!apiPool.gaugeV2?.isAlive) continue;
+
+      pools.push({
+        id: id,
+        token0: { id: apiPool.token0.toLowerCase(), symbol: apiPool.symbol0 },
+        token1: { id: apiPool.token1.toLowerCase(), symbol: apiPool.symbol1 },
+        feeTier: String(apiPool.feeTier),
+        tickSpacing: String(apiPool.tickSpacing),
+        totalValueLockedUSD: String(apiPool.totalValueLockedUSD),
+        gauge: { id: apiPool.gaugeV2.id },
+        poolDayData: (apiPool.poolDayData || []).map((d) => ({
+          volumeUSD: String(d.volumeUSD),
+        })),
+      });
+    }
+
     const results = [];
 
     for (const pool of pools) {
@@ -94,18 +118,23 @@ async function apy() {
 
       if (!apiData) continue;
 
-      const apyBase = 0;
+      let apyBase = 0;
       let apyReward = 0;
       const tickSpacing = parseInt(pool.tickSpacing);
 
       const apiPool = shadowPools.find(p => p.id.toLowerCase() === poolAddress);
       if (apiPool && apiPool.recommendedRangesNew) {
+        let range;
         if (tickSpacing === 1 || tickSpacing === 5) {
-          const wideRange = apiPool.recommendedRangesNew.find(range => range.name === 'Wide');
-          apyReward = wideRange ? wideRange.lpApr : apiData.lpApr || 0;
+          range = apiPool.recommendedRangesNew.find(r => r.name === 'Wide');
         } else {
-          const narrowRange = apiPool.recommendedRangesNew.find(range => range.name === 'Narrow');
-          apyReward = narrowRange ? narrowRange.lpApr : apiData.lpApr || 0;
+          range = apiPool.recommendedRangesNew.find(r => r.name === 'Narrow');
+        }
+        if (range) {
+          apyBase = range.feeApr || 0;
+          apyReward = range.rewardApr || 0;
+        } else {
+          apyReward = apiData.lpApr || 0;
         }
       } else {
         apyReward = apiData.lpApr || 0;

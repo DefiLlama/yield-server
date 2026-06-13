@@ -103,7 +103,7 @@ const stabilityEthPool = async (data) => {
       project: 'mahadao-arth',
       rewardTokens: ['0x745407c86df8db893011912d3ab28e68b62e49b0', 'ETH'],
       underlyingTokens: ['0x8cc0f052fff7ead7f2edcccac895502e884a8a71'],
-      symbol: utils.formatSymbol('arth'),
+      symbol: 'arth',
       tvlUsd: Number(data.tvlUSD),
       apy: Number(data.current.min),
       url: 'https://arth.loans/#/stability-pool/ETH?utm_source=defillama&utm_medium=listing&utm_campaign=external',

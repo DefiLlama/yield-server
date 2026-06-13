@@ -65,7 +65,7 @@ async function apy() {
     project: "sprinter",
     pool: HUB_CONTRACT_ADDRESS,
     chain: utils.formatChain("base"),
-    symbol: utils.formatSymbol("USDC"),
+    symbol: "USDC",
     tvlUsd: Number(formatUnits(lastDepositProfit.totalAssets, USDC_DECIMALS)),
     apy: rate * 100,
     underlyingTokens: [USDC_BASE],

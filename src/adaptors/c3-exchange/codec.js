@@ -1,4 +1,4 @@
-const { formatSymbol, formatChain } = require('../utils')
+const { formatChain } = require('../utils')
 
 function decodeUint(value, index = 0, length = 8) {
   let num = BigInt(0)
@@ -22,7 +22,7 @@ function getSymbol(assetId) {
     1703994770: 'W',
   }
 
-  return symbolMap[assetId] ? formatSymbol(symbolMap[assetId]) : undefined
+  return symbolMap[assetId]
 }
 
 function getUrl(assetId) {

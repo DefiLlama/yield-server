@@ -31,7 +31,7 @@ async function apy() {
   return [
     {
       pool: wavesStakingContract,
-      symbol: utils.formatSymbol('sWAVES'),
+      symbol: 'sWAVES',
       tvlUsd: await tvlUsd(),
       apyBase: await apyBase(),
       project: 'pepeteam-swaves',

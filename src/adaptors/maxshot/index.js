@@ -114,7 +114,7 @@ const apy = async () => {
       pool: `${poolAddress.toLowerCase()}-${chainName}`,
       chain: utils.formatChain(chainName),
       project: 'maxshot',
-      symbol: utils.formatSymbol(vault.symbol),
+      symbol: vault.symbol,
       tvlUsd,
       apyBase: apyValue,
       underlyingTokens: [underlyingToken],

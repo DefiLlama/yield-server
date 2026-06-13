@@ -14,7 +14,7 @@ const getApy = async () => {
         pool: r.poolAddress,
         chain: 'Solana',
         project: 'nx-finance',
-        symbol: utils.formatSymbol(r.symbol),
+        symbol: r.symbol,
         tvlUsd: totalSupplyUsd - totalBorrowUsd,
         url: `https://nxfinance.io/lend/`,
         apyBase: Number(r.lendingPoolInfo[0].APR) * 100,

@@ -13,7 +13,10 @@ const chain = 'base';
 
 const fetchAndCombineAPR = async (chain, url, query, queryPrior, timestamp, stablecoins) => {
   const albPools = await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins);
-  const bunniAPRResults = await getAlbAprs(chain);
+  const volumeUsd7dByPool = Object.fromEntries(
+    albPools.map((p) => [p.pool.toLowerCase(), p.volumeUsd7d])
+  );
+  const bunniAPRResults = await getAlbAprs(chain, volumeUsd7dByPool);
 
   const combinedResults = [];
 
@@ -115,10 +118,11 @@ const topLvl = async (
     // add the symbol for the stablecoin (we need to distinguish btw stable and non stable pools
     // so we apply the correct tick range)
     dataNow = dataNow.map((p) => {
-      const symbol = utils.formatSymbol(
-        `${p.token0.symbol}-${p.token1.symbol}`
+      const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
+      const stablecoin = checkStablecoin(
+        { ...p, symbol: utils.formatSymbol(symbol) },
+        stablecoins
       );
-      const stablecoin = checkStablecoin({ ...p, symbol }, stablecoins);
       return {
         ...p,
         symbol,
@@ -144,65 +148,6 @@ const topLvl = async (
         token1_in_token0: p.price1 / p.price0,
       }));
 
-      // batching the tick query into 3 chunks to prevent it from breaking
-      const nbBatches = 3;
-      const chunkSize = Math.ceil(dataNow.length / nbBatches);
-      const chunks = [
-        dataNow.slice(0, chunkSize).map((i) => i.id),
-        dataNow.slice(chunkSize, chunkSize * 2).map((i) => i.id),
-        dataNow.slice(chunkSize * 2, dataNow.length).map((i) => i.id),
-      ];
-
-      const tickData = {};
-      // we fetch 3 pages for each pool
-      for (const page of [0, 1, 2]) {
-        console.log(`page nb: ${page}`);
-        let pageResults = {};
-        for (const chunk of chunks) {
-          console.log(chunk.length);
-          const tickQuery = `
-          query {
-            ${chunk
-              .map(
-                (poolAddress, index) => `
-              pool_${poolAddress}: ticks(
-                first: 1000,
-                skip: ${page * 1000},
-                where: { poolAddress: "${poolAddress}" },
-                orderBy: tickIdx
-              ) {
-                tickIdx
-                liquidityNet
-                price0
-                price1
-              }
-            `
-              )
-              .join('\n')}
-          }
-        `;
-
-          try {
-            const response = await request(url, tickQuery);
-            pageResults = { ...pageResults, ...response };
-          } catch (err) {
-            console.log(err);
-          }
-        }
-        tickData[`page_${page}`] = pageResults;
-      }
-
-      // reformat tickData
-      const ticks = {};
-      Object.values(tickData).forEach((page) => {
-        Object.entries(page).forEach(([pool, values]) => {
-          if (!ticks[pool]) {
-            ticks[pool] = [];
-          }
-          ticks[pool] = ticks[pool].concat(values);
-        });
-      });
-
       // assume an investment of 1e5 USD
       const investmentAmount = 1e5;
 
@@ -211,10 +156,8 @@ const topLvl = async (
       const pctStablePool = 0.001;
 
       dataNow = dataNow.map((p) => {
-        const poolTicks = ticks[`pool_${p.id}`] ?? [];
-
-        if (!poolTicks.length) {
-          console.log(`No pool ticks found for ${p.id}`);
+        if (!p.liquidity) {
+          console.log(`No pool liquidity found for ${p.id}`);
           return { ...p, estimatedFee: null, apy7d: null };
         }
 
@@ -233,7 +176,7 @@ const topLvl = async (
           p.feeTier,
           p.volumeUSD7d,
           p.feeProtocol,
-          poolTicks
+          p.liquidity
         );
 
         const apy7d = ((estimatedFee * 52) / investmentAmount) * 100;
@@ -285,23 +228,6 @@ const main = async (timestamp = null) => {
   ).data.peggedAssets.map((s) => s.symbol.toLowerCase());
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
-
-  const data = [];
-    try {
-      data.push(
-        await topLvl(
-          chain,
-          SUBGRAPH_URL,
-          query,
-          queryPrior,
-          'v3',
-          timestamp,
-          stablecoins
-        )
-      );
-    } catch (err) {
-      console.log(err);
-    }
 
     const combinedResults = await fetchAndCombineAPR(
       chain,

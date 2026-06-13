@@ -33,7 +33,7 @@ async function apy(chain) {
       pool: `${p.address}-staking`,
       chain: utils.formatChain(chainMapping[chain]),
       project: 'mole',
-      symbol: utils.formatSymbol(p.symbol),
+      symbol: p.symbol,
       tvlUsd: Number(p.tvl),
       apy: Number(p.apy) * 100,
     }));
@@ -42,7 +42,7 @@ async function apy(chain) {
     pool: `${p.key}-fund-pool`,
     chain: utils.formatChain(chainMapping[chain]),
     project: 'mole',
-    symbol: utils.formatSymbol(p.iuToken.symbol),
+    symbol: p.iuToken.symbol,
     tvlUsd: Number(p.tvl),
     apy: Number(p.apy) * 100,
   }));
@@ -51,7 +51,7 @@ async function apy(chain) {
     pool: `${p.key}-farming-pool`,
     chain: utils.formatChain(chainMapping[chain]),
     project: 'mole',
-    symbol: formatSymbol(p.sourceName),
+    symbol: p.sourceName,
     tvlUsd: Number(p.tvl),
     apy: utils.aprToApy(
       ((Number(p.farmRewardApr) + Number(p.tradingFeeApr)) / p.leverage) * 100
@@ -62,7 +62,7 @@ async function apy(chain) {
     pool: `${p.address}-lending`,
     chain: utils.formatChain(chainMapping[chain]),
     project: 'mole',
-    symbol: utils.formatSymbol(p.symbol),
+    symbol: p.symbol,
     tvlUsd: Number(p.tvl),
     apy: Number(p.totalApy) * 100,
   }));

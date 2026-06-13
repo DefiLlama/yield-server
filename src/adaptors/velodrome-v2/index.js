@@ -186,12 +186,13 @@ const apy = async () => {
       stakedSupplyRatio = poolSupply[i] / gaugeSupply[i];
     }
 
-    const apyReward =
+    let apyReward =
       (((rewardRate[i] / 1e18) *
         86400 *
         365 *
         prices[`optimism:${velo}`]?.price) /
         tvlUsd) * stakedSupplyRatio * 100;
+    if (!Number.isFinite(apyReward)) apyReward = 0;
 
     const feeTier = meta.st
       ? `${feeStable[i] / 100}`
@@ -207,7 +208,7 @@ const apy = async () => {
       pool: p,
       chain: 'Optimism',
       project,
-      symbol: utils.formatSymbol(symbol),
+      symbol: symbol,
       tvlUsd,
       apyReward,
       rewardTokens: apyReward > 0 ? [velo] : [],

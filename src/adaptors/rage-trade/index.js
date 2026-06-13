@@ -73,7 +73,7 @@ const poolsFunction = async () => {
     pool: '0x1d42783E7eeacae12EbC315D1D2D0E3C6230a068',
     chain: utils.formatChain('arbitrum'),
     project: 'rage-trade',
-    symbol: utils.formatSymbol('80-20-Tricrypto'),
+    symbol: '80-20-Tricrypto',
     tvlUsd: tvls.tricryptoVault,
     underlyingTokens: ['0x8e0B8c8BB9db49a46697F3a5Bb8A308e744821D2'], // tricrypto
     apy: apys.tricryptoVault.base + apys.tricryptoVault.reward,
@@ -94,7 +94,7 @@ const poolsFunction = async () => {
     pool: '0xf9305009FbA7E381b3337b5fA157936d73c2CF36',
     chain: utils.formatChain('arbitrum'),
     project: 'rage-trade',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     tvlUsd: tvls.dnGmxSeniorVault,
     poolMeta: 'DN_GMX_SENIOR',
     underlyingTokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8'], // usdc

@@ -67,7 +67,7 @@ const getV3Pools = async (backendChain, chainString) => {
         pool: pool.address,
         chain: utils.formatChain(chainString),
         project: 'coinhain',
-        symbol: utils.formatSymbol(pool.symbol),
+        symbol: pool.symbol,
         tvlUsd: Number(pool.dynamicData.totalLiquidity),
         apyBase: baseApr * 100,
         apyReward: stakingApr * 100,

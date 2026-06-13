@@ -27,9 +27,7 @@ const collectPools = async () => {
     pool: poolAddress,
     chain: utils.formatChain('polygon'),
     project: 'complifi',
-    symbol: utils.formatSymbol(
-      tvlData['tvlPools']['137'][poolAddress]['collateral']
-    ),
+    symbol: tvlData['tvlPools']['137'][poolAddress]['collateral'],
     tvlUsd: tvlData['tvlPools']['137'][poolAddress]['tvl'],
     apy: apy * 100,
   }));

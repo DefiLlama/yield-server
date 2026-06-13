@@ -35,6 +35,16 @@ module.exports = [
   },
   {
     inputs: [{ internalType: 'address', name: 'asset', type: 'address' }],
+    name: 'getReserveCaps',
+    outputs: [
+      { internalType: 'uint256', name: 'borrowCap', type: 'uint256' },
+      { internalType: 'uint256', name: 'supplyCap', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'asset', type: 'address' }],
     name: 'getReserveConfigurationData',
     outputs: [
       { internalType: 'uint256', name: 'decimals', type: 'uint256' },

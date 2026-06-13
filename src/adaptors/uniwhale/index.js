@@ -25,7 +25,7 @@ const getApy = async (...args) => {
       chain: utils.formatChain('bsc'),
       project: 'uniwhale',
       pool: UNIWHALE_LIQUIDITY_POOL,
-      symbol: utils.formatSymbol('ULP'),
+      symbol: 'ULP',
       tvlUsd: parseInt(tvl.data.result.substring(2), 16) / 1e18,
       apyBase: utils.aprToApy(
         apr.data.data.latest_trade_stats_7d[0].apr_7d * 70

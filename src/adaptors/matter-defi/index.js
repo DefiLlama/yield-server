@@ -253,7 +253,7 @@ const apy = async () => {
     pool: `${p.key.fa2_address}`,
     chain: 'Tezos',
     project: 'matter-defi',
-    symbol: utils.formatSymbol(p.symbol),
+    symbol: p.symbol,
     tvlUsd: Number((p.tvl * xtzPrice).toFixed(2)),
     apyReward: Number(p.apy),
     rewardTokens: [MATTER_CORE],

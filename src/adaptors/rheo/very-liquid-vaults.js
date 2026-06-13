@@ -181,18 +181,24 @@ async function apy() /*: Promise<Pool[]>*/ {
         }
       );
 
-      return vaults.map((vault, i) => ({
-        pool: `rheo-vlv-${vault}`,
-        chain: uppercaseFirst(chain),
-        apyBase: apyBasePerVault[i],
-        project: 'rheo',
-        symbol: symbols[i],
-        tvlUsd: (totalAssets[i] * prices[i]) / 10 ** decimals[i],
-        underlyingTokens: [assets[i]],
-        url: `https://veryliquid.xyz/${chain}/vault/${vault}`,
-        totalSupplyUsd: (totalAssets[i] * prices[i]) / 10 ** decimals[i],
-        poolMeta: symbols[i].replace('vlv', '').replace(assetsSymbols[i], ''),
-      }));
+      return vaults.map((vault, i) => {
+        const supply = Number(totalSupply[i]);
+        const pricePerShare =
+          supply > 0 ? Number(totalAssets[i]) / supply : null;
+        return {
+          pool: `rheo-vlv-${vault}`,
+          chain: uppercaseFirst(chain),
+          apyBase: apyBasePerVault[i],
+          project: 'rheo',
+          symbol: symbols[i],
+          tvlUsd: (totalAssets[i] * prices[i]) / 10 ** decimals[i],
+          pricePerShare,
+          underlyingTokens: [assets[i]],
+          url: `https://veryliquid.xyz/${chain}/vault/${vault}`,
+          totalSupplyUsd: (totalAssets[i] * prices[i]) / 10 ** decimals[i],
+          poolMeta: symbols[i].replace('vlv', '').replace(assetsSymbols[i], ''),
+        };
+      });
     })
   );
 

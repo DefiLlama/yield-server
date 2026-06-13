@@ -25,6 +25,13 @@ const ABIS = {
     stateMutability: 'view',
     type: 'function',
   },
+  getCCR: {
+    inputs: [],
+    name: 'CCR',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 };
 const main = async () => {
   const troveEthTvl = (
@@ -42,9 +49,13 @@ const main = async () => {
       chain: 'ethereum',
     })
   ).output;
-
-  const troveType = (await axios.get(URL)).data;
-
+  const ccr = (
+    await sdk.api.abi.call({
+      target: TROVE_MANAGER_ADDRESS,
+      abi: ABIS.getCCR,
+      chain: 'ethereum',
+    })
+  ).output;
   const lusdTotalSupply = (
     await sdk.api.abi.call({
       target: LUSD_ADDRESS,
@@ -53,12 +64,20 @@ const main = async () => {
     })
   ).output;
 
+  const troveType = (await axios.get(URL)).data;
+
   const key = `ethereum:${LUSD_ADDRESS}`.toLowerCase();
   const prices = (
     await axios.get(`https://coins.llama.fi/prices/current/${key}`)
   ).data.coins;
 
-  const totalSupplyUsd = (Number(lusdTotalSupply) / 1e18) * prices[key].price;
+  const totalSupplyUsd = (Number(troveEthTvl) / 1e18) * Number(troveType.price);
+  const totalBorrowUsd =
+    (Number(lusdTotalSupply) / 1e18) * prices[key].price;
+  const availableBorrowUsd = Math.max(
+    totalSupplyUsd / (ccr / 1e18) - totalBorrowUsd,
+    0
+  );
 
   return [
     {
@@ -66,13 +85,17 @@ const main = async () => {
       project: 'liquity-v1',
       symbol: 'ETH',
       chain: 'ethereum',
+      token: null,
       apy: 0,
-      tvlUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
+      tvlUsd: totalSupplyUsd,
       apyBaseBorrow: Number(troveType.borrowFee) * 100,
-      totalSupplyUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
-      totalBorrowUsd: totalSupplyUsd,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      availableBorrowUsd,
       ltv: 1 / (mcr / 1e18),
       mintedCoin: 'LUSD',
+      borrowToken: LUSD_ADDRESS,
+      borrowable: true,
       underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     },
   ];
