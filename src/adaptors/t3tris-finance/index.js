@@ -4,8 +4,8 @@ const axios = require('axios');
 
 const PROJECT_NAME = 't3tris-finance';
 
-// T3tris protocol factory — deterministic CREATE3 address, same on all chains
-const T3TRIS_FACTORY = '0x7DD63c4eE5CD277B7870155371a6d62A2f7b1652';
+// T3tris protocol v1 proxy — deterministic CREATE3 address, same on all chains
+const T3TRIS_FACTORY = '0x0000000000CC53b5Fd649b80f08b05405779cC71';
 
 // ABIs for the T3tris protocol
 const ABI = {
@@ -19,11 +19,11 @@ const ABI = {
   decimals: 'function decimals() view returns (uint8)',
   symbol: 'function symbol() view returns (string)',
   name: 'function name() view returns (string)',
-  getPerfFee: 'function getPerfFee() external view returns (uint16)',
+  getPerformanceFee: 'function getPerformanceFee() external view returns (uint64)',
   getManagementFee:
-    'function getManagementFee() external view returns (uint16 managementFeeBps, uint32 managementFeeDays)',
-  getEntryFee: 'function getEntryFee() external view returns (uint16)',
-  getExitFee: 'function getExitFee() external view returns (uint16)',
+    'function getManagementFee() external view returns (uint64 managementFeeWad, uint32 managementFeeDays)',
+  getEntryFee: 'function getEntryFee() external view returns (uint64)',
+  getExitFee: 'function getExitFee() external view returns (uint64)',
   // Oracle: each vault delegates NAV to a SafeOracle updated by a keeper
   getOracle: 'function getOracle() external view returns (address)',
   // Oracle PPS in WAD (1e18) — always up-to-date, independent of settlement
@@ -183,7 +183,7 @@ const getVaultsForChain = async (chain) => {
     multiCall(vaultAddresses, ABI.decimals, chain),
     multiCall(vaultAddresses, ABI.symbol, chain),
     multiCall(vaultAddresses, ABI.name, chain),
-    multiCall(vaultAddresses, ABI.getPerfFee, chain),
+    multiCall(vaultAddresses, ABI.getPerformanceFee, chain),
     multiCall(vaultAddresses, ABI.getManagementFee, chain),
     multiCall(vaultAddresses, ABI.getEntryFee, chain),
     multiCall(vaultAddresses, ABI.getExitFee, chain),
@@ -218,15 +218,16 @@ const getVaultsForChain = async (chain) => {
       symbol: symbol.output,
       name: name?.success ? name.output : symbol.output,
       oracle: oracle?.success ? oracle.output : null,
-      perfFeeBps: perfFeeRes.output[i]?.success
-        ? Number(perfFeeRes.output[i].output)
+      // Fees are WAD (1e18 = 100%); store as percentage (wad / 1e16)
+      perfFeePct: perfFeeRes.output[i]?.success
+        ? Number(perfFeeRes.output[i].output) / 1e16
         : 0,
-      mgmtFeeBps: mgmtFeeRes.output[i]?.success
+      mgmtFeePct: mgmtFeeRes.output[i]?.success
         ? Number(
-            mgmtFeeRes.output[i].output.managementFeeBps ||
+            mgmtFeeRes.output[i].output.managementFeeWad ||
               mgmtFeeRes.output[i].output[0] ||
               0,
-          )
+          ) / 1e16
         : 0,
       mgmtFeeDays: mgmtFeeRes.output[i]?.success
         ? Number(
@@ -235,11 +236,11 @@ const getVaultsForChain = async (chain) => {
               365,
           )
         : 365,
-      entryFeeBps: entryFeeRes.output[i]?.success
-        ? Number(entryFeeRes.output[i].output)
+      entryFeePct: entryFeeRes.output[i]?.success
+        ? Number(entryFeeRes.output[i].output) / 1e16
         : 0,
-      exitFeeBps: exitFeeRes.output[i]?.success
-        ? Number(exitFeeRes.output[i].output)
+      exitFeePct: exitFeeRes.output[i]?.success
+        ? Number(exitFeeRes.output[i].output) / 1e16
         : 0,
     };
   });
@@ -381,14 +382,14 @@ const main = async () => {
 
         // Build fee metadata string
         const feeParts = [];
-        if (vault.perfFeeBps > 0)
-          feeParts.push(`Perf: ${(vault.perfFeeBps / 100).toFixed(1)}%`);
-        if (vault.mgmtFeeBps > 0)
-          feeParts.push(`Mgmt: ${(vault.mgmtFeeBps / 100).toFixed(1)}%`);
-        if (vault.entryFeeBps > 0)
-          feeParts.push(`Entry: ${(vault.entryFeeBps / 100).toFixed(2)}%`);
-        if (vault.exitFeeBps > 0)
-          feeParts.push(`Exit: ${(vault.exitFeeBps / 100).toFixed(2)}%`);
+        if (vault.perfFeePct > 0)
+          feeParts.push(`Perf: ${vault.perfFeePct.toFixed(1)}%`);
+        if (vault.mgmtFeePct > 0)
+          feeParts.push(`Mgmt: ${vault.mgmtFeePct.toFixed(1)}%`);
+        if (vault.entryFeePct > 0)
+          feeParts.push(`Entry: ${vault.entryFeePct.toFixed(2)}%`);
+        if (vault.exitFeePct > 0)
+          feeParts.push(`Exit: ${vault.exitFeePct.toFixed(2)}%`);
         const poolMeta = feeParts.length > 0 ? feeParts.join(' | ') : undefined;
 
         pools.push({
