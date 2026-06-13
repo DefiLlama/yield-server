@@ -28,7 +28,7 @@ const getDistinctID = async (req, res) => {
   const response = await conn.query(query);
 
   if (!response) {
-    return new AppError(`Couldn't get data`, 404);
+    throw new AppError(`Couldn't get data`, 404);
   }
 
   res.status(200).json(response);
@@ -41,7 +41,7 @@ const getConfigPool = async (req, res) => {
   const valid =
     ids.map((id) => validator.isUUID(id)).reduce((a, b) => a + b, 0) ===
     ids.length;
-  if (!valid) return { status: 'invalid uuid parameter' };
+  if (!valid) return res.status(400).json({ status: 'invalid uuid parameter' });
 
   const query = `
     SELECT
@@ -54,7 +54,7 @@ const getConfigPool = async (req, res) => {
   const response = await conn.query(query, { configIDs: ids });
 
   if (!response) {
-    return new AppError(`Couldn't get data`, 404);
+    throw new AppError(`Couldn't get data`, 404);
   }
 
   res.status(200).json({
@@ -79,7 +79,7 @@ const getAllPools = async (req, res) => {
   const response = await conn.query(query);
 
   if (!response) {
-    return new AppError(`Couldn't get data`, 404);
+    throw new AppError(`Couldn't get data`, 404);
   }
 
   res.status(200).json(response);
