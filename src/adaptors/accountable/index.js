@@ -10,35 +10,18 @@ const abis = {
     convertToAssets: 'function convertToAssets(uint256 shares) view returns (uint256)',
 };
 
-// The marketplace API rate-limits bursts of per-loan requests (503), so we
-// fetch in small batches with a short retry. Dropping a loan here means its
-// vault never reaches the on-chain multicall, leaving totalSupplyUsd /
-// totalBorrowUsd / underlyingTokens undefined for that pool.
-const fetchLoan = async(id, tries = 3) => {
-    for (let attempt = 0; attempt < tries; attempt++) {
-        try {
-            return await utils.getData(`${API_URL}/${id}`);
-        } catch (e) {
-            if (attempt === tries - 1) throw e;
-            await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
-        }
-    }
-};
-
 const fetchVaultsByLoanIds = async(loanIds) => {
-    const acc = {};
-    const BATCH = 4;
-    for (let i = 0; i < loanIds.length; i += BATCH) {
-        const batch = loanIds.slice(i, i + BATCH);
-        const results = await Promise.allSettled(batch.map((id) => fetchLoan(id)));
-        results.forEach((res, idx) => {
-            if (res.status !== 'fulfilled') return;
-            const vault = res.value.on_chain_loan.loan.vault;
-            if (vault && vault !== ZERO_ADDRESS)
-                acc[batch[idx]] = vault.toLowerCase();
-        });
-    }
-    return acc;
+    const results = await Promise.allSettled(
+        loanIds.map((id) => utils.getData(`${API_URL}/${id}`))
+    );
+
+    return results.reduce((acc, res, idx) => {
+        if (res.status !== 'fulfilled') return acc;
+        const vault = res.value.on_chain_loan.loan.vault;
+        if (vault && vault !== ZERO_ADDRESS)
+            acc[loanIds[idx]] = vault.toLowerCase();
+        return acc;
+    }, {});
 };
 
 const getVaultAddressesFromApi = async() => {
