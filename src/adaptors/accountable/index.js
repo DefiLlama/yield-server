@@ -146,9 +146,17 @@ const apy = async() => {
             const rewardBoostPct = Number(item?.rewards_apy_boost?.total_apy_boost_percent ?? 0);
             const pointBoostPct = Number(item?.all_points_apy_boost?.total_apy_boost_percent ?? 0);
 
+            // Share-price (yield-strategy / NAV) vaults expose rolling-window net
+            // APY. Use the 7d window, falling back to 30d. We do NOT fall back to
+            // since-inception (maintainer caps the horizon at 30d), so a NAV vault
+            // younger than 7d reports no apyBase until a 7d/30d window exists.
+            // A non-null apy_inception_annualized is only the discriminator for NAV
+            // vaults here (contractual open/fixed-term vaults also carry apy_7d, so
+            // it can't be used for detection); they take the net_apy path.
+            const navWindowApy = item.apy_7d ?? item.apy_30d;
             const baseApy =
                 item.apy_inception_annualized != null
-                    ? Number(item.apy_inception_annualized)
+                    ? (navWindowApy != null ? Number(navWindowApy) : null)
                     : item.net_apy != null
                         ? Number(item.net_apy) - (rewardBoostPct + pointBoostPct)
                         : null;
