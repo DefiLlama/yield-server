@@ -188,10 +188,10 @@ async function chainPools(chain, chainId) {
 }
 
 const apy = async () => {
-  const results = await Promise.all(
+  const results = await Promise.allSettled(
     Object.entries(CHAINS).map(([chain, chainId]) => chainPools(chain, chainId))
   );
-  return results.flat();
+  return results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 };
 
 module.exports = {
