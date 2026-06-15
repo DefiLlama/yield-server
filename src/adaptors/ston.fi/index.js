@@ -39,8 +39,9 @@ const getApy = async () => {
                 console.error("Can't find symbol", pool_info);
                 return null;
             }
-            const s1 = asset2symbol[pool_info.tokens[0]]
-            const s2 = asset2symbol[pool_info.tokens[1]];
+            const renameNativeTon = (s) => (s === 'TON' ? 'GRAM' : s);
+            const s1 = renameNativeTon(asset2symbol[pool_info.tokens[0]]);
+            const s2 = renameNativeTon(asset2symbol[pool_info.tokens[1]]);
             // use apropriate base-quote order
             let symbol = '';
             if (s1 == 'USD₮') {

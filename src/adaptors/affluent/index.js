@@ -31,7 +31,7 @@ const getAPY = async () => {
         ]);
 
         const merged = [...strategy, ...share];
-        return merged;
+        return merged.filter((p) => Number.isFinite(p.apyBase));
     } catch (err) {
         console.error("getAPY failed:", err);
         return [];
@@ -137,7 +137,7 @@ async function getAssetMap() {
     for (const item of data) {
         let symbol = item.symbol;
 
-        if (symbol === "FactorialTON") {
+        if (symbol === "FactorialTON" || symbol === "TON") {
             symbol = "GRAM";
         }
 

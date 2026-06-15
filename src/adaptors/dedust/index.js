@@ -68,15 +68,17 @@ const getApy = async () => {
             const right = assetInfo[rightAddr];
             if (!left || !right) continue;
 
+            const leftSym = left.symbol === 'TON' ? 'GRAM' : left.symbol;
+            const rightSym = right.symbol === 'TON' ? 'GRAM' : right.symbol;
             let symbol;
-            if (left.symbol == 'USDT') {
-                symbol = `${right.symbol}-${left.symbol}`;
-            } else if (right.symbol == 'USDT') {
-                symbol = `${left.symbol}-${right.symbol}`;
-            } else if (left.symbol == 'TON' || left.symbol == 'GRAM') {
-                symbol = `${right.symbol}-${left.symbol}`;
+            if (leftSym == 'USDT') {
+                symbol = `${rightSym}-${leftSym}`;
+            } else if (rightSym == 'USDT') {
+                symbol = `${leftSym}-${rightSym}`;
+            } else if (leftSym == 'GRAM') {
+                symbol = `${rightSym}-${leftSym}`;
             } else {
-                symbol = `${left.symbol}-${right.symbol}`;
+                symbol = `${leftSym}-${rightSym}`;
             }
 
             const aprFees = Number(p.apr_fees) || 0;
