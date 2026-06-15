@@ -211,7 +211,7 @@ const apy = async() => {
                 .map((b) => b?.point_name)
                 .filter(Boolean);
             const poolMeta = pointNames.length
-                ? `Earn ${pointNames.join(', ')} Points`
+                ? `Earn ${pointNames.map((n) => n.replace(/\s*points?$/i, '')).join(', ')} Points`
                 : undefined;
 
             return {
