@@ -193,19 +193,26 @@ const apy = async() => {
                         ? Number(item.net_apy) - (rewardBoostPct + pointBoostPct)
                         : null;
 
+            // Rewards must be live tokens only (DefiLlama policy). Points (e.g.
+            // ACC, not yet launched) are excluded from apyReward / rewardTokens
+            // and surfaced via poolMeta instead.
             const rewardTokens = Array.from(
-                new Set([
-                    ...(item?.rewards_apy_boost?.boosts_by_token || [])
+                new Set(
+                    (item?.rewards_apy_boost?.boosts_by_token || [])
                         .map((b) => b?.token_address)
                         .filter(Boolean)
-                        .map((addr) => addr.toLowerCase()),
-                    ...(item?.all_points_apy_boost?.boosts_by_points || [])
-                        .map((b) => b?.point_name)
-                        .filter(Boolean),
-                ])
+                        .map((addr) => addr.toLowerCase())
+                )
             );
 
-            const apyReward = rewardTokens.length ? rewardBoostPct + pointBoostPct || null : null;
+            const apyReward = rewardTokens.length ? rewardBoostPct || null : null;
+
+            const pointNames = (item?.all_points_apy_boost?.boosts_by_points || [])
+                .map((b) => b?.point_name)
+                .filter(Boolean);
+            const poolMeta = pointNames.length
+                ? `Earn ${pointNames.join(', ')} Points`
+                : undefined;
 
             return {
                 pool: `${item.loan_address}-${chainName}`.toLowerCase(),
@@ -219,6 +226,7 @@ const apy = async() => {
                 apyBase: baseApy,
                 apyReward,
                 rewardTokens,
+                poolMeta,
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
                 totalSupplyUsd: toUsd(stats.totalAssets) ?? undefined,
                 totalBorrowUsd: toUsd(stats.totalBorrowed) ?? undefined,
