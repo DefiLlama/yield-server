@@ -1,4 +1,4 @@
-undefinedconst utils = require('../utils');
+const utils = require('../utils');
 
 const API = 'https://wealthville.net/api/v1/vaults';
 
