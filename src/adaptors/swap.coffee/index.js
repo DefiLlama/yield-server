@@ -7,7 +7,7 @@ function extractPoolSymbol(tokens) {
   const parts = []
 
   for (let asset of tokens) {
-    parts.push(asset["address"]["address"] === "native" ? "TON" : asset["metadata"]["symbol"])
+    parts.push(asset["address"]["address"] === "native" ? "GRAM" : asset["metadata"]["symbol"])
   }
 
   return parts.join("-")

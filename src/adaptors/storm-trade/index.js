@@ -33,7 +33,7 @@ const getApr = async () => {
         pool: `${vault.address}-ton`.toLowerCase(),
         chain: 'Ton',
         project: 'storm-trade',
-        symbol: vault.config.asset.name,
+        symbol: vault.config.asset.name === 'TON' ? 'GRAM' : vault.config.asset.name,
         tvlUsd:
           ((Number(vault.freeBalance) + Number(vault.lockedBalance)) / 1e9) *
           price,
