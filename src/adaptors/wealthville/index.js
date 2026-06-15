@@ -1,84 +1,34 @@
-const axios = require("axios");
+undefinedconst utils = require('../utils');
 
-const WEALTHVILLE_API = "https://wealthville.net/api/vaults";
+const API = 'https://wealthville.net/api/v1/vaults';
 
-const CHAIN = "Solana";
-const PROJECT = "wealthville";
-const URL = "https://wealthville.net/opportunities";
+// USDC on Solana — used as the reference underlying for vault NAV (USD-denominated).
+const USDC_SOL = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
-async function apy() {
-  // Vault definitions with current on-chain data
-  const vaults = [
-    {
-      pool: "wealthville-sol-usdc-orca",
-      symbol: "SOL-USDC",
-      tvlUsd: 32530000,
-      apyBase: 181.21,
-      underlyingTokens: [
-        "So11111111111111111111111111111111111111112",
-        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-      ],
-      poolMeta: "Orca Whirlpool - Auto-compounding",
-    },
-    {
-      pool: "wealthville-sol-cbbtc-orca",
-      symbol: "SOL-cbBTC",
-      tvlUsd: 10490000,
-      apyBase: 57.34,
-      underlyingTokens: [
-        "So11111111111111111111111111111111111111112",
-        "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
-      ],
-      poolMeta: "Orca Whirlpool - Auto-compounding",
-    },
-    {
-      pool: "wealthville-sol-usdc-raydium-clmm",
-      symbol: "SOL-USDC",
-      tvlUsd: 5870000,
-      apyBase: 44.59,
-      underlyingTokens: [
-        "So11111111111111111111111111111111111111112",
-        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-      ],
-      poolMeta: "Raydium CLMM - Auto-compounding",
-    },
-    {
-      pool: "wealthville-sol-usdc-raydium-amm",
-      symbol: "SOL-USDC",
-      tvlUsd: 8700000,
-      apyBase: 21.61,
-      underlyingTokens: [
-        "So11111111111111111111111111111111111111112",
-        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-      ],
-      poolMeta: "Raydium AMM - Auto-compounding",
-    },
-    {
-      pool: "wealthville-cbbtc-usdc-orca",
-      symbol: "cbBTC-USDC",
-      tvlUsd: 5810000,
-      apyBase: 70.15,
-      underlyingTokens: [
-        "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
-        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-      ],
-      poolMeta: "Orca Whirlpool - Auto-compounding",
-    },
-  ];
+const poolsFunction = async () => {
+  const { data } = await utils.getData(API);
+  const vaults = Array.isArray(data) ? data : (data && data.data) || [];
 
-  return vaults.map((v) => ({
-    pool: v.pool,
-    chain: CHAIN,
-    project: PROJECT,
-    symbol: v.symbol,
-    tvlUsd: v.tvlUsd,
-    apyBase: v.apyBase,
-    apyReward: null,
-    rewardTokens: [],
-    underlyingTokens: v.underlyingTokens,
-    poolMeta: v.poolMeta,
-    url: URL,
-  }));
-}
+  return vaults
+    .filter((v) => v && v.status === 'active' && Number(v.tvl_usd) > 0)
+    .map((v) => {
+      const apy = Number(v.apy) || 0;
+      return {
+        pool: `${v.vault_pubkey}-solana`,
+        chain: 'Solana',
+        project: 'wealthville',
+        symbol: v.name,
+        tvlUsd: Number(v.tvl_usd) || 0,
+        apyBase: apy,
+        underlyingTokens: [USDC_SOL],
+        poolMeta: v.strategy_type ? String(v.strategy_type).toUpperCase() : null,
+        url: 'https://wealthville.net/opportunities',
+      };
+    });
+};
 
-module.exports = { timetravel: false, apy, url: URL };
+module.exports = {
+  timetravel: false,
+  apy: poolsFunction,
+  url: 'https://wealthville.net',
+};
