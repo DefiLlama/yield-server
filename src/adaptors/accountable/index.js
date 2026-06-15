@@ -8,20 +8,44 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const abis = {
     asset: 'function asset() view returns (address)',
     convertToAssets: 'function convertToAssets(uint256 shares) view returns (uint256)',
+    vault: 'function vault() view returns (address)',
 };
 
-const fetchVaultsByLoanIds = async(loanIds) => {
-    const results = await Promise.allSettled(
-        loanIds.map((id) => utils.getData(`${API_URL}/${id}`))
+// Resolve each loan's vault + underlying on-chain. The loan contract exposes
+// both vault() and asset(), so one multicall per chain replaces a per-loan API
+// request each. The marketplace API rate-limits those bursts (503), and a
+// dropped response previously left the pool with no vault -> no on-chain stats
+// (undefined totalSupplyUsd / totalBorrowUsd / underlyingTokens).
+const fetchLoanMeta = async(loansByChain) => {
+    const map = {};
+    await Promise.all(
+        Object.entries(loansByChain).map(async([chain, loans]) => {
+            const [vaultsRes, assetsRes] = await Promise.all([
+                sdk.api.abi.multiCall({
+                    chain,
+                    abi: abis.vault,
+                    calls: loans.map((l) => ({ target: l.loan_address })),
+                    permitFailure: true,
+                }),
+                sdk.api.abi.multiCall({
+                    chain,
+                    abi: abis.asset,
+                    calls: loans.map((l) => ({ target: l.loan_address })),
+                    permitFailure: true,
+                }),
+            ]);
+            loans.forEach((l, i) => {
+                const vault = vaultsRes.output[i].output;
+                const asset = assetsRes.output[i].output;
+                if (vault && vault !== ZERO_ADDRESS)
+                    map[l.id] = {
+                        vault: vault.toLowerCase(),
+                        asset: asset || null,
+                    };
+            });
+        })
     );
-
-    return results.reduce((acc, res, idx) => {
-        if (res.status !== 'fulfilled') return acc;
-        const vault = res.value.on_chain_loan.loan.vault;
-        if (vault && vault !== ZERO_ADDRESS)
-            acc[loanIds[idx]] = vault.toLowerCase();
-        return acc;
-    }, {});
+    return map;
 };
 
 const getVaultAddressesFromApi = async() => {
@@ -93,16 +117,20 @@ const apy = async() => {
     const activeLoans = items.filter(
         (item) => item.loan_state === 3 && chainIdToName[item.chain_id]
     );
-    const loanIds = activeLoans.map((item) => item.id);
 
-    const loanVaultMap = await fetchVaultsByLoanIds(loanIds);
+    const loansByChain = {};
+    activeLoans.forEach((item) => {
+        const chain = chainIdToName[item.chain_id];
+        (loansByChain[chain] ||= []).push(item);
+    });
+    const loanMetaMap = await fetchLoanMeta(loansByChain);
 
     const vaultsByChain = {};
     activeLoans.forEach((item) => {
-        const vault = loanVaultMap[item.id];
-        if (!vault) return;
+        const meta = loanMetaMap[item.id];
+        if (!meta) return;
         const chain = chainIdToName[item.chain_id];
-        (vaultsByChain[chain] ||= new Set()).add(vault);
+        (vaultsByChain[chain] ||= new Set()).add(meta.vault);
     });
     const vaultStats = {};
     await Promise.all(
@@ -115,10 +143,11 @@ const apy = async() => {
     );
 
     const underlyingsByChain = {};
-    Object.entries(vaultStats).forEach(([key, s]) => {
-        if (!s.underlying) return;
-        const chain = key.split(':')[0];
-        (underlyingsByChain[chain] ||= new Set()).add(s.underlying.toLowerCase());
+    activeLoans.forEach((item) => {
+        const meta = loanMetaMap[item.id];
+        if (!meta?.asset) return;
+        const chain = chainIdToName[item.chain_id];
+        (underlyingsByChain[chain] ||= new Set()).add(meta.asset.toLowerCase());
     });
     const pricesByChainToken = {};
     await Promise.all(
@@ -133,12 +162,15 @@ const apy = async() => {
     return Promise.all(
         activeLoans.map(async(item) => {
             const chainName = chainIdToName[item.chain_id];
-            const vaultAddress = loanVaultMap[item.id];
+            const meta = loanMetaMap[item.id];
+            const vaultAddress = meta?.vault;
             const stats = vaultAddress ? vaultStats[`${chainName}:${vaultAddress}`] || {} : {};
             const d = Number(item.asset_decimals);
             const decimals = Number.isFinite(d) ? d : null;
-            const underlying = stats.underlying?.toLowerCase();
-            const priceUsd = underlying ? pricesByChainToken[`${chainName}:${underlying}`] : undefined;
+            const underlying = meta?.asset || stats.underlying;
+            const priceUsd = underlying
+                ? pricesByChainToken[`${chainName}:${underlying.toLowerCase()}`]
+                : undefined;
             const toUsd = (raw) => {
                 if (raw == null || decimals == null || priceUsd == null) return null;
                 return (Number(raw) / 10 ** decimals) * priceUsd;
@@ -190,7 +222,7 @@ const apy = async() => {
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
                 totalSupplyUsd: toUsd(stats.totalAssets) ?? undefined,
                 totalBorrowUsd: toUsd(stats.totalBorrowed) ?? undefined,
-                underlyingTokens: stats.underlying ? [stats.underlying] : undefined,
+                underlyingTokens: underlying ? [underlying] : undefined,
             };
         })
     );
