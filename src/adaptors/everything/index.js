@@ -228,14 +228,16 @@ const getPoolsForChain = async (chainString) => {
 
   // Query recent swaps (last 24h) for volume/fee calculation
   const timestamp24hAgo = Math.floor(Date.now() / 1000) - SECONDS_IN_DAY;
+  let swapsFetched = true;
   let recentSwaps = [];
   try {
     recentSwaps = await fetchAllSwaps(subgraphUrl, timestamp24hAgo);
   } catch (e) {
     console.error(
-      `everything: swap query failed for ${chainString}, apyBase will be 0:`,
+      `everything: swap query failed for ${chainString}:`,
       e.message
     );
+    swapsFetched = false;
   }
 
   // Normalize reserves to human-readable
@@ -316,7 +318,13 @@ const getPoolsForChain = async (chainString) => {
           feeUSD1d += pairFees.token1Fees * p.price1;
         }
       }
-      const apyBase = tvlUsd > 0 ? (feeUSD1d * 365 * 100) / tvlUsd : 0;
+      // When the swap query failed we don't know the fee revenue, so apyBase is
+      // unknown (null) rather than a misleading 0.
+      const apyBase = !swapsFetched
+        ? null
+        : tvlUsd > 0
+        ? (feeUSD1d * 365 * 100) / tvlUsd
+        : 0;
 
       const apyReward = farmingRewards[pairId] || 0;
 
@@ -328,8 +336,8 @@ const getPoolsForChain = async (chainString) => {
         project,
         symbol,
         tvlUsd,
-        apyBase: Number.isFinite(apyBase) ? apyBase : 0,
-        apyReward: Number.isFinite(apyReward) ? apyReward : 0,
+        apyBase: Number.isFinite(apyBase) ? apyBase : null,
+        apyReward: Number.isFinite(apyReward) ? apyReward : null,
         rewardTokens: apyReward > 0 ? [EV_TOKEN_ADDRESS] : [],
         underlyingTokens: [p.token0.id, p.token1.id],
         url: `${appUrl}/${p.id}`,
