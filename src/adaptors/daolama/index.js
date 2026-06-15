@@ -127,7 +127,7 @@ async function getApy() {
         client,
         'EQCkeTvOSTBwBtP06X2BX7THj_dlX67PhgYRGuKfjWtB9FVb',
         'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
-        'TON',
+        'GRAM',
         tonPrice,
         1e9,
         'Main',

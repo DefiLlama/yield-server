@@ -73,7 +73,7 @@ const getApy = async () => {
                 symbol = `${right.symbol}-${left.symbol}`;
             } else if (right.symbol == 'USDT') {
                 symbol = `${left.symbol}-${right.symbol}`;
-            } else if (left.symbol == 'TON') {
+            } else if (left.symbol == 'TON' || left.symbol == 'GRAM') {
                 symbol = `${right.symbol}-${left.symbol}`;
             } else {
                 symbol = `${left.symbol}-${right.symbol}`;

@@ -12,6 +12,7 @@ const TON_COINGECKO = {
   tston: 'coingecko:the-open-network',
   stton: 'coingecko:the-open-network',
   ton: 'coingecko:the-open-network',
+  gram: 'coingecko:the-open-network',
   usdt: 'coingecko:tether',
   'usd₮': 'coingecko:tether',
   eusdt: 'coingecko:tether',

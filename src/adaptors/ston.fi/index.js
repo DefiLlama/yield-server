@@ -47,7 +47,7 @@ const getApy = async () => {
                 symbol = `${s2}-${s1}`
             } else if (s2 == 'USD₮') {
                 symbol = `${s1}-${s2}`
-            } else if (s1 == 'TON') {
+            } else if (s1 == 'TON' || s1 == 'GRAM') {
                 symbol = `${s2}-${s1}`
             } else {
                 symbol = `${s1}-${s2}`

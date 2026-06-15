@@ -675,7 +675,7 @@ async function getPoolData(
       pool: `evaa-${assetId}-${poolName}-ton`.toLowerCase(),
       chain: 'Ton',
       project: 'evaa-protocol',
-      symbol: tokenSymbol,
+      symbol: tokenSymbol === 'TON' ? 'GRAM' : tokenSymbol,
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase: supplyApy * 100,
       apyReward,
