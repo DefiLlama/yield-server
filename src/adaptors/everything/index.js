@@ -320,9 +320,7 @@ const getPoolsForChain = async (chainString) => {
 
       const apyReward = farmingRewards[pairId] || 0;
 
-      const symbol = utils.formatSymbol(
-        `${p.token0.symbol}-${p.token1.symbol}`
-      );
+      const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
 
       return {
         pool: `${pairId}-${chainString}`.toLowerCase(),
