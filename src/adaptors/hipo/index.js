@@ -63,7 +63,7 @@ module.exports = {
         pool: (address + '-ton').toLowerCase(),
         chain: utils.formatChain('ton'),
         project: 'hipo',
-        symbol: 'hTON',
+        symbol: 'hGRAM',
         tvlUsd,
         apyBase,
         underlyingTokens: ['EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c'], // native TON

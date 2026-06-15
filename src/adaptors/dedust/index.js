@@ -1,17 +1,21 @@
 const utils = require('../utils');
+const { Address } = require('@ton/core');
 
 const MIN_TVL_USD = 10000;
 const API_URL = 'https://mainnet.api.dedust.io/v4/api/get_pools';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 50;
+const NATIVE_TON = 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
 
 const formatAddress = (addr) => {
-    if (addr == 'native') {
-        return '0x0000000000000000000000000000000000000000';
-    } else if (addr.startsWith('jetton:')) {
-        return addr.slice(7);
-    } else {
-        return addr;
+    if (addr === 'native') {
+        return NATIVE_TON;
+    }
+    const raw = addr.startsWith('jetton:') ? addr.slice(7) : addr;
+    try {
+        return Address.parse(raw).toString();
+    } catch {
+        return raw;
     }
 }
 
