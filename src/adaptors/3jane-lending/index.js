@@ -21,6 +21,14 @@ const getBlock = async (timestamp) => {
   return res.data.height;
 };
 
+const getUsdcPrice = async () => {
+  const key = `${CHAIN}:${USDC.toLowerCase()}`;
+  const { data } = await axios.get(
+    `https://coins.llama.fi/prices/current/${key}`
+  );
+  return data?.coins?.[key]?.price ?? 1;
+};
+
 const annualize = (now, then, days) =>
   Number.isFinite(now) && Number.isFinite(then) && then > 0
     ? (Math.pow(now / then, 365 / days) - 1) * 100
@@ -42,6 +50,7 @@ const apy = async () => {
     susd3TotalAssets,
     usd3PpsPast,
     susd3PpsPast,
+    usdcPrice,
   ] = await Promise.all([
     call(USD3, PPS_ABI),
     call(sUSD3, PPS_ABI),
@@ -49,6 +58,7 @@ const apy = async () => {
     call(sUSD3, TOTAL_ASSETS_ABI),
     call(USD3, PPS_ABI, blockPast),
     call(sUSD3, PPS_ABI, blockPast),
+    getUsdcPrice(),
   ]);
 
   // USD3 (ERC4626 over USDC): realized yield = pricePerShare growth.
@@ -66,8 +76,9 @@ const apy = async () => {
   // sUSD3 holds USD3 (valued in USDC via USD3's pricePerShare). That USD3 is
   // already part of USD3's totalAssets, so exclude the staked portion from the
   // USD3 pool to avoid double-counting it across both pools.
-  const susd3TvlUsd = (susd3TotalAssets / 1e6) * (usd3PpsNow / 1e6);
-  const usd3TvlUsd = usd3TotalAssets / 1e6 - susd3TvlUsd;
+  const susd3Usdc = (susd3TotalAssets / 1e6) * (usd3PpsNow / 1e6);
+  const susd3TvlUsd = susd3Usdc * usdcPrice;
+  const usd3TvlUsd = (usd3TotalAssets / 1e6 - susd3Usdc) * usdcPrice;
 
   return [
     {
