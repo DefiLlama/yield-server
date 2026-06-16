@@ -54,6 +54,9 @@ const gqlQueries = {
           uniqueKey: marketId
           lltv
           reallocatableLiquidityAssets
+          warnings {
+            level
+          }
           loanAsset {
             address
             symbol
@@ -96,7 +99,11 @@ const gqlQueries = {
         skip: $skip
         orderBy: TotalAssetsUsd
         orderDirection: Desc
-        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
+        where: {
+          chainId_in: [$chainId]
+          totalAssetsUsd_gte: 10000
+          listed: true
+        }
       ) {
         items {
           chain {
@@ -105,6 +112,9 @@ const gqlQueries = {
           address
           name
           symbol
+          warnings {
+            level
+          }
           asset {
             address
             decimals
@@ -139,12 +149,19 @@ const gqlQueries = {
       vaultV2s(
         first: 100
         skip: $skip
-        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
+        where: {
+          chainId_in: [$chainId]
+          totalAssetsUsd_gte: 10000
+          listed: true
+        }
       ) {
         items {
           address
           symbol
           name
+          warnings {
+            level
+          }
           asset {
             address
           }
@@ -247,6 +264,9 @@ const getExpiredPTAddresses = async (ptMarkets, chain) => {
 // Allowed adapter types for Vault V2
 // Vault V2 only allocates to Vault V1 (MetaMorpho) and Market V1
 const ALLOWED_ADAPTER_TYPES = ['MetaMorpho', 'MorphoMarketV1'];
+
+const hasRedWarning = (item) =>
+  item.warnings?.some((warning) => warning.level === 'RED');
 
 const buildVaultV2Pools = (earnV2, chain) =>
   earnV2
@@ -355,9 +375,9 @@ const fetchChainData = async (chainId) => {
   });
 
   return {
-    earnV1: vaults.filter((v) => v.state !== null),
-    earnV2: vaultV2s,
-    borrow: markets,
+    earnV1: vaults.filter((v) => v.state !== null && !hasRedWarning(v)),
+    earnV2: vaultV2s.filter((v) => !hasRedWarning(v)),
+    borrow: markets.filter((m) => !hasRedWarning(m)),
   };
 };
 
