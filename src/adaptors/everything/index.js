@@ -49,6 +49,7 @@ const CONFIG = {
       '0x048af8f22d76cd832aba6acba15009bb618db261': 24, // sUSDe/USDT
       '0x3231d6aea7a71b3e8e8541995ae4e8a2e61081b4': 25, // WstETH/WETH
       '0xbb34cd8fea10a49cb5caf811b0a568f465bd4c6c': 26, // wNVDAx/USDT
+      '0x0168d6b8808f7434cf4d10fd05566b4c4bbadd62': 27, // wSPCXx/USDT
     },
   },
 };
@@ -171,7 +172,9 @@ const fetchFarmingRewards = async (chainString, config, poolPrices) => {
   // EV reward token price. EV is deployed at the same address on every
   // supported chain (arbitrum/base/bsc/ethereum) and is the reward token for
   // all campaigns, so we price it via Arbitrum, its most liquid market.
-  const evPriceData = await utils.getPriceApiData(`/prices/current/arbitrum:${EV_TOKEN_ADDRESS}`);
+  const evPriceData = await utils.getPriceApiData(
+    `/prices/current/arbitrum:${EV_TOKEN_ADDRESS}`
+  );
   const evPrice = evPriceData.coins[`arbitrum:${EV_TOKEN_ADDRESS}`]?.price || 0;
 
   // Build rewards map: pairAddress -> apyReward
