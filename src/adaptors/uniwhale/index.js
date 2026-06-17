@@ -37,6 +37,7 @@ const getApy = async (...args) => {
 };
 
 module.exports = {
+  protocolId: '2638',
   apy: getApy,
   url: 'https://app.uniwhale.co/earn',
 };

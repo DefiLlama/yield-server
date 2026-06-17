@@ -127,6 +127,7 @@ const apr = async () => {
 };
 
 module.exports = {
+  protocolId: '2343',
   timetravel: false,
   apy: apr,
   url: 'https://app.dem.exchange/nitron',

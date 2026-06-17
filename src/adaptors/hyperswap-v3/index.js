@@ -103,6 +103,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5837',
   timetravel: false,
   apy,
   url: 'https://app.hyperswap.exchange',

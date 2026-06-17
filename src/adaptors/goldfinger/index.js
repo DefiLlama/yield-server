@@ -132,6 +132,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7078',
   timetravel: false,
   apy: main,
   url: 'https://goldfinger.finance/en',

@@ -47,6 +47,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7618',
   timetravel: false,
   apy,
   url: 'https://apyx.fi',

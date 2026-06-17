@@ -370,6 +370,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2434',
   timetravel: false,
   apy: main,
   url: 'https://app.myso.finance',

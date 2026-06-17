@@ -286,6 +286,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2666',
   timetravel: false,
   apy,
   url: 'https://www.beta.app.wefi.xyz/',

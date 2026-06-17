@@ -348,6 +348,7 @@ async function main(timestamp = null) {
 }
 
 module.exports = {
+  protocolId: '194',
   timetravel: false,
   apy: main,
   url: 'https://pancakeswap.finance/farms',

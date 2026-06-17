@@ -127,6 +127,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3503',
   timetravel: false,
   apy: getApy,
   url: 'https://app.thestandard.io',

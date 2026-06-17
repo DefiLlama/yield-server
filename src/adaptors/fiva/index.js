@@ -98,6 +98,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5568',
   timetravel: false,
   apy,
   url: 'https://www.thefiva.com',

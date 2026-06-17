@@ -71,6 +71,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2337',
     timetravel: false,
     apy: getApy,
     url: 'https://ston.fi/',

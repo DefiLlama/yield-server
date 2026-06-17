@@ -272,6 +272,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7455',
   timetravel: false,
   apy,
   url: 'https://primevaults.finance/',

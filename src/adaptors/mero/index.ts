@@ -83,6 +83,7 @@ const getPools = async (): Promise<MeroPool[]> => {
 };
 
 module.exports = {
+  protocolId: '1927',
   timetravel: false,
   apy: getPools,
 };

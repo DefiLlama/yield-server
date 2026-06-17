@@ -47,6 +47,7 @@ const vaultData = async () => {
 };
 
 module.exports = {
+  protocolId: '5487',
   timetravel: false,
   apy: vaultData,
   url: 'https://app.nucleusearn.io/dashboard',

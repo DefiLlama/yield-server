@@ -192,6 +192,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '292',
   timetravel: true,
   apy: main,
   url: 'https://swapr.eth.link/#/pools?chainId=1',

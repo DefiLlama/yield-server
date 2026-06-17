@@ -109,6 +109,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3679',
   timetravel: true,
   apy: poolsFunction,
   url: 'https://app.phase.cash/vaults?p=explore',

@@ -75,6 +75,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3391',
   apy,
   url: 'https://liquidcollective.io/',
 };

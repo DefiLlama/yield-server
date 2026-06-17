@@ -197,6 +197,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2399',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://squeeth.opyn.co/strategies/',

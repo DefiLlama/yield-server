@@ -359,6 +359,7 @@ const main = async (timestamp = Date.now() / 1000) => {
 };
 
 module.exports = {
+  protocolId: '3610',
   timetravel: false,
   apy: main,
 };

@@ -189,6 +189,7 @@ const getAPYs = async () => {
 }
 
 module.exports = {
+  protocolId: '2490',
   timetravel: false,
   apy: getAPYs,
   url: 'https://dashboard.libre.org/farming',

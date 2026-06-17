@@ -40,6 +40,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4952',
   timetravel: false,
   apy: apy,
   url: 'https://www.troves.fi/',

@@ -57,4 +57,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://www.binance.com/en/eth2' };
+module.exports = { protocolId: '2914', apy, url: 'https://www.binance.com/en/eth2' };

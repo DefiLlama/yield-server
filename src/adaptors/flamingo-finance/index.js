@@ -46,6 +46,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '304',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://flamingo.finance/earn/overview',

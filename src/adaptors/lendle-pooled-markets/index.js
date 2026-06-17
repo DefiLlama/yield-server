@@ -144,5 +144,6 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3300',
   apy: getApy,
 };

@@ -84,6 +84,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3117',
   apy,
   timetravel: false,
   url: 'https://app.astroport.fi/pools/',

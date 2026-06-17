@@ -341,6 +341,7 @@ const apy = async () => {
 }
 
 module.exports = {
+  protocolId: '7478',
   timetravel: false,
   apy,
   url: 'https://liquidium.fi/',

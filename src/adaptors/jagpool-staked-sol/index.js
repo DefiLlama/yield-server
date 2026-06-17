@@ -46,6 +46,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7314',
   timetravel: false,
   apy,
   url: 'https://www.jagpool.xyz/stake',

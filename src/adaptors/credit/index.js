@@ -84,6 +84,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6796',
   timetravel: false,
   apy,
   url: 'https://credit.cash',

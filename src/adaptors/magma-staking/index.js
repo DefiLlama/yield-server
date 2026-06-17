@@ -220,6 +220,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7036',
   apy,
   url: 'https://www.magmastaking.xyz/',
 };

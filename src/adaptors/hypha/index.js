@@ -84,6 +84,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3179',
   timetravel: false,
   apy: main,
   url: 'https://www.gogopool.com',

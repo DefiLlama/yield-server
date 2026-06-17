@@ -112,6 +112,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3739',
   timetravel: false,
   apy: main,
   url: 'https://dapp.getketh.com/home/',

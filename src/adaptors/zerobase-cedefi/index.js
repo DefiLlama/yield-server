@@ -198,6 +198,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6265',
   timetravel: false,
   apy,
   url: 'https://app.zerobase.pro',

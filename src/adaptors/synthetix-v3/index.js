@@ -38,6 +38,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4446',
   apy,
   url: 'https://liquidity.synthetix.eth.limo/',
 };

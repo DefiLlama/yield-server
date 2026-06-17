@@ -233,5 +233,6 @@ async function getUniswapV3Price(uniswapLp, chain, ethPrice) {
 }
 
 module.exports = {
+  protocolId: '6311',
   apy: getApy,
 };

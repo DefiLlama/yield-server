@@ -91,6 +91,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '587',
   timetravel: false,
   apy,
   url: 'https://app.maple.finance/earn',

@@ -57,6 +57,7 @@ const getApy = async () => {
 }
 
 module.exports = {
+  protocolId: '1336',
   apy: getApy,
   url: 'https://zcx.com/earn',
 };

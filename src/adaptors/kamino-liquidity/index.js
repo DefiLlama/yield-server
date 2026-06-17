@@ -45,6 +45,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2062',
   apy: getApy,
   url: 'https://app.kamino.finance/',
 };

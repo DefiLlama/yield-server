@@ -81,6 +81,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '573',
   timetravel: false,
   apy: apy,
   url: 'https://app.liqee.io/#/lending?AssetsType=Lend&currentPool=pos',

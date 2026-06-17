@@ -249,6 +249,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2825',
   apy,
   url: 'https://app.nostra.finance',
 };

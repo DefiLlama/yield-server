@@ -23,6 +23,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '6786',
   timetravel: false,
   apy,
   url: 'https://snowbl.capital',

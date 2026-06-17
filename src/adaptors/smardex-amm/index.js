@@ -516,6 +516,7 @@ const getsUSDeApy = async (sUSDNPrice) => {
 };
 
 module.exports = {
+  protocolId: '2695',
   timetravel: false,
   apy: main,
   url: BASE_URL,

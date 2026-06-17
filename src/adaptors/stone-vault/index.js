@@ -111,6 +111,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7413',
   timetravel: false,
   apy,
   url: 'https://stva.io',

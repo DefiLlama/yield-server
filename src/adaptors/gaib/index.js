@@ -91,6 +91,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '6535',
   timetravel: false,
   apy: poolsFunction,
   url: "https://aid.gaib.ai",

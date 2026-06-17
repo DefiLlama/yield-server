@@ -131,6 +131,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1207',
   timetravel: false,
   apy,
   url: 'https://across.to/pool',

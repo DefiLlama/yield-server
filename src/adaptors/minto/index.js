@@ -41,6 +41,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1880',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://minto.finance/staking',

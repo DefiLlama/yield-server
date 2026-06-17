@@ -230,6 +230,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '449',
   timetravel: true,
   apy: main,
   url: 'https://app.mai.finance/',

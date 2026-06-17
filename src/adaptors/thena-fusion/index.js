@@ -295,6 +295,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2864',
   timetravel: false,
   apy: getApy,
   url: 'https://app.gamma.xyz/dashboard',

@@ -46,6 +46,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6460',
   timetravel: false,
   apy,
   url: 'https://stake.laine.one/',

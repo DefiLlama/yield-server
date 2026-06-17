@@ -366,6 +366,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1557',
   timetravel: false,
   apy: apy,
   url: 'https://app.singlefinance.io/',

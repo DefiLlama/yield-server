@@ -40,6 +40,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2351',
   timetravel: false, // Waves blockchain
   apy,
   url: 'https://swaves.pepe.team',

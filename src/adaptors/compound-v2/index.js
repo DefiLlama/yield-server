@@ -261,6 +261,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '114',
   timetravel: false,
   apy: main,
   url: 'https://app.compound.finance/markets/v2',

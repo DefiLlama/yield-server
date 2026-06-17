@@ -121,6 +121,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1594',
   timetravel: false,
   apy: main,
   url: 'https://app.symbiosis.finance/liquidity-v2/pools',

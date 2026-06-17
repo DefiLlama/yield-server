@@ -151,6 +151,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7967',
   timetravel: false,
   apy,
   url: 'https://app.brix.money',

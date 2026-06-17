@@ -272,6 +272,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2662',
   timetravel: false,
   apy: getPools,
   url: 'https://www.morphex.trade/earn',

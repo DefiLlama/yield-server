@@ -227,6 +227,7 @@ async function getPoolsForChain(chain, timestamp) {
 }
 
 module.exports = {
+  protocolId: '5458',
   timetravel: true,
   apy: getPools,
   url: 'https://pinto.money/',

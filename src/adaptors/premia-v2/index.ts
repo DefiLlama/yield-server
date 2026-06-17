@@ -105,6 +105,7 @@ async function poolsFunction(): Promise<PoolType[]> {
 }
 
 module.exports = {
+  protocolId: '381',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.premia.finance/options',

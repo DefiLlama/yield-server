@@ -79,6 +79,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7451',
   timetravel: false,
   apy,
   url: 'https://bitcoin.acre.fi/dashboard',

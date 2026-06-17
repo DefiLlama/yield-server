@@ -163,6 +163,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1882',
   timetravel: false,
   apy: getApy,
   url: 'https://ferroprotocol.com/#/pools',

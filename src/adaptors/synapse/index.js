@@ -300,6 +300,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '657',
   url: 'https://synapseprotocol.com/pools',
   timetravel: false,
   apy: main,

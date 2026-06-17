@@ -241,6 +241,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6741',
   timetravel: false,
   apy,
   url: BASE_URL,

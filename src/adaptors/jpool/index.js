@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1173',
   timetravel: false,
   apy,
   url: 'https://app.jpool.one/',

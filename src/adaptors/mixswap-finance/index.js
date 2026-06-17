@@ -214,6 +214,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1963',
   timetravel: false,
   apy: getApy,
   url: 'https://mixswap.finance/',

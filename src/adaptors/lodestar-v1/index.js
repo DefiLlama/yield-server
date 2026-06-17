@@ -291,6 +291,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3307',
   timetravel: false,
   apy: main,
   url: 'https://app.lodestarfinance.io/',

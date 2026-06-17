@@ -700,6 +700,7 @@ async function getPoolData(
 }
 
 module.exports = {
+  protocolId: '4198',
   timetravel: false,
   apy: getApy,
   url: 'https://evaa.finance/',

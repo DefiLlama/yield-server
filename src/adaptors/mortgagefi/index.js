@@ -161,6 +161,7 @@ const apy = async () => {
 }
 
 module.exports = {
+  protocolId: '5395',
     timetravel: false,
     apy: apy,
     url: 'https://mortgagefi.app/markets',

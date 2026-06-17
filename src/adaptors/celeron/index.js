@@ -80,6 +80,7 @@ let abi = {
 };
 
 module.exports = {
+  protocolId: '5470',
   apy,
   url: 'https://celeron.xyz/',
 };

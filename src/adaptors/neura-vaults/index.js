@@ -47,6 +47,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '7250',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://neuravaults.xyz/',

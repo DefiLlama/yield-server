@@ -122,6 +122,7 @@ const getApy = async () => {
 }
 
 module.exports = {
+  protocolId: '151',
   timetravel: false,
   apy: getApy,
   url: `${APP_URL}/invest?utm_source=defillama&utm_medium=listing&utm_campaign=external`,

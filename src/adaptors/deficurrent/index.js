@@ -80,6 +80,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2105',
   timetravel: false,
   apy: main,
   url,

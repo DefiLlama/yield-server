@@ -100,6 +100,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '1045',
   apy,
   url: 'https://stake.tempus.finance/',
 };

@@ -99,6 +99,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1427',
   timetravel: false,
   apy: main,
   url: 'https://staking.benqi.fi/stake',

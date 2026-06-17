@@ -67,6 +67,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4078',
   apy,
   timetravel: false,
   url: 'https://app.swellnetwork.io/stake/rsweth',

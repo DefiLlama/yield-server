@@ -54,6 +54,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3257',
   timetravel: false,
   apy: getApy,
   url: 'https://app.icpswap.com',

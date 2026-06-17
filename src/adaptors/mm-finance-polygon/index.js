@@ -292,6 +292,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1966',
   timetravel: false,
   apy: getApy,
   url: 'https://polymm.finance/farms',

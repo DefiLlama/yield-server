@@ -294,6 +294,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '874',
   timetravel: false,
   apy,
   url: 'https://app.ichi.org/',

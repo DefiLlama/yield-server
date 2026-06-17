@@ -175,6 +175,7 @@ const apy = async function () {
   return pools;
 }
 module.exports = {
+  protocolId: '5882',
   timetravel: false,
   apy: apy,
   url: 'https://app.csigma.finance',

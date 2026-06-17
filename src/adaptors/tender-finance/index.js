@@ -369,6 +369,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2382',
   timetravel: false,
   apy: main,
   url: 'https://app.tender.fi',

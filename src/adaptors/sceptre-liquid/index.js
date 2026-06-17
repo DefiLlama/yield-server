@@ -90,6 +90,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '4724',
   timetravel: false,
   apy: main,
   url: 'https://flare.sceptre.fi/',

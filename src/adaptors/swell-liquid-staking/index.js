@@ -51,6 +51,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2901',
   timetravel: false,
   apy,
   url: 'https://app.swellnetwork.io/',

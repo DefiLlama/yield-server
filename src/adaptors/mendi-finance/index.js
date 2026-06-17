@@ -244,6 +244,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3421',
   timetravel: false,
   apy: main,
   url: 'https://mendi.finance',

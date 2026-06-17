@@ -28,6 +28,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1894',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://www.filet.finance',

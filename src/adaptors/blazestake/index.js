@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2931',
   timetravel: false,
   apy,
   url: 'https://stake.solblaze.org/app/',

@@ -108,6 +108,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '450',
   timetravel: false,
   apy: getApy,
   url: 'https://scream.sh/lend',

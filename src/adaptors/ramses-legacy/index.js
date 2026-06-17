@@ -168,6 +168,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2675',
   timetravel: false,
   apy: getApy,
   url: 'https://app.ramses.exchange/liquidity',

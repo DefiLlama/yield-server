@@ -138,6 +138,7 @@ async function poolsFunction() {
 }
 
 module.exports = {
+  protocolId: '4888',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://sparkdex.ai/apps/liquidity',

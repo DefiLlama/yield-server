@@ -57,6 +57,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4133',
   apy,
   url: 'https://www.ethena.fi/',
 };

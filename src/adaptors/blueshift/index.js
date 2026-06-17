@@ -349,6 +349,7 @@ async function poolsApy(chain) {
 }
 
 module.exports = {
+  protocolId: '1665',
   timetravel: false,
   apy: async () =>
     (

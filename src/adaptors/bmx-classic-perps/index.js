@@ -160,6 +160,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '3530',
   timetravel: false,
   apy: getPools,
 };

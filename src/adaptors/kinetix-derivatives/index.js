@@ -133,6 +133,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '3465',
   timetravel: false,
   apy: getPools,
   url: 'https://kinetix.finance/pool/perpv1',

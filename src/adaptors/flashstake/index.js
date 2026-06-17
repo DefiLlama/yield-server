@@ -92,6 +92,7 @@ const getHistorical = async() => {
  */
 
 module.exports = {
+  protocolId: '2115',
   timetravel: false,
   apy: getLatest,
   url: 'https://app.flashstake.io/',

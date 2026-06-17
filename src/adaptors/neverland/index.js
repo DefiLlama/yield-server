@@ -437,6 +437,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7005',
   apy,
   url: 'https://app.neverland.money',
 };

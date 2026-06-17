@@ -121,6 +121,7 @@ const apy = async (timestamp: number | null = null) => {
 };
 
 module.exports = {
+  protocolId: '4555',
   timetravel: true,
   apy: apy,
   url: 'https://tlx.fi/rewards',

@@ -75,4 +75,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://savings.latch.io/' };
+module.exports = { protocolId: '5580', apy, url: 'https://savings.latch.io/' };

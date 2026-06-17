@@ -181,6 +181,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1884',
   timetravel: false,
   apy: main,
   url: 'https://whaleswap.finance/farm?chain=bsc_mainnet',

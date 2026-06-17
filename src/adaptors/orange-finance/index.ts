@@ -113,6 +113,7 @@ async function getPools() {
 }
 
 module.exports = {
+  protocolId: '3422',
   timetravel: false,
   apy: getPools,
   url: 'https://app.orangefinance.io',

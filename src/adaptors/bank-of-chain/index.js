@@ -68,6 +68,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2265',
   apy,
   url: 'https://bankofchain.io',
   timetravel: false,

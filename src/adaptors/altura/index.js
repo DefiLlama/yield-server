@@ -64,6 +64,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '7300',
   timetravel: false,
   apy,
   url: 'https://altura.trade',

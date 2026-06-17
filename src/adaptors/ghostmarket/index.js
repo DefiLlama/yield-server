@@ -9,6 +9,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2290',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://ghostmarket.io/incentives/gfund'

@@ -73,6 +73,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5234',
   apy: main,
   url: 'https://app.usdx.money/',
 };

@@ -413,6 +413,7 @@ async function main(timestamp = null) {
 }
 
 module.exports = {
+  protocolId: '7382',
     timetravel: false,
     apy: main,
     url: 'https://supernova.xyz/liquidity',

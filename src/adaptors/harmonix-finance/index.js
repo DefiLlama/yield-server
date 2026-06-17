@@ -141,6 +141,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4856',
   timetravel: false,
   apy: getApy,
   url: 'https://app.harmonix.fi/vaults/', // Link to page with pools

@@ -129,6 +129,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2285',
   timetravel: false,
   apy: apy,
   url: 'https://arbitrum.sentiment.xyz/lending',

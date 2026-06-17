@@ -184,6 +184,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '1989',
   timetravel: false,
   apy: getPools,
   url: 'https://swaps.mycelium.xyz/',

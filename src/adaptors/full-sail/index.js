@@ -9,5 +9,6 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '6413',
   apy: main,
 };

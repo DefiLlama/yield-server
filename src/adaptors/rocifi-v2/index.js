@@ -210,6 +210,7 @@ async function getPoolData() {
 }
 
 module.exports = {
+  protocolId: '2646',
   timetravel: false,
   apy: getPoolData,
   url: 'https://roci.fi/app/markets',

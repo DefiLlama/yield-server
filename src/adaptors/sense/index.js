@@ -273,6 +273,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2100',
   timetravel: false,
   apy: main,
   url: 'https://app.sense.finance',

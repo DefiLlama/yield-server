@@ -65,4 +65,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://infrared.finance/ibera' };
+module.exports = { protocolId: '5775', apy, url: 'https://infrared.finance/ibera' };

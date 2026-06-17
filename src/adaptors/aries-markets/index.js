@@ -149,6 +149,7 @@ function calcAptRewardApy(rewardPerDay, aptPrice, tvlWithBorrow) {
 }
 
 module.exports = {
+  protocolId: '2228',
   timetravel: false,
   apy: main,
   url: 'https://app.ariesmarkets.xyz',

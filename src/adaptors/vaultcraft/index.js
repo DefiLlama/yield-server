@@ -138,6 +138,7 @@ const apy = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '1791',
   apy,
   url: 'https://app.vaultcraft.io/vaults',
 };

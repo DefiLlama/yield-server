@@ -87,6 +87,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5426',
   timetravel: false,
   apy,
   url: 'https://levva.fi',

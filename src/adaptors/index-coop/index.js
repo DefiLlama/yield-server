@@ -98,6 +98,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '172',
   timetravel: false,
   apy: main,
   url: 'https://app.indexcoop.com',

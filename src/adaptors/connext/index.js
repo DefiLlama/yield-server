@@ -276,6 +276,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '217',
   timetravel: false,
   apy: getApy,
 };

@@ -264,6 +264,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1948',
   timetravel: false,
   apy: apy,
   url: 'https://matterdefi.xyz/#/',

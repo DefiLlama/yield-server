@@ -70,6 +70,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1784',
   timetravel: false,
   apy: main,
   url: 'https://app.tenderize.me/stakers/livepeer',

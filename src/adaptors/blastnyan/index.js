@@ -103,6 +103,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4220',
   timetravel: false,
   apy: getApy,
   url: 'https://BlastNYAN.com/',

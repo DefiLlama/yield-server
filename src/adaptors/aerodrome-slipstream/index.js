@@ -623,6 +623,7 @@ async function main(timestamp = null) {
 }
 
 module.exports = {
+  protocolId: '4524',
   timetravel: false,
   apy: main,
 };

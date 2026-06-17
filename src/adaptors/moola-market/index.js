@@ -89,6 +89,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '489',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.moola.market/',

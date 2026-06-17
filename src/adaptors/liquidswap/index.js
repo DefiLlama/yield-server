@@ -206,6 +206,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '2210',
   timetravel: false,
   apy: main,
   url: 'https://farms.liquidswap.com/#/stakes',

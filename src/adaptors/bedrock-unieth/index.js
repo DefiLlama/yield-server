@@ -127,6 +127,7 @@ const getApy = async () => {
   ];
 };
 module.exports = {
+  protocolId: '2832',
   timetravel: false,
   apy: getApy,
   url: 'https://app.bedrock.technology/unieth',

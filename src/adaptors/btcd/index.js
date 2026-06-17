@@ -253,6 +253,7 @@ const apy = async () => {
  *   entry's own `url` field, set inside `apy()`.
  */
 module.exports = {
+  protocolId: '7897',
   apy,
   url: 'https://btcd.fi',
 };

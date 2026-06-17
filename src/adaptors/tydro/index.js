@@ -145,6 +145,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6875',
   timetravel: false,
   apy,
   url: 'https://app.tydro.com/',

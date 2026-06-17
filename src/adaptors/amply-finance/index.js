@@ -141,6 +141,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5107',
   timetravel: false,
   apy,
   url: 'https://amply.finance/',

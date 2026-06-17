@@ -83,6 +83,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '6019',
   timetravel: false,
   apy,
   url: 'https://app.mysticfinance.xyz',

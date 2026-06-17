@@ -258,6 +258,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2038',
   timetravel: false,
   apy: getApy,
   url: 'https://lista.org/',

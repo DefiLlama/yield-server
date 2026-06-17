@@ -233,6 +233,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2987',
   timetravel: false,
   apy: getPools,
   url: 'https://vendor.finance/borrow',

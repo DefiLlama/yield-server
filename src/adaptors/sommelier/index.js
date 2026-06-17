@@ -275,6 +275,7 @@ async function getRewardApy(stakingPool, sommPrice, assetPrice, cellarChain) {
 }
 
 module.exports = {
+  protocolId: '2139',
   timetravel: false,
   apy: main,
 };

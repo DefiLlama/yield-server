@@ -8,6 +8,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4708',
   timetravel: false,
   apy: getApy,
   url: 'https://icpex.org',

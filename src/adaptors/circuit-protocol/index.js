@@ -61,6 +61,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3500',
   timetravel: false,
   apy: main,
   url: 'https://circuit.farm/',

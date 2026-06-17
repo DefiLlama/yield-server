@@ -184,6 +184,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2157',
   apy,
   url: 'https://app.planet.finance/lending',
 };

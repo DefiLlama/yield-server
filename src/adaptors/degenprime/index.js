@@ -284,6 +284,7 @@ const getPoolsAPYs = async () => {
 };
 
 module.exports = {
+  protocolId: '5944',
   timetravel: false,
   start: 27707209,
   apy: getPoolsAPYs,

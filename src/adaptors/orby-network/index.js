@@ -126,6 +126,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '4154',
   timetravel: false,
   apy: main,
   url: 'https://orby.network/',

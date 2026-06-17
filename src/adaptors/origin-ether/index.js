@@ -123,6 +123,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2950',
   timetravel: false,
   apy,
   url: 'https://originprotocol.com',

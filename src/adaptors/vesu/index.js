@@ -84,6 +84,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '4877',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.vesu.xyz',

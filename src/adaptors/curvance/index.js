@@ -337,6 +337,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7053',
   timetravel: false,
   apy: main,
   url: 'https://app.curvance.com',

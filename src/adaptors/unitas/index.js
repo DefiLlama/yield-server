@@ -215,6 +215,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6340',
     apy,
     url: "https://unitas.so/",
 };

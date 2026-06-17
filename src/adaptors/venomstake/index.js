@@ -20,6 +20,7 @@ const fetch = async () => {
 };
 
 module.exports = {
+  protocolId: '4537',
   timetravel: false,
   apy: fetch,
   url: 'https://venomstake.com/',

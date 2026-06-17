@@ -323,6 +323,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '366',
   timetravel: false,
   apy: main,
   url: 'https://exchange.dfx.finance/pools',

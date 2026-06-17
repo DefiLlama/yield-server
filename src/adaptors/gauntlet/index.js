@@ -173,6 +173,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '6202',
   timetravel: false,
   apy: main,
   url: 'https://app.gauntlet.xyz',

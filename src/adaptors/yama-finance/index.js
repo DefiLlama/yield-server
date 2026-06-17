@@ -93,6 +93,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2743',
   timetravel: false,
   apy: main,
   url: 'https://yama.finance/app/lend',

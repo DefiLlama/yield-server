@@ -218,6 +218,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6797',
   timetravel: false,
   apy,
   url: 'https://app.forgeyields.com',

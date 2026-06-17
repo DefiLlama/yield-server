@@ -107,6 +107,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6582',
   timetravel: false,
   apy,
   url: 'https://securitize.io/invest/apollo-acred',

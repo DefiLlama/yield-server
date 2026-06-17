@@ -11,6 +11,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '2570',
   timetravel: false,
   apy: main,
   url: MARGINFI_URL,

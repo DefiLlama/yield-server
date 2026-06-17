@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6648',
   timetravel: false,
   apy,
   url: 'https://hylo.so/lst',

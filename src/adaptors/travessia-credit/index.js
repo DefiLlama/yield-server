@@ -104,6 +104,7 @@ const apy = async () => {
 }
 
 module.exports = {
+  protocolId: '7674',
     timetravel: false,
     apy,
     url: "https://www.travessiacredit.com",

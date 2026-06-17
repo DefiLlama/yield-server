@@ -47,6 +47,7 @@ async function tvlUsd() {
 }
 
 module.exports = {
+  protocolId: '5267',
     timetravel: false,
     apy: getApy,
     url: 'https://aquapatina.eth/',

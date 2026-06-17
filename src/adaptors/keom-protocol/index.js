@@ -447,6 +447,7 @@ function convertTvlUSD(
 }
 
 module.exports = {
+  protocolId: '3823',
   timetravel: false,
   apy: main,
   url: 'https://app.keom.io/',

@@ -153,6 +153,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '246',
   timetravel: true,
   apy: main,
   url: 'https://app.pangolin.exchange/#/pool',

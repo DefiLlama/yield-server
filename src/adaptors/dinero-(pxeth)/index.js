@@ -28,6 +28,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3912',
   timetravel: false,
   apy: getApy,
   url: 'https://dineroismoney.com/pxeth/deposit',

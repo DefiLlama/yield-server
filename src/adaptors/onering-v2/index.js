@@ -207,6 +207,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3395',
   timetravel: false,
   apy: main,
   url: 'https://onering.tools',

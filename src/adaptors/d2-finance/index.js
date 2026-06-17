@@ -233,6 +233,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '4846',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://d2.finance',

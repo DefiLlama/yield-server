@@ -242,6 +242,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5825',
   timetravel: false,
   apy,
   url: 'https://veda.tech/',

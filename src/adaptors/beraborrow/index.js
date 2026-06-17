@@ -161,6 +161,7 @@ const totalSupply = async (token, block = 'latest') => {
 };
 
 module.exports = {
+  protocolId: '5746',
   timetravel: true,
   apy,
   url: 'https://beraborrow.com',

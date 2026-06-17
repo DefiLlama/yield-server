@@ -156,6 +156,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2284',
   timetravel: false,
   apy: main,
   url: 'https://fi.woo.org/swap/earn',

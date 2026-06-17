@@ -79,6 +79,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3597',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.zeroliquid.xyz/earn',

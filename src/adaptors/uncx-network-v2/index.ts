@@ -71,6 +71,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1765',
   timetravel: false,
   apy: getApy,
   url: 'https://app.unicrypt.network/chain/mainnet/farms',

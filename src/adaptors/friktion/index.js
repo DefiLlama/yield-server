@@ -58,6 +58,7 @@ async function tvl() {
 }
 
 module.exports = {
+  protocolId: '1162',
   timetravel: false,
   apy: tvl,
   url: 'https://app.friktion.fi/',

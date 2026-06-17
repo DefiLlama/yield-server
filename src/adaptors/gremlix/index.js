@@ -32,6 +32,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '7825',
   timetravel: false,
   apy,
   url: 'https://app.gremlix.xyz'

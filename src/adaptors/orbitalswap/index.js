@@ -238,6 +238,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1845',
   timetravel: false,
   apy: getApy,
   url: 'https://orbitalswap.com/',

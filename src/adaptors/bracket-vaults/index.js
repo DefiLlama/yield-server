@@ -178,6 +178,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '6504',
   timetravel: false,
   apy: main,
   url: 'https://bracket.fi/'

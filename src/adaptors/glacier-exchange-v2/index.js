@@ -133,6 +133,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2757',
   timetravel: false,
   apy: getApy,
   url: 'https://glacier.exchange/liquidity',

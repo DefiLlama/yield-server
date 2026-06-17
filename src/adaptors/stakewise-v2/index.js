@@ -68,6 +68,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '277',
   timetravel: false,
   apy: getApy,
   url: 'https://app.stakewise.io/',

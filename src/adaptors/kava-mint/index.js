@@ -140,6 +140,7 @@ function convertSymbol(symbol) {
 }
 
 module.exports = {
+  protocolId: '135',
   timetravel: false,
   apy: main,
   url: 'https://www.kava.io/',

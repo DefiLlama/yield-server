@@ -51,6 +51,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '7549',
   timetravel: false,
   apy: getApy,
   url: 'https://yldfi.co',

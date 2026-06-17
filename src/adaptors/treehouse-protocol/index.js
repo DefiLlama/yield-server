@@ -173,6 +173,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5131',
     timetravel: false,
     apy,
     url: 'https://www.treehouse.finance/',

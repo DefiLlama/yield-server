@@ -91,6 +91,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7646',
   timetravel: false,
   apy: main,
   url: 'https://app.saturn.credit/',

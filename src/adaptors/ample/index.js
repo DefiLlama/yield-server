@@ -144,6 +144,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7493',
   timetravel: false,
   apy,
   url: 'https://ample.money/',

@@ -216,6 +216,7 @@ const lendingApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2622',
   timetravel: false,
   apy: lendingApy,
   url: 'v1.mare.finance',

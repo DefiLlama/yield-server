@@ -49,6 +49,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1841',
   timetravel: false,
   apy: apy,
   url: 'https://app.ratio.finance/dashboard/available-vaults',

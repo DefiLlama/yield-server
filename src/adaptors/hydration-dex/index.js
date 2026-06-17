@@ -479,6 +479,7 @@ function cleanSymbol(symbol) {
 }
 
 module.exports = {
+  protocolId: '3439',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.hydration.net/liquidity/all-pools',

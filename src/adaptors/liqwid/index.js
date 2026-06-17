@@ -83,6 +83,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2491',
   timetravel: false,
   apy: apy,
   url: 'https://v2.liqwid.finance/',

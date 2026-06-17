@@ -105,6 +105,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6659',
   timetravel: false,
   apy,
   url: 'https://app.3jane.xyz/supply',

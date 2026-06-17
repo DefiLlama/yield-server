@@ -195,6 +195,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3079',
   apy,
   url: 'https://app.zklend.com/markets',
 };

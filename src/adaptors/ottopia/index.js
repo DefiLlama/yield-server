@@ -75,6 +75,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '803',
   timetravel: true,
   apy: main,
   url: 'https://ottopia.app/',

@@ -741,6 +741,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2542',
   timetravel: false,
   apy,
   url: 'https://app.ondo.finance/',

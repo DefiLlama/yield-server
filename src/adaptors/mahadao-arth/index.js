@@ -119,6 +119,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1475',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://farming.mahadao.com?utm_source=defillama&utm_medium=listing&utm_campaign=external',

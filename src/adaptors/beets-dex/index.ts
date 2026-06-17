@@ -7,6 +7,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '654',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://beets.fi/pools',

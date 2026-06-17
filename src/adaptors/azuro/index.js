@@ -30,6 +30,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1892',
   timetravel: false,
   apy,
   url: 'https://azuro.org/app/liquidity',

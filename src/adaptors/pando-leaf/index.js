@@ -77,6 +77,7 @@ async function main() {
 
 // mixin
 module.exports = {
+  protocolId: '2205',
   timetravel: false,
   apy: main,
   url: 'https://pando.im/',

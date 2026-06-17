@@ -147,6 +147,7 @@ async function pools() {
 }
 
 module.exports = {
+  protocolId: '1433',
   timetravel: false,
   url: 'https://app.jonesdao.io/vaults',
   apy: pools,

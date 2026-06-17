@@ -72,6 +72,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1679',
   timetravel: false,
   apy: getApy,
   url: 'https://dotdot.finance/#/stake',

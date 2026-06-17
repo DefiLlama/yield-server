@@ -50,6 +50,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6360',
   timetravel: false,
   apy,
   url: "https://tr.energy",

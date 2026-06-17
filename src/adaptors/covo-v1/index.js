@@ -295,6 +295,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2525',
   timetravel: false,
   apy: getPools,
   url: 'https://app.covo.finance/#/earn',

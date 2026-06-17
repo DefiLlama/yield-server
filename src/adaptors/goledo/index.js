@@ -237,6 +237,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2576',
   timetravel: false,
   apy: getApy,
   url: 'https://www.goledo.cash/',

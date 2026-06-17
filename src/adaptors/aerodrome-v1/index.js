@@ -312,6 +312,7 @@ async function main(timestamp = null) {
 }
 
 module.exports = {
+  protocolId: '3450',
   timetravel: false,
   apy: main,
   url: 'https://aerodrome.finance/liquidity',

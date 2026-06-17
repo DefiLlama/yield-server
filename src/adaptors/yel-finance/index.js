@@ -159,6 +159,7 @@ const getData = async ({ chainId, address }) => {
 };
 
 module.exports = {
+  protocolId: '686',
   apy: getAPY,
   url: POTIONS_URL,
 };

@@ -112,6 +112,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1497',
   apy: getApy,
   url: 'https://starlay.finance/app/markets',
 };

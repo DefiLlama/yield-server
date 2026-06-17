@@ -131,5 +131,6 @@ const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
 };
 
 module.exports = {
+  protocolId: '5751',
   apy,
 };

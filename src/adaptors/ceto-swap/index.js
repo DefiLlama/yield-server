@@ -238,5 +238,6 @@ async function getPoolsInfo() {
 
 
 module.exports = {
+  protocolId: '4603',
   apy: getPoolsInfo,
 };

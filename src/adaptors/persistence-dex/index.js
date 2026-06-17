@@ -126,6 +126,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2737',
   timetravel: false,
   apy,
   url: 'https://app.dexter.zone/pools',

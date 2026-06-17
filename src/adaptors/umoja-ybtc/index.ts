@@ -30,6 +30,7 @@ async function umojaYbtcYield()
 };
 
 module.exports = {
+  protocolId: '5654',
   timetravel: false,
   apy: umojaYbtcYield,
   url: "https://umoja.xyz/smartcoins",

@@ -224,6 +224,7 @@ async function queryContract(api, contract, data) {
 }
 
 module.exports = {
+  protocolId: '1524',
   apy,
   timetravel: false,
   url: 'https://app.marsprotocol.io/earn/',

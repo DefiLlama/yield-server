@@ -104,6 +104,7 @@ const collectPools = async () => {
 };
 
 module.exports = {
+  protocolId: '1201',
   timetravel: false,
   apy: collectPools,
   url: 'https://app.zunami.io/',

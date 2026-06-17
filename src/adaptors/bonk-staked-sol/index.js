@@ -36,6 +36,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4994',
   timetravel: false,
   apy,
   url: 'https://bonkcoin.com/',

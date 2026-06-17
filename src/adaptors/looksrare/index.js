@@ -135,6 +135,7 @@ const getApy = async () => {
 
 
 module.exports = {
+  protocolId: '1229',
     timetravel: false,
     apy: getApy,
     url: 'https://looksrare.org/rewards',

@@ -253,6 +253,7 @@ const getPoolData = async () => {
 };
 
 module.exports = {
+  protocolId: '6047',
     timetravel: false,
     apy: getPoolData,
     url: 'https://www.berapaw.com/stake',

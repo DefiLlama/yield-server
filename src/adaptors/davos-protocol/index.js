@@ -201,6 +201,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2683',
   timetravel: false,
   apy: getApy,
   url: 'https://davos.xyz/',

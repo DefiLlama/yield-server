@@ -185,6 +185,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2548',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.vela.exchange/staking/vlp',

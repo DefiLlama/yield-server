@@ -114,6 +114,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '6600',
   timetravel: false,
   apy: getApy,
   url: 'https://jup.ag/lend',

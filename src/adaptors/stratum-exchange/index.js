@@ -358,6 +358,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4142',
     timetravel: true,
     apy: getApy,
     url: 'https://app.stratumexchange.com/liquidity',

@@ -154,6 +154,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2400',
   timetravel: false,
   apy: getApy,
   url: 'https://solidly.com/liquidity',

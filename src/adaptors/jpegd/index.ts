@@ -23,6 +23,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1619',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://jpegd.io/ape-staking',

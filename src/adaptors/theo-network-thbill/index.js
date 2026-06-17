@@ -100,6 +100,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6702',
   timetravel: false,
   apy,
   url: 'https://app.theo.xyz',

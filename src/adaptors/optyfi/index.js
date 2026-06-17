@@ -155,6 +155,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2268',
   timetravel: false,
   apy: main,
   url: 'https://app.opty.fi/',

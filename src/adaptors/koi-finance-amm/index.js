@@ -180,6 +180,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2727',
   timetravel: false,
   apy: main,
   url: 'https://koi.finance/farms',

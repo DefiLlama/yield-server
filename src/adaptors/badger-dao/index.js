@@ -153,6 +153,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '173',
   timetravel: false,
   apy: main,
   url: 'https://app.badger.com',

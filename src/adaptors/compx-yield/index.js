@@ -9,6 +9,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '4195',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.compx.io/farms',

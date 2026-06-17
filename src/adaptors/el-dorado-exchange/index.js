@@ -242,6 +242,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2356',
     timetravel: false,
     apy: getPools,
     url: 'https://app.ede.finance/#/Earn',

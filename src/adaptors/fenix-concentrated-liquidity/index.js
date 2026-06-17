@@ -104,6 +104,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4563',
   timetravel: false,
   apy: getApy,
   url: 'https://www.fenixfinance.io/liquidity',

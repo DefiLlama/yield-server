@@ -53,6 +53,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3594',
   timetravel: false,
   apy: getApy,
   url: 'https://coinbase.com',

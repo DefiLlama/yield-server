@@ -59,6 +59,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '5363',
     timetravel: false,
     apy: getApy,
     url: 'https://tonco.io/',

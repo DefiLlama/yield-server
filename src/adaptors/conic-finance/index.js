@@ -216,6 +216,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2616',
   timetravel: false,
   apy,
   url: 'https://conic.finance/',

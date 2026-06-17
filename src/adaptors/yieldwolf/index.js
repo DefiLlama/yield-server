@@ -67,6 +67,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1278',
   timetravel: false,
   apy: apy,
   url: 'https://yieldwolf.finance/',

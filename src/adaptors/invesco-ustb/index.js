@@ -98,4 +98,4 @@ const apy = async () => {
     ];
 };
 
-module.exports = { apy, url: 'https://superstate.com/ustb' };
+module.exports = { protocolId: '4265', apy, url: 'https://superstate.com/ustb' };

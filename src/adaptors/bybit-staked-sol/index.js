@@ -35,4 +35,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://www.bybit.com/en/web3/staking/BybitSOL' };
+module.exports = { protocolId: '5179', apy, url: 'https://www.bybit.com/en/web3/staking/BybitSOL' };

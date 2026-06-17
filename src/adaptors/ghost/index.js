@@ -86,6 +86,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2866',
   timetravel: false,
   apy: getApy,
   url: 'https://ghost.kujira.network/lend',

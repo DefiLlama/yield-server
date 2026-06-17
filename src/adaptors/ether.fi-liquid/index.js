@@ -397,6 +397,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4429',
   timetravel: false,
   apy,
   url: 'https://app.ether.fi/liquid',

@@ -26,6 +26,7 @@ const SY_pool = async() => {
 }
 
 module.exports = {
+  protocolId: '5361',
     timetravel: false,
     apy: SY_pool,
     url: "https://app.sensi.fi/",

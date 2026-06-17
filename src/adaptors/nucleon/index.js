@@ -430,6 +430,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2572',
   timetravel: false,
   apy: getApy,
   url: 'https://www.nucleon.space/',

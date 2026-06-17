@@ -261,6 +261,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '337',
   timetravel: false,
   apy: getPools,
   url: 'https://app.gmx.io/#/earn',

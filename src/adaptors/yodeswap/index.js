@@ -307,6 +307,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1980',
   timetravel: false,
   apy: getApy,
   url: 'https://yodeswap.dog',

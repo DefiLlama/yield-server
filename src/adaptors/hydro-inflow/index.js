@@ -103,6 +103,7 @@ async function getVaultAPYs(vault_apy_endpoint) {
 }
 
 module.exports = {
+  protocolId: '7262',
   apy,
   timetravel: false,
   url: 'https://hydro.markets/',

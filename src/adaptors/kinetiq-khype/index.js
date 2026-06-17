@@ -200,4 +200,4 @@ const apy = async () => {
   );
 };
 
-module.exports = { timetravel: false, apy, url: 'https://kinetiq.xyz' };
+module.exports = { protocolId: '6447', timetravel: false, apy, url: 'https://kinetiq.xyz' };

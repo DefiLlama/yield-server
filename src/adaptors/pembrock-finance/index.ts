@@ -202,6 +202,7 @@ async function getPemApy() {
 }
 
 module.exports = {
+  protocolId: '1967',
   timetravel: false,
   apy: getPemApy,
   url: 'https://app.pembrock.finance/farm',

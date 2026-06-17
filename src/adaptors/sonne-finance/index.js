@@ -286,6 +286,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2142',
   timetravel: false,
   apy,
   url: 'https://sonne.finance/',

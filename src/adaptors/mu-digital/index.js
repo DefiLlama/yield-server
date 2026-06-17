@@ -546,6 +546,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '7055',
   timetravel: false,
   apy,
   url: 'https://mudigital.net/',

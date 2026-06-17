@@ -83,6 +83,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7391',
   timetravel: false,
   apy,
   url: 'https://afiprotocol.xyz/',

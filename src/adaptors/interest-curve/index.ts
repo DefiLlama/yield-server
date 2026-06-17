@@ -60,6 +60,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '6055',
   timetravel: false,
   apy: main,
   url: `${INTEREST_DAPP_URL}/pools`,

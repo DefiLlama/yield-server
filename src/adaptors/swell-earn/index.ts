@@ -72,6 +72,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5262',
   apy,
   timetravel: false,
   url: 'https://app.swellnetwork.io/earn/vaults',

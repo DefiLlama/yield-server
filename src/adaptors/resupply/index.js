@@ -102,6 +102,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5963',
   timetravel: false,
   apy: main,
   url: 'https://resupply.fi/',

@@ -128,11 +128,14 @@ That page has stricter filters than other pages, only pools with >1M TVL and on 
 
 ```js
 module.exports = {
+  protocolId: '294', // id from https://api.llama.fi/protocols for this adapter's exact slug
   timetravel: false,
   apy: apy, // Main function, returns pools
   url: 'https://example.com/pools', // Link to page with pools (Only required if you do not provide url's for each pool)
 };
 ```
+
+`protocolId` is required and must match the protocol `id` from `https://api.llama.fi/protocols`, using the adapter folder name as the protocol `slug`. Store it as a string. The adapter test fails if the folder name has no exact protocol slug match, if `protocolId` is missing, or if it does not equal the matched protocol's `id`.
 
 An example of the most basic adaptor is the following for Anchor on terra:
 
@@ -160,6 +163,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '294',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.anchorprotocol.com/#/earn',

@@ -23,6 +23,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2000',
   timetravel: false,
   apy: apy,
   url: 'https://frakt.xyz/lend',

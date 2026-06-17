@@ -8,9 +8,11 @@ const baseFields = {
 const adapter = global.adapter;
 const apy = global.apy;
 const poolsUrl = global.poolsUrl;
+const protocolId = global.protocolId;
 
 const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
 const protocols = global.protocolsSlug;
+const protocolsBySlug = global.protocolsBySlug;
 
 // fast mode: only ensure adapter main function executed
 if (process.env.npm_config_fast) {
@@ -191,6 +193,14 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     const projectNames = [...new Set(apy.map((p) => p.project))];
     expect(projectNames).toEqual([adapter]);
     expect(protocols).toContain(apy[0].project);
+  });
+
+  test('Adapter exports the protocolId matching its protocol slug', () => {
+    const protocol = protocolsBySlug.get(adapter);
+
+    expect(protocol).toBeDefined();
+    expect(typeof protocolId).toBe('string');
+    expect(protocolId).toBe(String(protocol.id));
   });
 
   describe('Check additional field data rules', () => {

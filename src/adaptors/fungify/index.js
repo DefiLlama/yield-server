@@ -264,6 +264,7 @@ async function poolsAPY() {
 }
 
 module.exports = {
+  protocolId: '4349',
   timetravel: false,
   apy: poolsAPY,
   url: 'https://app.fungify.it/pools',

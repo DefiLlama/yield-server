@@ -348,6 +348,7 @@ const getApy = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '1274',
   timetravel: false,
   apy: getApy,
   url: 'https://app.stellaswap.com/farm',

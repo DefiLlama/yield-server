@@ -325,6 +325,7 @@ const getAPys = async() => {
 }
 
 module.exports = {
+  protocolId: '4915',
   timetravel: false,
   apy: getAPys,
   url: 'https://app.kinetic.market/dashboard',

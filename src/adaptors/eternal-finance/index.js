@@ -120,6 +120,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '2499',
     timetravel: false,
     apy: main,
     url: 'https://app.eternalfinance.io/lend',

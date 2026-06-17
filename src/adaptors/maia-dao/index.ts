@@ -22,6 +22,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1377',
   timetravel: false,
   apy: getApy,
   url: 'https://app.maiadao.io/#/stake',

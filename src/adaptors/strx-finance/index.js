@@ -54,6 +54,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2300',
   timetravel: false,
   apy: poolsFunction,
   url: "https://app.strx.finance",

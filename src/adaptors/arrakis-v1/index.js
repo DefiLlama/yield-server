@@ -160,6 +160,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '641',
   timetravel: false,
   url: 'https://palm.arrakis.finance/vaults',
   apy: getApy,

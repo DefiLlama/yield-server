@@ -141,3 +141,4 @@ const getApy = async () => {
 };
 
 export const apy = getApy;
+export const protocolId = '283';

@@ -188,6 +188,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2513',
   timetravel: false,
   apy: getApy,
   url: 'https://app.liquidbolt.finance/',

@@ -30,6 +30,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '276',
   timetravel: false,
   apy: getApy,
   url: 'https://bifrost.app/vstaking',

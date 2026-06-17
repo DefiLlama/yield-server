@@ -213,6 +213,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6877',
     timetravel: false,
     apy,
     url: "https://app.zealousswap.com/liquidity",

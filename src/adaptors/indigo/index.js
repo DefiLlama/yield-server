@@ -84,6 +84,7 @@ async function calculateTvlUsd(assetAnalytics, adaPriceUsd) {
 }
 
 module.exports = {
+  protocolId: '2309',
   timetravel: false,
   apy: apy,
   url: 'https://app.indigoprotocol.io/stability-pools',

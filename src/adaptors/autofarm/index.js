@@ -98,6 +98,7 @@ async function autofarmApyAllItems() {
 }
 
 module.exports = {
+  protocolId: '209',
   timetravel: false,
   apy: autofarmApyAllItems,
   url: "https://autofarm.network/",

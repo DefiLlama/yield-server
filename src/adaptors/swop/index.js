@@ -123,6 +123,7 @@ const main = async (timestamp = null) => {
 }
 
 module.exports = {
+  protocolId: '613',
     timetravel: false,
     apy: main,
     url: 'https://swop.fi/',

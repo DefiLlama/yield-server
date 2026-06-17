@@ -64,6 +64,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1494',
   timetravel: false,
   apy: apy,
   url: 'https://app.minswap.org/farm',

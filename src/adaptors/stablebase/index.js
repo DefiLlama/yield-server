@@ -112,6 +112,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3471',
   timetravel: false,
   apy: main,
   url: 'https://stablebase.fi/farm',

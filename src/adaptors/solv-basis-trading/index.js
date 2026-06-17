@@ -142,6 +142,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3572',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.solv.finance/',

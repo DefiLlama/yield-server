@@ -152,6 +152,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2838',
   timetravel: false,
   apy: main,
   url: 'https://joinstakehouse.com/',

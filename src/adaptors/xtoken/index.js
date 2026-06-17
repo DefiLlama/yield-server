@@ -409,6 +409,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '206',
   timetravel: false,
   apy: getPools,
   url: `${constants.BASE_APP_URL}/discover`,

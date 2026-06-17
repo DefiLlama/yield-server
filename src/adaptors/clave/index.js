@@ -94,6 +94,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4999',
   timetravel: false,
   apy: getApy,
   url: 'https://getclave.io',

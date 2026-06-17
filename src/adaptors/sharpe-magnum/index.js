@@ -102,6 +102,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2756',
   timetravel: false,
   apy: getApy,
   url: 'https://dapp.sharpe.ai/vaults/1/StEth',

@@ -74,6 +74,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7196',
   timetravel: false,
   apy,
   url: 'https://securitize.io/primary-market/Securitize-BNY-CLO-Fund',

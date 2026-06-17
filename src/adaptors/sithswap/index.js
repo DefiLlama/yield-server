@@ -65,6 +65,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '2719',
   timetravel: false,
   apy: main,
 };

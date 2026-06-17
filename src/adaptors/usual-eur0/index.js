@@ -88,6 +88,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7465',
   apy,
   url: 'https://app.usual.money/swap?action=stake',
 };

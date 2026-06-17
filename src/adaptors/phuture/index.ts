@@ -50,6 +50,7 @@ const main = (chain) => async (): Promise<Array<object>> => {
 };
 
 module.exports = {
+  protocolId: '1806',
   timetravel: true,
   apy: main('ethereum'),
   url,

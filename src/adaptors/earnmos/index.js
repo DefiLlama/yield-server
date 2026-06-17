@@ -20,6 +20,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1744',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.earnmos.fi/deposit',

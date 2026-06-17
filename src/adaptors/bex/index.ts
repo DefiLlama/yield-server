@@ -91,6 +91,7 @@ async function getPools() {
 }
 
 module.exports = {
+  protocolId: '5742',
   timetravel: false,
   apy: getPoolData,
   url: 'https://hub.berachain.com/pools/',

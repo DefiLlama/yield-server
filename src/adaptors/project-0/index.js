@@ -95,6 +95,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '7184',
   apy: getApy,
   url: 'https://app.0.xyz/',
 };

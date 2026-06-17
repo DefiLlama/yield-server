@@ -33,6 +33,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '604',
   timetravel: false,
   apy,
   url: 'https://app.sherlock.xyz/stake',

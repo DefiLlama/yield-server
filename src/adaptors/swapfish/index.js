@@ -232,6 +232,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2331',
   timetravel: false,
   apy: getApy,
   url: 'https://swapfish.fi/',

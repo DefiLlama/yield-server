@@ -136,6 +136,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5871',
   apy,
   timetravel: false,
   url: 'https://app.loopingcollective.org/product/lhype',

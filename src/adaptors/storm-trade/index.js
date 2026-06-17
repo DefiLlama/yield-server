@@ -48,6 +48,7 @@ const getApr = async () => {
 };
 
 module.exports = {
+  protocolId: '3883',
   timetravel: false,
   apy: getApr,
   url: 'https://storm.tg/',

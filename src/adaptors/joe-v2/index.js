@@ -101,6 +101,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2393',
   timetravel: false,
   apy: main,
   url: 'https://traderjoexyz.com/pool',

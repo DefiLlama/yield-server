@@ -56,6 +56,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '784',
   timetravel: false,
   apy: apy,
   url: 'https://www.trisolaris.io/#/farm',

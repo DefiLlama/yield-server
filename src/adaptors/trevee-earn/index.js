@@ -43,6 +43,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5526',
   timetravel: false,
   apy: main,
   url: 'https://app.rings.money/earn/mint/',

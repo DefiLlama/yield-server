@@ -82,6 +82,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1720',
   timetravel: false,
   apy: main,
   url: 'https://app.kokoa.finance/earn',

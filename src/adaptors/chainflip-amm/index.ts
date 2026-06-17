@@ -35,6 +35,7 @@ const getPool = async () => {
 };
 
 module.exports = {
+  protocolId: '3853',
   timetravel: false,
   apy: getPool,
   url: 'https://scan.chainflip.io/pools/Btc/boost',

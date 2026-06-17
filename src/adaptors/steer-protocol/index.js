@@ -113,6 +113,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '3043',
   timetravel: false,
   apy: getPools,
 };

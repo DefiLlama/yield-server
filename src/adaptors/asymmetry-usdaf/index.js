@@ -413,6 +413,7 @@ const ABIS = {
   }
 
 module.exports = {
+  protocolId: '6247',
   timetravel: false,
   apy: main,
   url: 'https://usdaf.asymmetry.finance/',

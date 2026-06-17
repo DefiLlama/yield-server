@@ -75,6 +75,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '291',
   timetravel: false,
   apy: main,
   url: 'https://size.integral.link/pools',

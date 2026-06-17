@@ -37,6 +37,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7798',
   apy,
   url: 'https://cubee.ee',
 };

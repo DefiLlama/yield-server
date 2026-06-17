@@ -247,6 +247,7 @@ const strategyApys = async () => {
 };
 
 module.exports = {
+  protocolId: '3324',
   timetravel: false,
   apy: async () => {
     const lendingApyResults = await lendingApys();

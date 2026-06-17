@@ -483,6 +483,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2990',
   timetravel: false,
   apy,
   url: 'https://app.primeprotocol.xyz/',

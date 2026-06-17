@@ -217,6 +217,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2537',
   timetravel: false,
   apy: main,
   url: 'https://fluxfinance.com/markets',

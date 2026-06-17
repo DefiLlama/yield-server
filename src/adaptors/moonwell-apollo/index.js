@@ -310,6 +310,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1401',
   timetravel: false,
   apy: getApy,
   url: 'https://moonwell.fi/apollo/MOVR',

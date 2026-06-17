@@ -75,6 +75,7 @@ const aggregators = async () => {
 };
 
 module.exports = {
+  protocolId: '4132',
   timetravel: false,
   apy: aggregators,
   url: 'https://v2.sturdy.finance/aggregators',

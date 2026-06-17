@@ -536,6 +536,7 @@ const getApys = async () => {
 };
 
 module.exports = {
+  protocolId: '5044',
   timetravel: false,
   apy: getApys,
 };

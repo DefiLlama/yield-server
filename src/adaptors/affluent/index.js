@@ -148,6 +148,7 @@ async function getAssetMap() {
 }
 
 module.exports = {
+  protocolId: '5726',
     apy: getAPY,
     timetravel: false,
     url: "https://affluent.org",

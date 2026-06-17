@@ -183,6 +183,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '2218',
   timetravel: false,
   apy: main,
   url: 'https://app.animeswap.org/#/pool?chain=aptos',
