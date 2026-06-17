@@ -140,5 +140,7 @@ const getApy = async () => {
     return mapped.filter((p) => utils.keepFinite(p));
 };
 
-export const apy = getApy;
-export const protocolId = '283';
+module.exports = {
+    protocolId: '283',
+    apy: getApy,
+};

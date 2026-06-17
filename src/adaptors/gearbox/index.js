@@ -1190,10 +1190,8 @@ async function getApy() {
   console.log(`🎉 Total pools fetched: ${allPools.length}`);
   return allPools.filter((pool) => utils.keepFinite(pool));
 }
-var yield_server_default = {
+module.exports = {
   protocolId: '1108',
   timetravel: false,
   apy: getApy,
 };
-
-module.exports = yield_server_default;
