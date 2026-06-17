@@ -59,7 +59,7 @@ async function apy() {
         project: 'springx',
       };
     })
-    .filter((pool) => pool !== null && pool.tvlUsd >= 10000);
+    .filter((pool) => pool !== null);
   return d;
 }
 
