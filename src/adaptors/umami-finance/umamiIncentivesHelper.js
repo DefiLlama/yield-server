@@ -3,6 +3,7 @@ const ethers = require('ethers');
 
 const arbitrumConstants = require('./arbitrum/umamiConstants.js');
 const avalancheConstants = require('./arbitrum/umamiConstants.js');
+const { getPriceApiUrl } = require('../utils');
 
 const {
   getUmamiContractsForChain,
@@ -43,9 +44,9 @@ const getIncentivesAprForVault = async (vault, chain) => {
     vaultContract.methods.balanceOf(masterChefAddress).call(),
     vaultContract.methods.pps().call(),
     axios.get(
-      `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
+      getPriceApiUrl(`/prices/current/${underlyingTokenPriceKey}`)
     ),
-    axios.get(`https://coins.llama.fi/prices/current/${arbTokenPriceKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${arbTokenPriceKey}`)),
   ]);
 
   const underlyingTokenPrice =

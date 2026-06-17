@@ -138,9 +138,7 @@ const fetchAbiData = async (target, abi, params = []) => {
 
 async function fetchPrice(token) {
   const key = `ethereum:${token}`.toLowerCase();
-  const response = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins;
+  const response = (await utils.getPriceApiData(`/prices/current/${key}`)).coins;
   return response[key]?.price;
 }
 

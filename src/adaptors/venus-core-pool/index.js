@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abiUnitroller = require('./abiUnitroller');
 const abiPool = require('./abiPool');
+const { getPriceApiUrl } = require('../utils');
 
 const unitroller = '0xfD36E2c2a6789Db23113685031d7F16329158384';
 const VBNB = '0xA07c5b74C9B40447a954e1466938b865b6BBea36';
@@ -140,7 +141,7 @@ const poolInfo = async (chain) => {
 const getPrices = async (chain, addresses) => {
   const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
   const prices = (
-    await axios.get('https://coins.llama.fi/prices/current/' + uri)
+    await axios.get(getPriceApiUrl('/prices/current/') + uri)
   ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(

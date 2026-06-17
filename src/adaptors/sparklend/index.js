@@ -110,9 +110,7 @@ async function fetchV3Pools(chain) {
   const priceKeys = reserveTokens
     .map((t) => `${chain}:${t.tokenAddress}`)
     .join(',');
-  const pricesEthereum = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const pricesEthereum = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return reserveTokens
     .map((pool, i) => {
@@ -206,9 +204,9 @@ const spkFarm = async () => {
   const periodFinish = Number(periodFinishRes.output);
 
   const prices = await axios.get(
-    `https://coins.llama.fi/prices/current/${[USDS, SPK]
+    utils.getPriceApiUrl(`/prices/current/${[USDS, SPK]
       .map((i) => `ethereum:${i}`)
-      .join(',')}`
+      .join(',')}`)
   );
 
   const priceUSDS = prices.data.coins[`ethereum:${USDS}`].price;

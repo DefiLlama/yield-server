@@ -29,7 +29,7 @@ const calculateTVL = async (chain = CHAIN) => {
 
   const priceKey = `${chain}:${UNDERLYING}`;
   const underlyingPriceCall = axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}?searchWidth=24h`
+    utils.getPriceApiUrl(`/prices/current/${priceKey}?searchWidth=24h`)
   );
 
   const currentRateCall = sdk.api.abi.call({
@@ -82,8 +82,8 @@ const calculateAPY = async (currentRate, scalingFactor, chain = CHAIN) => {
   const t7d = now - 86400 * 7;
 
   const [b1, b7] = await Promise.all([
-    axios.get(`https://coins.llama.fi/block/${chain}/${t1d}`),
-    axios.get(`https://coins.llama.fi/block/${chain}/${t7d}`),
+    axios.get(utils.getPriceApiUrl(`/block/${chain}/${t1d}`)),
+    axios.get(utils.getPriceApiUrl(`/block/${chain}/${t7d}`)),
   ]);
 
   const block1d = b1.data?.height;

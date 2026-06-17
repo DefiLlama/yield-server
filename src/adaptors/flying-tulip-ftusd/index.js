@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 // Flying Tulip ftUSD — yield-bearing stablecoin staked into sftUSD.
 // Reward stream: protocol uses the fees collected by the ftUSD MintAndRedeem
@@ -48,7 +49,7 @@ const apy = async () => {
   try {
     const ftPriceKey = `ethereum:${FT}`;
     const resp = await axios.get(
-      `https://coins.llama.fi/prices/current/${ftPriceKey}`
+      getPriceApiUrl(`/prices/current/${ftPriceKey}`)
     );
     const candidate = resp.data?.coins?.[ftPriceKey]?.price;
     if (typeof candidate === 'number' && candidate > 0) ftPrice = candidate;

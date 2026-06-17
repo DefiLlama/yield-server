@@ -130,7 +130,7 @@ const getTvl = async () => {
 
     // Get SEED price
     const priceData = await axios.get(
-      'https://coins.llama.fi/prices/current/arbitrum:0x86f65121804D2Cdbef79F9f072D4e0c2eEbABC08'
+      utils.getPriceApiUrl('/prices/current/arbitrum:0x86f65121804D2Cdbef79F9f072D4e0c2eEbABC08')
     );
 
     const seedPrice =

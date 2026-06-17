@@ -1,4 +1,5 @@
 const sdk = require('@defillama/sdk');
+const { getPriceApiUrl } = require('../utils');
 
 const VAULTS = [
   // ETHEREUM — Lagoon
@@ -108,9 +109,9 @@ async function processChain(sdkChain, vaults) {
 
   try {
     const [b1Resp, b7Resp, b30Resp] = await Promise.all([
-      fetchJson(`https://coins.llama.fi/block/${sdkChain}/${now - ONE_DAY}`),
-      fetchJson(`https://coins.llama.fi/block/${sdkChain}/${now - ONE_WEEK}`),
-      fetchJson(`https://coins.llama.fi/block/${sdkChain}/${now - THIRTY_DAYS}`),
+      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - ONE_DAY}`)),
+      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - ONE_WEEK}`)),
+      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - THIRTY_DAYS}`)),
     ]);
 
     if (b1Resp?.height > 0) {
@@ -138,7 +139,7 @@ async function processChain(sdkChain, vaults) {
   const validAssets = [...new Set(assets.filter(Boolean).map(a => a.toLowerCase()))];
   const priceKeys = validAssets.map(a => `${sdkChain}:${a}`).join(',');
   const priceResp = priceKeys
-    ? await fetchJson(`https://coins.llama.fi/prices/current/${priceKeys}`)
+    ? await fetchJson(getPriceApiUrl(`/prices/current/${priceKeys}`))
     : { coins: {} };
   const priceMap = priceResp?.coins || {};
 

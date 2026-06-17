@@ -59,9 +59,7 @@ const buildPool = async (vault) => {
   const priceKey = `${chain}:${assetAddress}`;
   let assetPrice;
   try {
-    const { data } = await axios.get(
-      `https://coins.llama.fi/prices/current/${priceKey}`
-    );
+    const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
     assetPrice = data.coins?.[priceKey]?.price;
   } catch (e) {
     assetPrice = undefined;

@@ -37,9 +37,7 @@ const pools = [
 
 const fetchPrice = async (tokenId) => {
   const priceKey = `coingecko:${tokenId}`;
-  const data = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
   return data.coins[priceKey].price;
 };
 

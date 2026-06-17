@@ -147,9 +147,7 @@ const topLvl = async (chainString, timestamp, url) => {
     ).output / 1e18;
 
   const priceKey = `arbitrum:${GRAIL}`;
-  const grailPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const grailPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   const grailPerYearUsd = grailPerSec * 86400 * 365 * grailPrice;
 

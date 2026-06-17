@@ -99,9 +99,7 @@ const getBaseTokensPrice = async () => {
   const priceKeys = ['green-planet', 'ethereum', 'binancecoin']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const gammaPrice = prices['coingecko:green-planet'].price;
   const ethPrice = prices['coingecko:ethereum'].price;

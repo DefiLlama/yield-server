@@ -39,9 +39,7 @@ const topLvl = async (chainString, token, address) => {
     ((totalUnderlying / equivalentTotalQ - 1) / daysDiff) * 365 * 100;
 
   const eth_token_data = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${ethFundUnderlying}`
-    )
+    await utils.getPriceApiData(`/prices/current/${ethFundUnderlying}`)
   ).coins[ethFundUnderlying];
 
   const tvlUsd =

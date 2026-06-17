@@ -20,7 +20,7 @@ const config = {
 
 const getPrices = async (addresses, timestamp) => {
 
-    let request = 'https://coins.llama.fi/prices/historical/' + timestamp + '/';
+    let request = utils.getPriceApiUrl('/prices/historical/') + timestamp + '/';
     addresses.forEach(address => {
         request = request + address + ','
     });

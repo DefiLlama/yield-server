@@ -97,9 +97,7 @@ const apy = async (chain) => {
       const priceKeys = [...rewardTokenAddresses]
         .map((a) => (a === '0xa' ? 'coingecko:movement' : `${chain}:${a}`))
         .join(',');
-      rewardPrices = (
-        await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-      ).data.coins;
+      rewardPrices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
     }
 
     const getRewardPrice = (addr) => {
@@ -323,9 +321,7 @@ const apy = async (chain) => {
     ).output.map((o) => o.output);
 
     const priceKeys = underlying.map((t) => `${chain}:${t}`).join(',');
-    const prices = (
-      await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-    ).data.coins;
+    const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
     // Try to get LAB price from PriceCalculator, but handle failures gracefully
     let priceLAB = null;

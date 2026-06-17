@@ -374,10 +374,8 @@ const getPrices = async (coinKeys) => {
   // fetch prices by 100
   if (coinKeys.length > 0) {
     for (let i = 0; i < coinKeys.length; i += 100) {
-      const {
-        data: { coins },
-      } = await axios.get(
-        `https://coins.llama.fi/prices/current/${coinKeys.slice(i, i + 100)}`
+      const { coins } = await utils.getPriceApiData(
+        `/prices/current/${coinKeys.slice(i, i + 100)}`
       );
       for (const key of Object.keys(coins)) {
         results[key] = coins[key];

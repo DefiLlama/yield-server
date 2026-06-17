@@ -27,9 +27,7 @@ async function apy() {
       ])
     )
   );
-  let { coins } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys.join(',').toLowerCase()}`
-  );
+  let { coins } = await utils.getPriceApiData(`/prices/current/${priceKeys.join(',').toLowerCase()}`);
 
   let poolTvlInfoMap = {};
   for (const poolTvl of poolTvlInfos) {

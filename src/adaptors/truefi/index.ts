@@ -112,9 +112,7 @@ const apy = async () => {
   ]
     .join(',')
     .toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${coins}`)).coins;
 
   const truPrice = prices[getAddressKey(TRU_ADDRESS)].price;
   const activeLoans = await getActiveLoans();

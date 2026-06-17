@@ -38,11 +38,7 @@ const getPrice = async () => {
   const totalSupply = await lpContract.methods.totalSupply().call();
 
   // WETH Price
-  const ethPriceRes = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/base:${WETH.toLowerCase()}`
-    )
-  ).data.coins;
+  const ethPriceRes = (await utils.getPriceApiData(`/prices/current/base:${WETH.toLowerCase()}`)).coins;
   const ethPrice = ethPriceRes[`base:${WETH}`]?.price;
 
   // sBASE Price

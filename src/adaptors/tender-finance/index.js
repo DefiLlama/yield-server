@@ -95,9 +95,7 @@ async function getGlpApy() {
     gmxAbi['tokensPerInterval']
   );
   const priceKeys = ['gmx', 'ethereum'].map((t) => `coingecko:${t}`).join(',');
-  const { coins: priceData } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: priceData } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
   return await glpApyBase(
     'arbitrum',
     await getGlpTvl('arbitrum'),
@@ -159,13 +157,9 @@ const getGmdInfo = async () => {
   ).output.map(({ output }) => [output.GDlptoken, output]);
 };
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({

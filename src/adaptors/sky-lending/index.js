@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const abiSUSDS = require('./abiSUSDS.json');
+const { getPriceApiData } = require('../utils');
 
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
@@ -295,13 +296,9 @@ function onlyUnique(value, index, self) {
 }
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -492,9 +489,7 @@ const susdsAPY = async () => {
   const priceKeys = configs
     .map(({ chain, sUSDS }) => `${chain}:${sUSDS}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const pools = await Promise.all(
     configs.map(async ({ chain, sUSDS, USDS }) => {

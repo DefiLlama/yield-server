@@ -171,9 +171,7 @@ const fetchFarmingRewards = async (chainString, config, poolPrices) => {
   // EV reward token price. EV is deployed at the same address on every
   // supported chain (arbitrum/base/bsc/ethereum) and is the reward token for
   // all campaigns, so we price it via Arbitrum, its most liquid market.
-  const evPriceData = await utils.getData(
-    `https://coins.llama.fi/prices/current/arbitrum:${EV_TOKEN_ADDRESS}`
-  );
+  const evPriceData = await utils.getPriceApiData(`/prices/current/arbitrum:${EV_TOKEN_ADDRESS}`);
   const evPrice = evPriceData.coins[`arbitrum:${EV_TOKEN_ADDRESS}`]?.price || 0;
 
   // Build rewards map: pairAddress -> apyReward

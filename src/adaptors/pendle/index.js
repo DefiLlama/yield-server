@@ -210,7 +210,7 @@ async function fetchPoolsVolumes(chain, pools, routers) {
 
   // get token price from llama coins api
   const coinLists = Object.keys(tokens).map(token => `${chain}:${token}`);
-  const coinPrices = (await axios.get(`https://coins.llama.fi/prices/current/${coinLists.toString()}`)).data.coins;
+  const coinPrices = (await utils.getPriceApiData(`/prices/current/${coinLists.toString()}`)).coins;
   for (const [coinId, coinPrice] of Object.entries(coinPrices)) {
     tokens[utils.formatAddress(coinId.split(':')[1])].price = Number(coinPrice.price);
   }

@@ -16,16 +16,14 @@ const TOTAL_ASSETS_ABI = 'function totalAssets() view returns (uint256)';
 
 const getBlock = async (timestamp) => {
   const res = await axios.get(
-    `https://coins.llama.fi/block/${CHAIN}/${timestamp}`
+    utils.getPriceApiUrl(`/block/${CHAIN}/${timestamp}`)
   );
   return res.data.height;
 };
 
 const getUsdcPrice = async () => {
   const key = `${CHAIN}:${USDC.toLowerCase()}`;
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${key}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${key}`);
   return data?.coins?.[key]?.price ?? 1;
 };
 

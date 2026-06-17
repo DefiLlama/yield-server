@@ -127,9 +127,7 @@ const main = async (timestamp = null) => {
     ).output / 1e18;
 
   const priceKey = `avax:${PNG}`;
-  const pngPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const pngPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
   const pngPerYearUsd = rewardPerSecond * 60 * 60 * 24 * 365 * pngPrice;
 
   const totalAllocPoint = (

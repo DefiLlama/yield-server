@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getPriceApiUrl } = require('../utils');
 
 const project = 'blackrock-buidl';
 
@@ -74,7 +74,7 @@ const apy = async () => {
         .then((r) => r.data)
         .catch(() => []),
       axios
-        .get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+        .get(getPriceApiUrl(`/prices/current/${priceKeys}`))
         .catch(() => ({ data: { coins: {} } })),
     ]);
 

@@ -95,9 +95,7 @@ const main = async () => {
     .concat([EULER, WETH])
     .map((m) => `ethereum:${m}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins;
 
   const eulPrice = prices[`ethereum:${EULER}`].price;
   const nbSecYear = 60 * 60 * 24 * 365;
@@ -215,11 +213,7 @@ const main = async () => {
       );
 
       const priceKey = `ethereum:${ePool.id}`;
-      const underlyingPrice = (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${priceKey}`
-        )
-      ).data.coins[priceKey].price;
+      const underlyingPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
       // contracts return eToken balances, which need to be converted to underlying balance
       // at current exchange rate

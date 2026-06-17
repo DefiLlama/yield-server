@@ -14,7 +14,7 @@ const CONFIG = {
   USUAL_SYMBOL: 'USUAL',
   URLS: {
     REWARD_APR_RATE: 'https://app.usual.money/api/tokens/yields',
-    LLAMA_PRICE: 'https://coins.llama.fi/prices/current/',
+    LLAMA_PRICE: utils.getPriceApiUrl('/prices/current/'),
   },
   SCALAR: 1e18,
   WEEKS_PER_YEAR: 52,

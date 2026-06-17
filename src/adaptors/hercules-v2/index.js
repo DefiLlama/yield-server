@@ -146,9 +146,7 @@ const topLvl = async (chainString, timestamp, url) => {
     ).output / 1e18;
 
   const priceKey = `metis:${TORCH}`;
-  const torchPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const torchPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   const torchPerYearUsd = torchPerSec * 86400 * 365 * torchPrice;
 

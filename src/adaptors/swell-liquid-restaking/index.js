@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const { BigNumber } = require('ethers');
 
 const abi = require('./abi.json');
+const { getPriceApiData } = require('../utils');
 
 const rswETH = '0xFAe103DC9cf190eD75350761e95403b7b8aFa6c0';
 
@@ -40,9 +41,7 @@ const apy = async () => {
   const apr7d = sevenDayRateChange.mul(365 * 86400).div(timeElapsed).mul(100).toString() / 1e18;
 
   const priceKey = `ethereum:${rswETH}`;
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const rate = (await sdk.api.abi.call({
     target: rswETH,
@@ -80,9 +79,7 @@ async function get7dRepriceEvents() {
   const timestamp14dayAgo = timestampNow - 86400 * 14;
 
   const blockNow = await sdk.api.util.getLatestBlock("ethereum")
-  const block14dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp14dayAgo}`)
-  ).data.height;
+  const block14dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp14dayAgo}`)).height;
 
   const repriceEvents = await sdk.getEventLogs({
     target: rswETH,

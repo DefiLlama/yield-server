@@ -6,6 +6,7 @@ const wiseSecurityABI = require('./abi/wiseSecurityABI.json');
 const erc20ABI = require('./abi/erc20ABI.json');
 const { getProvider } = require('@defillama/sdk/build/general');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const WISE_LENDING_CONTRACT = '0x37e49bf3749513A02FA535F0CbC383796E8107E4';
 const WISE_SECURITY_CONTRACT = '0x829c3AE2e82760eCEaD0F384918a650F8a31Ba18';
@@ -37,11 +38,7 @@ async function apy() {
               tokens.map(async (token) => {
                 const tokenAddress = `${chain}:${address[token]}`;
 
-                const usdPrice = (
-                  await axios.get(
-                    `https://coins.llama.fi/prices/current/${tokenAddress}`
-                  )
-                ).data.coins[tokenAddress];
+                const usdPrice = (await getPriceApiData(`/prices/current/${tokenAddress}`)).coins[tokenAddress];
 
                 const wiseSecurityContract = await new web3.eth.Contract(
                   wiseSecurityABI,

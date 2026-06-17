@@ -260,11 +260,7 @@ const topLvl = async (
 
     const tokenReward = 'arbitrum:0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418';
 
-    const prices = (
-      await axios.get(
-        `https://coins.llama.fi/prices/current/arbitrum:0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418`
-      )
-    ).data.coins;
+    const prices = (await utils.getPriceApiData(`/prices/current/arbitrum:0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418`)).coins;
 
     return dataNow.map((p, i) => {
       const poolMeta = `${p.feeTier / 1e4}%`;

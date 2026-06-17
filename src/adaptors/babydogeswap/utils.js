@@ -2,6 +2,7 @@ const { request, gql } = require('graphql-request');
 const { getUnixTime, subDays, subWeeks, startOfMinute } = require('date-fns');
 const { chunk } = require('lodash');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const info_url =
   'https://graph-bsc-mainnet.babydoge.com/subgraphs/name/babydoge/exchange';
@@ -128,7 +129,7 @@ const getLpTokens = async (farms) => {
   const timestamps = getDeltaTimestamps();
   const blocks = (
     await Promise.all(
-      timestamps.map((t) => axios.get(`https://coins.llama.fi/block/bsc/${t}`))
+      timestamps.map((t) => axios.get(getPriceApiUrl(`/block/bsc/${t}`)))
     )
   ).map((b) => b.data.height);
 

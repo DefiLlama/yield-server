@@ -3,6 +3,7 @@ const {pancakeSwapSubgraphUrl, BNB_BLOCK_TIME_SECONDS, feeRate, BINANCE_RPC_URL}
 const contract_addresses = require('./contract_addresses');
 const axios = require('axios');
 const fetch = require('node-fetch');
+const { getPriceApiData } = require('../utils');
 
 async function getBlockNumberOf24HoursAgo(providerUrl) {
     const provider = new ethers.providers.JsonRpcProvider(providerUrl);
@@ -104,7 +105,7 @@ async function getTotalValueInUSD(pairAddress) {
 
   // Get the price of BNB in USD
   const priceKey = `coingecko:binancecoin`;
-  const ethPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   // Calculate the total value of the liquidity pool's reserves in USD
   const totalValueInUSD =

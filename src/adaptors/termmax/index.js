@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const { merklGet } = require('../merkl/merkl-client');
+const { getPriceApiUrl } = require('../utils');
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -149,7 +150,7 @@ async function getPrices(chain, addresses) {
   const tasks = [];
   for (const address of addresses) {
     const url = new URL(
-      `https://coins.llama.fi/prices/current/${chain}:${address}`
+      getPriceApiUrl(`/prices/current/${chain}:${address}`)
     );
     tasks.push(
       axios.get(url).then((response) => {

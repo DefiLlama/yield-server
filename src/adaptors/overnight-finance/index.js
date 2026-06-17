@@ -196,7 +196,7 @@ const apy = async () => {
   let prices = {};
   try {
     const priceResponse = await axios.get(
-      `https://coins.llama.fi/prices/current/${priceKeys}`
+      utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
     );
     prices = priceResponse.data.coins;
   } catch (e) {

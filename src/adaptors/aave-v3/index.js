@@ -143,9 +143,7 @@ const getApy = async (market) => {
         .concat(`ethereum:${GHO}`)
     ),
   ].join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
   const ghoPrice = prices[`ethereum:${GHO}`]?.price;
 
   return reserveTokens
@@ -301,7 +299,7 @@ const sGho = async () => {
       abi: 'function targetRate() view returns (uint256)',
       chain: 'ethereum',
     }),
-    axios.get(`https://coins.llama.fi/prices/current/ethereum:${GHO}`),
+    axios.get(utils.getPriceApiUrl(`/prices/current/ethereum:${GHO}`)),
   ]);
 
   return {
@@ -360,9 +358,7 @@ const stkGho = async () => {
       })
     ).output / 1e18;
 
-  const ghoPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/ethereum:${GHO}`)
-  ).data.coins[`ethereum:${GHO}`].price;
+  const ghoPrice = (await utils.getPriceApiData(`/prices/current/ethereum:${GHO}`)).coins[`ethereum:${GHO}`].price;
 
   const pool = {
     pool: `${STKGHO}-ethereum`.toLowerCase(),

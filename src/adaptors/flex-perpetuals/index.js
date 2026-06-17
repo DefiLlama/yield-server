@@ -11,13 +11,9 @@ const WeiPerEther = BigNumber(1000000000000000000);
 const baseUrl = 'https://gapi.flex.trade/v1/apr-pools';
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({

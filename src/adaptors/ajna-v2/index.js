@@ -155,7 +155,7 @@ const getPoolsForChain = async (chain) => {
       const chunk = uniqueTokens.slice(i, i + chunkSize);
       const priceKeys = chunk.map((t) => `${chain}:${t}`).join(',');
       const response = await axios.get(
-        `https://coins.llama.fi/prices/current/${priceKeys}`
+        utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
       );
       Object.assign(prices, response.data.coins);
     }

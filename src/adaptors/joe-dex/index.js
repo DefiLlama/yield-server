@@ -134,9 +134,7 @@ const topLvl = async (chainString, timestamp, url) => {
 
   // get joe price
   const key = 'avax:0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd';
-  const joeUsd = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins;
+  const joeUsd = (await utils.getPriceApiData(`/prices/current/${key}`)).coins;
 
   const dataLM = {};
   for (const p of poolInfo) {

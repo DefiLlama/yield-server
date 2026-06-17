@@ -4,7 +4,7 @@ const sdk = require('@defillama/sdk');
 const abiFactory = require('./abiFactory.json');
 const abiControllers = require('./abiControllers.json');
 const abiPolicies = require('./abiPolicies.json');
-const { getERC4626Info } = require('../utils');
+const { getERC4626Info, getPriceApiData } = require('../utils');
 
 const factory = '0xC9332fdCB1C491Dcc683bAe86Fe3cb70360738BC';
 const crvUsd = '0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E';
@@ -113,9 +113,7 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   const coins = [...collateralTokens, crvUsd].map((t) => `ethereum:${t}`);
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${coins}`)).coins;
 
   const crvUsdPrice = prices[`ethereum:${crvUsd}`].price;
 

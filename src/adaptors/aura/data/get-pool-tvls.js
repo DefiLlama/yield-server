@@ -13,13 +13,10 @@ async function getPoolTvls(pools, chainName) {
         pools.map((pool) => pool.token),
         chainName
       ),
-      utils
-        .getData(
-          `https://coins.llama.fi/prices/current/${pools
+      utils.getPriceApiData(`/prices/current/${pools
             .map((pool) => `${chainName}:${pool.lptoken}`)
             .join(',')
-            .toLowerCase()}`
-        )
+            .toLowerCase()}`)
         .then((data) => data.coins),
     ]);
 

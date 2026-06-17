@@ -207,9 +207,7 @@ const getPrices = async (chain, addresses) => {
     .map((a) => `${chain}:${a.toLowerCase()}`)
     .join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return Object.entries(prices).reduce((acc, [k, v]) => {
     acc[k.replace(`${chain}:`, '')] = { usd: v.price };

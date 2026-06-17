@@ -15,9 +15,7 @@ async function fetchTokenPrices(tokenAddresses, chainName) {
   }
 
   try {
-    const prices = await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
-    );
+    const prices = await utils.getPriceApiData(`/prices/current/${priceKeys.join(',')}`);
 
     Object.entries(prices.coins || {}).forEach(([key, data]) => {
       const address = key.split(':')[1]?.toLowerCase();

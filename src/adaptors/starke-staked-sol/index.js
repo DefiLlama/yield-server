@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { getTotalSupply, getSanctumLstApy } = require('../utils');
+const { getTotalSupply, getSanctumLstApy, getPriceApiUrl } = require('../utils');
 
 const RKSOL_MINT = 'EPCz5LK372vmvCkZH3HgSuGNKACJJwwxsofW6fypCPZL';
 const SOL = 'So11111111111111111111111111111111111111112';
@@ -8,7 +8,7 @@ const priceKey = `solana:${RKSOL_MINT}`;
 const apy = async () => {
   const [totalSupply, priceRes, apyBase] = await Promise.all([
     getTotalSupply(RKSOL_MINT),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
     getSanctumLstApy(RKSOL_MINT),
   ]);
 

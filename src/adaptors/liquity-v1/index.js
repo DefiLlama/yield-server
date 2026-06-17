@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 const TROVE_MANAGER_ADDRESS = '0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2';
 const LUSD_ADDRESS = '0x5f98805A4E8be255a32880FDeC7F6728C6568bA0';
 const URL = 'https://api.instadapp.io/defi/mainnet/liquity/trove-types';
@@ -67,9 +68,7 @@ const main = async () => {
   const troveType = (await axios.get(URL)).data;
 
   const key = `ethereum:${LUSD_ADDRESS}`.toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${key}`)).coins;
 
   const totalSupplyUsd = (Number(troveEthTvl) / 1e18) * Number(troveType.price);
   const totalBorrowUsd =

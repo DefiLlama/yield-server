@@ -83,7 +83,7 @@ async function getMagpieInfoFallback(conf) {
     .map((addr) => `${coinPrefix}:${addr}`)
     .join(',');
   const priceResp = await axios.get(
-    `https://coins.llama.fi/prices/current/${coinKeys}`
+    utils.getPriceApiUrl(`/prices/current/${coinKeys}`)
   );
   const coins = priceResp.data.coins;
 

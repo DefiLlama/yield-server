@@ -20,9 +20,7 @@ async function getBlockByEpoch(epochSecs, cellarChain) {
     throw new Error('getBlockByEpoch was not passed an integer');
   }
 
-  const data = await utils.getData(
-    `https://coins.llama.fi/block/${cellarChain}/${epochSecs}`
-  );
+  const data = await utils.getPriceApiData(`/block/${cellarChain}/${epochSecs}`);
 
   return data.height;
 }

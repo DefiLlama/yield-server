@@ -85,7 +85,7 @@ function compounderApy(wethApy, looksApr) {
 const getPrices = async (chain, addresses) => {
     const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
     const prices = (
-        await axios.get('https://coins.llama.fi/prices/current/' + uri)
+        await axios.get(utils.getPriceApiUrl('/prices/current/') + uri)
     ).data.coins;
 
     const pricesObj = Object.entries(prices).reduce(

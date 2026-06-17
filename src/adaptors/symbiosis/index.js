@@ -46,9 +46,7 @@ const loadTvlData = async () => {
   // Fetch all prices in a single batch request
   let prices = {};
   try {
-    const priceResponse = await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKeys.join(',').toLowerCase()}`
-    );
+    const priceResponse = await utils.getPriceApiData(`/prices/current/${priceKeys.join(',').toLowerCase()}`);
     prices = priceResponse.coins || {};
   } catch (err) {
     console.log(`Failed to fetch prices: ${err.message}`);

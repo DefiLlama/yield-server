@@ -105,7 +105,7 @@ const getPoolTvlAndLpPrice = async (poolAddress, chain, tokens, block = null) =>
     .map((token) => `${chain}:${token.toLowerCase()}`)
     .join(',');
   const pricesResponse = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
+    utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
   );
   const prices = pricesResponse.data.coins;
 

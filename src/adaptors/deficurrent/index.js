@@ -23,9 +23,7 @@ const getVaultTvl = async (vaults) => {
     coins.push(`${chain}:${vault.tokenAddress}`.toLowerCase());
   }
 
-  const coinsData = (
-    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).data.coins;
+  const coinsData = (await utils.getPriceApiData(`/prices/current/${coins}`)).coins;
 
   for (const vault of vaults) {
     const want = vault.tokenAddress;

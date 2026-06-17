@@ -117,7 +117,7 @@ async function getUSDPrice(chain, address) {
   // price of base token in USD terms
   const key = `${chain}:${address}`;
   const priceRes = await axios.get(
-    `https://coins.llama.fi/prices/current/${key}`
+    utils.getPriceApiUrl(`/prices/current/${key}`)
   );
   const price = priceRes.data.coins[key];
   return price ? price.price : 0;

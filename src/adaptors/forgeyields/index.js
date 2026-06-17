@@ -62,9 +62,7 @@ const convertToAssetsAbi =
   'function convertToAssets(uint256 shares) external view returns (uint256)';
 
 const getBlock = async (timestamp, chain = 'ethereum') => {
-  const { data } = await axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
-  );
+  const data = await utils.getPriceApiData(`/block/${chain}/${timestamp}`);
   return data.height;
 };
 
@@ -112,9 +110,7 @@ const apy = async () => {
       if (addr) priceKeys.add(`${chain}:${addr}`);
     }
   }
-  const { data: priceData } = await axios.get(
-    `https://coins.llama.fi/prices/current/${[...priceKeys].join(',')}`
-  );
+  const priceData = await utils.getPriceApiData(`/prices/current/${[...priceKeys].join(',')}`);
   const prices = priceData.coins;
 
   // Per-strategy Ethereum gateway -> compute shared APY + Ethereum TVL onchain

@@ -24,8 +24,8 @@ async function apy() {
   const timestamp = Math.floor(Date.now() / 1000);
 
   const [{ height: blockNow }, { height: blockPrev }] = await Promise.all([
-    utils.getData(`https://coins.llama.fi/block/${CHAIN}/${timestamp}`),
-    utils.getData(`https://coins.llama.fi/block/${CHAIN}/${timestamp - DAY}`),
+    utils.getPriceApiData(`/block/${CHAIN}/${timestamp}`),
+    utils.getPriceApiData(`/block/${CHAIN}/${timestamp - DAY}`),
   ]);
 
   const addresses = VAULTS.map((v) => v.address);

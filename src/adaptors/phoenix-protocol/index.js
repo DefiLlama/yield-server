@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const CHAIN = 'ethereum';
 const PHLIMBO = '0x6084a02c2ac0127ddf1e617de257c61480a2aee0';
@@ -35,7 +36,7 @@ const callView = (target, abi, params) =>
 const getPrices = async (tokens) => {
   const keys = tokens.map((t) => `${CHAIN}:${t}`);
   const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${keys.join(',')}`,
+    getPriceApiUrl(`/prices/current/${keys.join(',')}`),
     { timeout: 10_000 }
   );
   return tokens.reduce((acc, t, i) => {

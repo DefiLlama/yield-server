@@ -1,11 +1,12 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { warStakerABI } = require('./abi/WarStaker');
+const { getPriceApiUrl } = require('../utils');
 
 const WAR_STAKER_ADDRESS = '0xA86c53AF3aadF20bE5d7a8136ACfdbC4B074758A';
 
 const getLlamaPrice = async (tokenAddress) => {
-  const res = await axios.get(`https://coins.llama.fi/prices/current/ethereum:${tokenAddress}`);
+  const res = await axios.get(getPriceApiUrl(`/prices/current/ethereum:${tokenAddress}`));
   return res.data.coins[`ethereum:${tokenAddress}`].price;
 };
 

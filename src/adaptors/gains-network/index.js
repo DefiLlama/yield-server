@@ -76,9 +76,7 @@ const getApy = async () => {
         const priceKeys = [y.gns, ...y.vaults.map((i) => i.underlying)].map(
           (i) => `${chain}:${i}`
         );
-        const prices = (
-          await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-        ).data.coins;
+        const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
         const balance =
           (

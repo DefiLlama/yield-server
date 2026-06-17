@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getPriceApiUrl } = require('../utils');
 
 const project = 'vaneck-treasury-fund';
 
@@ -72,7 +72,7 @@ const apy = async () => {
       ),
       getTotalSupply(SOLANA_TOKEN).catch(() => 0),
       axios
-        .get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+        .get(getPriceApiUrl(`/prices/current/${priceKeys}`))
         .catch(() => ({ data: { coins: {} } })),
     ]);
 

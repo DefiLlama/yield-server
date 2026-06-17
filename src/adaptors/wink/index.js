@@ -33,13 +33,9 @@ async function getPrices(chain, addresses) {
     const priceKeys = [...new Set(addresses)].map(
             (address) => `${chain}:${address}`
     );
-    return (
-        await axios.get(
-            `https://coins.llama.fi/prices/current/${priceKeys
+    return (await utils.getPriceApiData(`/prices/current/${priceKeys
                 .join(',')
-                .toLowerCase()}`
-        )
-    ).data.coins;
+                .toLowerCase()}`)).coins;
 }
 
 const getRebaserTopic = async () => {

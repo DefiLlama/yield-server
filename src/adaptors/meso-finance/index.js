@@ -2,7 +2,7 @@ const { ContractMissingABIError } = require('web3');
 const utils = require('../utils');
 
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
+const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
 
 const COINS = [
   ['APT', 'coingecko:aptos', 8, '0x1::aptos_coin::AptosCoin'],

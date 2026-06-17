@@ -102,9 +102,7 @@ const getLendingApy = async (chain) => {
     ]);
 
     const priceKeys = underlying.map((i) => `${chain}:${i}`).join(',');
-    const prices = (
-      await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-    ).data.coins;
+    const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
     return fTokensEntireData
       .map((token, i) => {
@@ -255,10 +253,10 @@ const fetchTokenData = async (chain, vaultDetails) => {
 
   const [prices, borrowPrices] = await Promise.all([
     axios
-      .get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+      .get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`))
       .then((r) => r.data.coins),
     axios
-      .get(`https://coins.llama.fi/prices/current/${borrowPriceKeys}`)
+      .get(utils.getPriceApiUrl(`/prices/current/${borrowPriceKeys}`))
       .then((r) => r.data.coins),
   ]);
 

@@ -108,9 +108,7 @@ const main = async () => {
     }
   }
   const keys = vaultsAddresses.join(',').toLowerCase();
-  const usdPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
-  ).data.coins;
+  const usdPrice = (await utils.getPriceApiData(`/prices/current/${keys}`)).coins;
   const pools = [];
   for (let i = 0; i < filteredVaults.length; i++) {
     const vault = filteredVaults[i];

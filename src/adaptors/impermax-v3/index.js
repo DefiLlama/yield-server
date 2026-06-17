@@ -244,7 +244,7 @@ const getPriceFromDefiLlama = async (chain, tokenAddresses) => {
       const chainTokens = maxTokens.map((address) => `${chain}:${address}`);
 
       const { coins } = await fetch(
-        `https://coins.llama.fi/prices/current/${chainTokens.join(',')}`
+        utils.getPriceApiUrl(`/prices/current/${chainTokens.join(',')}`)
       ).then((i) => i.json());
 
       maxTokens.forEach((token) => {

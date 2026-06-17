@@ -65,9 +65,9 @@ const getNablaIndexerPoolsMetrics = async (chain) => {
       let usdPrices = {};
       try {
         const priceResponse = await axios.get(
-          `https://coins.llama.fi/prices/current/${priceKeys
+          utils.getPriceApiUrl(`/prices/current/${priceKeys
             .join(',')
-            .toLowerCase()}`
+            .toLowerCase()}`)
         );
         usdPrices = priceResponse.data.coins || {};
       } catch (err) {
@@ -144,9 +144,9 @@ const getGraphPoolsMetrics = async (chain) => {
     let usdPrices = {};
     try {
       const priceResponse = await axios.get(
-        `https://coins.llama.fi/prices/current/${priceKeys
+        utils.getPriceApiUrl(`/prices/current/${priceKeys
           .join(',')
-          .toLowerCase()}`
+          .toLowerCase()}`)
       );
       usdPrices = priceResponse.data.coins || {};
     } catch (err) {

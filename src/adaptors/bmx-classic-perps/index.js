@@ -113,9 +113,7 @@ const getPools = async () => {
   let pools = [];
 
   const priceKeys = ['ethereum', 'bmx'].map((t) => `coingecko:${t}`).join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const priceData = {
     bmx: prices['coingecko:bmx'],

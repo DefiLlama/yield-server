@@ -122,9 +122,7 @@ const PRIME_CONTRACTS = {
 };
 
 const getTokenPrice = async (tokenAddress, network) => {
-  const data = await utils.getData(
-    `https://coins.llama.fi/prices/current/${network}:${tokenAddress}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${network}:${tokenAddress}`);
 
   return Number(data.coins[Object.keys(data.coins)[0]].price);
 };

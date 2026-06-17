@@ -233,7 +233,7 @@ const getApy = async () => {
             .replaceAll('/', '');
         pricesA = [
             ...pricesA,
-            (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
+            (await utils.getPriceApiData(`/prices/current/${x}`))
                 .coins,
         ];
     }

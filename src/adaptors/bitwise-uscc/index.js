@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getPriceApiData } = require('../utils');
 
 const USCC = {
     ethereum: '0x14d60e7fdc0d71d8611742720e4c50e7a974020c',
@@ -24,17 +24,11 @@ const apy = async () => {
     const timestamp7daysAgo = timestampNow - 86400 * 7;
     const timestamp30daysAgo = timestampNow - 86400 * 30;
 
-    const blockNow = (
-        await axios.get(`https://coins.llama.fi/block/ethereum/${timestampNow}`)
-    ).data.height;
+    const blockNow = (await getPriceApiData(`/block/ethereum/${timestampNow}`)).height;
 
-    const block7daysAgo = (
-        await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7daysAgo}`)
-    ).data.height;
+    const block7daysAgo = (await getPriceApiData(`/block/ethereum/${timestamp7daysAgo}`)).height;
 
-    const block30daysAgo = (
-        await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp30daysAgo}`)
-    ).data.height;
+    const block30daysAgo = (await getPriceApiData(`/block/ethereum/${timestamp30daysAgo}`)).height;
 
     let exchangeRate7daysAgo = await sdk.api.abi.call({
         target: USCC_ORACLE,

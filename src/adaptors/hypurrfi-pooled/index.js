@@ -110,7 +110,7 @@ const apy = async () => {
   // 5. Prices
   const priceKeys = reservesList.map((t) => `${chain}:${t}`).join(",");
   const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`, {
+    await axios.get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`), {
       timeout: 30_000,
     })
   ).data.coins;

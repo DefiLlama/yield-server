@@ -12,7 +12,7 @@ const SCALE  = BigInt(1e18)
 const SHARES = BigInt(1e18)
 
 async function getBlockAtTimestamp(chain, ts) {
-  const { data } = await axios.get(`https://coins.llama.fi/block/${chain}/${ts}`)
+  const data = await utils.getPriceApiData(`/block/${chain}/${ts}`)
   return { block: data.height || data.number, ts: data.timestamp || ts }
 }
 
@@ -62,7 +62,7 @@ async function computeApyBase(chain, vault) {
 async function getPrice(chain, token, tokenSubstitute) {
   async function _getPrice(chain, tokenAddress) {
     const priceKey = `${chain}:${tokenAddress}`
-    const { data } = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+    const data = await utils.getPriceApiData(`/prices/current/${priceKey}`)
     return data.coins?.[priceKey]?.price ?? 0
   }
   const price = await _getPrice(chain, token)

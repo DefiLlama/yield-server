@@ -36,9 +36,7 @@ const aprToApy = (apr, compoundingsPerYear) =>
 
 const l1TokenPrices = async (l1TokenAddrs) => {
   const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
-  const data = await utils.getData(
-    `https://coins.llama.fi/prices/current/${l1TokenQuery}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${l1TokenQuery}`);
 
   return Object.fromEntries(
     l1TokenAddrs.map((addr) => {

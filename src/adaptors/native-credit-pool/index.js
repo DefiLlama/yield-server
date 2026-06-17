@@ -149,7 +149,7 @@ const batchFetchTokenPrices = async (tokenAddresses, chain) => {
         .join(',');
 
       const response = await axios.get(
-        `https://coins.llama.fi/prices/current/${priceKeys}`
+        utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
       );
 
       batch.forEach((address) => {

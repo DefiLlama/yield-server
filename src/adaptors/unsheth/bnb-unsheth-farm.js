@@ -45,8 +45,8 @@ async function getUSDRewardPerYear(){
   let rewardsPerYear = rewardsPerSecond * seconds_per_year;
 
   let priceKey = `coingecko:unsheth`;
-  let USHPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
-  
+  let USHPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
+
 
   let USDRewardPerYear = USHPrice * parseFloat(rewardsPerYear);
 
@@ -55,7 +55,7 @@ async function getUSDRewardPerYear(){
 
 async function getTVLUSD(){
   const priceKey = `ethereum:${contract_addresses.WETH}`;
-  const ethPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
+  const ethPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   let darknetRates = await getDarknetRates();
 
@@ -89,10 +89,10 @@ async function getLSDPrices() {
   };
 
   let prices = {
-    sfrxETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.sfrxETH}`)).data.coins[`coingecko:${coingeckoIds.sfrxETH}`]?.price,
-    rETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.rETH}`)).data.coins[`coingecko:${coingeckoIds.rETH}`]?.price,
-    wstETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.wstETH}`)).data.coins[`coingecko:${coingeckoIds.wstETH}`]?.price,
-    cbETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.cbETH}`)).data.coins[`coingecko:${coingeckoIds.cbETH}`]?.price,
+    sfrxETH: (await utils.getPriceApiData(`/prices/current/coingecko:${coingeckoIds.sfrxETH}`)).coins[`coingecko:${coingeckoIds.sfrxETH}`]?.price,
+    rETH: (await utils.getPriceApiData(`/prices/current/coingecko:${coingeckoIds.rETH}`)).coins[`coingecko:${coingeckoIds.rETH}`]?.price,
+    wstETH: (await utils.getPriceApiData(`/prices/current/coingecko:${coingeckoIds.wstETH}`)).coins[`coingecko:${coingeckoIds.wstETH}`]?.price,
+    cbETH: (await utils.getPriceApiData(`/prices/current/coingecko:${coingeckoIds.cbETH}`)).coins[`coingecko:${coingeckoIds.cbETH}`]?.price,
   }
 
   return prices

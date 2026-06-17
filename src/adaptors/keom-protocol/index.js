@@ -1,4 +1,5 @@
 const { ethers } = require('ethers');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 const {
   keomABI,
   unitrollerABI,
@@ -199,7 +200,7 @@ async function getRewardAPY(
 
   const rewardPromises = rewards.map(async (reward) => {
     const [prices, rewardSpeeds] = await Promise.all([
-      axios.get(`https://coins.llama.fi/prices/current/${chain}:${reward}`),
+      axios.get(getPriceApiUrl(`/prices/current/${chain}:${reward}`)),
       sdk.api.abi.call({
         target: rewardManager,
         abi: rewardsManagerABI?.find((abi) =>
@@ -378,18 +379,10 @@ async function getErc20Balances(strategy, oracleAddress, provider, chain) {
     oracleUnderlyingPrice = BN(price);
   } catch (error) {
     if (native) {
-      const prices = (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${chain}:${chains[chain].wnative} `
-        )
-      ).data.coins;
+      const prices = (await getPriceApiData(`/prices/current/${chain}:${chains[chain].wnative} `)).coins;
       apiPrice = prices[`${chain}:${chains[chain].wnative}`]?.price;
     } else {
-      const prices = (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${chain}:${_address} `
-        )
-      ).data.coins;
+      const prices = (await getPriceApiData(`/prices/current/${chain}:${_address} `)).coins;
       apiPrice = prices[`${chain}:${_address}`]?.price;
     }
   }

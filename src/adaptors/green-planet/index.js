@@ -115,9 +115,7 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   const priceKeys = [...underlying, GAMMA].map((t) => `bsc:${t}`).join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
   const gammaPriceUSD = prices[`bsc:${GAMMA}`].price;
 
   const pools = markets.map((m, i) => {

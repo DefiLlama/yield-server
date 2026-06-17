@@ -31,9 +31,7 @@ const vaults = [
 ];
 
 const getBlock = async (timestamp) => {
-  const { data } = await axios.get(
-    `https://coins.llama.fi/block/${CHAIN}/${timestamp}`
-  );
+  const data = await utils.getPriceApiData(`/block/${CHAIN}/${timestamp}`);
   return data.height;
 };
 

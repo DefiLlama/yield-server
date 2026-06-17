@@ -17,9 +17,7 @@ async function poolsFunction(timestamp, block, chainBlocks) {
     ).output / 1e18;
 
   const priceKey = 'coingecko:telos';
-  const telosPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const telosPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const apyPercentage = (await axios.get('https://api.telos.net/v1/apy/evm'))
     .data;

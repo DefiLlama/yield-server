@@ -143,7 +143,7 @@ const fetchMarketData = async (target) => {
   }
 
   const priceKeys = reserveTokens.map((t) => `${chain}:${t.tokenAddress}`).join(',');
-  const pricesEthereum = (await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)).data.coins;
+  const pricesEthereum = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return Promise.all(reserveTokens.map(async (pool, i) => {
     const frozen = poolsReservesConfigurationData.output[i].output.isFrozen;

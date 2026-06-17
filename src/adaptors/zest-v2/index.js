@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 const {
   callReadOnlyFunction,
   contractPrincipalCV,
@@ -75,7 +76,7 @@ const POOLS = [
 
 async function fetchPrices() {
   const keys = [...new Set(POOLS.flatMap((p) => p.priceKeys))].join(',');
-  const url = `https://coins.llama.fi/prices/current/${keys}`;
+  const url = getPriceApiUrl(`/prices/current/${keys}`);
   const { data } = await axios.get(url);
   return data.coins;
 }

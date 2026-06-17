@@ -16,6 +16,7 @@
 const axios = require("axios");
 const sdk = require("@defillama/sdk");
 const BigNumber = require("bignumber.js");
+const { getPriceApiData } = require('../utils');
 
 // Per-chain config. Add a new entry here to support another chain.
 const CHAINS = [
@@ -56,14 +57,10 @@ function calcFeeAPR(volumeUSD, tvlUsd, feeRate) {
 const getPrices = async (addresses, chain) => {
     if (addresses.length === 0) return {};
 
-    const prices = (
-        await axios.get(
-            `https://coins.llama.fi/prices/current/${addresses
+    const prices = (await getPriceApiData(`/prices/current/${addresses
                 .map((address) => `${chain}:${address}`)
                 .join(',')
-                .toLowerCase()}`
-        )
-    ).data.coins;
+                .toLowerCase()}`)).coins;
 
     const pricesObj = Object.entries(prices).reduce(
         (acc, [address, price]) => ({

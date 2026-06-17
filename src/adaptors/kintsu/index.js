@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const SECONDS_PER_DAY = 86400;
 const DAYS_PER_YEAR = 365;
@@ -19,12 +20,12 @@ const call = (chain, target, abi, block) =>
 
 const getBlock = (chain, timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/${chain}/${timestamp}`)
+    .get(getPriceApiUrl(`/block/${chain}/${timestamp}`))
     .then((r) => r.data.height);
 
 const getUsdPrice = (priceId) =>
   axios
-    .get(`https://coins.llama.fi/prices/current/${priceId}`)
+    .get(getPriceApiUrl(`/prices/current/${priceId}`))
     .then((r) => r.data.coins[priceId].price);
 
 const getShareValue = async (chain, vault, block) => {

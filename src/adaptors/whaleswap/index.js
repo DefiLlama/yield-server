@@ -86,9 +86,7 @@ const getBaseTokensPrice = async () => {
   const tokens = ['binancecoin', 'ethereum']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${tokens}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${tokens}`);
 
   const podPriceResult = await request(API_URL, priceQuery, {
     id: '0xdded222297b3d08dafdac8f65eeb799b2674c78f',
