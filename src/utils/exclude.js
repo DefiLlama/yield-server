@@ -506,6 +506,7 @@ const excludeAdaptors = [
   'yldr',
   'zircon-gamma',
   'looksrare',
+  'cove-boosties',
 ];
 
 const excludePools = [
