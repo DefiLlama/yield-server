@@ -73,9 +73,7 @@ const getApy = async (chain) => {
   });
 
   const pricesArray = tokens.map((t) => `${chain}:${t}`);
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
   const poolLiquidityNodes = (
     await API.multiCall({

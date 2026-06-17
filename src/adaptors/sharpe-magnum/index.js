@@ -69,7 +69,7 @@ async function getTVLInUSD(vaultAddress) {
   ).output;
 
   const address = "ethereum:0x0000000000000000000000000000000000000000";
-  const response = await fetch(`https://coins.llama.fi/prices/current/${address}`);
+  const response = await fetch(utils.getPriceApiUrl(`/prices/current/${address}`));
   const data = await response.json();
   const ethData = data.coins[address];
   if (!ethData) {

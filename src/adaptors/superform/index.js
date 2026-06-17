@@ -97,9 +97,7 @@ const main = async () => {
     });
 
     const priceKeys = assetAddresses.map((a) => `${chain}:${a}`).join(',');
-    const pricesRes = await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKeys}`
-    );
+    const pricesRes = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
     const prices = {};
     for (const [key, value] of Object.entries(pricesRes.coins || {})) {

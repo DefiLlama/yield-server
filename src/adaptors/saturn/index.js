@@ -34,12 +34,8 @@ const main = async () => {
     chain: 'ethereum',
     abi: abi.totalAssets,
   });
-  const block1dAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dAgo}`)
-  ).data.height;
-  const block7dAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dAgo}`)
-  ).data.height;
+  const block1dAgo = (await utils.getPriceApiData(`/block/ethereum/${timestamp1dAgo}`)).height;
+  const block7dAgo = (await utils.getPriceApiData(`/block/ethereum/${timestamp7dAgo}`)).height;
 
   const [rateNow, rate1dAgo, rate7dAgo] = await Promise.all([
     sdk.api.abi.call({
@@ -74,9 +70,7 @@ const main = async () => {
       : 0;
 
   const priceKey = `ethereum:${USDAT_ADDRESS}`;
-  const usdatPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const usdatPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   const tvlUsd = (totalAssets.output / 1e6) * usdatPrice;
 

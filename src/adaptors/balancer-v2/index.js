@@ -296,9 +296,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
   // get BAL price
   const balKey = `ethereum:${BAL}`.toLowerCase();
-  const balPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${balKey}`)
-  ).data.coins[balKey].price;
+  const balPrice = (await utils.getPriceApiData(`/prices/current/${balKey}`)).coins[balKey].price;
 
   // add LM rewards if available to each pool in data
   for (const pool of liquidityGauges) {
@@ -378,9 +376,7 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
 
         // get cg price of reward token
         const key = `${chainString}:${add}`.toLowerCase();
-        const price = (
-          await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-        ).data.coins[key]?.price;
+        const price = (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key]?.price;
 
         // call reward data
         const { rate, period_finish } = (
@@ -479,8 +475,7 @@ const topLvl = async (
       .replaceAll('/', '');
     pricesA = [
       ...pricesA,
-      (await axios.get(`https://coins.llama.fi/prices/current/${keys}`))
-        .data.coins,
+      (await utils.getPriceApiData(`/prices/current/${keys}`)).coins,
     ];
   }
   let tokenPriceList = {};

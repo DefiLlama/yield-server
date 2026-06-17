@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const CHAIN = 'World Chain';
 const SDK_CHAIN = 'wc';
@@ -26,9 +27,7 @@ const computeSupplyApy = (utilRate, params) => {
 
 const getUsdcPrice = async () => {
   const key = `${SDK_CHAIN}:${USDC.toLowerCase()}`;
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${key}`
-  );
+  const data = await getPriceApiData(`/prices/current/${key}`);
   return data?.coins?.[key]?.price ?? 1;
 };
 

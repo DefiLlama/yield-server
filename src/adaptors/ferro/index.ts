@@ -99,9 +99,7 @@ const getApy = async () => {
   const priceKeys = Object.keys(CG_NAMES)
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const mappedPrices = Object.entries(prices).reduce(
     (acc, [name, price]: any) => ({

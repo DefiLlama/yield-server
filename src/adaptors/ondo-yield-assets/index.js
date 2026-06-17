@@ -190,7 +190,7 @@ const ousgOracleAbi = {
 
 const getBlock = async (chain, timestamp) => {
   const response = await axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
+    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
   );
   return response.data.height;
 };

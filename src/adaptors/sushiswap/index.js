@@ -372,11 +372,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
     ].map((t) => `${chainString}:${t}`);
     const sushi = `${chainString}:${SUSHI[chainString]?.toLowerCase()}`;
     coins = [...coins, sushi];
-    const tokensUsd = (
-      await axios.get(
-        `https://coins.llama.fi/prices/current/${coins.join(',').toLowerCase()}`
-      )
-    ).data.coins;
+    const tokensUsd = (await utils.getPriceApiData(`/prices/current/${coins.join(',').toLowerCase()}`)).coins;
 
     // for mc1: calc sushi per year in usd
     if (chainString === 'ethereum') {

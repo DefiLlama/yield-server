@@ -14,9 +14,7 @@ async function apy() {
   ).output;
 
   const coinsKey = pools.map((pool) => `${chain}:${pool.asset}`);
-  const { coins } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${coinsKey}`
-  );
+  const { coins } = await utils.getPriceApiData(`/prices/current/${coinsKey}`);
 
   const farmToTvls = {};
   const farmAddresses = {};

@@ -295,8 +295,7 @@ const getApy = async () => {
       .toLowerCase()
     pricesA = [
       ...pricesA,
-      (await axios.get(`https://coins.llama.fi/prices/current/${url}`))
-        .data.coins,
+      (await utils.getPriceApiData(`/prices/current/${url}`)).coins,
     ];
   }
   let prices = {};

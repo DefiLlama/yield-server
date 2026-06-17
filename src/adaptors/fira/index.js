@@ -138,9 +138,7 @@ const getPrices = async (addresses) => {
   const keys = [
     ...new Set(addresses.map((a) => `${CHAIN}:${a.toLowerCase()}`)),
   ];
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${keys.join(',')}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${keys.join(',')}`);
   return data.coins || {};
 };
 

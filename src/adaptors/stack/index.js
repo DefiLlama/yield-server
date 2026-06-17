@@ -7,9 +7,7 @@ const { contracts, tokens } = require('./constants');
 
 const apy = async () => {
   const underlying = tokens.MORE;
-  const tokenPrices = (
-    await axios.get(`https://coins.llama.fi/prices/current/real:${underlying}`)
-  ).data.coins;
+  const tokenPrices = (await utils.getPriceApiData(`/prices/current/real:${underlying}`)).coins;
 
   const underlyingPrice = tokenPrices[`real:${underlying}`]?.price;
 

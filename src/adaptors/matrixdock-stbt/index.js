@@ -27,7 +27,7 @@ const totalSharesAbi = {
 const getBlockNumberDaysBefore = async (chain, days) => {
   const timestamp = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
   const response = await axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
+    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
   );
   return response.data.height;
 };
@@ -106,7 +106,7 @@ const getPoolsForChain = async (chain) => {
 
       const priceKey = `${chain}:${token.address}`;
       const priceResponse = await axios.get(
-        `https://coins.llama.fi/prices/current/${priceKey}`
+        utils.getPriceApiUrl(`/prices/current/${priceKey}`)
       );
       const currentPrice = priceResponse.data.coins[priceKey]?.price || 1;
 

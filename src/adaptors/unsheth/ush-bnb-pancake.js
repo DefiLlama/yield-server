@@ -43,8 +43,8 @@ async function getUSDRewardPerYear(){
   let rewardsPerYear = rewardsPerSecond * seconds_per_year;
 
   let priceKey = `coingecko:unsheth`;
-  let USHPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
-  
+  let USHPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
+
 
   let USDRewardPerYear = USHPrice * parseFloat(rewardsPerYear);
 
@@ -53,7 +53,7 @@ async function getUSDRewardPerYear(){
 
 async function getTVLUSD(){
   const priceKey = `coingecko:binancecoin`;
-  const bnbPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
+  const bnbPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   //erc20 abi for getting the total supply of the token
   const erc20ABI = [

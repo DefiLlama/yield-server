@@ -123,7 +123,7 @@ async function apy() {
     try {
       const priceKey = `ethereum:${RWAUSDI.ethereum.toLowerCase()}`;
       const priceRes = await axios.get(
-        `https://coins.llama.fi/prices/current/${priceKey}`
+        utils.getPriceApiUrl(`/prices/current/${priceKey}`)
       );
       const price = priceRes.data.coins[priceKey]?.price;
       if (price) {

@@ -217,12 +217,10 @@ const getBaseTokensPrice = async (allTokens, chain) => {
   };
 
   let prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${Object.values(priceKeys)
+    await utils.getPriceApiData(`/prices/current/${Object.values(priceKeys)
         .map((t) => `bsc:${t}`)
         .concat(allTokens.map((t) => `${chain}:${t}`))
-        .join(',')}`
-    )
+        .join(',')}`)
   ).coins;
 
   const cakePriceData = prices[`bsc:${priceKeys.cake}`];

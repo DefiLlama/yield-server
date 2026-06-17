@@ -55,7 +55,7 @@ const ABIS = {
 
 async function getHistoricalBlock(chain, timestamp) {
   const { data } = await http.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
+    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
   );
   return data.height;
 }

@@ -148,8 +148,7 @@ async function getTokenPrices() {
     .map((i) => `avax:${i}`)
     .join(',');
 
-  return (await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`))
-    .data.coins;
+  return (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 }
 
 async function getTrancheTokenAprs() {

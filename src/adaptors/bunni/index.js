@@ -254,9 +254,7 @@ const topLvl = async (chainString, url, query, queryPrior, timestamp) => {
     let keys = tokens.map((token) => `${chainString}:${token}`).join(',');
     if (chainString != 'ethereum')
       keys = keys.concat(`,ethereum:${lit['ethereum']}`);
-    const prices = (
-      await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
-    ).data.coins;
+    const prices = (await utils.getPriceApiData(`/prices/current/${keys}`)).coins;
 
     // calculate the price of oLIT
     let optionPrice = 0;

@@ -249,7 +249,7 @@ async function getApy(market) {
   })).output.map(o => o.output)
 
   const priceKeys = reserves.map(t => `${priceChain}:${t.tokenAddress}`).join(',')
-  const prices = (await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)).data?.coins || {}
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`))?.coins || {}
 
   // Merkl map
   const merklMap = await buildMerklIndex()

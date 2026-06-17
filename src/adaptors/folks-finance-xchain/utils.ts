@@ -1,14 +1,11 @@
 const axios = require('axios');
 const { ONE_18_DP, EVERY_SECOND } = require('./constants');
+const { getPriceApiData } = require('../utils');
 
 const getPrices = async (tokenPriceKeys) =>
-  (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${tokenPriceKeys
+  (await getPriceApiData(`/prices/current/${tokenPriceKeys
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
 const toUsdValue = (value, price, decimals) => {
   return (parseFloat(value) * price) / Math.pow(10, decimals);

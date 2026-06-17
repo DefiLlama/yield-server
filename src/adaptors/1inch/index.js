@@ -63,7 +63,7 @@ const main = async () => {
   // 3. Get 1INCH price
   const priceKey = `${CHAIN}:${CONTRACTS.INCH_TOKEN}`;
   const prices = (
-    await utils.getData(`https://coins.llama.fi/prices/current/${priceKey}`)
+    await utils.getPriceApiData(`/prices/current/${priceKey}`)
   ).coins;
   const inchPrice = prices[priceKey]?.price;
 

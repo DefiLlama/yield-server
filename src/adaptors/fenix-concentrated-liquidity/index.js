@@ -62,9 +62,7 @@ const getApy = async () => {
     );
     // console.log('Pools rewards sample:', poolsRes.data);
 
-    const { coins: fnxPrice } = await utils.getData(
-      `https://coins.llama.fi/prices/current/blast:${FNX_ADDRESS}?searchWidth=4h`
-    );
+    const { coins: fnxPrice } = await utils.getPriceApiData(`/prices/current/blast:${FNX_ADDRESS}?searchWidth=4h`);
     const fnxPriceUsd = fnxPrice[`blast:${FNX_ADDRESS}`]?.price || 0;
 
     const apyDict = {};

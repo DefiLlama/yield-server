@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const ITRY = '0xb492B4aFD9658093694CF9452D5C272e8230F3B0';
 const WITRY = '0xE346C29b5B60Ef870b9724c57ccfbBc631e47DEE';
@@ -122,7 +123,7 @@ const apy = async () => {
   });
   const priceKey = `ethereum:${ITRY}`;
   const priceResp = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`,
+    getPriceApiUrl(`/prices/current/${priceKey}`),
   );
   const iTryPrice = priceResp.data.coins[priceKey]?.price ?? 0;
   const tvlUsd = (Number(totalAssetsRaw) / 1e18) * iTryPrice;

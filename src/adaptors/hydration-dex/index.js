@@ -394,7 +394,7 @@ async function getTokenPrices() {
   const cgIds = [...new Set(Object.values(cgMapping))];
   const coins = cgIds.map((id) => `coingecko:${id}`).join(',');
   const res = await axios.get(
-    `https://coins.llama.fi/prices/current/${coins}`
+    utils.getPriceApiUrl(`/prices/current/${coins}`)
   );
 
   const prices = {};

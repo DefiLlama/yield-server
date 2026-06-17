@@ -75,9 +75,7 @@ const getApy = async (address, chain) => {
 const getPrice = async (index) => {
   const chain = utils.formatChain(index.chain);
   const key = `${chain}:${index.address}`.toLowerCase();
-  const ethPriceUSD = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins[key].price;
+  const ethPriceUSD = (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key].price;
   return ethPriceUSD;
 };
 

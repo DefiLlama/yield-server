@@ -20,7 +20,7 @@ async function sleep(ms) {
 }
 
 async function getBlockAtTs(chain, ts) {
-  const url = `https://coins.llama.fi/block/${chain}/${ts}`;
+  const url = utils.getPriceApiUrl(`/block/${chain}/${ts}`);
   let lastError;
 
   for (let i = 0; i < 4; i++) {

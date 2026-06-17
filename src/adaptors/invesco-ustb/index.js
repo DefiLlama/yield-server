@@ -25,17 +25,11 @@ const apy = async () => {
     const timestamp7daysAgo = timestampNow - 86400 * 7;
     const timestamp30daysAgo = timestampNow - 86400 * 30;
 
-    const blockNow = (
-        await axios.get(`https://coins.llama.fi/block/ethereum/${timestampNow}`)
-    ).data.height;
+    const blockNow = (await utils.getPriceApiData(`/block/ethereum/${timestampNow}`)).height;
 
-    const block7daysAgo = (
-        await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7daysAgo}`)
-    ).data.height;
+    const block7daysAgo = (await utils.getPriceApiData(`/block/ethereum/${timestamp7daysAgo}`)).height;
 
-    const block30daysAgo = (
-        await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp30daysAgo}`)
-    ).data.height;
+    const block30daysAgo = (await utils.getPriceApiData(`/block/ethereum/${timestamp30daysAgo}`)).height;
 
     let exchangeRate7daysAgo = await sdk.api.abi.call({
         target: USTB_ORACLE,

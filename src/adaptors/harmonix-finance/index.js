@@ -99,7 +99,7 @@ const getApy = async () => {
         // Convert TVL to USDC if vault_currency is not USDC
         if (v.vault_currency !== 'USDC') {
           const tokenKey = `${chainId}:${assets[chainId][v.vault_currency.toLowerCase()]}`
-          const priceData = await axios.get(`https://coins.llama.fi/prices/current/${tokenKey}`);
+          const priceData = await axios.get(utils.getPriceApiUrl(`/prices/current/${tokenKey}`));
           const tokenPrice = priceData.data.coins[`${tokenKey}`]?.price;
           if (tokenPrice) {
             if (v.vault_currency === 'ETH') {

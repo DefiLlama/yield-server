@@ -70,9 +70,7 @@ const troveManagerTVL = async () => {
   ).output;
 
   const key = `ethereum:${LUSD_ADDRESS}`.toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${key}`)).coins;
 
   const totalSupplyUsd = (Number(lusdTotalSupply) / 1e18) * prices[key].price;
 

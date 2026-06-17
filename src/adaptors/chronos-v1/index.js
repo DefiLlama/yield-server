@@ -112,9 +112,7 @@ const getApy = async () => {
     .concat('coingecko:usd-freedom')
     .join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const pools = allPairs.map((p, i) => {
     const poolMeta = metaData[i];

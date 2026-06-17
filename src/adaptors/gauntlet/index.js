@@ -33,9 +33,7 @@ const ONE_UNIT = '1000000000000000000';
 
 const getBlockByTimestamp = async (timestamp, chain) => {
   try {
-    const { data } = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
-    );
+    const data = await utils.getPriceApiData(`/block/${chain}/${timestamp}`);
     return data.height;
   } catch {
     console.error(`Error getting block for timestamp ${timestamp} on chain ${chain}`);

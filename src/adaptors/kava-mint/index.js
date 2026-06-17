@@ -6,13 +6,9 @@ const EXCLUDED_COLLATERAL_TYPES = new Set([
 ]);
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({

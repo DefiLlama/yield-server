@@ -160,9 +160,7 @@ const starknetFoundationIncentivesEndpoint =
 
 async function getTokenPrice(token) {
   const networkTokenPair = `starknet:${token}`;
-  return (
-    await axios.get(`https://coins.llama.fi/prices/current/${networkTokenPair}`)
-  ).data.coins[networkTokenPair]?.price;
+  return (await utils.getPriceApiData(`/prices/current/${networkTokenPair}`)).coins[networkTokenPair]?.price;
 }
 
 async function getApys(debtToken) {

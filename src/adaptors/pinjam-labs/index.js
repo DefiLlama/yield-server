@@ -78,9 +78,7 @@ const getApy = async () => {
       const pricesArray = addresses.reservesList.map(
         (t) => `${sdkChain}:${t.underlying}`
       );
-      const prices = (
-        await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-      ).data.coins;
+      const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
       const totalBorrow = (
         await sdk.api.abi.multiCall({

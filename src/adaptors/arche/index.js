@@ -96,8 +96,8 @@ const getApy = async () => {
   const metromRewardsPromise = getMetromRewards();
 
   const [blockNow, block7d] = await Promise.all([
-    axios.get(`https://coins.llama.fi/block/${CHAIN}/${now}`).then((r) => r.data.height),
-    axios.get(`https://coins.llama.fi/block/${CHAIN}/${sevenDaysAgo}`).then((r) => r.data.height),
+    axios.get(utils.getPriceApiUrl(`/block/${CHAIN}/${now}`)).then((r) => r.data.height),
+    axios.get(utils.getPriceApiUrl(`/block/${CHAIN}/${sevenDaysAgo}`)).then((r) => r.data.height),
   ]);
 
   const [ppsNow, pps7d, totalAssets, metromRewards] = await Promise.all([

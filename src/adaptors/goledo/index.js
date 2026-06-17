@@ -14,9 +14,7 @@ const getBaseTokensPrice = async () => {
     .map((t) => `coingecko:${t}`)
     .join(',');
 
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const golPrice = prices['coingecko:goledo'].price;
   const cfxPrice = prices['coingecko:conflux-token'].price;

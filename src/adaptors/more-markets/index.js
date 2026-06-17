@@ -3,6 +3,7 @@ const axios = require('axios');
 
 const poolAbi = require('./poolAbi');
 const incentiveDataAbi = require('./incentiveDataAbi');
+const { getPriceApiData } = require('../utils');
 
 const protocolDataProvider = '0x2148e6253b23122Ee78B3fa6DcdDbefae426EB78';
 const incentiveDataProvider = '0x7b589494de15C30FBBA49B2b478cBEcC561f5A87';
@@ -79,9 +80,7 @@ const apy = async () => {
   const priceTokens = [...underlyingTokens, ...rewardTokenAddresses];
   const priceKeys = priceTokens.map((addr) => `${chain}:${addr}`).join(',');
   const prices = priceKeys
-    ? (
-      await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-    ).data.coins
+    ? (await getPriceApiData(`/prices/current/${priceKeys}`)).coins
     : {};
 
   // Helper function to calculate reward APY

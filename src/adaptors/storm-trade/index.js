@@ -19,9 +19,7 @@ const getApr = async () => {
   });
 
   const prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
-    )
+    await utils.getPriceApiData(`/prices/current/${priceKeys.join(',')}`)
   ).coins;
 
   return vaults

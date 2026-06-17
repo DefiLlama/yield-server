@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const fetch = require('node-fetch');
 const { request } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
+const { getPriceApiUrl } = require('../utils');
 
 // Impermax
 const {
@@ -218,7 +219,7 @@ const getPriceFromDefiLlama = async (chain, tokenAddresses) => {
       const chainTokens = maxTokens.map((address) => `${chain}:${address}`);
 
       const { coins } = await fetch(
-        `https://coins.llama.fi/prices/current/${chainTokens.join(',')}`
+        getPriceApiUrl(`/prices/current/${chainTokens.join(',')}`)
       ).then((i) => i.json());
 
       maxTokens.forEach((token) => {

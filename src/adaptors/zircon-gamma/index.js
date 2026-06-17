@@ -46,9 +46,7 @@ let getPoolsSubgraph = async function (chainId, web3) {
 
 const getTokenPrice = async (tokenAddress, chain = 'moonriver') => {
   let key = `${chain}:${tokenAddress}`;
-  const data = await utils.getData(
-    `https://coins.llama.fi/prices/current/${key}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${key}`);
   console.log(data);
   return data.coins[key];
 };

@@ -144,16 +144,12 @@ async function getApyForChain(cfg) {
       .join(',')
       .replaceAll('/', '');
     pricesA.push(
-      (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data.coins
+      (await utils.getPriceApiData(`/prices/current/${x}`)).coins
     );
   }
   if (veloPriceKey) {
     pricesA.push(
-      (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${veloPriceKey}`
-        )
-      ).data.coins
+      (await utils.getPriceApiData(`/prices/current/${veloPriceKey}`)).coins
     );
   }
   const prices = Object.assign({}, ...pricesA);

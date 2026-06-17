@@ -48,9 +48,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // Get block number for a timestamp via DefiLlama API
 const getBlock = async (timestamp) => {
-  const { data } = await axios.get(
-    `https://coins.llama.fi/block/${CHAIN}/${timestamp}`
-  );
+  const data = await utils.getPriceApiData(`/block/${CHAIN}/${timestamp}`);
   return data.height;
 };
 

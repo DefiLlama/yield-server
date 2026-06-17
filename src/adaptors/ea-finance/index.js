@@ -45,7 +45,7 @@ const abis = {
 async function getWCCPrice() {
   try {
     const response = await axios.get(
-      `https://coins.llama.fi/prices/current/bsc:${WCC_ADDRESS.toLowerCase()}`
+      utils.getPriceApiUrl(`/prices/current/bsc:${WCC_ADDRESS.toLowerCase()}`)
     );
     const priceData = response.data;
     if (priceData && priceData.coins && priceData.coins[`bsc:${WCC_ADDRESS.toLowerCase()}`]) {

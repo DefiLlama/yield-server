@@ -255,9 +255,7 @@ const getMarkets = async (chain) => {
       return acc;
     }, {});
 
-    priceARB = await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKey}`
-    );
+    priceARB = await utils.getPriceApiData(`/prices/current/${priceKey}`);
   }
 
   const marketTokensAPRData = marketInfos.map((market) => {

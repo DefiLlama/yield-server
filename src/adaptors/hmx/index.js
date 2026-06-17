@@ -12,13 +12,9 @@ const arbUrl = 'https://arbitrum-gapi.hmx.org/v1/apr-pools';
 const blastUrl = 'https://blast-gapi.hmx.org/v1/apr-pools';
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({

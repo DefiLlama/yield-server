@@ -3,6 +3,7 @@ const { gql, request } = require('graphql-request');
 const axios = require('axios');
 const ethers = require('ethers');
 const ABI = require('./abi');
+const { getPriceApiData } = require('../utils');
 
 const ZERO = ethers.BigNumber.from(0);
 
@@ -81,8 +82,7 @@ module.exports.pool_state_changes = async (pool_id, block_start) => {
 module.exports.block_24h_ago = async (now) => {
   const end_24h = now;
   const start_24h = end_24h - 3600 * 24;
-  return (await axios.get(`https://coins.llama.fi/block/ethereum/${start_24h}`))
-    .data.height;
+  return (await getPriceApiData(`/block/ethereum/${start_24h}`)).height;
 };
 
 const SOLID = '0x777172d858dc1599914a1c4c6c9fc48c99a60990'.toLowerCase();
@@ -185,7 +185,7 @@ module.exports.fetch_prices = async (token_addr) => {
       .replaceAll('/', '');
     prices = {
       ...prices,
-      ...(await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
+      ...(await getPriceApiData(`/prices/current/${x}`))
         .coins,
     };
   }

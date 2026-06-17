@@ -83,9 +83,7 @@ const getTokenPriceInfo = async (tokens, network) => {
       umamiTokenAddresses.push(vaultPrice);
     } else {
       normalTokenDataPromises.push(
-        utils.getData(
-          `https://coins.llama.fi/prices/current/${network.toLowerCase()}:${token.toLowerCase()}`
-        )
+        utils.getPriceApiData(`/prices/current/${network.toLowerCase()}:${token.toLowerCase()}`)
       );
     }
   }

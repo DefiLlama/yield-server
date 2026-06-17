@@ -43,7 +43,7 @@ const multiCall = (targets, abi, chain, block = undefined) =>
 const getBlockNumber = async (timestamp, chain) => {
   try {
     const response = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
+      utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
     );
     return response.data.height;
   } catch (e) {

@@ -15,7 +15,7 @@ const fetchKasPrice = async () => {
   try {
     const priceKey = 'coingecko:kaspa';
     const kaspa = (
-      await utils.getData(`https://coins.llama.fi/prices/current/${priceKey}`)
+      await utils.getPriceApiData(`/prices/current/${priceKey}`)
     ).coins[priceKey].price;
     if (Number.isFinite(kaspa) && kaspa > 0) return kaspa;
   } catch (error) {

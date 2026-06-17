@@ -16,9 +16,7 @@ const COINGECKO_ID_ARCH = 'archimedes';
 // Get USD value from token amount
 const getUsdValue = async (tokenId, tokenAmount) => {
   const priceKey = `coingecko:${tokenId}`;
-  const usdPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const usdPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
   return tokenAmount * usdPrice;
 };
 

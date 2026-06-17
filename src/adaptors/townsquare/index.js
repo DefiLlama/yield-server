@@ -79,9 +79,7 @@ const apy = async () => {
 
   // Get token prices
   const priceKeys = tokenAddresses.map((t) => `${chain}:${t}`).join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const poolsWithoutRewards = poolAddresses
     .map((poolAddr, i) => {

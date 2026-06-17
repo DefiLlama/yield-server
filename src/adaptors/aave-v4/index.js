@@ -231,7 +231,7 @@ const getApy = async (chain) => {
         params: [c.hub],
       })),
     }),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`),
+    axios.get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`)),
   ]);
   const prices = pricesRes.data.coins;
 

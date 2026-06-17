@@ -32,7 +32,7 @@ const CONFIG = {
   USD0PP_SYMBOL: 'bUSD0',
   URLS: {
     REWARD_APR_RATE: 'https://app.usual.money/api/tokens/yields',
-    LLAMA_PRICE: 'https://coins.llama.fi/prices/current/',
+    LLAMA_PRICE: utils.getPriceApiUrl('/prices/current/'),
   },
   SCALAR: 1e18,
   DAYS_PER_YEAR: 365,

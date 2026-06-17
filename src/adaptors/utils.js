@@ -4,6 +4,22 @@ const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 
+const getPriceApiUrl = (path) => {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  const key = process.env.DL_API_KEY;
+
+  return key
+    ? `https://pro-api.llama.fi/${key}/coins${p}`
+    : `https://coins.llama.fi${p}`;
+};
+
+exports.getPriceApiUrl = getPriceApiUrl;
+
+const getPriceApiData = async (path) =>
+  (await axios.get(getPriceApiUrl(path))).data;
+
+exports.getPriceApiData = getPriceApiData;
+
 exports.formatAddress = (address) => {
   return String(address).toLowerCase();
 };
@@ -120,7 +136,7 @@ const getBlocksByTime = async (timestamps, chainString) => {
   const blocks = [];
   for (const timestamp of timestamps) {
     const response = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
+      getPriceApiUrl(`/block/${chain}/${timestamp}`)
     );
     blocks.push(response.data.height);
   }
@@ -246,9 +262,7 @@ exports.tvl = async (dataNow, networkString) => {
   // price endpoint seems to break with too many tokens, splitting it to max 50 per request
   const fetchTokenPrices = async (tokenIds) => {
     const idList = tokenIds.join(',').replaceAll('/', '');
-    const { data } = await axios.get(
-      `https://coins.llama.fi/prices/current/${idList}`
-    );
+    const data = await getPriceApiData(`/prices/current/${idList}`);
     return data.coins;
   };
 
@@ -376,12 +390,10 @@ exports.getPrices = async (addresses, chain) => {
     ? addresses.map((address) => `${chain}:${address}`)
     : addresses;
   const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${priceKeys
-        .join(',')
-        .toLowerCase()}`
+    await getPriceApiData(
+      `/prices/current/${priceKeys.join(',').toLowerCase()}`
     )
-  ).data.coins;
+  ).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -522,7 +534,7 @@ exports.getERC4626Info = async (
   const [blockNow, blockYesterday] = await Promise.all(
     [timestamp, timestamp - DAY].map((time) =>
       axios
-        .get(`https://coins.llama.fi/block/${chain}/${time}`)
+        .get(getPriceApiUrl(`/block/${chain}/${time}`))
         .then((r) => r.data.height)
     )
   );
@@ -746,7 +758,7 @@ exports.calcSolanaLstApyFromPriceRatio = async (currentExchangeRate, lstMint, da
 
   try {
     const historicalRes = await axios.get(
-      `https://coins.llama.fi/prices/historical/${timestamp}/${lstKey},${solKey}`
+      getPriceApiUrl(`/prices/historical/${timestamp}/${lstKey},${solKey}`)
     );
 
     const lstPrice = historicalRes.data.coins[lstKey]?.price;

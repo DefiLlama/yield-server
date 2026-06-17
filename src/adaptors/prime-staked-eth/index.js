@@ -15,9 +15,7 @@ const apy = async () => {
     abi: 'uint:primeETHPrice',
     target: LRT_ORACLE,
   });
-  const priceData = await utils.getData(
-    'https://coins.llama.fi/prices/current/coingecko:ethereum?searchWidth=4h'
-  );
+  const priceData = await utils.getPriceApiData('/prices/current/coingecko:ethereum?searchWidth=4h');
   const ethPrice = priceData.coins['coingecko:ethereum'].price;
   const tvlUsd =
     ((totalSupply.output * primeEthPrice.output) / 1e36) * ethPrice;

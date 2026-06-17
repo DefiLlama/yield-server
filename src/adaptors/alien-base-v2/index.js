@@ -240,9 +240,7 @@ const main = async (timestamp = Date.now() / 1000) => {
   ).output.map((o) => o.output);
   console.log(poolInfo);
   const wethPriceKey = `base:${WETH}`;
-  const wethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)
-  ).data.coins[wethPriceKey]?.price;
+  const wethPrice = (await utils.getPriceApiData(`/prices/current/${wethPriceKey}`)).coins[wethPriceKey]?.price;
 
   const albPrice = (
     await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${ALB}`)

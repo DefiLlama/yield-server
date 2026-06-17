@@ -627,7 +627,7 @@ async function multiCall(...args) {
 }
 async function fetchLLamaPrices(chain, addresses) {
   const coins = addresses.map((address) => `${chain}:${address}`).join(',');
-  const resp = await fetch(`https://coins.llama.fi/prices/current/${coins}`);
+  const resp = await fetch(utils.getPriceApiUrl(`/prices/current/${coins}`));
   const data = await resp.json();
   const prices = {};
   for (const [coin, info] of Object.entries(data.coins)) {

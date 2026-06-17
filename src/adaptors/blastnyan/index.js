@@ -34,9 +34,7 @@ async function getLPStakingInfo() {
 
   apyReward = (ethYearly / poolValueEth) * 100;
 
-  const ethPrice = (
-    await axios.get('https://coins.llama.fi/prices/current/coingecko:ethereum')
-  ).data.coins['coingecko:ethereum'].price;
+  const ethPrice = (await utils.getPriceApiData('/prices/current/coingecko:ethereum')).coins['coingecko:ethereum'].price;
 
   const tvlUsd = (poolValueEth * ethPrice) / 1e18;
 

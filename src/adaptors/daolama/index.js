@@ -115,7 +115,7 @@ async function getPoolData(
 
 async function getApy() {
     const TON = 'ton:EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
-    const price = async (token) => (await utils.getData(`https://coins.llama.fi/prices/current/${token}`)).coins[token].price;
+    const price = async (token) => (await utils.getPriceApiData(`/prices/current/${token}`)).coins[token].price;
     const tonPrice = await price(TON);
     const borrowRate = (await utils.getData('https://api.daolama.co/api/v1/analytics/borrowed/rate')).value;
     const client = new TonClient({

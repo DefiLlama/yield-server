@@ -295,7 +295,7 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
         .map((i) => `base:${i}`)
         .join(',');
       return axios
-        .get(`https://coins.llama.fi/prices/current/${x}`)
+        .get(utils.getPriceApiUrl(`/prices/current/${x}`))
         .then((r) => r.data.coins);
     })
   );

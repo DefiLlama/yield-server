@@ -124,9 +124,7 @@ const getErc20TotalSupply = async (target, chain) =>
 
 const getTokenPrice = async (tokenAddress, chain) => {
   const priceKey = `${chain}:${tokenAddress.toLowerCase()}`;
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
   return data.coins?.[priceKey]?.price ?? 0;
 };
 

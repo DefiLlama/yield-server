@@ -2,7 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.js');
-const { keepFinite } = require('../utils.js');
+const { keepFinite, getPriceApiData } = require('../utils.js');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 // Compound v3 has one Comet per base/debt asset, with shared borrow state and
@@ -188,9 +188,7 @@ const main = async (pool) => {
     `${pool.chain}:${pool.rewardToken}`,
     ...tokens.map((t) => `${pool.chain}:${t}`),
   ].join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const collateralDecimalsRes = await sdk.api.abi.multiCall({
     abi: 'erc20:decimals',
