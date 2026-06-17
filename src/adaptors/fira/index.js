@@ -794,6 +794,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7329',
   apy,
   url: URLS.DAPP,
   timetravel: false,

@@ -181,6 +181,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2994',
   apy,
   url: 'https://www.curve.finance/llamalend/ethereum/markets',
 };

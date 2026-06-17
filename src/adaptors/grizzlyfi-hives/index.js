@@ -602,6 +602,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2007',
   timetravel: false,
   apy,
   url: 'https://grizzly.fi/',

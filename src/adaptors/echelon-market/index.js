@@ -265,6 +265,7 @@ async function fetchEchelonForChain(chain) {
 }
 
 module.exports = {
+  protocolId: '4367',
   timetravel: false,
   apy: main,
   url: 'https://app.echelon.market/markets',

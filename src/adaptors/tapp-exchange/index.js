@@ -48,6 +48,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '6352',
   timetravel: false,
   apy: main,
   url: 'https://tapp.exchange',

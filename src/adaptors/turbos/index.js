@@ -59,6 +59,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2940',
   timetravel: false,
   apy: getApy,
   url: 'https://app.turbos.finance/#/pools',

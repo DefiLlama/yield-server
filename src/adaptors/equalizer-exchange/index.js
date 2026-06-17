@@ -165,6 +165,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2332',
   timetravel: false,
   apy,
   url: 'https://equalizer.exchange/liquidity',

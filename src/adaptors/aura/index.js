@@ -90,6 +90,7 @@ async function poolsFunction() {
 }
 
 module.exports = {
+  protocolId: '1918',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.aura.finance/',

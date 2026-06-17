@@ -179,6 +179,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '5719',
     timetravel: false,
     apy: poolsFunction, // Main function, returns pools
     url: 'https://wink.finance/', // Link to page with pools (Only required if you do not provide url's for each pool)

@@ -419,6 +419,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2076',
   timetravel: false,
   apy: main,
   url: 'https://frax.com/lend?view=fraxlend',

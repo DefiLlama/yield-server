@@ -358,6 +358,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4167',
   apy,
 };
 // test: npm run test --adapter=fluid-lending

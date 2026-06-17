@@ -92,6 +92,7 @@ const getApyAllChains = async () => {
 };
 
 module.exports = {
+  protocolId: '2867',
   timetravel: false,
   apy: getApyAllChains,
 };

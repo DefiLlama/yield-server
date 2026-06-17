@@ -73,6 +73,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6507',
   apy: apy,
   url: 'https://app.sprinter.tech/',
 }

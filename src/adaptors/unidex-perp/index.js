@@ -23,6 +23,7 @@ function toBN(wei) {
 }
 
 module.exports = {
+  protocolId: '1833',
   timetravel: false,
   apy: async () => {
     const pools = [];

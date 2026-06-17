@@ -196,6 +196,7 @@ async function getPrice(tokenAddress, chain) {
 }
 
 module.exports = {
+  protocolId: '6681',
   timetravel: false,
   apy: apy,
   url: 'https://app.aimstrong.ai/lending',

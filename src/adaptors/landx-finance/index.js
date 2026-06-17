@@ -115,6 +115,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3960',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://landx.fi/dashboard/xTokens',

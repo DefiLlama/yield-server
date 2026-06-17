@@ -33,6 +33,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '253',
   apy,
   url: 'https://crosschain.bifi.finance/',
 };

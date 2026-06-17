@@ -93,6 +93,7 @@ const chainApy = async (chain) => {
 const apy = async () => Promise.all(Object.keys(chains).map(chainApy));
 
 module.exports = {
+  protocolId: '7042',
   apy,
   url: 'https://kintsu.xyz/staking',
 };

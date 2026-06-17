@@ -75,6 +75,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2261',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.arbor.finance/offerings',

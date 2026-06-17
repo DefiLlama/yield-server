@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6976',
   timetravel: false,
   apy,
   url: 'https://doublezero.xyz/staking',

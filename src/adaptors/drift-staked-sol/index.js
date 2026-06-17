@@ -32,4 +32,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://app.drift.trade/earn/dsol-liquid-staking' };
+module.exports = { protocolId: '5046', apy, url: 'https://app.drift.trade/earn/dsol-liquid-staking' };

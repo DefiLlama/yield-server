@@ -164,6 +164,7 @@ interface TurtleOpportunity {
 }
 
 module.exports = {
+  protocolId: '5214',
   timetravel: false,
   apy: async () => {
     const campaigns = [];

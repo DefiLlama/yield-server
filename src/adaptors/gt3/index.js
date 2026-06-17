@@ -131,6 +131,7 @@ const apy = async () => {
  * Adapter module configuration
  */
 module.exports = {
+  protocolId: '6184',
   timetravel: false,
   apy: apy,
   url: 'https://dapp.gt3.finance/',

@@ -67,6 +67,7 @@ let abi = {
 };
 
 module.exports = {
+  protocolId: '6888',
   apy: apy,
   url: 'https://molecular.finance/vault',
 };

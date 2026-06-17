@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2906',
   apy,
   url: 'https://lfj.gg/avalanche/pool',
 };

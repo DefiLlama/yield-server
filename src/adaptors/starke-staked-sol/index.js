@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7312',
   timetravel: false,
   apy,
   url: 'https://starke.finance/rksol',

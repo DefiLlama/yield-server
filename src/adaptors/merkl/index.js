@@ -356,6 +356,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2977',
   timetravel: false,
   apy: main,
   url: 'https://app.merkl.xyz/',

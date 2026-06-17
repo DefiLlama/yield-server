@@ -97,6 +97,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3933',
   apy,
   url: 'https://app.renzoprotocol.com',
 };

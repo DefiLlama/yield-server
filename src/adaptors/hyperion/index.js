@@ -49,6 +49,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5480',
   timetravel: false,
   apy: apy,
   url: 'https://hyperion.xyz/pools',

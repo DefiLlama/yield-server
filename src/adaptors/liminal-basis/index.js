@@ -76,6 +76,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '6482',
   timetravel: false,
   apy: main,
   url: 'https://liminal.money/',

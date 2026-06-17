@@ -158,6 +158,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6855',
   timetravel: false,
   apy,
   url: 'https://app.neutron.org/bitcoin-summer',

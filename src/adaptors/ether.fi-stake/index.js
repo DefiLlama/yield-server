@@ -213,6 +213,7 @@ const getBridgedWeethPools = async ({ apyBase, apyBase7d, apyReward, pricePerSha
 };
 
 module.exports = {
+  protocolId: '2626',
   apy,
   url: 'https://app.ether.fi/',
 };

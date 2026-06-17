@@ -202,6 +202,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '7828',
   timetravel: false,
   apy: getApy,
   url: 'https://mezo.org/earn/lock',

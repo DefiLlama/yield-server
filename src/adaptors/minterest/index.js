@@ -244,6 +244,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '4052',
   timetravel: false,
   apy: main,
   url: 'https://mantle.minterest.com/',

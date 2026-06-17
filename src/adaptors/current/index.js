@@ -100,6 +100,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '7603',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.current.finance/',

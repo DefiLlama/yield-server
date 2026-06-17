@@ -233,6 +233,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4019',
   timetravel: false,
   apy,
   url: 'https://ajnafi.com/',

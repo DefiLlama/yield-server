@@ -140,6 +140,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7028',
   apy,
   url: 'https://townesquare.xyz',
 };

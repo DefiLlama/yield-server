@@ -76,6 +76,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3882',
   apy,
   url: 'https://meth.mantle.xyz/stake',
 };

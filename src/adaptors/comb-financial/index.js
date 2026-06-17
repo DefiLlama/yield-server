@@ -62,6 +62,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1653',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.comb.financial/pools',

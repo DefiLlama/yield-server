@@ -172,6 +172,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5838',
   timetravel: false,
   apy,
   url: "https://hypurrfi.com/lend",

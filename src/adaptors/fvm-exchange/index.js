@@ -251,6 +251,7 @@ const getApy = async () => {
   return pools.filter((p) => utils.keepFinite(p));
 };
 module.exports = {
+  protocolId: '3291',
   timetravel: false,
   apy: getApy,
   url: 'https://www.fvm.exchange/liquidity',

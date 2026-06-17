@@ -56,6 +56,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7039',
   timetravel: false,
   apy: main,
   url: 'https://iaero.finance',

@@ -90,6 +90,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7150',
   timetravel: false,
   apy,
   url: 'https://app.chateau.capital',

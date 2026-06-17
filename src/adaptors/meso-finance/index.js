@@ -102,6 +102,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '4938',
   timetravel: false,
   apy: main,
   url: 'https://app.meso.finance/',

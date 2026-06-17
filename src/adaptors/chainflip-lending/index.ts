@@ -37,6 +37,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '7586',
   timetravel: false,
   apy: getPools,
   url: 'https://scan.chainflip.io/lending/markets',

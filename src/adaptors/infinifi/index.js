@@ -133,6 +133,7 @@ async function computeLockedTokensAPY() {
 
 
 module.exports = {
+  protocolId: '6245',
   timetravel: true,
   apy: poolsFunction,
   url: 'https://infinifi.xyz/',

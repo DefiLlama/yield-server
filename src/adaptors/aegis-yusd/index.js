@@ -52,6 +52,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6024',
   timetravel: false,
   apy,
   url: 'https://app.aegis.im/',

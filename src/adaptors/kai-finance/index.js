@@ -123,6 +123,7 @@ async function getApyData() {
 };
 
 module.exports = {
+  protocolId: '3740',
   timetravel: false,
   apy: getApyData,
   url: 'https://kai.finance',

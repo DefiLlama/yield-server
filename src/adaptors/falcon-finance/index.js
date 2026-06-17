@@ -132,6 +132,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6790',
   timetravel: false,
   apy,
   url: 'https://app.falcon.finance/earn/classic',

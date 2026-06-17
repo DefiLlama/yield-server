@@ -252,6 +252,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1889',
   timetravel: false,
   apy: main,
   url: 'https://zestprotocol.fi/dashboard',

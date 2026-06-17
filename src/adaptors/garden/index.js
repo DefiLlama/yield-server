@@ -157,6 +157,7 @@ const getTvl = async () => {
 };
 
 module.exports = {
+  protocolId: '4086',
   timetravel: false,
   apy: getTvl,
   url: 'https://app.garden.finance/stake',

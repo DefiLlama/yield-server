@@ -127,6 +127,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2938',
   timetravel: false,
   apy: getPools,
   url: 'https://app.luxs.fi',

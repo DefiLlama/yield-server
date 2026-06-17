@@ -176,6 +176,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '4448',
   timetravel: false,
   apy: main,
   url: 'https://app.superform.xyz/earn',

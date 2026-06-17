@@ -120,6 +120,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '4887',
   timetravel: false,
   apy: main,
   url: 'https://sparkdex.ai/pool',

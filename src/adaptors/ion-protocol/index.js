@@ -94,6 +94,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4532',
   apy,
   url: 'https://www.app.ionprotocol.io/',
 };

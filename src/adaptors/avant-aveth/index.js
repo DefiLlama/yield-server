@@ -25,6 +25,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6905',
   timetravel: false,
   apy,
   url: 'https://www.avantprotocol.com',

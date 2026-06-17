@@ -88,6 +88,7 @@ async function getPoolsData() {
 }
 
 module.exports = {
+  protocolId: '620',
   timetravel: false,
   apy: getPoolsData,
 };

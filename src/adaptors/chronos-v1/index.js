@@ -152,6 +152,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2907',
   timetravel: false,
   apy: getApy,
   url: 'https://app.chronos.exchange/liquidity',

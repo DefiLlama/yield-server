@@ -275,6 +275,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '340',
   timetravel: false,
   apy: main,
   url: 'https://app.olympusdao.finance/',

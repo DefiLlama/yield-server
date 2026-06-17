@@ -70,6 +70,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4253',
   timetravel: false,
   apy: apy,
   url: 'https://app.alien.finance/',

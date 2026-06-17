@@ -161,6 +161,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '1220',
   timetravel: false,
   apy,
   url: 'https://app.killswitch.finance/',

@@ -119,6 +119,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1044',
   timetravel: false,
   apy: getApy,
   url: 'https://www.staderlabs.com/eth/stake/',

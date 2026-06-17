@@ -159,6 +159,7 @@ async function multiGetERC4626Infos(
 };
 
 module.exports = {
+  protocolId: '6670',
   timetravel: false,
   apy: getApy,
 };

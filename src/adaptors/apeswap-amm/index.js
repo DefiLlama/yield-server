@@ -424,6 +424,7 @@ const main = async () => {
     .filter((p) => utils.keepFinite(p));
 };
 module.exports = {
+  protocolId: '398',
   timetravel: false,
   apy: main,
   url: 'https://apeswap.finance/farms',

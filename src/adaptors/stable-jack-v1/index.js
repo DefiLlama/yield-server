@@ -102,6 +102,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '4806',
   apy: main,
   url: 'https://app.stablejack.xyz/rebalancepool',
 };

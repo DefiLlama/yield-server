@@ -218,6 +218,7 @@ const utils = require('../utils');
   }
 
   module.exports = {
+  protocolId: '7205',
     apy,
     timetravel: false,
     url: APP_URL,

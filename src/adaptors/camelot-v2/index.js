@@ -233,6 +233,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2307',
   timetravel: true,
   apy: main,
   url: 'https://app.camelot.exchange/liquidity',

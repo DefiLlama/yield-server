@@ -152,6 +152,7 @@ const fetchPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2378',
   timetravel: false,
   apy: fetchPools,
   url: 'https://stake.link/',

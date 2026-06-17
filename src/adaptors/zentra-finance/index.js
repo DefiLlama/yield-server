@@ -106,6 +106,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7419',
   timetravel: false,
   apy,
   url: 'https://zentra.finance/markets',

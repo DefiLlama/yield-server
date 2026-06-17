@@ -119,6 +119,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '359',
   timetravel: false,
   apy,
   url: 'https://app.frax.finance/staking/overview',

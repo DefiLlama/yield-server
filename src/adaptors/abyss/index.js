@@ -227,6 +227,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7390',
   timetravel: false,
   apy: main,
   url: 'https://beta.abyssprotocol.xyz/vaults',

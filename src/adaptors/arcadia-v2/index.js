@@ -194,6 +194,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4455',
   timetravel: false,
   apy: getApy,
   url: 'https://arcadia.finance/earn',

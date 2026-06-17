@@ -237,6 +237,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1208',
   timetravel: false,
   apy: main,
   url: 'https://openleverage.finance/',

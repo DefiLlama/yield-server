@@ -17,6 +17,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '501',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://www.robo-vault.com/',

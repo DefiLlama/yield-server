@@ -454,6 +454,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7244',
   timetravel: false,
   apy,
   url: 'https://app.harborfinance.io/anchor',

@@ -45,6 +45,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '4670',
   timetravel: false,
   apy,
   url: 'https://c3.io/earn',

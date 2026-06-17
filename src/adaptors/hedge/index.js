@@ -28,6 +28,7 @@ const apr = async () => {
 };
 
 module.exports = {
+  protocolId: '1916',
   timetravel: false,
   apy: apr,
   url: 'https://www.hedge.so/pools',

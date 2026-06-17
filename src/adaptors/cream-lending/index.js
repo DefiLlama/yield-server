@@ -99,6 +99,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '121',
   timetravel: false,
   apy: apy,
   url: 'https://app.cream.finance/',

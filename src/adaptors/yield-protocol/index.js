@@ -220,6 +220,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '876',
   timetravel: false,
   apy: main,
   url: 'https://app.yieldprotocol.com/',

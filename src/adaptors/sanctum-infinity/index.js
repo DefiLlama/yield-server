@@ -34,6 +34,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4368',
   timetravel: false,
   apy,
   url: 'https://app.sanctum.so/stake/INF',

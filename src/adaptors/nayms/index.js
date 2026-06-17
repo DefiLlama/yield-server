@@ -74,6 +74,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3318',
   timetravel: false,
   apy,
   url: 'https://app.nayms.com/opportunities',

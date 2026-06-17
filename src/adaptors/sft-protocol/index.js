@@ -45,6 +45,7 @@ const getApy = async () => {
 }
  
 module.exports = {
+  protocolId: '2876',
   timetravel: false,
   apy: getApy,
   url: 'https://sft.network/#/stake',

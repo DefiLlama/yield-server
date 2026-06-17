@@ -241,6 +241,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5948',
   timetravel: false,
   apy,
   url: 'https://app.centrifuge.io',

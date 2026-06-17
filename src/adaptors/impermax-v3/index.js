@@ -480,6 +480,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5981',
   timetravel: false,
   apy: main,
 };

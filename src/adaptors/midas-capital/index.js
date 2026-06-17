@@ -295,6 +295,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1925',
   timetravel: false,
   apy: main,
   url: PROJECT_URL,

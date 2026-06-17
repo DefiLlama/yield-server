@@ -186,6 +186,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2219',
   timetravel: false,
   apy: getPools,
   url: 'https://v1.vendor.finance',

@@ -92,6 +92,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3643',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.amphor.io/earn',

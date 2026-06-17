@@ -142,4 +142,4 @@ const apy = async () => {
   return [...evmPools, ...solanaPools];
 };
 
-module.exports = { apy };
+module.exports = { protocolId: '5915', apy };

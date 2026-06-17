@@ -181,6 +181,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7566',
   timetravel: false,
   url: MARKETS_URL,
   apy: main,

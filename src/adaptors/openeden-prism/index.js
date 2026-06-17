@@ -115,6 +115,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7670',
   timetravel: false,
   apy,
   url: 'https://app.openeden.com/prism',

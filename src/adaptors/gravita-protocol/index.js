@@ -216,6 +216,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2992',
   timetravel: false,
   apy: main,
   url: 'https://www.gravitaprotocol.com/',

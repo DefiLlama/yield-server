@@ -89,6 +89,7 @@ const apy = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '7336',
   timetravel: false,
   apy,
   url: 'https://www.satsuma.exchange/pools',

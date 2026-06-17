@@ -141,6 +141,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '166',
   timetravel: false,
   apy,
   url: 'https://app.truefi.io/lend',

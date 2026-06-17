@@ -23,6 +23,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '3678',
   timetravel: false,
   apy: main,
   url: 'https://merkle.trade',

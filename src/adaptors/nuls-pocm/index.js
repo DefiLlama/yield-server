@@ -23,6 +23,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2580',
   apy: main,
   url: 'https://pocm.nuls.io/pocm/Projects/ProjectsList',
 };

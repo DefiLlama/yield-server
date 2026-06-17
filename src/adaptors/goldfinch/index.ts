@@ -56,6 +56,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '703',
   timetravel: false,
   apy: apy,
   url: 'https://app.goldfinch.finance/pools/senior',

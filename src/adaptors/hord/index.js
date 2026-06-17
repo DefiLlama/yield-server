@@ -33,6 +33,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2609',
   timetravel: false,
   apy: getApy,
   url: 'https://app.hord.fi/',

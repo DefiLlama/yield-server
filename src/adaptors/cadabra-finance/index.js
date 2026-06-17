@@ -194,6 +194,7 @@ async function collectWrappers(wrappersLens, chain) {
 }
 
 module.exports = {
+  protocolId: '5801',
   timetravel: false,
   apy: main,
 };

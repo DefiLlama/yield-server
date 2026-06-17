@@ -58,6 +58,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1949',
   timetravel: false,
   apy: getApy,
   url: 'https://civfund.org/',

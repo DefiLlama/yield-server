@@ -220,6 +220,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '944',
   timetravel: false,
   apy,
   url: 'https://app.platypus.finance/pool',

@@ -140,6 +140,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '7740',
   timetravel: false,
   apy: getApy,
   url: 'https://arche.money',

@@ -75,6 +75,7 @@ async function getPools() {
 }
 
 module.exports = {
+  protocolId: '4908',
   timetravel: false,
   apy: getPools,
   url: 'https://app.goldlink.io',

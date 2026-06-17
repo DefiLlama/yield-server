@@ -63,6 +63,7 @@ async function getCoinInfoWithCache(coinAddress) {
 }
 
 module.exports = {
+  protocolId: '5885',
   timetravel: false,
   apy: main,
   url: `${MERIDIAN_DAPP_URL}/pools`,

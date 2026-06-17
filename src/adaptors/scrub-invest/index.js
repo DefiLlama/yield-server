@@ -234,6 +234,7 @@ const calcApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2783',
   timetravel: false,
   apy: calcApy,
   url: 'https://invest.scrub.money',

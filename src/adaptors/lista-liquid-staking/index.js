@@ -54,6 +54,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3354',
   apy,
   url: 'https://lista.org/liquid-staking/BNB',
 };

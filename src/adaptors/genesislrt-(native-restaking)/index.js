@@ -57,6 +57,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4030',
   apy,
   url: 'https://www.inceptionlrt.com/app/restaking/restake/?token=ETH',
 };

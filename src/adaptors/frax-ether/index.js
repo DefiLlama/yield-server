@@ -30,6 +30,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2221',
   timetravel: false,
   apy: getApy,
   url: 'https://app.frax.finance/frxeth/mint',

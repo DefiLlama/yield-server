@@ -686,6 +686,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '3498',
   timetravel: false,
   apy: main,
   url: `https://www.liquis.app/stake`,

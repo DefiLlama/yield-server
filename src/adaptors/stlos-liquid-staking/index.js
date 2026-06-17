@@ -38,6 +38,7 @@ async function poolsFunction(timestamp, block, chainBlocks) {
 }
 
 module.exports = {
+  protocolId: '2212',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://www.teloscan.io/staking',

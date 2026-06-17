@@ -33,4 +33,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://www.jito.network/staking/' };
+module.exports = { protocolId: '2308', apy, url: 'https://www.jito.network/staking/' };

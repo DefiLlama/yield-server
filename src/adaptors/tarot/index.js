@@ -693,6 +693,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '434',
   timetravel: false,
   apy: main,
   url: 'https://www.tarot.to/',

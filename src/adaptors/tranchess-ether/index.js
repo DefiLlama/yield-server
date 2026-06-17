@@ -66,6 +66,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3048',
   timetravel: false,
   apy: main,
   url: 'https://tranchess.com/liquid-staking',

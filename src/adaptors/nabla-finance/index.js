@@ -224,6 +224,7 @@ const poolsOnAllChains = async () => {
 };
 
 module.exports = {
+  protocolId: '5309',
   timetravel: false,
   apy: poolsOnAllChains,
   url: 'https://app.nabla.fi/pools',

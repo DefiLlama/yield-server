@@ -116,6 +116,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6527',
   timetravel: false,
   apy,
   url: 'https://app.gloop.finance/loop',

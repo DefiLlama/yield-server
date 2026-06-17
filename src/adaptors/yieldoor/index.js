@@ -858,4 +858,4 @@ const apy = async () => {
   return pools;
 };
 
-module.exports = { apy };
+module.exports = { protocolId: '6279', apy };

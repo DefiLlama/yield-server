@@ -436,6 +436,7 @@ const main = async () => {
   return [...movr, ...bsc];
 };
 module.exports = {
+  protocolId: '2143',
   timetravel: false,
   apy: main,
   url: 'https://www.app.zircon.finance/#/farm',

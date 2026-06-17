@@ -911,5 +911,6 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '4799',
   apy,
 };

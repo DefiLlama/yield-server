@@ -34,6 +34,7 @@ const collectPools = async () => {
 };
 
 module.exports = {
+  protocolId: '342',
   timetravel: false,
   apy: collectPools,
   url: 'https://v2.compli.fi/invest',

@@ -248,6 +248,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2929',
   timetravel: false,
   apy: apy,
   url: 'https://app.spark.fi/markets/',

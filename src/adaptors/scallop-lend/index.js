@@ -84,6 +84,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1961',
   timetravel: false,
   apy: main,
   url: 'https://app.scallop.io/',

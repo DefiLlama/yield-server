@@ -169,6 +169,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5655',
   apy,
   url: 'https://www.resolv.xyz/',
 };

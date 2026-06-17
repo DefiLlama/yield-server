@@ -283,6 +283,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '622',
   timetravel: false,
   apy: main,
   url: 'https://clipper.exchange/app/liquidity/pool',

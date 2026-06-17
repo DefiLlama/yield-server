@@ -58,6 +58,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3534',
   timetravel: false,
   apy: getApy,
   url: 'https://kinetix.finance/pool/v3',

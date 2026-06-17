@@ -262,6 +262,7 @@ const lendingApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1940',
   timetravel: false,
   apy: lendingApy,
   url: 'https://lending.apeswap.finance/',

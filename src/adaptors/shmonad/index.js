@@ -197,6 +197,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7047',
   apy,
   url: 'https://shmonad.xyz',
 };

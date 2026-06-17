@@ -205,6 +205,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5146',
   timetravel: false,
   apy: main,
   url: 'https://app.crosscurve.fi/farm',

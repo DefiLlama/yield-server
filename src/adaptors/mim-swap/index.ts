@@ -1,6 +1,7 @@
 const { multiRewardFarmsApy } = require('../abracadabra-spell/common');
 
 module.exports = {
+  protocolId: '4502',
   timetravel: false,
   apy: () =>
     multiRewardFarmsApy({

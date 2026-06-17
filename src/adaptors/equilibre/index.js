@@ -157,6 +157,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2586',
   timetravel: false,
   apy: getApy,
   url: 'https://equilibrefinance.com/liquidity',

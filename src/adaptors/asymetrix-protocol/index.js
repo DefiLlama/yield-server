@@ -149,6 +149,7 @@ async function getApyData() {
 }
 
 module.exports = {
+  protocolId: '2885',
   timetravel: false,
   apy: getApyData,
 };

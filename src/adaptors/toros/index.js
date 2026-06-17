@@ -144,6 +144,7 @@ const listTorosYieldProducts = async () => {
 };
 
 module.exports = {
+  protocolId: '1881',
   timetravel: false,
   apy: listTorosYieldProducts,
 };

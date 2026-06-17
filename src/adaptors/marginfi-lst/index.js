@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3570',
   timetravel: false,
   apy,
   url: 'https://app.marginfi.com/stake',

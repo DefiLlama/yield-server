@@ -80,6 +80,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '4770',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.3jane.xyz/supply',

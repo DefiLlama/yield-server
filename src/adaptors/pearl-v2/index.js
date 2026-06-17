@@ -259,6 +259,7 @@ function formatPool(p) {
 }
 
 module.exports = {
+  protocolId: '4668',
   timetravel: false,
   apy: getAPY,
   url: 'https://www.pearl.exchange/pools',

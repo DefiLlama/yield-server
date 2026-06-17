@@ -79,6 +79,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1642',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.folks.finance/',

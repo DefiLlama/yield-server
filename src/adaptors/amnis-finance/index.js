@@ -50,5 +50,6 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '3667',
   apy: main,
 };

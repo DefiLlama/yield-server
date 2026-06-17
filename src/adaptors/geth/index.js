@@ -84,6 +84,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2454',
   timetravel: false,
   apy: getApy,
   url: 'https://guarda.com/staking/ethereum-staking/',

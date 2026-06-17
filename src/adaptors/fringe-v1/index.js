@@ -189,6 +189,7 @@ const allLendingTokens = async () => {
 };
 
 module.exports = {
+  protocolId: '1858',
   timetravel: false,
   apy: allLendingTokens,
   url: 'https://app.fringe.fi/lend'

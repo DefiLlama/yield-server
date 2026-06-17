@@ -39,6 +39,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5814',
   timetravel: false,
   apy,
   url: 'https://pico-sol.com/',

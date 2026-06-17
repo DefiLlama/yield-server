@@ -302,6 +302,7 @@ const calcYields = async () => {
 };
 
 module.exports = {
+  protocolId: '5199',
   timetravel: true,
   apy: calcYields,
   url: 'https://xapp.folks.finance/',

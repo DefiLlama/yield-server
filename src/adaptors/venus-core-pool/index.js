@@ -300,6 +300,7 @@ function exportFormatter(
 }
 
 module.exports = {
+  protocolId: '212',
   timetravel: false,
   apy: getApy,
   url: 'https://app.venus.io/markets',

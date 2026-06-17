@@ -339,6 +339,7 @@ const apy = async () =>
   ).then((pools) => pools.flat(2));
 
 module.exports = {
+  protocolId: '2385',
   apy,
   url,
 };

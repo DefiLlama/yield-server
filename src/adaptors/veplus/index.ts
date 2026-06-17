@@ -150,6 +150,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3166',
   timetravel: false,
   apy: getApy,
   url: 'https://app.veplus.io/pools',

@@ -188,6 +188,7 @@ const main = async (unixTimestamp) => {
 };
 
 module.exports = {
+  protocolId: '5317',
   timetravel: true,
   apy: main,
 };

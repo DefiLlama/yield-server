@@ -329,6 +329,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2613',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.mellow.finance/products',

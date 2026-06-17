@@ -80,6 +80,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3405',
   apy,
   url: 'https://www.metapool.app/stake?token=ethereum',
 };

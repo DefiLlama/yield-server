@@ -25,6 +25,7 @@ const collectPools = async () => {
 };
 
 module.exports = {
+  protocolId: '1999',
     timetravel: false,
     apy: collectPools,
     url: 'https://www.optifi.app/amm',

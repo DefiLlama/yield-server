@@ -85,6 +85,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1885',
   timetravel: false,
   apy: main,
   url: 'https://app.xy.finance/pools',

@@ -275,6 +275,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2187',
   timetravel: true,
   apy,
   url: 'https://app.dolomite.io/stats',

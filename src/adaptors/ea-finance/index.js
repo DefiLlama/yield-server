@@ -106,6 +106,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7252',
   timetravel: false,
   apy,
   url: 'https://app.ea.finance/vaults',

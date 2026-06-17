@@ -260,6 +260,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7387',
   timetravel: false,
   apy,
   url: 'https://app.linxlabs.org/earn',

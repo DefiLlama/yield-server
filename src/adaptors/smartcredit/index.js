@@ -80,6 +80,7 @@ const poolsFunction = async () => {
 
 
 module.exports = {
+  protocolId: '1687',
   timetravel: false,
   apy: poolsFunction,
     url: 'https://appv2.smartcredit.io',

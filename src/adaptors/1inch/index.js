@@ -160,6 +160,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '189',
   timetravel: false,
   apy: main,
   url: 'https://app.1inch.io/#/1/earn/delegate',

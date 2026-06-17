@@ -86,6 +86,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '412',
   timetravel: false,
   apy: main,
   url: 'https://app.thorswap.finance/liquidity',

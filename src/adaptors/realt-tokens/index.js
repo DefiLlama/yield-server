@@ -107,6 +107,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '753',
   timetravel: false,
   apy,
   url: 'https://rmm.realtoken.network/markets/',

@@ -292,6 +292,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7076',
   apy,
   url: 'https://app.monday.trade',
 };

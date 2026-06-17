@@ -52,6 +52,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '612',
   timetravel: false,
   apy: getApy,
   url: 'https://vires.finance/',

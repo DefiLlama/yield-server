@@ -216,6 +216,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7808',
   timetravel: false,
   apy,
   url: 'https://app.monolith.market',

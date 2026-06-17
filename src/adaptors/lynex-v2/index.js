@@ -255,6 +255,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3408',
   timetravel: false,
   apy: getApy,
   url: 'https://app.lynex.fi/liquidity',

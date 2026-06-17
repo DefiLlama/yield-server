@@ -230,6 +230,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '589',
   timetravel: false,
   apy: main,
   url: 'https://app.strike.org/',

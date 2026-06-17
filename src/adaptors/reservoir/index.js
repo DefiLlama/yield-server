@@ -25,6 +25,7 @@ const getApy = async () => {
 }
 
 module.exports = {
+  protocolId: '3553',
     timetravel: false,
     apy: getApy,
     url: 'https://app.reservoir.fi/analytics',

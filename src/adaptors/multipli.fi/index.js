@@ -176,6 +176,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5905',
   timetravel: false,
   apy,
   url: 'https://app.multipli.fi/',

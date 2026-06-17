@@ -27,6 +27,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5422',
     timetravel: false,
     apy: apy,
     url : 'https://app.endur.fi'

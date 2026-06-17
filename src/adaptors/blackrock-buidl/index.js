@@ -141,6 +141,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4853',
   timetravel: false,
   apy,
   url: 'https://securitize.io/primary-market/blackrock-fund',

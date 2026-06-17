@@ -151,6 +151,7 @@ const vaultApys = async () => {
 };
 
 module.exports = {
+  protocolId: '1924',
   timetravel: false,
   apy: vaultApys,
   url: 'https://app.pods.finance',

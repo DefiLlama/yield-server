@@ -231,6 +231,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2804',
   timetravel: false,
   apy: main,
   url: 'https://app.forge.trade/#/pools',

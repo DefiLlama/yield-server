@@ -54,6 +54,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5280',
   timetravel: false,
   apy,
   url: 'https://originprotocol.com',

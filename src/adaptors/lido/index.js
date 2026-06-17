@@ -22,6 +22,7 @@ const topLvl = async () => {
 const main = async () => [await topLvl()];
 
 module.exports = {
+  protocolId: '182',
   timetravel: false,
   apy: main,
   url: 'https://lido.fi/#networks',

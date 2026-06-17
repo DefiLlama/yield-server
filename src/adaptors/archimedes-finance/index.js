@@ -83,6 +83,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2547',
   timetravel: false,
   apy: main,
   url: 'https://curve.finance/#/ethereum/pools/factory-v2-268/deposit',

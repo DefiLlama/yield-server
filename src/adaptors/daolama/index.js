@@ -139,6 +139,7 @@ async function getApy() {
 }
 
 module.exports = {
+  protocolId: '3050',
     timetravel: false,
     apy: getApy,
     url: 'https://daolama.co/',

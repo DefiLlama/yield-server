@@ -101,6 +101,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '270',
   timetravel: false,
   apy: main,
   url: 'https://www.liquity.org/',

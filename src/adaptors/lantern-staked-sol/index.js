@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7313',
   timetravel: false,
   apy,
   url: 'https://www.lantern.one/stake',

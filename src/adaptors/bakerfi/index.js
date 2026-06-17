@@ -123,6 +123,7 @@ async function readVaultsInfo(args) {
 }
 
 module.exports = {
+  protocolId: '4182',
   timetravel: false,
   apy: readVaultsInfo,
   url: 'https://bakerfi.ai/app',

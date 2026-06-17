@@ -109,6 +109,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3329',
   apy: getApy,
   url: 'https://app.kiloex.io/trade/vault',
 };

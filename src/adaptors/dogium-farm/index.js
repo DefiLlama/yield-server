@@ -261,6 +261,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2029',
   timetravel: false,
   apy: getApy,
   url: 'https://lithium.dog/',

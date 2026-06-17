@@ -3,6 +3,7 @@ const utils = require('../utils');
 const address = 'EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ';
 
 module.exports = {
+  protocolId: '3722',
   timetravel: false,
   url: 'https://app.hipo.finance',
   apy: async () => {

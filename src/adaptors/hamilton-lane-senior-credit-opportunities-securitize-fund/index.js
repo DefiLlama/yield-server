@@ -110,6 +110,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6712',
   timetravel: false,
   apy,
   url: 'https://securitize.io/primary-market/hl-scope',

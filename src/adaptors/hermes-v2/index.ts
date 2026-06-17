@@ -874,6 +874,7 @@ const getPools = async (timestamp = null) => {
 // ============================================================================
 
 module.exports = {
+  protocolId: '5472',
   timetravel: true,
   apy: getPools,
   url: 'https://app.maiadao.io',

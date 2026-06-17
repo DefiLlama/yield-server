@@ -212,6 +212,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2956',
   timetravel: false,
   apy: main,
   url: 'https://app.affinedefi.com/',

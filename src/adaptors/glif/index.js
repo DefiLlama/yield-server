@@ -142,6 +142,7 @@ const getICNTPool = async () => {
 };
 
 module.exports = {
+  protocolId: '2858',
   timetravel: false,
   apy: fetchApy,
   url: 'https://www.glif.io',

@@ -171,5 +171,6 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '5690',
   apy: main,
 };

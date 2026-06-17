@@ -400,6 +400,7 @@ const makeMulticall = async (abi, addresses, chain, params = null) => {
 };
 
 module.exports = {
+  protocolId: '3180',
   timetravel: false,
   apy,
 };

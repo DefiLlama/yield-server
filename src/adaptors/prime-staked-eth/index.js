@@ -39,6 +39,7 @@ const apy = async () => {
   return [primeStaked];
 };
 module.exports = {
+  protocolId: '4103',
   timetravel: false,
   apy,
   url: 'https://www.primestaked.com',

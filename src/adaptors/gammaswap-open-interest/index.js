@@ -284,6 +284,7 @@ async function apyPerChain(chainName, refPoolAddr, endpoint) {
 }
 
 module.exports = {
+  protocolId: '4489',
   timetravel: false,
   apy
 }

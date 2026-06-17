@@ -99,6 +99,7 @@ const getStrategies = async (): Promise<ChickenBondsStrategies> => {
 };
 
 module.exports = {
+  protocolId: '2153',
   timetravel: false,
   apy: getStrategies,
   url: 'https://chickenbonds.org/',

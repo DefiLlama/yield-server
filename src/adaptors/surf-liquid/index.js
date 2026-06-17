@@ -313,6 +313,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6765',
   timetravel: false,
   apy,
   url: 'https://surfliquid.com',

@@ -166,6 +166,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7335',
   timetravel: false,
   apy,
   url: 'https://juiceswap.com/#/explore/pools',

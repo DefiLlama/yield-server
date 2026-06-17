@@ -201,6 +201,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '756',
   timetravel: false,
   apy: main,
   url: 'https://app.angle.money/earn',

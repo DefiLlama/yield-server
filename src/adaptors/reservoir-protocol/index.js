@@ -167,6 +167,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5343',
   timetravel: false,
   apy: main,
   url: 'https://www.reservoir.xyz/',

@@ -245,6 +245,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '7796',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.unblockequity.com/earn',

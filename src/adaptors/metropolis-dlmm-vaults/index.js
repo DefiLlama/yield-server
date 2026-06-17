@@ -53,6 +53,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7299',
   timetravel: false,
   apy,
   url: 'https://app.metropolis.exchange/makervault/list/:146',

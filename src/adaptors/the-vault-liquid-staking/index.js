@@ -38,6 +38,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4751',
   timetravel: false,
   apy,
   url: 'https://thevault.finance/stake',

@@ -215,6 +215,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4239',
   timetravel: false,
   apy,
   url: 'https://app.orbitlending.io/markets',

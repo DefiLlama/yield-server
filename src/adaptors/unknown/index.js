@@ -22,6 +22,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2056',
   timetravel: false,
   apy: getApy,
   url: 'https://www.unknown.money/',

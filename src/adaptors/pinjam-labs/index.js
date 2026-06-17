@@ -174,6 +174,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3145',
   timetravel: true,
   apy: getApy,
   url: 'https://app.pinjamlabs.com',

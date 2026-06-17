@@ -37,6 +37,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '353',
   timetravel: false,
   apy: getApy,
   url: 'https://armor.ease.org/rewards',

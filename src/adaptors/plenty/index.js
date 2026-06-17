@@ -41,6 +41,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '490',
   timetravel: false,
   apy: apy,
   url: 'https://app.plenty.network/pools',

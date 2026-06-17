@@ -445,6 +445,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3250',
   apy: main,
   url: 'https://app.layerbank.finance',
 };

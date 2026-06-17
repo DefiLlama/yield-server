@@ -47,6 +47,7 @@ const main = async (timestamp = null) => {
  };
 
 module.exports = {
+  protocolId: '1299',
   timetravel: true,
   apy: main,
   // url: 'https://example.com/pools', // Link to page with pools (Only required if you do not provide url's for each pool),

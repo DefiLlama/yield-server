@@ -47,6 +47,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3381',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://thegoblins.finance',

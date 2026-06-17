@@ -9,6 +9,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2114',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://nudes.army/single-stake'

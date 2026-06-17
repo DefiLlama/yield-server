@@ -192,6 +192,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '6761',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://sendit.fun'

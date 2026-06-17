@@ -218,6 +218,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4518',
   timetravel: false,
   apy,
   url: 'https://app.colend.xyz/markets/',

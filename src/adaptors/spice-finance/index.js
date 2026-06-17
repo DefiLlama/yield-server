@@ -117,6 +117,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2569',
   timetravel: false,
   apy: main,
   url: 'https://www.spicefi.xyz/',

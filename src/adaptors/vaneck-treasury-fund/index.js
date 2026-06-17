@@ -122,6 +122,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6639',
   timetravel: false,
   apy,
   url: 'https://securitize.io/primary-market/vaneck-vbill',

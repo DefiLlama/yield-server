@@ -12,6 +12,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '347',
   timetravel: false,
   apy: getApy,
   url: 'https://app.abracadabra.money',

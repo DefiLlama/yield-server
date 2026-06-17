@@ -484,6 +484,7 @@ const main = async () => {
 };
 // Export the module
 module.exports = {
+  protocolId: '4070',
   apy: main,
   url: 'https://app.ionic.money/',
 };

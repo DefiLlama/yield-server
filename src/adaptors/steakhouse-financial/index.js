@@ -112,6 +112,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6212',
   timetravel: false,
   apy,
   url: 'https://app.steakhouse.financial/earn',

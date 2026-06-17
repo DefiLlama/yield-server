@@ -31,4 +31,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://marinade.finance/liquid-staking' };
+module.exports = { protocolId: '484', apy, url: 'https://marinade.finance/liquid-staking' };

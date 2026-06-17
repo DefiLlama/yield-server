@@ -38,6 +38,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6471',
   timetravel: false,
   apy,
   url: 'https://strongholdsol.com',

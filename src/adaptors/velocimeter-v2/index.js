@@ -254,6 +254,7 @@ const getApy = async () => {
   return pools.filter((p) => utils.keepFinite(p));
 };
 module.exports = {
+  protocolId: '2668',
   timetravel: false,
   apy: getApy,
 };

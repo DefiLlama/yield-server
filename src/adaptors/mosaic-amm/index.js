@@ -107,6 +107,7 @@ function normalizeTokenAddress(address) {
 }
 
 module.exports = {
+  protocolId: '6098',
   timetravel: false,
   apy: apy,
   url: `${MOSAIC_AMM_LIQUIDITY_POOL_URL}/explore`,

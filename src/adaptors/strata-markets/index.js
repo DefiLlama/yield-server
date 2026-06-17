@@ -125,6 +125,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6873',
   apy,
   url: 'https://strata.money/',
 };

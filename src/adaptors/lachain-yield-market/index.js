@@ -28,6 +28,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1832',
   timetravel: false,
   apy: main,
   url: 'https://lachain.io/app/yield-market',

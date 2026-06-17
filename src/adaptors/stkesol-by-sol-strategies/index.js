@@ -47,6 +47,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7301',
   timetravel: false,
   apy,
   url: 'https://app.solstrategies.io',

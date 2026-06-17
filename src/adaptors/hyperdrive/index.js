@@ -312,5 +312,6 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5219',
   apy,
 };

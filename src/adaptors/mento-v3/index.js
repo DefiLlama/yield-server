@@ -128,6 +128,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7546',
   timetravel: false,
   apy,
   url: 'https://app.mento.org/',

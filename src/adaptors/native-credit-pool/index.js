@@ -290,6 +290,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4663',
   timetravel: false,
   apy: apy,
   url: 'https://native.org',

@@ -72,6 +72,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7631',
   timetravel: false,
   apy,
   url: 'https://app.spectra.finance',

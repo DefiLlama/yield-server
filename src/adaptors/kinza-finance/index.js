@@ -137,6 +137,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3171',
   timetravel: false,
   apy,
   url: 'https://app.kinza.finance/',

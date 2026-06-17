@@ -87,6 +87,7 @@ let abiJSON = {
 };
 
 module.exports = {
+  protocolId: '5255',
   timetravel: false,
   apy,
   url: 'https://bagful.io',

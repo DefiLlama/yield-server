@@ -84,6 +84,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5376',
   timetravel: false,
   apy: main,
   url: 'https://dapp.cian.app',

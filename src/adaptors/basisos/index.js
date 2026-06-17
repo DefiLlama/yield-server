@@ -211,6 +211,7 @@ async function apy() {
 
   
 module.exports = {
+  protocolId: '6167',
   timetravel: false,
   apy: apy,
   url: 'https://basisos.org/vaults',

@@ -54,6 +54,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3708',
   timetravel: false,
   apy,
   url: 'https://mev.io/stake',

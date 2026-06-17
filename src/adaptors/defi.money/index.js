@@ -89,6 +89,7 @@ const fetchSmoneyAPI = async () => {
 };
 
 module.exports = {
+  protocolId: '5003',
   timetravel: false,
   apy: fetchSmoneyAPI,
   url: 'https://app.defi.money/earn/optimism',

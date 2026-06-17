@@ -89,6 +89,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '5284',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://www.nest.credit',

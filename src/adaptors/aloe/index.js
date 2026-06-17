@@ -180,6 +180,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '4370',
   apy,
   timetravel: false,
   url: 'https://app.aloe.capital/markets',

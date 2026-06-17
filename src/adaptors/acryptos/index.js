@@ -165,6 +165,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '208',
   timetravel: false,
   apy: main,
   url: 'https://app.acryptos.com/',

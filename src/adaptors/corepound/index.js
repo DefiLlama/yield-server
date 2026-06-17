@@ -92,5 +92,6 @@ let abiInfo = {
 };
 
 module.exports = {
+  protocolId: '5952',
   apy,
 };

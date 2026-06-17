@@ -27,6 +27,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '6461',
     apy: getApy,
     url: 'https://app.loopscale.com/',
 };

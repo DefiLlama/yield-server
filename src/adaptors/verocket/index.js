@@ -68,6 +68,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1876',
   timetravel: false,
   apy: main,
   url: 'https://app.verocket.com/',

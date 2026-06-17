@@ -310,6 +310,7 @@ async function calcQuartzStakingApy(prices) {
 }
 
 module.exports = {
+  protocolId: '2386',
   timetravel: true,
   apy,
   url: 'https://sandclock.org',

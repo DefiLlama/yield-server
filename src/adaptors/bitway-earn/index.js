@@ -99,6 +99,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '7539',
   timetravel: false,
   apy: getApy,
   url: 'https://app.bitway.com/explore',

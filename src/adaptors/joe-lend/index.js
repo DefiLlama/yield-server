@@ -178,6 +178,7 @@ const lendingApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2179',
   timetravel: false,
   apy: lendingApy,
 };

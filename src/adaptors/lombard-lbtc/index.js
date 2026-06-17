@@ -32,6 +32,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5097',
   apy,
   url: 'https://www.lombard.finance/app/stake/',
 };

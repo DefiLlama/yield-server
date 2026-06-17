@@ -56,4 +56,4 @@ const apy = async () => {
     ];
 };
 
-module.exports = { apy, url: 'https://www.originprotocol.com/os' };
+module.exports = { protocolId: '5688', apy, url: 'https://www.originprotocol.com/os' };

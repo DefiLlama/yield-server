@@ -70,6 +70,7 @@ const apy = async () => {
 }
 
 module.exports = {
+  protocolId: '4953',
     timetravel: false,
     url: 'https://kava.obyte.org',
     apy,

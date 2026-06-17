@@ -232,6 +232,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '4372',
   timetravel: true,
   apy: main,
   url: 'https://app.hercules.exchange/liquidity',

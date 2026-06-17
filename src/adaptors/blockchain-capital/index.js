@@ -74,6 +74,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6692',
   timetravel: false,
   apy,
   url: 'https://bcap.invest.securitize.io/',

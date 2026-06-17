@@ -93,6 +93,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7182',
   timetravel: false,
   apy: main,
   url: 'https://app.re.xyz',

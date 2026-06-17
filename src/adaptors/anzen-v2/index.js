@@ -58,6 +58,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4744',
   apy,
   url: 'https://anzen.finance/',
 };

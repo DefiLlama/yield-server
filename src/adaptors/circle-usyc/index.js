@@ -67,6 +67,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3698',
   timetravel: false,
   apy,
   url: 'https://www.circle.com/usyc',

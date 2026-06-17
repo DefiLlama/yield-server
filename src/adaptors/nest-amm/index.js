@@ -56,6 +56,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7253',
   timetravel: false,
   apy,
   url: 'https://app.usenest.xyz/liquidity',

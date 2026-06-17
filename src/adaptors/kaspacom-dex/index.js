@@ -143,6 +143,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6965',
   timetravel: false,
   apy,
   url: 'https://defi.kaspa.com',

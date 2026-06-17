@@ -377,6 +377,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3352',
   timetravel: false,
   apy: getApy,
   url: 'https://dullahan.paladin.vote/',

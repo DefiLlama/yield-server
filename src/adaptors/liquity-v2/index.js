@@ -522,6 +522,7 @@ const ABIS = {
   }
 
 module.exports = {
+  protocolId: '5656',
   timetravel: false,
   apy: main,
   url: 'https://www.liquity.org/',

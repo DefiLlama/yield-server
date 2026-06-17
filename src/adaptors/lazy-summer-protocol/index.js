@@ -261,6 +261,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5796',
   timetravel: false,
   apy: main,
   url: 'https://summer.fi/earn',

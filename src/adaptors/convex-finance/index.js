@@ -462,6 +462,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '319',
   timetravel: false,
   apy: main,
   url: 'https://curve.convexfinance.com/stake',

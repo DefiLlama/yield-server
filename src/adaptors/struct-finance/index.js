@@ -166,6 +166,7 @@ async function getTrancheTokenAprs() {
 }
 
 module.exports = {
+  protocolId: '3165',
   timetravel: false,
   apy: getTrancheTokenAprs,
   url: 'https://app.struct.fi',

@@ -34,6 +34,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2251',
   timetravel: false,
   apy: main,
   url: 'https://app.stride.zone',

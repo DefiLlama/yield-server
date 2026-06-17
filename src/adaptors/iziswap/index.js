@@ -42,6 +42,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1883',
   timetravel: false,
   apy: getApy,
   url: 'https://izumi.finance/farm',

@@ -129,6 +129,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7759',
   apy,
   url: 'https://flyingtulip.com/ftusd/',
 };

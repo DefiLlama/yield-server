@@ -162,6 +162,7 @@ async function getZestPools() {
 }
 
 module.exports = {
+  protocolId: '4420',
   timetravel: false,
   apy: getZestPools,
   url: 'https://app.zestprotocol.com/assets',

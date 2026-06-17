@@ -169,6 +169,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2790',
   timetravel: false,
   apy: main,
   url: 'https://illumigate-main.swivel.exchange/v1/pools',

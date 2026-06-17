@@ -55,6 +55,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '6971',
   timetravel: false,
   apy: main,
   url: 'https://app.rocky.cash/earn',

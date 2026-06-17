@@ -164,6 +164,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5995',
   timetravel: false,
   apy,
   url: 'https://app.openeden.com/usdo',

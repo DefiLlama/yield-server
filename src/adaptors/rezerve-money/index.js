@@ -175,6 +175,7 @@ const totalSupply = async (token, block = 'latest') => {
 };
 
 module.exports = {
+  protocolId: '6300',
   timetravel: true,
   apy,
   url: 'https://rezerve.money',

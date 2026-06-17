@@ -91,6 +91,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '900',
   timetravel: false,
   apy: getApy,
   url: 'https://stake.rocketpool.net/',

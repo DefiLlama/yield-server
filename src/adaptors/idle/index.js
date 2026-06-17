@@ -55,6 +55,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '150',
   timetravel: false,
   apy: getApy,
   url: 'https://app.idle.finance/',

@@ -111,6 +111,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4624',
   timetravel: false,
   apy,
   url: 'https://enzo.finance/',

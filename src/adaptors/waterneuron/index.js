@@ -104,6 +104,7 @@ async function fetchData() {
 }
 
 module.exports = {
+  protocolId: '4921',
     timetravel: false,
     apy: fetchData,
     url: 'https://waterneuron.fi',

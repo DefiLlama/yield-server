@@ -69,6 +69,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '494',
   timetravel: false,
   apy: getApy,
   url: 'https://justlend.just.network/#/market',

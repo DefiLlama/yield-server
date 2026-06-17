@@ -32,6 +32,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4995',
   apy,
   url: 'https://www.helius.dev/blog/solana-staking-simplified-guide-to-sol-staking#what-is-liquid-staking',
 };

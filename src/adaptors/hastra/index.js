@@ -67,6 +67,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7266',
   timetravel: false,
   apy,
   url: 'https://hastra.io',

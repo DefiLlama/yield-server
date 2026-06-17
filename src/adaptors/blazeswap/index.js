@@ -138,6 +138,7 @@ async function poolsFunction() {
 }
 
 module.exports = {
+  protocolId: '4463',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.blazeswap.xyz/pool/',

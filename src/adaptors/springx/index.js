@@ -69,6 +69,7 @@ const abi = {
 };
 
 module.exports = {
+  protocolId: '7748',
   apy: apy,
   url: 'https://springx.finance/Vault',
 };

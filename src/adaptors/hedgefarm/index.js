@@ -97,6 +97,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2199',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://hedgefarm.finance',

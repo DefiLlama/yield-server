@@ -88,6 +88,7 @@ const poolsFunction = async () => {
 }
 
 module.exports = {
+  protocolId: '5150',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://swap.coffee/earn',

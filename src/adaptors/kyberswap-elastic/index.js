@@ -149,6 +149,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2615',
   apy: main,
   timetravel: false,
   url: 'https://kyberswap.com/pools',

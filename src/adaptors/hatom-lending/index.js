@@ -136,6 +136,7 @@ const apy = async () => {
 }
 
 module.exports = {
+  protocolId: '3247',
    timetravel: false,
    apy: apy,
    url: 'https://app.hatom.com/lend',

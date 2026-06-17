@@ -1191,6 +1191,7 @@ async function getApy() {
   return allPools.filter((pool) => utils.keepFinite(pool));
 }
 var yield_server_default = {
+  protocolId: '1108',
   timetravel: false,
   apy: getApy,
 };

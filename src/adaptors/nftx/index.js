@@ -151,6 +151,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '483',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://yield.nftx.io/',

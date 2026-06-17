@@ -268,6 +268,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1492',
   timetravel: false,
   apy: main,
   url: 'https://app.aurigami.finance/',

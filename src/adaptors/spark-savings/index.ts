@@ -244,5 +244,6 @@ function pow(a: any, b: number): any {
 }
 
 module.exports = {
+  protocolId: '6716',
   apy: getPools,
 }

@@ -273,6 +273,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '302',
   apy,
   url: 'https://spooky.fi/#/farms',
 };

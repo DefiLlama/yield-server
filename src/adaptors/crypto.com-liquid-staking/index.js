@@ -72,6 +72,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4158',
   apy,
   url: 'https://crypto.com/staking',
 };

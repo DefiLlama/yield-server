@@ -93,6 +93,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3327',
   timetravel: false,
   url: 'https://linetoken.org/staking/all',
   apy,

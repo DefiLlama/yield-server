@@ -299,6 +299,7 @@ async function apy() {
 }
 apy()
 module.exports = {
+  protocolId: '3909',
   apy,
   url: 'https://app.hashstack.finance',
 };

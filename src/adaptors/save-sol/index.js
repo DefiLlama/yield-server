@@ -46,6 +46,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6085',
   timetravel: false,
   apy,
   url: 'https://save.finance/saveSOL',

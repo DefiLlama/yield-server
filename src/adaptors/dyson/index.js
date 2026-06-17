@@ -119,6 +119,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2506',
   timetravel: false,
   apy: main,
   url: 'https://app.dyson.money/all',

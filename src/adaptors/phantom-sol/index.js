@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6189',
   timetravel: false,
   apy,
   url: 'https://phantom.com',

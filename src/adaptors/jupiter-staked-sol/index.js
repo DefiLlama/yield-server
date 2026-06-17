@@ -33,4 +33,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://station.jup.ag/guides/jupsol/jupsol' };
+module.exports = { protocolId: '4996', apy, url: 'https://station.jup.ag/guides/jupsol/jupsol' };

@@ -46,6 +46,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6532',
   timetravel: false,
   apy,
   url: 'https://app.adrastea.fi/staking',

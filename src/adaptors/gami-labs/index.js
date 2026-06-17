@@ -207,6 +207,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7954',
   timetravel: false,
   apy,
   url: 'https://gamilabs.io',

@@ -131,6 +131,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1018',
   apy: getApy,
   url: 'https://gains.trade/vaults',
 };

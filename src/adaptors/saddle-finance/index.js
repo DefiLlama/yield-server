@@ -214,6 +214,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '202',
   apy,
   url: 'https://saddle.exchange/#/pools',
 };

@@ -333,6 +333,7 @@ function exportFormatter(
 }
 
 module.exports = {
+  protocolId: '1986',
   timetravel: false,
   apy: getApy,
   url: 'https://lending.canto.io/',

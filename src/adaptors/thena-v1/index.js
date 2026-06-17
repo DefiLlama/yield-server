@@ -118,6 +118,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2417',
   timetravel: false,
   apy: getApy,
   url: 'https://thena.fi/liquidity',

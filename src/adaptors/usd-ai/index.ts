@@ -359,6 +359,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6190',
   timetravel: false,
   apy,
   url: 'https://app.usd.ai',

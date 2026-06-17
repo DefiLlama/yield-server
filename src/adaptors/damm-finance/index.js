@@ -225,6 +225,7 @@ function exportFormatter(
 }
 
 module.exports = {
+  protocolId: '2071',
   timetravel: false,
   apy: getApy,
   url: 'https://app.damm.finance/dashboard',

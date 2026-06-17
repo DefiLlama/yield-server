@@ -41,6 +41,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2531',
   apy: getApy,
   url: 'https://solana.vaultka.com/',
 };

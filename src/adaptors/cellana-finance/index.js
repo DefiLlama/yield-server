@@ -309,6 +309,7 @@ fetchRewards = async (
 
 
 module.exports = {
+  protocolId: '4194',
     timetravel: false,
     apy: main,
     url: 'https://app.cellana.finance',

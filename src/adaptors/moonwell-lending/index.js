@@ -842,6 +842,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1853',
   timetravel: false,
   apy: getApy,
   url: 'https://moonwell.fi/markets',

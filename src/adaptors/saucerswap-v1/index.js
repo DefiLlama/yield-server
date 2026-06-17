@@ -176,6 +176,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1979',
   timetravel: false,
   apy: main,
   url: 'https://www.saucerswap.finance/farm',

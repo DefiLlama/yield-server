@@ -105,6 +105,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '458',
   timetravel: false,
   apy: main,
   url: 'https://save.finance/',

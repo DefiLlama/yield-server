@@ -45,6 +45,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5294',
   timetravel: false,
   apy,
   url: 'https://app.kyros.fi/',

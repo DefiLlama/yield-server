@@ -60,6 +60,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4838',
   timetravel: false,
   apy,
   url: 'https://www.stackmore.xyz/stake',

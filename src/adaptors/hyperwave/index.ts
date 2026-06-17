@@ -277,6 +277,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6407',
   apy,
   timetravel: false,
   url: "https://app.hyperwavefi.xyz/assets/hwhlp",

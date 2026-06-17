@@ -145,6 +145,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2467',
   timetravel: true,
   apy: main,
   url: 'https://app.zyberswap.io/exchange/pool',

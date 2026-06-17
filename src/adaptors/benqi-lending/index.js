@@ -270,6 +270,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '467',
   timetravel: false,
   apy: getApy,
   url: 'https://app.benqi.fi/lending',

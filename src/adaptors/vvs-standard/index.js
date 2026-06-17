@@ -278,6 +278,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '831',
   timetravel: false,
   apy: main,
   url: 'https://vvs.finance/farms',

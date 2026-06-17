@@ -49,6 +49,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '4873',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://midas.app/',

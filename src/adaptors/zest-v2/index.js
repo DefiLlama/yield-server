@@ -169,6 +169,7 @@ async function getZestV2Pools() {
 }
 
 module.exports = {
+  protocolId: '7449',
   timetravel: false,
   apy: getZestV2Pools,
   url: 'https://app.zestprotocol.com/market/main',

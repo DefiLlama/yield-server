@@ -26,6 +26,7 @@ const getPoolsData = async () => {
 };
 
 module.exports = {
+  protocolId: '5173',
   timetravel: false,
   apy: getPoolsData,
 };

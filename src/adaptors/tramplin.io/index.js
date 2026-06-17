@@ -70,6 +70,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7414',
   timetravel: false,
   apy,
   url: 'https://tramplin.io',

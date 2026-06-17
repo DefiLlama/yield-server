@@ -97,4 +97,4 @@ const apy = async () => {
     ];
 };
 
-module.exports = { apy, url: 'https://superstate.com/uscc' };
+module.exports = { protocolId: '5120', apy, url: 'https://superstate.com/uscc' };

@@ -67,6 +67,7 @@ async function getCoinInfoWithCache(coinAddress) {
 }
 
 module.exports = {
+  protocolId: '5329',
   timetravel: false,
   apy: main,
   url: 'https://app.thala.fi/pools',

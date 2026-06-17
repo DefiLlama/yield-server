@@ -183,6 +183,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '1801',
   timetravel: false,
   apy: getPools,
   url: 'https://metavault.trade/earn',

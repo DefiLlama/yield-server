@@ -77,6 +77,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2898',
     timetravel: false,
     apy: getPools,
     url: 'https://app.liondex.com/earn',

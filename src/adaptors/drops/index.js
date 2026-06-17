@@ -264,6 +264,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '995',
   timetravel: false,
   apy: main,
   url: 'https://drops.co/',

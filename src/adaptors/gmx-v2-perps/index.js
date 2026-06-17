@@ -329,6 +329,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3365',
   timetravel: false,
   apy,
   url: 'https://app.gmx.io/#/earn',

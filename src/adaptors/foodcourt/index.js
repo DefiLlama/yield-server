@@ -242,6 +242,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1792',
   timetravel: false,
   apy: getApy,
   url: 'https://foodcourt.finance/',

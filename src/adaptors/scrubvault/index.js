@@ -222,6 +222,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7849',
   timetravel: false,
   apy,
   url: 'https://invest.scrub.money/',

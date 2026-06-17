@@ -110,6 +110,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2617',
     timetravel: false,
     apy: getApy,
     url: 'https://dedust.io/',

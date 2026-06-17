@@ -29,6 +29,7 @@ async function getPools() {
 }
 
 module.exports = {
+  protocolId: '1943',
   timetravel: false,
   apy: getPools, // Main function, returns pools
 };

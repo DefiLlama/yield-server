@@ -79,6 +79,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '2208',
   timetravel: false,
   apy: main,
   url: 'https://app.tortuga.finance',

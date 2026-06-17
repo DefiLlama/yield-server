@@ -56,6 +56,7 @@ const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
 };
 
 module.exports = {
+  protocolId: '7372',
   timetravel: false,
   apy,
   url: 'https://bootstrap.avon.xyz/megavault/4326',

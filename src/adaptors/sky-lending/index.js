@@ -534,6 +534,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '118',
   apy,
   url: 'https://sky.money/',
 };

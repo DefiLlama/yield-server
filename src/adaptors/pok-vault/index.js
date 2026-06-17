@@ -11,6 +11,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '7303',
     timetravel: true,
     apy,
     url: 'https://pokvault.xyz/',

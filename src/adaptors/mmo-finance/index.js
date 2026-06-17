@@ -121,6 +121,7 @@ const getApy = async (block) => {
 };
 
 module.exports = {
+  protocolId: '1904',
   timetravel: false,
   apy: getApy,
   url: 'https://mmo.finance/supply',

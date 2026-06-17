@@ -93,6 +93,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '1756',
   timetravel: true,
   apy: main,
   url: 'https://www.dystopia.exchange/liquidity',

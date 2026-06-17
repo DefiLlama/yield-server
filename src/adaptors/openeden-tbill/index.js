@@ -176,6 +176,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3057',
   timetravel: false,
   apy,
   url: 'https://app.openeden.com/tbill',

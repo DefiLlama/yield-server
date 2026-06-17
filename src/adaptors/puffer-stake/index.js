@@ -109,6 +109,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4088',
   apy,
   url: 'https://app.puffer.fi/stake',
 };

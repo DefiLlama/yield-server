@@ -33,6 +33,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '577',
   apy: getApy,
   url: 'https://stake.allbridge.io/?chain=SOL',
 };
