@@ -48,7 +48,7 @@ const getApy = async () => {
     return {
       pool: market.jtokenAddress,
       chain: utils.formatChain('tron'),
-      project: 'justlend',
+      project: 'justlend-v1',
       symbol: market.collateralSymbol,
       tvlUsd: Number(market.depositedUSD) - Number(market.borrowedUSD),
       apyBase:
