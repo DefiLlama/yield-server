@@ -2,7 +2,6 @@ const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const { print } = require('graphql');
 
 const EXCHANGES_API = {
   thena: 'thena/',
