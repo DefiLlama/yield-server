@@ -138,4 +138,5 @@ module.exports = {
   timetravel: false,
   apy,
   url: APP_URL,
+  protocolId: '7785',
 };
