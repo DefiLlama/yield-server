@@ -2,7 +2,6 @@ const utils = require('../utils');
 const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-require('dotenv').config({ path: './config.env' });
 const bribePotAbi = require('./bribePotAbi.json');
 const web3 = new Web3('https://rpc.ankr.com/eth');
 

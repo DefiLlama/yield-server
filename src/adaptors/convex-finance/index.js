@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-require('dotenv').config({ path: './config.env' });
 
 const utils = require('../utils');
 const abi = require('./abi.json');

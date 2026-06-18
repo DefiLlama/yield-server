@@ -3,12 +3,7 @@ const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 const abi = require('./abi');
-const path = require('path');
 const ERC4626abi = require('./ERC4626.json');
-
-require('dotenv').config({
-  path: path.resolve(__dirname, '../../../config.env'),
-});
 
 const firmStart = 16159015;
 const DBR = '0xAD038Eb671c44b853887A7E32528FaB35dC5D710';

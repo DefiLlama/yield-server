@@ -1,7 +1,4 @@
 const sdk = require('@defillama/sdk');
-try {
-    require('dotenv').config({ path: './config.env' });
-} catch (e) {}
 
 const seconds_per_year = 60 * 60 * 24 * 365.25;
 const denomination = 1e18;
@@ -41,4 +38,3 @@ module.exports = {
     coingeckoIds,
     denomination
 }
-
