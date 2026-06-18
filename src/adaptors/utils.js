@@ -72,7 +72,7 @@ const getStarknetCallBody = ({ abi, target, params = [], allAbi = [] }, id = 0) 
   requestData.contract_address = requestData.contractAddress;
   delete requestData.contractAddress;
   delete requestData.entrypoint;
-  requestData.calldata = params.map((i) => starknetNumber.toHex(starknetNumber.toBN(i)));
+  requestData.calldata = requestData.calldata.map((i) => starknetNumber.toHex(starknetNumber.toBN(i)));
 
   return {
     jsonrpc: '2.0',
