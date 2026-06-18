@@ -13,7 +13,6 @@ const balTokenAdminABI = require('./abis/balancer_token_admin.json');
 const gaugeControllerEthereum = require('./abis/gauge_controller_ethereum.json');
 const protocolFeesCollectorABI = require('./abis/protocol_fees_collector.json');
 const { lte } = require('lodash');
-const { excludePools } = require('../../utils/exclude');
 const { getChildChainRootGauge } = require('./childChainGauges.js');
 
 // Subgraph URLs
@@ -603,7 +602,7 @@ const main = async () => {
     .filter((i) => i.status === 'fulfilled')
     .map((i) => i.value)
     .flat()
-    .filter((p) => utils.keepFinite(p) && !excludePools.includes(p.pool));
+    .filter((p) => utils.keepFinite(p));
 
   return addMerklRewardApy(pools, 'balancer', (p) => p.pool.slice(0, 42));
 };
