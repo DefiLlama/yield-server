@@ -1,15 +1,14 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const utils = require('../utils');
 
 // Provide a public Starknet RPC fallback for environments where the
 // STARKNET_RPC secret isn't exposed (e.g. PR CI). Production cron sets the
-// env var explicitly; this only kicks in when it's missing. Must happen
-// before requiring the helper, which captures the URL at module load.
+// env var explicitly; this only kicks in when it's missing.
 if (!process.env.STARKNET_RPC) {
   process.env.STARKNET_RPC = 'https://rpc.starknet.lava.build';
 }
-const { call: starknetCall } = require('../../helper/starknet');
+const utils = require('../utils');
+const { call: starknetCall } = utils;
 
 const API_URL = 'https://api.forgeyields.com/strategies';
 

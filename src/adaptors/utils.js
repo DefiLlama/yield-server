@@ -2,7 +2,16 @@ const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
+const {
+  Contract,
+  validateAndParseAddress,
+  number: starknetNumber,
+  hash: starknetHash,
+} = require('starknet');
 const { default: BigNumber } = require('bignumber.js');
+const { checkStablecoin } = require('./checkStablecoin');
+
+exports.MIN_TVL_USD = 1_000;
 
 const getPriceApiUrl = (path) => {
   const p = path.startsWith('/') ? path : `/${path}`;
@@ -30,6 +39,110 @@ exports.padStarknetAddress = (addr) => {
   if (hex.length >= 64) return addr;
   return '0x' + hex.padStart(64, '0');
 };
+
+let pendingStarknetCall = Promise.resolve();
+
+const getStarknetRpc = () => {
+  if (!process.env.STARKNET_RPC) throw new Error('STARKNET_RPC is required');
+  return process.env.STARKNET_RPC;
+};
+
+const rateLimitedStarknetCall = (fn) => (...args) => {
+  const promise = pendingStarknetCall.then(() => fn(...args));
+  pendingStarknetCall = promise.catch(() => {});
+  return promise;
+};
+
+const chunkArray = (arr, chunkSize = 100) => {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    chunks.push(arr.slice(i, i + chunkSize));
+  }
+  return chunks;
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getStarknetCallBody = ({ abi, target, params = [], allAbi = [] }, id = 0) => {
+  if ((params || params === 0) && !Array.isArray(params)) params = [params];
+
+  const contract = new Contract([abi, ...allAbi], target, null);
+  const requestData = contract.populate(abi.name, params);
+  requestData.entry_point_selector = starknetHash.getSelectorFromName(requestData.entrypoint);
+  requestData.contract_address = requestData.contractAddress;
+  requestData.calldata = params;
+  delete requestData.contractAddress;
+  delete requestData.entrypoint;
+  if (abi.customInput === 'address') requestData.calldata = params.map((i) => i.slice(2));
+
+  return {
+    jsonrpc: '2.0',
+    id,
+    method: 'starknet_call',
+    params: [requestData, 'latest'],
+  };
+};
+
+const parseStarknetOutput = (result, abi, allAbi) => {
+  const contract = new Contract([abi, ...allAbi], null, null);
+  let response = contract.parseResponse(abi.name, result);
+
+  if (abi.outputs.length !== 1) return response;
+
+  response = response[0];
+  if (abi.outputs[0].type === 'Uint256') return response;
+
+  switch (abi.customType) {
+    case 'address':
+      return validateAndParseAddress(response);
+    case 'Uint256':
+      return response;
+    default:
+      return response;
+  }
+};
+
+const starknetCall = async ({ abi, target, params = [], allAbi = [] } = {}) => {
+  const {
+    data: { result },
+  } = await axios.post(getStarknetRpc(), getStarknetCallBody({ abi, target, params, allAbi }));
+
+  return parseStarknetOutput(result, abi, allAbi);
+};
+
+const starknetMultiCall = async ({ abi: rootAbi, target: rootTarget, calls = [], allAbi = [] }) => {
+  if (!calls.length) return [];
+
+  calls = calls.map((callArgs) => {
+    if (typeof callArgs !== 'object') {
+      if (!rootTarget) return { target: callArgs, abi: rootAbi, allAbi };
+      return { target: rootTarget, params: callArgs, abi: rootAbi, allAbi };
+    }
+
+    const { target, params, abi } = callArgs;
+    return { target: target || rootTarget, params, abi: abi || rootAbi };
+  });
+
+  const callBodies = calls.map(getStarknetCallBody);
+  const allData = [];
+  for (const chunk of chunkArray(callBodies, 25)) {
+    await sleep(2000);
+    const { data } = await axios.post(getStarknetRpc(), chunk);
+    allData.push(...data);
+  }
+
+  const response = [];
+  allData.forEach(({ result, id }) => {
+    const abi = calls[id].abi ?? rootAbi;
+    response[id] = parseStarknetOutput(result, abi, allAbi);
+  });
+  return response;
+};
+
+exports.call = rateLimitedStarknetCall(starknetCall);
+exports.multiCall = rateLimitedStarknetCall(starknetMultiCall);
+exports.parseAddress = validateAndParseAddress;
+exports.number = starknetNumber;
 
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
@@ -104,6 +217,8 @@ exports.formatSymbol = (symbol) => {
     .replaceAll('mimatic', 'mai')
     .toUpperCase();
 };
+
+exports.checkStablecoin = checkStablecoin;
 
 exports.getData = async (url, query = null, headers = {}) => {
   let res;

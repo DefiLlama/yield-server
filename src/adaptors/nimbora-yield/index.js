@@ -1,4 +1,4 @@
-const { parseAddress } = require('../../helper/starknet');
+const { parseAddress } = require('../utils');
 const axios = require('axios');
 
 

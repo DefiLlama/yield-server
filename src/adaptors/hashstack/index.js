@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { uint256 } = require('starknet');
-const { call } = require('../../helper/starknet');
+const { call } = require('../utils');
 const { metricsAbi } = require('./abis/metricsAbi');
 const { default: BigNumber } = require('bignumber.js');
 const { erc20abi } = require('./abis/erc20abi');

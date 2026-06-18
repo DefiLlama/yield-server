@@ -1,4 +1,4 @@
-const { multiCall, call } = require('../../helper/starknet');
+const { multiCall, call } = require('../utils');
 const { marketAbi, erc20Abi, irmAbi, zTokenAbi } = require('./abi');
 const axios = require('axios');
 const BN = require('bn.js');

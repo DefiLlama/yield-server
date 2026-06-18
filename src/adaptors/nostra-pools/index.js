@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { addAddressPadding } = require('starknet');
-const { call } = require('../../helper/starknet');
+const { call } = require('../utils');
 const abi = require('./abi');
 
 const factory =

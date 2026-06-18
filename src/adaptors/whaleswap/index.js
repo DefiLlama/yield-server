@@ -5,7 +5,6 @@ const { request, gql } = require('graphql-request');
 
 const { podMasterABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
-const { fetchURL } = require('../../helper/utils');
 
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';
 const API_URL = sdk.graph.modifyEndpoint(
@@ -48,10 +47,7 @@ const getPairInfo = (pair) => {
 };
 
 const getApy = async (chainId, pid) => {
-  const apyResult = await fetchURL(
-    `${BACKEND_URL}/${chainId}/whaleswap/apr/${pid}`
-  );
-  return apyResult.data;
+  return utils.getData(`${BACKEND_URL}/${chainId}/whaleswap/apr/${pid}`);
 };
 
 const calculateReservesUSD = (

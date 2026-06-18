@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { uint256 } = require('starknet');
-const { call } = require('../../helper/starknet');
+const { call } = require('../utils');
 const { assetTokenAbi } = require('./abis/AssetToken');
 const { interestRateModelAbi } = require('./abis/InterestRateModel');
 const { default: BigNumber } = require('bignumber.js');
