@@ -1,6 +1,5 @@
 // Llama
 const sdk = require('@defillama/sdk');
-const fetch = require('node-fetch');
 const { request } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');

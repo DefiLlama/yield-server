@@ -1,6 +1,5 @@
 const utils = require('../utils');
 const axios = require('axios');
-const fetch = require('node-fetch');
 
 const ENDPOINT = 'https://mero.finance/api/apys';
 

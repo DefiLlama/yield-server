@@ -11,7 +11,6 @@
 
 var sdk = require('@defillama/sdk');
 var utils = require('../utils');
-const fetch = require('node-fetch');
 const { merklGet } = require('../merkl/merkl-client');
 
 // src/yield-server/index.ts

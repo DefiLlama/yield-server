@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const fetch = require('node-fetch')
 
 const utils = require('../utils');
 const getPoolDepositRateAbi = {

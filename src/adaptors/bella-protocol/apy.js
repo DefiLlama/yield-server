@@ -7,7 +7,6 @@ const {
   StakingTokens,
   VaultTokens,
 } = require('./token');
-const fetch = require('node-fetch');
 
 const chain = 'ethereum';
 const callAbi = (abi, target, _config) => {

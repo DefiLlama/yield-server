@@ -1,6 +1,5 @@
 const { gql } = require('graphql-request');
 const utils = require('../utils');
-const fetch = require('node-fetch');
 
 const USDX = '0xf3527ef8dE265eAa3716FB312c12847bFBA66Cef';
 

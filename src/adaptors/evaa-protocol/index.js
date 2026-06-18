@@ -1,6 +1,5 @@
 const utils = require('../utils');
 
-const fetch = require('node-fetch');
 const { TonClient } = require('@ton/ton');
 const { Address, Cell, Slice, Dictionary, beginCell } = require('@ton/core');
 const { signVerify } = require('@ton/crypto');

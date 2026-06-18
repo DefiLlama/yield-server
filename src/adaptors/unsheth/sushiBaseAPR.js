@@ -2,7 +2,6 @@ const ethers  = require('ethers');
 const {sushiSwapSubgraphUrl, BLOCK_TIME_SECONDS, feeRate, ETHEREUM_RPC_URL} = require('./constants');
 const contract_addresses = require('./contract_addresses');
 const axios = require('axios');
-const fetch = require('node-fetch');
 const { getPriceApiData } = require('../utils');
 
 async function getBlockNumberOf24HoursAgo(providerUrl) {

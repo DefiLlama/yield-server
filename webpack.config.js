@@ -19,9 +19,6 @@ module.exports = {
   resolve: {
     mainFields: ['main'],
     extensions: ['.js', '.ts', '.json'],
-    alias: {
-      'node-fetch$': 'node-fetch/lib/index.js',
-    },
   },
   plugins: [
     // pg optionally requires pg-native; ignore it -> webpack doesn't fail when the native addon isn't installed

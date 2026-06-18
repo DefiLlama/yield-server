@@ -1,10 +1,3 @@
-const nodeFetch = !globalThis.fetch ? require('node-fetch') : null
-const fetch = globalThis.fetch || nodeFetch
-const AbortController =
-  globalThis.AbortController ||
-  (nodeFetch && nodeFetch.AbortController) ||
-  require('abort-controller')
-
 const ICP_HOST = 'https://ic0.app'
 const CANISTER_TIMEOUT_MS = 30_000
 const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER)

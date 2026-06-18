@@ -1,6 +1,5 @@
 const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
-const fetch = require('node-fetch');
 
 const bunniLensAbi = require('./bunniLens.json');
 const v3PoolAbi = require('./v3PoolAbi.json');

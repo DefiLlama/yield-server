@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 const curve = require('../curve-dex');
 const { default: BigNumber } = require('bignumber.js');
 const { merklGet } = require('../merkl/merkl-client');

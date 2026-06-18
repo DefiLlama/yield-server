@@ -3,7 +3,6 @@ const utils = require('../utils');
 
 const sdk = require('@defillama/sdk');
 const { gql, default: request } = require('graphql-request');
-const fetch = require('node-fetch');
 const { ethers } = require('ethers');
 const { sub } = require('date-fns');
 

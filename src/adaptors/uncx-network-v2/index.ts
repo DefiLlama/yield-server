@@ -1,5 +1,4 @@
 const utils = require('../utils');
-const fetch = require('node-fetch');
 
 const API_URL: string =
   'https://api-chain-eth.unicrypt.network/api/v1/farms/search';

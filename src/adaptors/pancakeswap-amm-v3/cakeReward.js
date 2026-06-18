@@ -5,7 +5,6 @@ const abiMcV3PolygonZkevm = require('./masterchefv3PolygonZkevm.json');
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
-const fetch = require('node-fetch');
 
 const CAKE = {
   ethereum: '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',

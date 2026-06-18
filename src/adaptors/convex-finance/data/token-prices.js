@@ -1,4 +1,3 @@
-const fetch = require('node-fetch')
 const { getPriceApiUrl } = require('../../utils');
 
 // [['a', '1'], ['b', 2], …] -> { a: 1, b: 2, … }

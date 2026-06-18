@@ -4,7 +4,6 @@ const { getBunniVaultsForPool, getPricePerFullShare, getProtocolFee, getPoolData
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
-const fetch = require('node-fetch');
 const { fetchPoolsFromSubgraph, fetchTokenPricesFromSubgraph } = require('./subgraphCalls');
 
 const ALB = {
