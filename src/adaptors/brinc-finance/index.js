@@ -1,10 +1,4 @@
 // const JSBI = require('jsbi');
-// const {
-//   CurrencyAmount,
-//   Percent,
-//   Token,
-//   TradeType,
-// } = require('@uniswap/sdk-core');
 // const { AlphaRouter } = require('@uniswap/smart-order-router');
 // const { default: BigNumber } = require('bignumber.js');
 // const { JsonRpcProvider } = require('@ethersproject/providers');
