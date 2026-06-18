@@ -1,4 +1,3 @@
-const { ContractMissingABIError } = require('web3');
 const utils = require('../utils');
 
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';

@@ -1,5 +1,4 @@
 const axios = require('axios');
-const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
 
 const arbitrumConstants = require('./arbitrum/umamiConstants.js');

@@ -1,6 +1,5 @@
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
-const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
