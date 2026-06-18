@@ -1,4 +1,3 @@
-const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
@@ -84,8 +83,8 @@ const apy = async () => {
     .map((t) => `${CHAIN}:${t.tokenAddress}`)
     .join(',');
   const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+    await utils.getPriceApiData(`/prices/current/${priceKeys}`)
+  ).coins;
 
   const pools = reserveTokens
     .map((pool, i) => {
