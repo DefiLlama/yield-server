@@ -115,7 +115,7 @@ const apy = async () => {
         pool: `${aTokens[i].tokenAddress}-${CHAIN}`.toLowerCase(),
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
-        symbol: utils.formatSymbol(pool.symbol),
+        symbol: pool.symbol,
         tvlUsd,
         apyBase: (Number(p.liquidityRate) / 10 ** 27) * 100,
         underlyingTokens: [pool.tokenAddress],
