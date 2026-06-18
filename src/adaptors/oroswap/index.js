@@ -44,18 +44,24 @@ const fetchPools = async () => {
   let offset = 0;
   let total = Infinity;
 
-  while (offset < total) {
-    const { data } = await axios.get(API_URL, {
-      ...axiosConfig,
-      params: { offset, limit: PAGE_SIZE },
-    });
+  try {
+    while (offset < total) {
+      const { data } = await axios.get(API_URL, {
+        ...axiosConfig,
+        params: { offset, limit: PAGE_SIZE },
+      });
 
-    const page = flattenPools(data);
-    pools.push(...page);
+      const page = flattenPools(data);
+      pools.push(...page);
 
-    total = Number.isFinite(Number(data?.total)) ? Number(data.total) : pools.length;
-    if (page.length === 0 || page.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
+      if (Number.isFinite(Number(data?.total))) {
+        total = Number(data.total);
+      }
+      if (page.length === 0 || page.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+  } catch (error) {
+    console.error(`Failed to fetch Oroswap pools: ${error.message}`);
   }
 
   return pools;
