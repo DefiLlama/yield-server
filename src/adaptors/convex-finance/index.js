@@ -43,15 +43,15 @@ const main = async () => {
     }
   });
 
-  const mappedGauges = Object.values(gauges).reduce(
-    (acc, gauge) => ({
-      ...acc,
-      ...(gauge.blockchainId !== 'ethereum'
-        ? {}
-        : { [(gauge.isPool ? gauge.swap_token : gauge.lendingVaultAddress).toLowerCase()]: { ...gauge } }),
-    }),
-    {}
-  );
+  const mappedGauges = Object.values(gauges).reduce((acc, gauge) => {
+    if (gauge.blockchainId !== 'ethereum') return acc;
+
+    const gaugeKey = gauge.isPool ? gauge.swap_token : gauge.lendingVaultAddress;
+    if (!gaugeKey) return acc;
+
+    acc[gaugeKey.toLowerCase()] = { ...gauge };
+    return acc;
+  }, {});
 
   const poolLength = (
     await sdk.api.abi.call({
