@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 
-const API_URL = 'https://api.centrifuge.io/graphql';
+const API_URL = 'https://api.centrifuge.io/';
 const HTTP_TIMEOUT_MS = 15000;
 const http = axios.create({ timeout: HTTP_TIMEOUT_MS });
 const SHARE_UNIT = '1000000000000000000'; // 1e18
