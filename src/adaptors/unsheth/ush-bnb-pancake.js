@@ -1,17 +1,25 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const ethers = require('ethers');
 const contract_addresses = require('./contract_addresses');
 const cbETHAdaptor = require('../coinbase-wrapped-staked-eth');
 const darknetABI = require('./DarknetABI');
 const lsdVaultABI = require('./LSDVaultABI');
 const farmABI = require('./FarmABI');
-const { seconds_per_year, denomination, tokensToCheck, BINANCE_RPC_URL } = require('./constants');
+const { seconds_per_year, denomination, tokensToCheck } = require('./constants');
 const utils = require('../utils');
 const { getLatestAPRPancake } = require('./pancakeBaseAPR');
 
+const CHAIN = 'bsc';
+const GET_ALL_REWARD_RATES_ABI = farmABI.find(
+  (item) => item.type === 'function' && item.name === 'getAllRewardRates'
+);
+const TOTAL_LIQUIDITY_LOCKED_ABI = farmABI.find(
+  (item) => item.type === 'function' && item.name === 'totalLiquidityLocked'
+);
+
 const getPoolInfo = async () => {
-  const apyBase = await getLatestAPRPancake();
+  const latestAPR = await getLatestAPRPancake();
+  const apyBase = Number.isFinite(latestAPR) ? latestAPR : 0;
 
   let tvlUsd = await getTVLUSD();
 
@@ -33,10 +41,13 @@ const getPoolInfo = async () => {
 };
 
 async function getUSDRewardPerYear(){
-  let provider = new ethers.providers.JsonRpcProvider(BINANCE_RPC_URL);
-  let farmContract = new ethers.Contract(contract_addresses["BNBpancake-farm"], farmABI, provider);
-
-  let baseRewardsPerSecond = (await farmContract.getAllRewardRates())[0];
+  let baseRewardsPerSecond = (
+    await sdk.api.abi.call({
+      target: contract_addresses["BNBpancake-farm"],
+      abi: GET_ALL_REWARD_RATES_ABI,
+      chain: CHAIN,
+    })
+  ).output[0];
 
   let rewardsPerSecond = (parseFloat(baseRewardsPerSecond)/denomination)
 
@@ -55,24 +66,30 @@ async function getTVLUSD(){
   const priceKey = `coingecko:binancecoin`;
   const bnbPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
-  //erc20 abi for getting the total supply of the token
-  const erc20ABI = [
-    "function totalSupply() view returns (uint256)",
-    "function balanceOf(address owner) view returns (uint256)",
-  ];
-
-  let provider = new ethers.providers.JsonRpcProvider(BINANCE_RPC_URL);
-  let pancakeContract = new ethers.Contract(contract_addresses["BNBpancakeSwapLP"], erc20ABI, provider);
-  let farmContract = new ethers.Contract(contract_addresses["BNBpancake-farm"], farmABI, provider);
-  let wbnbContract = new ethers.Contract(contract_addresses.WBNB, erc20ABI, provider );
-  
-  let totalSupply = await pancakeContract.totalSupply();
-
-  let totalStaked = await farmContract.totalLiquidityLocked();
+  const [
+    { output: totalSupply },
+    { output: totalStaked },
+    { output: wbnbBalance },
+  ] = await Promise.all([
+    sdk.api.abi.call({
+      target: contract_addresses["BNBpancakeSwapLP"],
+      abi: 'erc20:totalSupply',
+      chain: CHAIN,
+    }),
+    sdk.api.abi.call({
+      target: contract_addresses["BNBpancake-farm"],
+      abi: TOTAL_LIQUIDITY_LOCKED_ABI,
+      chain: CHAIN,
+    }),
+    sdk.api.abi.call({
+      target: contract_addresses.WBNB,
+      abi: 'erc20:balanceOf',
+      params: [contract_addresses["BNBpancakeSwapLP"]],
+      chain: CHAIN,
+    }),
+  ]);
 
   let percentageStaked = (parseFloat(totalStaked)/denomination) / (parseFloat(totalSupply)/denomination);
-
-  let wbnbBalance = await wbnbContract.balanceOf(contract_addresses["BNBpancakeSwapLP"]);
 
   let totalBalanceUSDInPancake = (parseFloat(wbnbBalance)/denomination)*2*bnbPrice;
 
@@ -85,4 +102,3 @@ async function getTVLUSD(){
 module.exports = {
   getPoolInfo
 };
-

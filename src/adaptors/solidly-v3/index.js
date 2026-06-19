@@ -50,6 +50,7 @@ const main = async (timestamp = null) => {
     timestamp = Math.floor(Date.now() / 1000.0);
   }
   const block_start = await block_24h_ago(timestamp);
+  const block_end = (await sdk.api.util.getLatestBlock('ethereum')).number;
   let { pools, touched_tokens } = await fetch_pools(timestamp);
   let prices = await fetch_prices(touched_tokens);
   pools = pools
@@ -76,7 +77,8 @@ const main = async (timestamp = null) => {
       pools.map(async (pool) => {
         let { begin_fee, state_changes, begin_liq } = await pool_state_changes(
           pool.id,
-          block_start
+          block_start,
+          block_end
         );
         let current_fee = begin_fee;
         let fee_per_token = {};

@@ -1,14 +1,11 @@
-const ethers  = require('ethers');
-const {pancakeSwapSubgraphUrl, BNB_BLOCK_TIME_SECONDS, feeRate, BINANCE_RPC_URL} = require('./constants');
+const sdk = require('@defillama/sdk');
+const {pancakeSwapSubgraphUrl, BNB_BLOCK_TIME_SECONDS, feeRate} = require('./constants');
 const contract_addresses = require('./contract_addresses');
 const axios = require('axios');
 const { getPriceApiData } = require('../utils');
 
-async function getBlockNumberOf24HoursAgo(providerUrl) {
-    const provider = new ethers.providers.JsonRpcProvider(providerUrl);
-  
-    // Get the current block number
-    const currentBlockNumber = await provider.getBlockNumber();
+async function getBlockNumberOf24HoursAgo() {
+    const currentBlockNumber = (await sdk.api.util.getLatestBlock('bsc')).number;
   
     // Estimate the number of blocks in the past 24 hours
     const blocksIn24Hours = Math.floor(24 * 60 * 60 / BNB_BLOCK_TIME_SECONDS);
@@ -19,8 +16,8 @@ async function getBlockNumberOf24HoursAgo(providerUrl) {
     return approxBlockNumber;
   }
   
-  async function get24HourTradingVolume(pairAddress, providerUrl) {
-    const blockNumberOneDayAgo = await getBlockNumberOf24HoursAgo(providerUrl);
+  async function get24HourTradingVolume(pairAddress) {
+    const blockNumberOneDayAgo = await getBlockNumberOf24HoursAgo();
   
     const query = `
       {
@@ -113,11 +110,11 @@ async function getTotalValueInUSD(pairAddress) {
   return totalValueInUSD;
 }
 
-async function calculateTotalAPRPancake(pairAddress, providerUrl) {
-  const volume24h = await get24HourTradingVolume(pairAddress, providerUrl);
+async function calculateTotalAPRPancake(pairAddress) {
+  const volume24h = await get24HourTradingVolume(pairAddress);
 
   // Calculate the total value of the liquidity pool's reserves in USD
-  const totalValueInUSD = await getTotalValueInUSD(pairAddress, providerUrl);
+  const totalValueInUSD = await getTotalValueInUSD(pairAddress);
 
   if (totalValueInUSD === null) {
     return "Unable to calculate the total value in USD. Please check the pair address and try again.";
@@ -140,9 +137,8 @@ async function calculateTotalAPRPancake(pairAddress, providerUrl) {
 async function getLatestAPRPancake() {
   try {
     const pairAddress = contract_addresses.BNBpancakeSwapLP;
-    const providerUrl = BINANCE_RPC_URL;
 
-    const totalAPR = await calculateTotalAPRPancake(pairAddress, providerUrl);
+    const totalAPR = await calculateTotalAPRPancake(pairAddress);
     return totalAPR;
   }
   catch(err){

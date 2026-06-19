@@ -1,4 +1,3 @@
-const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
@@ -15,10 +14,12 @@ const TOKENS_VIEWER = '0x826bBeB1DBd9aA36CD44538CC45Dcf9E93BDA574';
 const FIRM_VIEWER = '0x545C963eB523199969cf0298395EeAdcE514b691';
 const ONE_DAY_MS = 86400000;
 const WEEKS_PER_YEAR = 365 / 7;
-
-const provider = new ethers.providers.JsonRpcProvider(
-  process.env.ALCHEMY_CONNECTION_ETHEREUM
-);
+const CHAIN = 'ethereum';
+const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
+const EVENTS = {
+  AddMarket: 'event AddMarket(address indexed market)',
+  CreateEscrow: 'event CreateEscrow(address indexed user, address escrow)',
+};
 
 const getWeekIndexUtc = (ts) => {
   const d = ts ? new Date(ts) : new Date();
@@ -28,6 +29,14 @@ const getWeekIndexUtc = (ts) => {
 
 const aprToApy = (apr, compoundingsPerYear) =>
   !compoundingsPerYear ? apr : (Math.pow(1 + (apr / 100) / compoundingsPerYear, compoundingsPerYear) - 1) * 100;
+
+const sortEventLogs = (logs) =>
+  logs.sort((a, b) => {
+    if (a.blockNumber !== b.blockNumber) return a.blockNumber - b.blockNumber;
+    const aIndex = a.logIndex ?? a.index ?? a.log_index ?? 0;
+    const bIndex = b.logIndex ?? b.index ?? b.log_index ?? 0;
+    return aIndex - bIndex;
+  });
 
 const l1TokenPrices = async (l1TokenAddrs) => {
   const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
@@ -46,24 +55,35 @@ const l1TokenPrices = async (l1TokenAddrs) => {
   );
 };
 
-const getFirmMarkets = async (dbrContract) => {
-  const logs = await dbrContract.queryFilter(dbrContract.filters.AddMarket());
-  return logs.map((l) => l.args.market);
+const getFirmMarkets = async (toBlock) => {
+  const logs = await sdk.getEventLogs({
+    target: DBR,
+    eventAbi: EVENTS.AddMarket,
+    fromBlock: 1,
+    toBlock,
+    chain: CHAIN,
+  });
+  return sortEventLogs(logs).map((l) => l.args.market ?? l.args[0]);
 };
 
-const getFirmEscrowsWithMarket = async (markets, provider) => {
+const getFirmEscrowsWithMarket = async (markets, toBlock) => {
   const escrowCreations = await Promise.all(
-    markets.map((m) => {
-      const market = new ethers.Contract(m, abi.market, provider);
-      return market.queryFilter(market.filters.CreateEscrow(), firmStart);
-    })
+    markets.map((m) =>
+      sdk.getEventLogs({
+        target: m,
+        eventAbi: EVENTS.CreateEscrow,
+        fromBlock: firmStart,
+        toBlock,
+        chain: CHAIN,
+      })
+    )
   );
 
   const escrowsWithMarkets = escrowCreations
     .map((marketEscrows, marketIndex) => {
       const market = markets[marketIndex];
       return marketEscrows.map((escrowCreationEvent) => {
-        return { escrow: escrowCreationEvent.args[1], market };
+        return { escrow: escrowCreationEvent.args.escrow ?? escrowCreationEvent.args[1], market };
       });
     })
     .flat();
@@ -75,14 +95,14 @@ const getFirmEscrowsWithMarket = async (markets, provider) => {
 const main = async () => {
   const balances = {};
 
-  const dbrContract = new ethers.Contract(DBR, abi.dbr, provider);
-  const markets = await getFirmMarkets(dbrContract);
+  const currentBlock = (await sdk.api.util.getLatestBlock(CHAIN)).number;
+  const markets = await getFirmMarkets(currentBlock);
 
-  const escrowsWithMarkets = await getFirmEscrowsWithMarket(markets, provider);
+  const escrowsWithMarkets = await getFirmEscrowsWithMarket(markets, currentBlock);
 
   const allBalances = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: escrowsWithMarkets.map((em) => ({
         target: em.escrow,
         params: [],
@@ -93,7 +113,7 @@ const main = async () => {
 
   const allUnderlying = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: m,
         params: [],
@@ -108,7 +128,7 @@ const main = async () => {
 
   const allDebt = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: m,
         params: [],
@@ -119,7 +139,7 @@ const main = async () => {
 
   const allSymbols = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: underlyings.map((m) => ({
         target: m,
         params: [],
@@ -130,7 +150,7 @@ const main = async () => {
 
   const allDecimals = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: underlyings.map((m) => ({
         target: m,
         params: [],
@@ -141,7 +161,7 @@ const main = async () => {
 
   const allPrices = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: FIRM_VIEWER,
         params: [m],
@@ -153,7 +173,7 @@ const main = async () => {
 
   const allCfs = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: m,
         params: [],
@@ -164,7 +184,7 @@ const main = async () => {
 
   const allBorrowPaused = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: m,
         params: [],
@@ -175,7 +195,7 @@ const main = async () => {
 
   const allLiquidity = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: DOLA,
         params: [m],
@@ -186,7 +206,7 @@ const main = async () => {
 
   const allBorrowControllers = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: m,
         params: [],
@@ -201,11 +221,11 @@ const main = async () => {
       params: [markets[marketIndex]],
       marketIndex,
     }))
-    .filter((c) => c.target !== ethers.constants.AddressZero);
+    .filter((c) => c.target !== ADDRESS_ZERO);
 
   const allBorrowLimits = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: borrowControllerCalls,
       abi: 'function availableBorrowLimit(address) view returns (uint256)',
       permitFailure: true,
@@ -271,7 +291,7 @@ const main = async () => {
     await Promise.all([
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: SDOLA_ADDRESS,
@@ -283,7 +303,7 @@ const main = async () => {
       ),
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: SDOLA_ADDRESS,
@@ -317,7 +337,7 @@ const main = async () => {
     await Promise.all([
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: SINV_ADDRESS,
@@ -329,7 +349,7 @@ const main = async () => {
       ),
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: SINV_ADDRESS,
@@ -341,7 +361,7 @@ const main = async () => {
       ),
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: TOKENS_VIEWER,

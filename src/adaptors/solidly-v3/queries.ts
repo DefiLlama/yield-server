@@ -6,6 +6,15 @@ const ABI = require('./abi');
 const { getPriceApiData } = require('../utils');
 
 const ZERO = ethers.BigNumber.from(0);
+const CHAIN = 'ethereum';
+const SLOT0_ABI = ABI.find(
+  (item) => item.type === 'function' && item.name === 'slot0'
+);
+const EVENTS = {
+  Swap:
+    'event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)',
+  SetFee: 'event SetFee(uint24 feeOld, uint24 feeNew)',
+};
 
 const GRAPH = sdk.graph.modifyEndpoint('7StqFFqbxi3jcN5C9YxhRiTxQM8HA8XEHopsynqqxw3t');
 module.exports.get_graph_url = () => GRAPH;
@@ -40,27 +49,50 @@ const GET_POOLS = gql`
   }
 `;
 
-module.exports.pool_state_changes = async (pool_id, block_start) => {
-  let provider = new ethers.providers.JsonRpcProvider(
-    process.env.ALCHEMY_CONNECTION_ETHEREUM,
-    1
-  );
-  const contract = new ethers.Contract(pool_id, ABI, provider);
-  const begin_fee = (
-    await contract.functions.slot0({ blockTag: block_start })
-  )[2];
-  // const begin_liq = (
-  //   await contract.functions.liquidity({ blockTag: block_start })
-  // )[0];
-  // console.log("begin liq", begin_liq);
-  const swaps = await contract.queryFilter(
-    contract.filters.Swap(),
-    block_start
-  );
-  const fee_change = await contract.queryFilter(
-    contract.filters.SetFee(),
-    block_start
-  );
+const normalizeLog = (event, log) => ({
+  ...log,
+  event,
+  logIndex: log.logIndex ?? log.index ?? log.log_index,
+});
+
+const normalizeSwapLog = (log) => {
+  const normalized = normalizeLog('Swap', log);
+  return {
+    ...normalized,
+    args: {
+      ...normalized.args,
+      amount0: ethers.BigNumber.from(normalized.args.amount0),
+      amount1: ethers.BigNumber.from(normalized.args.amount1),
+    },
+  };
+};
+
+module.exports.pool_state_changes = async (pool_id, block_start, block_end) => {
+  const { output: slot0 } = await sdk.api.abi.call({
+    target: pool_id,
+    abi: SLOT0_ABI,
+    chain: CHAIN,
+    block: block_start,
+  });
+  const begin_fee = ethers.BigNumber.from(slot0.fee ?? slot0[2]);
+  const swaps = (
+    await sdk.getEventLogs({
+      target: pool_id,
+      eventAbi: EVENTS.Swap,
+      chain: CHAIN,
+      fromBlock: block_start,
+      toBlock: block_end,
+    })
+  ).map(normalizeSwapLog);
+  const fee_change = (
+    await sdk.getEventLogs({
+      target: pool_id,
+      eventAbi: EVENTS.SetFee,
+      chain: CHAIN,
+      fromBlock: block_start,
+      toBlock: block_end,
+    })
+  ).map((log) => normalizeLog('SetFee', log));
   let state_changes = [...swaps, ...fee_change];
   // Sort the state_changes array
   state_changes.sort((a, b) => {
