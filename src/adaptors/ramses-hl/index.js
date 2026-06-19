@@ -7,7 +7,7 @@ const PROJECT = 'ramses-hl';
 const CHAIN = 'hyperliquid';
 const SUBGRAPH =
   'https://hyperevm.kingdomsubgraph.com/subgraphs/name/ramses-v3-pruned/';
-const GATEWAY_API = 'https://gateway.ramses.xyz/v3/hyperevm/pools';
+const GATEWAY_API = 'https://gateway.kingdom.dev/hyperevm/api/pools';
 
 const poolsQuery = gql`
   query getPools($first: Int!, $skip: Int!) {
