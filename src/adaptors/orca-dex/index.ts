@@ -102,10 +102,12 @@ const getApy = async () => {
         const volumeUsd1d = toNumber(stats24h?.volume);
         const volumeUsd7d = toNumber(stats7d?.volume);
 
-        // Only compute APY when both numerator and denominator are finite and denom > 0.
-        // Otherwise APY becomes NaN and the pool will be filtered out by keepFinite.
+        // Only compute fee APY when both numerator and denominator are finite and denom > 0.
+        // Missing rewards means the pool has no current reward emissions.
         const apyBase = ratioOrNaN(fees24h, tvlUsd) * 365 * 100;
-        const apyReward = ratioOrNaN(rewards24h, tvlUsd) * 365 * 100;
+        const apyReward = Number.isFinite(rewards24h)
+            ? ratioOrNaN(rewards24h, tvlUsd) * 365 * 100
+            : 0;
         const apyBase7d = ratioOrNaN(fees7d, tvlUsd) * (365 / 7) * 100;
 
         const rewardTokens =
