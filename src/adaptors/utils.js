@@ -224,9 +224,16 @@ exports.getData = async (url, query = null, headers = {}) => {
   if (query !== null) {
     res = await axios.post(url, query, { headers });
   } else {
-    res = await axios.get(url);
+    res = await axios.get(url, { headers });
   }
   return res.data;
+};
+
+exports.getEgressData = async (egressPath, directUrl) => {
+  if (!process.env.EGRESS_BASE_URL) return exports.getData(directUrl);
+  return exports.getData(`${process.env.EGRESS_BASE_URL}${egressPath}`, null, {
+    'x-egress-token': process.env.EGRESS_TOKEN,
+  });
 };
 
 // Retry helper for flaky endpoints. Only retries transient failures
