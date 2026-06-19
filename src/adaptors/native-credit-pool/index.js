@@ -5,14 +5,6 @@ const sdk = require('@defillama/sdk');
 const API_KEY = '9985778c880fe83f15135345e0726f4bd33e728c';
 const CHAINS = ['ethereum', 'bsc', 'arbitrum', 'base'];
 
-// Chain ID mapping for URLs
-const CHAIN_IDS = {
-  ethereum: 1,
-  bsc: 56,
-  arbitrum: 42161,
-  base: 8453,
-};
-
 // ABI for totalUnderlying function
 const totalUnderlyingABI = {
   constant: true,
@@ -249,7 +241,7 @@ const apy = async () => {
           continue;
         }
 
-        const symbol = `n${tokenInfo.symbol}`;
+        const symbol = tokenInfo.symbol;
 
         // Format pool identifier
         const poolId = `${lpAddr}-${chain}`;
@@ -257,12 +249,8 @@ const apy = async () => {
         // Format chain name
         const formattedChain = utils.formatChain(chain);
 
-        // Get chain ID and underlying ticker for URL
-        const chainId = CHAIN_IDS[chain];
-        const underlyingTicker = utils.formatSymbol(tokenInfo.symbol);
-
         // Build individual pool URL
-        const poolUrl = `https://native.org/app/credit-pool/?chainId=${chainId}&action=deposit&token0=${underlyingTicker}`;
+        const poolUrl = `https://app.native.org/pool?chain=${chain}`;
 
         pools.push({
           pool: poolId,
