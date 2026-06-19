@@ -3,7 +3,6 @@ try {
 } catch (e) {}
 
 module.exports = {
-  ALCHEMY_CONNECTION_ETHEREUM: process.env.ALCHEMY_CONNECTION_ETHEREUM,
   ETHEREUM_RPC: process.env.ETHEREUM_RPC,
   XDAI_RPC: process.env.XDAI_RPC,
   CRONOS_RPC: process.env.CRONOS_RPC,
