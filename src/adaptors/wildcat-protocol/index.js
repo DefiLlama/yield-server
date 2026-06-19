@@ -95,7 +95,7 @@ const apy = async () => {
         (totalDebts[i] / 10 ** decimals[i]) *
         prices[`${chain}:${asset[i]}`]?.price,
       totalBorrowUsd:
-        ((totalDebts[i] - totalAssets[i]) / 10 ** decimals[i]) *
+        (Math.max(totalDebts[i] - totalAssets[i], 0) / 10 ** decimals[i]) *
         prices[`${chain}:${asset[i]}`]?.price,
       underlyingTokens: [asset[i]],
       poolMeta: name[i],
