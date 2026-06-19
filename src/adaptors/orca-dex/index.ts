@@ -1,6 +1,4 @@
-import * as utils from '../utils';
-
-declare const require: any;
+const utils = require('../utils');
 const axios = require('axios');
 
 const ORCA_API_BASE_URL = 'https://api.orca.so/v2/solana/pools';
