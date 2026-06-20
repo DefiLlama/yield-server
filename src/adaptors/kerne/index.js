@@ -40,7 +40,6 @@
 //   directory and project field both follow the public slug "kerne".
 
 const sdk = require('@defillama/sdk');
-const axios = require('axios');
 const utils = require('../utils');
 
 const CHAIN = 'base';
@@ -58,8 +57,7 @@ const CONVERT_TO_ASSETS_ABI =
 const SEED_SUPPLY_THRESHOLD = 1e21;
 
 const blockForTimestamp = async (timestamp) =>
-  (await axios.get(`https://coins.llama.fi/block/${CHAIN}/${timestamp}`)).data
-    .height;
+  (await utils.getBlocksByTime([timestamp], CHAIN))[0];
 
 const convertToAssets = async (shareUnits, block) =>
   (
@@ -100,11 +98,8 @@ const apy = async () => {
   //    USDC; using the coins.llama.fi USDC price keeps pricing verifiable
   //    through the same source the rest of yield-server uses).
   const priceKey = `${CHAIN}:${USDC_ADDRESS}`;
-  const priceResp = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`,
-    { timeout: 15_000 }
-  );
-  const usdcPrice = priceResp?.data?.coins?.[priceKey]?.price;
+  const priceData = await utils.getPriceApiData(`/prices/current/${priceKey}`);
+  const usdcPrice = priceData?.coins?.[priceKey]?.price;
   if (!Number.isFinite(usdcPrice) || usdcPrice <= 0) {
     throw new Error(
       `Invalid USDC price from coins.llama.fi for ${priceKey}: ${usdcPrice}`
