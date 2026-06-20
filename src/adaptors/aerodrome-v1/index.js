@@ -122,80 +122,77 @@ const getGaugeApy = async () => {
     })
   ).output.map((o) => o.output);
 
-  const [metaData, symbols, gauges] = await Promise.all([
-    sdk.api.abi
-      .multiCall({
-        calls: allPools.map((i) => ({
-          target: i,
-        })),
-        abi: abiPool.find((m) => m.name === 'metadata'),
-        chain: CHAIN,
-      })
-      .then((r) => r.output.map((o) => o.output)),
-    sdk.api.abi
-      .multiCall({
-        calls: allPools.map((i) => ({
-          target: i,
-        })),
-        abi: abiPool.find((m) => m.name === 'symbol'),
-        chain: CHAIN,
-      })
-      .then((r) => r.output.map((o) => o.output)),
-    sdk.api.abi
-      .multiCall({
-        calls: allPools.map((i) => ({
-          target: voter,
-          params: [i],
-        })),
-        abi: abiVoter.find((m) => m.name === 'gauges'),
-        chain: CHAIN,
-      })
-      .then((r) => r.output.map((o) => o.output)),
-  ]);
+  const gauges = await sdk.api.abi
+    .multiCall({
+      calls: allPools.map((i) => ({
+        target: voter,
+        params: [i],
+      })),
+      abi: abiVoter.find((m) => m.name === 'gauges'),
+      chain: CHAIN,
+    })
+    .then((r) => r.output.map((o) => o.output));
 
   // remove pools without valid gauges
-  const validIndices = [];
   const validGauges = [];
   const validPools = [];
 
   gauges.forEach((gauge, index) => {
     if (gauge && gauge !== '0x0000000000000000000000000000000000000000') {
-      validIndices.push(index);
       validGauges.push(gauge);
       validPools.push(allPools[index]);
     }
   });
 
-  const [rewardRate, poolSupply, totalSupply] = await Promise.all([
-    sdk.api.abi
-      .multiCall({
-        calls: validGauges.map((i) => ({
-          target: i,
-        })),
-        abi: abiGauge.find((m) => m.name === 'rewardRate'),
-        chain: CHAIN,
-        permitFailure: true,
-      })
-      .then((r) => r.output.map((o) => o.output)),
-    sdk.api.abi
-      .multiCall({
-        calls: validPools.map((i) => ({ target: i })),
-        chain: CHAIN,
-        abi: 'erc20:totalSupply',
-        permitFailure: true,
-      })
-      .then((r) => r.output.map((o) => o.output)),
-    sdk.api.abi
-      .multiCall({
-        calls: validGauges.map((i) => ({
-          target: i,
-        })),
-        abi: abiGauge.find((m) => m.name === 'totalSupply'),
-        chain: CHAIN,
-        permitFailure: true,
-      })
-      .then((r) => r.output.map((o) => o.output)),
-  ]);
+  const [metaData, symbols, rewardRate, poolSupply, totalSupply] =
+    await Promise.all([
+      sdk.api.abi
+        .multiCall({
+          calls: validPools.map((i) => ({
+            target: i,
+          })),
+          abi: abiPool.find((m) => m.name === 'metadata'),
+          chain: CHAIN,
+        })
+        .then((r) => r.output.map((o) => o.output)),
+      sdk.api.abi
+        .multiCall({
+          calls: validPools.map((i) => ({
+            target: i,
+          })),
+          abi: abiPool.find((m) => m.name === 'symbol'),
+          chain: CHAIN,
+        })
+        .then((r) => r.output.map((o) => o.output)),
+      sdk.api.abi
+        .multiCall({
+          calls: validGauges.map((i) => ({
+            target: i,
+          })),
+          abi: abiGauge.find((m) => m.name === 'rewardRate'),
+          chain: CHAIN,
+          permitFailure: true,
+        })
+        .then((r) => r.output.map((o) => o.output)),
+      sdk.api.abi
+        .multiCall({
+          calls: validPools.map((i) => ({ target: i })),
+          chain: CHAIN,
+          abi: 'erc20:totalSupply',
+          permitFailure: true,
+        })
+        .then((r) => r.output.map((o) => o.output)),
+      sdk.api.abi
+        .multiCall({
+          calls: validGauges.map((i) => ({
+            target: i,
+          })),
+          abi: abiGauge.find((m) => m.name === 'totalSupply'),
+          chain: CHAIN,
+          permitFailure: true,
+        })
+        .then((r) => r.output.map((o) => o.output)),
+    ]);
 
   const tokens = [
     ...new Set(
@@ -224,8 +221,7 @@ const getGaugeApy = async () => {
   }
 
   const pools = validPools.map((p, i) => {
-    const originalIndex = validIndices[i];
-    const poolMeta = metaData[originalIndex];
+    const poolMeta = metaData[i];
     const r0 = poolMeta.r0 / poolMeta.dec0;
     const r1 = poolMeta.r1 / poolMeta.dec1;
 
@@ -234,7 +230,7 @@ const getGaugeApy = async () => {
 
     const tvlUsd = r0 * p0 + r1 * p1;
 
-    const s = symbols[originalIndex];
+    const s = symbols[i];
 
     const pairPrice = (tvlUsd * 1e18) / totalSupply[i];
 

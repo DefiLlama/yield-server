@@ -101,36 +101,29 @@ async function getPoolVolumes(timestamp = null) {
     }
   }
 
-  let [block, blockPrior] = await utils.getBlocks(CHAIN, timestamp, [SUBGRAPH]);
+  let [[block, blockPrior], [, blockPrior7d]] = await Promise.all([
+    utils.getBlocks(CHAIN, timestamp, [SUBGRAPH]),
+    utils.getBlocks(CHAIN, timestamp, [SUBGRAPH], WEEK),
+  ]);
   // buffer so data indexers behind the _meta endpoint can still serve the query
   block -= 100;
 
-  const [_, blockPrior7d] = await utils.getBlocks(
-    CHAIN,
-    timestamp,
-    [SUBGRAPH],
-    604800
-  );
-
   // retry transient TLS drops so one blip doesn't force the slow archive path
-  let dataNow = await utils.withRetry(() =>
-    request(SUBGRAPH, query.replace('<PLACEHOLDER>', block))
-  );
-  dataNow = dataNow.pools;
-
-  // pull 24h offset data to calculate fees from swap volume
-  let queryPriorC = queryPrior;
-  let dataPrior = await utils.withRetry(() =>
-    request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior))
-  );
-  dataPrior = dataPrior.pools;
-
-  // 7d offset
-  const dataPrior7d = (
-    await utils.withRetry(() =>
+  const queryPriorC = queryPrior;
+  let [dataNow, dataPrior, dataPrior7d] = await Promise.all([
+    utils.withRetry(() =>
+      request(SUBGRAPH, query.replace('<PLACEHOLDER>', block))
+    ),
+    utils.withRetry(() =>
+      request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior))
+    ),
+    utils.withRetry(() =>
       request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
-    )
-  ).pools;
+    ),
+  ]);
+  dataNow = dataNow.pools;
+  dataPrior = dataPrior.pools;
+  dataPrior7d = dataPrior7d.pools;
 
   // calculate tvl
   dataNow = await utils.tvl(dataNow, CHAIN);
