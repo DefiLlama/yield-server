@@ -88,9 +88,10 @@ const topLvl = async (chainString, url, timestamp) => {
       url,
     ]);
 
-    let dataNow = await fetchAllPools(url, block);
-
-    let dataPrior = await fetchAllPools(url, blockPrior);
+    let [dataNow, dataPrior] = await Promise.all([
+      fetchAllPools(url, block),
+      fetchAllPools(url, blockPrior),
+    ]);
 
     dataNow = dataNow.map((p) => ({
       ...p,
@@ -101,8 +102,10 @@ const topLvl = async (chainString, url, timestamp) => {
 
     dataNow = await utils.tvl(dataNow, chainString);
 
+    const dataPriorByPool = new Map(dataPrior.map((p) => [p.id, p]));
+
     dataNow = dataNow.map((pool) => {
-      const poolPrior = dataPrior.find((p) => p.id === pool.id);
+      const poolPrior = dataPriorByPool.get(pool.id);
       const isDynamic = isDynamicFeePool(pool.feeTier);
 
       const volumeUSD1d =
@@ -160,10 +163,10 @@ const topLvl = async (chainString, url, timestamp) => {
 };
 
 const main = async (timestamp = null) => {
-  const data = [];
-  for (const [chain, url] of Object.entries(chains)) {
-    data.push(await topLvl(chain, url, timestamp));
-  }
+  const data = await Promise.all(
+    Object.entries(chains).map(([chain, url]) => topLvl(chain, url, timestamp))
+  );
+
   return data
     .flat()
     .filter((p) => utils.keepFinite(p))

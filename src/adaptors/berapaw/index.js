@@ -17,6 +17,8 @@ const ADDRESSES = {
     ST_LBGT_VAULT: '0xFace73a169e2CA2934036C8Af9f464b5De9eF0ca'
 };
 
+const priceCache = new Map();
+
 // Helper functions
 const callContract = async (target, abi, params = []) => {
     return sdk.api.abi.call({
@@ -28,8 +30,16 @@ const callContract = async (target, abi, params = []) => {
 };
 
 const getTokenPrice = async (tokenAddress) => {
-    const priceData = (await utils.getPrices([tokenAddress], 'berachain')).pricesByAddress;
-    return priceData[String(tokenAddress).toLowerCase()] || 0;
+    const key = String(tokenAddress).toLowerCase();
+    if (!priceCache.has(key)) {
+        priceCache.set(
+            key,
+            utils
+                .getPrices([tokenAddress], 'berachain')
+                .then((data) => data.pricesByAddress[key] || 0)
+        );
+    }
+    return priceCache.get(key);
 };
 
 const getRewardRate = async (address) => {
@@ -54,15 +64,19 @@ const getPoolTokens = async () => {
 
 // TVL and APR calculations
 const getStLbgtTvlUsd = async () => {
-    const deposits = await getTotalAssets(ADDRESSES.ST_LBGT_VAULT);
-    const uTokenAddress = await callContract(ADDRESSES.ST_LBGT_VAULT, 'address:asset');
+    const [deposits, uTokenAddress] = await Promise.all([
+        getTotalAssets(ADDRESSES.ST_LBGT_VAULT),
+        callContract(ADDRESSES.ST_LBGT_VAULT, 'address:asset'),
+    ]);
     const price = await getTokenPrice(uTokenAddress);
     return (deposits / 1e18) * price;
 };
 
 const getStLbgtApr = async () => {
-    const rewardRate = await getRewardRate(ADDRESSES.REWARD_COLLECTOR);
-    const poolAssets = await getTotalAssets(ADDRESSES.ST_LBGT_VAULT);
+    const [rewardRate, poolAssets] = await Promise.all([
+        getRewardRate(ADDRESSES.REWARD_COLLECTOR),
+        getTotalAssets(ADDRESSES.ST_LBGT_VAULT),
+    ]);
     const rewardRatePerYear = (rewardRate * SECONDS_PER_YEAR) / 1e18;
     return (rewardRatePerYear / poolAssets) * 100;
 };
@@ -211,10 +225,8 @@ const getPoolData = async () => {
         underlyingTokens: [ADDRESSES.WBERA_LBGT_WEIGHTED],
     });
 
-    // Add vaults
-    for (const vault of apiVaults) {
-        if (!vault.isVaultWhitelisted) continue;
-
+    const vaultPools = await Promise.all(apiVaults.map(async (vault) => {
+        if (!vault.isVaultWhitelisted) return null;
         // Calculate BGT APR
         let bgtApr = 0;
         if (vault.dynamicData?.apr) {
@@ -236,7 +248,7 @@ const getPoolData = async () => {
             }
         } catch {}
 
-        pools.push({
+        return {
             pool: vault.vaultAddress,
             chain: 'berachain',
             project: 'berapaw',
@@ -246,8 +258,10 @@ const getPoolData = async () => {
             rewardTokens: [ADDRESSES.LBGT],
             underlyingTokens: [underlying],
             url: 'https://www.berapaw.com/vaults',
-        });
-    }
+        };
+    }));
+
+    pools.push(...vaultPools.filter(Boolean));
 
     return pools;
 };

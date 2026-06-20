@@ -75,21 +75,24 @@ const topLvl = async (
   stablecoins
 ) => {
   try {
-    const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
-      url,
+    const timestampForBlocks =
+      timestamp != null ? Number(timestamp) : Math.floor(Date.now() / 1000);
+    const [[block, blockPrior], [blockPrior7d]] = await Promise.all([
+      utils.getBlocks(chainString, timestamp, [url]),
+      utils.getBlocksByTime([timestampForBlocks - 604800], chainString),
     ]);
-
-    const [_, blockPrior7d] = await utils.getBlocks(
-      chainString,
-      timestamp,
-      [url],
-      604800
-    );
 
     // pull data
     let queryC = query;
-    let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
+    let queryPriorC = queryPrior;
+    let [dataNow, dataPrior, dataPrior7d] = await Promise.all([
+      request(url, queryC.replace('<PLACEHOLDER>', block)),
+      request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior)),
+      request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d)),
+    ]);
     dataNow = dataNow.pools;
+    dataPrior = dataPrior.pools;
+    dataPrior7d = dataPrior7d.pools;
 
     const balanceCalls = dataNow.flatMap((pool) => [
       { target: pool.token0.id, params: pool.id },
@@ -132,14 +135,6 @@ const topLvl = async (
       };
     });
 
-    // pull 24h offset data to calculate fees from swap volume
-    let queryPriorC = queryPrior;
-    let dataPrior = await request(
-      url,
-      queryPriorC.replace('<PLACEHOLDER>', blockPrior)
-    );
-    dataPrior = dataPrior.pools;
-
     // calculate tvl
     dataNow = await utils.tvl(dataNow, chainString);
 
@@ -161,11 +156,6 @@ const topLvl = async (
         stablecoin,
       };
     });
-
-    // for new v3 apy calc
-    const dataPrior7d = (
-      await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
-    ).pools;
 
     // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now) and will store the
     // new apy calc as a separate field
@@ -258,31 +248,32 @@ const main = async (timestamp = null) => {
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
-  const data = [];
   let cakeAPRsByChain = {};
-  for (const [chain, url] of Object.entries(chains)) {
-    console.log(chain);
-    try {
-      // cakeAPRsByChain[utils.formatChain(chain)] = await getCakeAprs(chain);
+  const data = (
+    await Promise.all(
+      Object.entries(chains).map(async ([chain, url]) => {
+        console.log(chain);
+        try {
+          // cakeAPRsByChain[utils.formatChain(chain)] = await getCakeAprs(chain);
 
-      data.push(
-        await topLvl(
-          chain,
-          url,
-          query,
-          queryPrior,
-          'v3',
-          timestamp,
-          stablecoins
-        )
-      );
-    } catch (err) {
-      console.log(err);
-    }
-  }
+          return await topLvl(
+            chain,
+            url,
+            query,
+            queryPrior,
+            'v3',
+            timestamp,
+            stablecoins
+          );
+        } catch (err) {
+          console.log(err);
+          return [];
+        }
+      })
+    )
+  ).flat();
 
   const pools = data
-    .flat()
     .filter((p) => utils.keepFinite(p))
     .map((p) => {
       if (

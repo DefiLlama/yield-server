@@ -78,21 +78,24 @@ const topLvl = async (
   stablecoins
 ) => {
   try {
-    const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
-      url,
+    const timestampForBlocks =
+      timestamp != null ? Number(timestamp) : Math.floor(Date.now() / 1000);
+    const [[block, blockPrior], [blockPrior7d]] = await Promise.all([
+      utils.getBlocks(chainString, timestamp, [url]),
+      utils.getBlocksByTime([timestampForBlocks - 604800], chainString),
     ]);
-
-    const [_, blockPrior7d] = await utils.getBlocks(
-      chainString,
-      timestamp,
-      [url],
-      604800
-    );
 
     // pull data
     let queryC = query;
-    let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
+    let queryPriorC = queryPrior;
+    let [dataNow, dataPrior, dataPrior7d] = await Promise.all([
+      request(url, queryC.replace('<PLACEHOLDER>', block)),
+      request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior)),
+      request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d)),
+    ]);
     dataNow = dataNow.pools;
+    dataPrior = dataPrior.pools;
+    dataPrior7d = dataPrior7d.pools;
 
     // uni v3 subgraph reserves values are wrong!
     // instead of relying on subgraph values, gonna pull reserve data from contracts
@@ -132,15 +135,22 @@ const topLvl = async (
       permitFailure: true,
     });
 
+    const balancesByPool = tokenBalances.output.reduce((acc, item) => {
+      const poolId = item.input.params[0];
+      if (!acc[poolId]) acc[poolId] = {};
+      acc[poolId][item.input.target.toLowerCase()] = item.output;
+      return acc;
+    }, {});
+
     dataNow = dataNow.map((p) => {
-      const x = tokenBalances.output.filter((i) => i.input.params[0] === p.id);
+      const balances = balancesByPool[p.id];
       return {
         ...p,
         reserve0:
-          x.find((i) => i.input.target === p.token0.id).output /
+          balances[p.token0.id.toLowerCase()] /
           `1e${p.token0.decimals}`,
         reserve1:
-          x.find((i) => i.input.target === p.token1.id).output /
+          balances[p.token1.id.toLowerCase()] /
           `1e${p.token1.decimals}`,
       };
     });
@@ -153,14 +163,6 @@ const topLvl = async (
         reserve1: Number(p.totalValueLockedToken1),
       }));
     }
-
-    // pull 24h offset data to calculate fees from swap volume
-    let queryPriorC = queryPrior;
-    let dataPrior = await request(
-      url,
-      queryPriorC.replace('<PLACEHOLDER>', blockPrior)
-    );
-    dataPrior = dataPrior.pools;
 
     // calculate tvl
     dataNow = await utils.tvl(dataNow, chainString);
@@ -183,11 +185,6 @@ const topLvl = async (
         stablecoin,
       };
     });
-
-    // for new v3 apy calc
-    const dataPrior7d = (
-      await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
-    ).pools;
 
     // calc apy (note: old way of using 24h fees * 365 / tvl. keeping this for now) and will store the
     // new apy calc as a separate field
@@ -288,15 +285,21 @@ const main = async (timestamp = null) => {
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
 
-  const data = [];
-  for (const [chain, url] of Object.entries(chains)) {
-    console.log(chain);
-    data.push(
-      await topLvl(chain, url, query, queryPrior, 'v3', timestamp, stablecoins)
-    );
-  }
-
-  const bobPools = await getOnchainPools();
+  const dataPromise = Promise.all(
+    Object.entries(chains).map(([chain, url]) => {
+      console.log(chain);
+      return topLvl(
+        chain,
+        url,
+        query,
+        queryPrior,
+        'v3',
+        timestamp,
+        stablecoins
+      );
+    })
+  );
+  const [data, bobPools] = await Promise.all([dataPromise, getOnchainPools()]);
   data.push(bobPools);
 
   const pools = await addMerklRewardApy(

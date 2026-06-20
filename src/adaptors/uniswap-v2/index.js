@@ -49,34 +49,24 @@ const topLvl = async (
   version,
   timestamp
 ) => {
-  const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
-    url,
+  const timestampForBlocks =
+    timestamp != null ? Number(timestamp) : Math.floor(Date.now() / 1000);
+  const [[block, blockPrior], [blockPrior7d]] = await Promise.all([
+    utils.getBlocks(chainString, timestamp, [url]),
+    utils.getBlocksByTime([timestampForBlocks - 604800], chainString),
   ]);
-
-  const [_, blockPrior7d] = await utils.getBlocks(
-    chainString,
-    timestamp,
-    [url],
-    604800
-  );
 
   // pull data
   let queryC = query;
-  let dataNow = await request(url, queryC.replace('<PLACEHOLDER>', block));
-  dataNow = dataNow.pairs;
-
-  // pull 24h offset data to calculate fees from swap volume
   let queryPriorC = queryPrior;
-  let dataPrior = await request(
-    url,
-    queryPriorC.replace('<PLACEHOLDER>', blockPrior)
-  );
+  let [dataNow, dataPrior, dataPrior7d] = await Promise.all([
+    request(url, queryC.replace('<PLACEHOLDER>', block)),
+    request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior)),
+    request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d)),
+  ]);
+  dataNow = dataNow.pairs;
   dataPrior = dataPrior.pairs;
-
-  // 7d offset
-  const dataPrior7d = (
-    await request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
-  ).pairs;
+  dataPrior7d = dataPrior7d.pairs;
 
   // calculate tvl
   dataNow = await utils.tvl(dataNow, chainString);
@@ -108,24 +98,19 @@ const topLvl = async (
 };
 
 const main = async (timestamp = null) => {
-  let data = [];
-
-  for (const [chain, url] of Object.entries(chains)) {
-    try {
-      console.log(`Fetching data for ${chain}...`);
-      const chainData = await topLvl(
-        chain,
-        url,
-        query,
-        queryPrior,
-        'v2',
-        timestamp
-      );
-      data.push(...chainData);
-    } catch (err) {
-      console.log(chain, err);
-    }
-  }
+  let data = (
+    await Promise.all(
+      Object.entries(chains).map(async ([chain, url]) => {
+        try {
+          console.log(`Fetching data for ${chain}...`);
+          return await topLvl(chain, url, query, queryPrior, 'v2', timestamp);
+        } catch (err) {
+          console.log(chain, err);
+          return [];
+        }
+      })
+    )
+  ).flat();
 
   const pools = await addMerklRewardApy(
     data.filter((p) => utils.keepFinite(p)),
