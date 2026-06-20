@@ -28,17 +28,17 @@ const apy = async () => {
   const eventPrev = repriceEvents[1];
   const { closestBefore, closestAfter, timestamp7DaysAgo } = await getCloseestTo7dAgo(repriceEvents);
 
-  const interpolatedRate = await interpolate7d(closestBefore, closestAfter, timestamp7DaysAgo);
-  const startTime = await sdk.api.util.getTimestamp(eventPrev.blockNumber, "ethereum");
-  const endTime = await sdk.api.util.getTimestamp(eventNow.blockNumber, "ethereum");
-
   const apr1d = await calcRate(eventNow, eventPrev);
 
-  // Calculate 7-day APR using BigNumber operations
-  const currentRate = BigNumber.from(eventNow.decoded.newRswETHToETHRate.toString());
-  const sevenDayRateChange = currentRate.mul(BigNumber.from(10).pow(18)).div(interpolatedRate).sub(BigNumber.from(10).pow(18));
-  const timeElapsed = BigNumber.from(endTime - timestamp7DaysAgo);
-  const apr7d = sevenDayRateChange.mul(365 * 86400).div(timeElapsed).mul(100).toString() / 1e18;
+  let apr7d;
+  if (closestBefore && closestAfter) {
+    const interpolatedRate = await interpolate7d(closestBefore, closestAfter, timestamp7DaysAgo);
+    const endTime = await sdk.api.util.getTimestamp(eventNow.blockNumber, "ethereum");
+    const currentRate = BigNumber.from(eventNow.decoded.newRswETHToETHRate.toString());
+    const sevenDayRateChange = currentRate.mul(BigNumber.from(10).pow(18)).div(interpolatedRate).sub(BigNumber.from(10).pow(18));
+    const timeElapsed = BigNumber.from(endTime - timestamp7DaysAgo);
+    apr7d = sevenDayRateChange.mul(365 * 86400).div(timeElapsed).mul(100).toString() / 1e18;
+  }
 
   const priceKey = `ethereum:${rswETH}`;
   const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
@@ -57,7 +57,7 @@ const apy = async () => {
       symbol: 'rswETH',
       tvlUsd: tvlUsd,
       apyBase: apr1d,
-      apyBase7d: apr7d,
+      ...(apr7d !== undefined && { apyBase7d: apr7d }),
       ...(rate > 0 && { pricePerShare: rate }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: rswETH,
