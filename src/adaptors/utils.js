@@ -391,10 +391,13 @@ exports.tvl = async (dataNow, networkString) => {
   for (let index = 0; index < idsSet.length; index += 50) {
     priceChunks.push(idsSet.slice(index, index + 50));
   }
-  const prices = Object.assign(
-    {},
-    ...(await Promise.all(priceChunks.map((chunk) => fetchTokenPrices(chunk))))
-  );
+  const CONCURRENCY = 5;
+  const prices = {};
+  for (let index = 0; index < priceChunks.length; index += CONCURRENCY) {
+    const batch = priceChunks.slice(index, index + CONCURRENCY);
+    const batchResults = await Promise.all(batch.map(fetchTokenPrices));
+    Object.assign(prices, ...batchResults);
+  }
 
   // calc tvl
   for (const el of dataNowCopy) {
