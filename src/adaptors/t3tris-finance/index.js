@@ -4,15 +4,12 @@ const axios = require('axios');
 
 const PROJECT_NAME = 't3tris-finance';
 
-// T3tris protocol v1 proxy — deterministic CREATE3 address, same on all chains
-const T3TRIS_FACTORY = '0x0000000000CC53b5Fd649b80f08b05405779cC71';
+// T3tris ecosystem API — authoritative list of vaults with curation flags.
+// Only vaults that are `verified` and not `blacklisted` are indexed.
+const VAULTS_API = 'https://ecosystem.t3tris.finance/vaults';
 
-// ABIs for the T3tris protocol
+// ABIs for the T3tris vaults
 const ABI = {
-  getDeployedVaultsCount:
-    'function getDeployedVaultsCount() external view returns (uint256)',
-  getDeployedVaults:
-    'function getDeployedVaults(uint256 fromIndex, uint256 toIndex) external view returns (address[])',
   totalAssets: 'function totalAssets() view returns (uint256)',
   totalSupply: 'function totalSupply() view returns (uint256)',
   asset: 'function asset() view returns (address)',
@@ -31,10 +28,11 @@ const ABI = {
     'function getLastSavedPricePerShare() external view returns (uint256)',
 };
 
-// Chains where T3tris will be deployed
-const CHAINS = [
-  'arbitrum',
-];
+// Supported chains: DefiLlama chain name -> ecosystem-API chainId. Arbitrum only
+// for now (same CREATE3 addresses on every EVM chain); add a chain here once it
+// goes live and the API returns verified vaults for it.
+const CHAIN_IDS = { arbitrum: 42161 };
+const CHAINS = Object.keys(CHAIN_IDS);
 
 const DAY_SECONDS = 24 * 3600;
 
@@ -134,33 +132,25 @@ const computeSmoothedApy = (currentPps, historicalPpsArray) => {
 };
 
 /**
- * Discover all T3tris vaults from the factory on a given chain.
- * Also fetches each vault's oracle address for PPS lookups.
+ * Discover verified, non-blacklisted T3tris vaults for a chain from the
+ * ecosystem API, then fetch each vault's metadata + oracle address on-chain.
  */
 const getVaultsForChain = async (chain) => {
-  let count;
+  // Discover verified, non-blacklisted vaults from the T3tris ecosystem API
+  let vaultAddresses;
   try {
-    const countResult = await sdk.api.abi.call({
-      target: T3TRIS_FACTORY,
-      abi: ABI.getDeployedVaultsCount,
-      chain,
-    });
-    count = Number(countResult.output);
+    const { data } = await axios.get(VAULTS_API);
+    const chainId = CHAIN_IDS[chain];
+    vaultAddresses = (data || [])
+      .filter(
+        (v) => v.verified && !v.blacklisted && Number(v.chainId) === chainId,
+      )
+      .map((v) => v.address);
   } catch {
-    // Factory not deployed on this chain yet
+    // API unreachable
     return [];
   }
 
-  if (count === 0) return [];
-
-  const vaultsResult = await sdk.api.abi.call({
-    target: T3TRIS_FACTORY,
-    abi: ABI.getDeployedVaults,
-    params: [0, count - 1],
-    chain,
-  });
-
-  const vaultAddresses = vaultsResult.output;
   if (!vaultAddresses || vaultAddresses.length === 0) return [];
 
   // Batch-fetch vault metadata + oracle addresses
@@ -419,5 +409,5 @@ const main = async () => {
 module.exports = {
   timetravel: false,
   apy: main,
-  url: 'https://app.t3tris.finance',
+  url: 'https://t3tris.finance/',
 };
