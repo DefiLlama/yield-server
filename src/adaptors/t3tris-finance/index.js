@@ -54,10 +54,28 @@ const multiCall = (targets, abi, chain, block = undefined) =>
     permitFailure: true,
   });
 
+// Convert a raw on-chain integer (string/BigInt) to a JS float scaled by
+// `decimals`, without the precision loss of Number(BigInt) on large values
+// (vault/PPS magnitudes routinely exceed Number.MAX_SAFE_INTEGER).
+const toDecimal = (raw, decimals) => {
+  if (raw === undefined || raw === null) return 0;
+  const v = BigInt(raw.toString());
+  const base = 10n ** BigInt(decimals);
+  return Number(v / base) + Number(v % base) / 10 ** Number(decimals);
+};
+
+// Ratio of two raw on-chain integers as a float, computed in BigInt space.
+const ratio1e18 = (numRaw, denRaw) => {
+  const den = BigInt(denRaw.toString());
+  if (den === 0n) return 0;
+  return Number((BigInt(numRaw.toString()) * 10n ** 18n) / den) / 1e18;
+};
+
 const getBlockNumber = async (timestamp, chain) => {
   try {
     const response = await axios.get(
       `https://coins.llama.fi/block/${chain}/${timestamp}`,
+      { timeout: 10000 },
     );
     return response.data.height;
   } catch {
@@ -139,7 +157,7 @@ const getVaultsForChain = async (chain) => {
   // Discover verified, non-blacklisted vaults from the T3tris ecosystem API
   let vaultAddresses;
   try {
-    const { data } = await axios.get(VAULTS_API);
+    const { data } = await axios.get(VAULTS_API, { timeout: 10000 });
     const chainId = CHAIN_IDS[chain];
     vaultAddresses = (data || [])
       .filter(
@@ -269,8 +287,10 @@ const getHistoricalOraclePps = async (vaults, chain, daysAgo) => {
     const result = {};
     for (let i = 0; i < vaultsWithOracle.length; i++) {
       if (ppsRes.output[i]?.success && ppsRes.output[i].output !== '0') {
-        result[vaultsWithOracle[i].address] =
-          Number(ppsRes.output[i].output) / 1e18;
+        result[vaultsWithOracle[i].address] = toDecimal(
+          ppsRes.output[i].output,
+          18,
+        );
       }
     }
 
@@ -304,8 +324,10 @@ const getCurrentOraclePps = async (vaults, chain) => {
     const result = {};
     for (let i = 0; i < vaultsWithOracle.length; i++) {
       if (ppsRes.output[i]?.success && ppsRes.output[i].output !== '0') {
-        result[vaultsWithOracle[i].address] =
-          Number(ppsRes.output[i].output) / 1e18;
+        result[vaultsWithOracle[i].address] = toDecimal(
+          ppsRes.output[i].output,
+          18,
+        );
       }
     }
 
@@ -343,8 +365,10 @@ const main = async () => {
         if (!price) continue;
 
         // Calculate TVL in USD
-        const totalAssetsNormalized =
-          Number(vault.totalAssets) / 10 ** vault.decimals;
+        const totalAssetsNormalized = toDecimal(
+          vault.totalAssets,
+          vault.decimals,
+        );
         const tvlUsd = totalAssetsNormalized * price;
 
         // Skip negligible vaults
@@ -355,7 +379,7 @@ const main = async () => {
         const currentSharePrice =
           currentPps[vault.address] ||
           (vault.totalSupply !== '0'
-            ? Number(vault.totalAssets) / Number(vault.totalSupply)
+            ? ratio1e18(vault.totalAssets, vault.totalSupply)
             : 0);
 
         // Collect historical PPS at each lookback window for this vault
