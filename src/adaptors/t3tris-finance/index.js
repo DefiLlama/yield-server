@@ -26,6 +26,10 @@ const ABI = {
   // Oracle PPS in WAD (1e18) — always up-to-date, independent of settlement
   getLastSavedPricePerShare:
     'function getLastSavedPricePerShare() external view returns (uint256)',
+  // Timestamp of the oracle's last NAV update (setTotalAssets). Used to anchor
+  // the APY lookback windows at the last NAV so the rate is extrapolated.
+  lastValuationTimestamp:
+    'function lastValuationTimestamp() external view returns (uint64)',
 };
 
 // Supported chains: DefiLlama chain name -> ecosystem-API chainId. Arbitrum only
@@ -37,13 +41,13 @@ const CHAINS = Object.keys(CHAIN_IDS);
 const DAY_SECONDS = 24 * 3600;
 
 /**
- * Lookback windows (days) for APY calculation.
- * Using multiple windows smooths out infrequent oracle updates:
- * if the oracle hasn't updated for several days, a single 7d window
- * would show APY=0 then spike when it updates. By blending 7/14/30d,
- * we get a stable annualized rate regardless of oracle update frequency.
+ * Lookback windows (days) for APY calculation, applied relative to each vault's
+ * last NAV (see getAnchoredHistoricalPps). Multiple windows smooth out the
+ * realized rate; the short windows (1/3d) also let freshly-launched vaults —
+ * whose history does not yet reach 7+ days before their last NAV — still report
+ * an APY instead of falling back to zero.
  */
-const LOOKBACK_DAYS = [7, 14, 30];
+const LOOKBACK_DAYS = [1, 3, 7, 14, 30];
 
 const multiCall = (targets, abi, chain, block = undefined) =>
   sdk.api.abi.multiCall({
@@ -154,14 +158,23 @@ const computeSmoothedApy = (currentPps, historicalPpsArray) => {
  * ecosystem API, then fetch each vault's metadata + oracle address on-chain.
  */
 const getVaultsForChain = async (chain) => {
-  // Discover verified, non-blacklisted vaults from the T3tris ecosystem API
+  // Discover verified, non-blacklisted vaults from the T3tris ecosystem API.
+  // Same curation gate as the TVL adapter: a vault must be verified, not
+  // blacklisted, on this chain, and carry a usable address/asset.
   let vaultAddresses;
   try {
     const { data } = await axios.get(VAULTS_API, { timeout: 10000 });
     const chainId = CHAIN_IDS[chain];
     vaultAddresses = (data || [])
       .filter(
-        (v) => v.verified && !v.blacklisted && Number(v.chainId) === chainId,
+        (v) =>
+          v?.verified &&
+          !v?.blacklisted &&
+          Number(v?.chainId) === chainId &&
+          typeof v?.address === 'string' &&
+          v.address &&
+          typeof v?.asset === 'string' &&
+          v.asset,
       )
       .map((v) => v.address);
   } catch {
@@ -253,55 +266,110 @@ const getVaultsForChain = async (chain) => {
     };
   });
 
-  return vaults.filter((v) => v !== null);
+  const vaultsList = vaults.filter((v) => v !== null);
+
+  // Fetch each oracle's last NAV timestamp (setTotalAssets). The APY windows are
+  // anchored at this timestamp so the rate is held (extrapolated) until the next
+  // NAV instead of decaying as flat days accumulate.
+  const oracleVaults = vaultsList.filter((v) => v.oracle);
+  if (oracleVaults.length > 0) {
+    const lvtRes = await multiCall(
+      oracleVaults.map((v) => v.oracle),
+      ABI.lastValuationTimestamp,
+      chain,
+    );
+    oracleVaults.forEach((v, i) => {
+      const out = lvtRes.output[i];
+      v.lastValuationTimestamp = out?.success ? Number(out.output) : 0;
+    });
+  }
+  vaultsList.forEach((v) => {
+    if (v.lastValuationTimestamp === undefined) v.lastValuationTimestamp = 0;
+  });
+
+  return vaultsList;
 };
 
 /**
- * Get historical oracle PPS (Price Per Share) for APY calculation.
- * Uses getLastSavedPricePerShare() on each vault's oracle contract.
- * The oracle is updated by a keeper independently of settlements,
- * so PPS reflects current NAV even without recent settlements.
- * PPS is returned in WAD (1e18 precision).
+ * Historical oracle PPS for the APY windows, anchored at each vault's LAST NAV
+ * update (lastValuationTimestamp) rather than `now`.
+ *
+ * Why: the oracle PPS only moves on a NAV update and is flat in between. If we
+ * anchored the lookback at `now`, then once a vault stops updating the trailing
+ * window would keep absorbing flat days and the APY would steadily decay toward
+ * zero. By anchoring both ends of every window at the last NAV (current PPS is
+ * the value saved at that NAV; historical PPS is read N days before it), the
+ * computed rate is the one realized at the last NAV and stays constant until the
+ * next NAV — i.e. it is extrapolated forward to now.
+ *
+ * Returns { vaultAddr: [pps@(tLast-7d), pps@(tLast-14d), pps@(tLast-30d)] }.
  */
-const getHistoricalOraclePps = async (vaults, chain, daysAgo) => {
-  const timestamp = Math.floor(Date.now() / 1000) - DAY_SECONDS * daysAgo;
-  const historicalBlock = await getBlockNumber(timestamp, chain);
+const getAnchoredHistoricalPps = async (vaults, chain) => {
+  const withOracle = vaults.filter((v) => v.oracle);
+  if (withOracle.length === 0) return {};
 
-  if (!historicalBlock) return {};
+  const nowSec = Math.floor(Date.now() / 1000);
 
-  // Filter vaults that have an oracle
-  const vaultsWithOracle = vaults.filter((v) => v.oracle);
-  if (vaultsWithOracle.length === 0) return {};
-
-  const oracleAddresses = vaultsWithOracle.map((v) => v.oracle);
-
-  try {
-    const ppsRes = await sdk.api.abi.multiCall({
-      calls: oracleAddresses.map((oracle) => ({ target: oracle })),
-      abi: ABI.getLastSavedPricePerShare,
-      chain,
-      block: historicalBlock,
-      permitFailure: true,
+  // One (vault, window) task per lookback, anchored at the vault's last NAV.
+  const tasks = [];
+  for (const v of withOracle) {
+    const anchor =
+      v.lastValuationTimestamp > 0 ? v.lastValuationTimestamp : nowSec;
+    LOOKBACK_DAYS.forEach((d, wIndex) => {
+      tasks.push({
+        vaultAddr: v.address,
+        oracle: v.oracle,
+        wIndex,
+        ts: anchor - DAY_SECONDS * d,
+      });
     });
-
-    const result = {};
-    for (let i = 0; i < vaultsWithOracle.length; i++) {
-      if (ppsRes.output[i]?.success && ppsRes.output[i].output !== '0') {
-        result[vaultsWithOracle[i].address] = toDecimal(
-          ppsRes.output[i].output,
-          18,
-        );
-      }
-    }
-
-    return result;
-  } catch (e) {
-    console.error(
-      `[t3tris] Error fetching historical oracle PPS for ${chain} (${daysAgo}d ago):`,
-      e.message,
-    );
-    return {};
   }
+
+  // Resolve unique timestamps to blocks once.
+  const uniqueTs = [...new Set(tasks.map((t) => t.ts))];
+  const blockByTs = {};
+  await Promise.all(
+    uniqueTs.map(async (ts) => {
+      blockByTs[ts] = await getBlockNumber(ts, chain);
+    }),
+  );
+
+  // Group tasks by historical block and batch the oracle reads per block.
+  const byBlock = {};
+  for (const t of tasks) {
+    const block = blockByTs[t.ts];
+    if (!block) continue;
+    (byBlock[block] = byBlock[block] || []).push(t);
+  }
+
+  const result = {};
+  withOracle.forEach((v) => {
+    result[v.address] = new Array(LOOKBACK_DAYS.length).fill(0);
+  });
+
+  await Promise.all(
+    Object.entries(byBlock).map(async ([block, items]) => {
+      try {
+        const ppsRes = await sdk.api.abi.multiCall({
+          calls: items.map((it) => ({ target: it.oracle })),
+          abi: ABI.getLastSavedPricePerShare,
+          chain,
+          block: Number(block),
+          permitFailure: true,
+        });
+        items.forEach((it, i) => {
+          const o = ppsRes.output[i];
+          if (o?.success && o.output !== '0') {
+            result[it.vaultAddr][it.wIndex] = toDecimal(o.output, 18);
+          }
+        });
+      } catch (e) {
+        // Leave these windows at 0; computeSmoothedApy ignores empty windows.
+      }
+    }),
+  );
+
+  return result;
 };
 
 /**
@@ -354,10 +422,11 @@ const main = async () => {
       const assetAddresses = [...new Set(vaults.map((v) => v.asset))];
       const prices = await utils.getPrices(assetAddresses, chain);
 
-      // Get oracle PPS: current + historical at multiple lookback windows
-      const [currentPps, ...historicalPpsArrays] = await Promise.all([
+      // Current PPS (= value saved at the last NAV) + historical PPS anchored at
+      // each vault's last NAV, so the APY is held (extrapolated) afterwards.
+      const [currentPps, anchoredHist] = await Promise.all([
         getCurrentOraclePps(vaults, chain),
-        ...LOOKBACK_DAYS.map((d) => getHistoricalOraclePps(vaults, chain, d)),
+        getAnchoredHistoricalPps(vaults, chain),
       ]);
 
       for (const vault of vaults) {
@@ -382,10 +451,8 @@ const main = async () => {
             ? ratio1e18(vault.totalAssets, vault.totalSupply)
             : 0);
 
-        // Collect historical PPS at each lookback window for this vault
-        const vaultHistoricalPps = historicalPpsArrays.map(
-          (ppsMap) => ppsMap[vault.address] || 0,
-        );
+        // Historical PPS for this vault, anchored at its last NAV update.
+        const vaultHistoricalPps = anchoredHist[vault.address] || [];
 
         // Smoothed APY: weighted blend across 7d/14d/30d windows
         // This prevents spikes when oracle updates after days of silence
