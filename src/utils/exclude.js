@@ -480,7 +480,6 @@ const excludedProtocols = [
   { id: '4211', slug: 'pac-finance' },
   { id: '3066', slug: 'paladin-warlord' },
   { id: '3679', slug: 'phase' },
-  { id: '7703', slug: 'phoenix-protocol' },
   { id: '1806', slug: 'phuture' },
   { id: '5388', slug: 'pluto' },
   { id: '7455', slug: 'prime-vaults' },
