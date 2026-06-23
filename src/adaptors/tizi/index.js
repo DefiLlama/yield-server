@@ -63,6 +63,8 @@ const apy = async () => {
       pricePerShare: priceNow,
       underlyingTokens: [TD],
       token: stTD,
+      isIntrinsicSource: true,
+      searchTokenOverride: 'stTD',
     },
   ];
 };
