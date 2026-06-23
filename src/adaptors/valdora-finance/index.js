@@ -10,6 +10,8 @@ const STZIG_DENOM =
   'coin.zig109f7g2rzl2aqee7z6gffn8kfe9cpqx0mjkk7ethmx8m2hq4xpe9snmaam2.stzig';
 const ZIG_PRICE_KEY = 'zigchain:uzig';
 const DECIMALS = 1e6;
+const PERFORMANCE_FEE = 0.10;
+const COMMUNITY_TAX = 0.02;
 
 const VALIDATORS = [
   'zigvaloper18vykgjgcmp2z4xzkt6mh74glrpd7qda8fqldrl',
@@ -27,13 +29,18 @@ const queryContract = async (contract, data) => {
 };
 
 const getAverageValidatorCommission = async () => {
-  const commissions = await Promise.all(
+  const results = await Promise.allSettled(
     VALIDATORS.map(async (validator) => {
       const data = await get(`/cosmos/staking/v1beta1/validators/${validator}`);
       return Number(data.validator?.commission?.commission_rates?.rate || 0);
     })
   );
 
+  const commissions = results
+    .filter((r) => r.status === 'fulfilled')
+    .map((r) => r.value);
+
+  if (!commissions.length) return 0;
   return commissions.reduce((sum, value) => sum + value, 0) / commissions.length;
 };
 
@@ -48,13 +55,20 @@ const getStzigApr = async () => {
   const bondedZig = Number(stakingPool.pool?.bonded_tokens || 0) / DECIMALS;
 
   if (!bondedZig) return 0;
-  return (annualProvisionsZig / bondedZig) * (1 - averageCommission) * 100;
+  return (
+    (annualProvisionsZig / bondedZig) *
+    (1 - COMMUNITY_TAX) *
+    (1 - averageCommission) *
+    (1 - PERFORMANCE_FEE) *
+    100
+  );
 };
 
 const apy = async () => {
-  const [fundsRaised, apyBase, priceData] = await Promise.all([
+  const [fundsRaised, apyBase, exchangeRate, priceData] = await Promise.all([
     queryContract(STAKER_CONTRACT, { funds_raised: {} }),
     getStzigApr(),
+    queryContract(STAKER_CONTRACT, { exchange_rate: {} }),
     utils.getPriceApiData(`/prices/current/${ZIG_PRICE_KEY}`),
   ]);
 
@@ -62,6 +76,7 @@ const apy = async () => {
   if (!zigPrice) throw new Error('Unable to fetch ZIG price');
 
   const tvlUsd = (Number(fundsRaised.funds_raised || 0) / DECIMALS) * zigPrice;
+  const pricePerShare = Number(exchangeRate?.exchange_rate || 1);
 
   return [
     {
@@ -71,6 +86,7 @@ const apy = async () => {
       symbol: 'stZIG',
       tvlUsd,
       apyBase,
+      pricePerShare,
       underlyingTokens: ['uzig'],
       searchTokenOverride: STZIG_DENOM,
       isIntrinsicSource: true,
