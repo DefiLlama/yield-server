@@ -3,7 +3,7 @@ const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
 const RAM = '0x555570a286f15ebdfe42b66ede2f724aa1ab5555';
-const PROJECT = 'ramses-hl';
+const PROJECT = 'ramses-cl-v2';
 const CHAIN = 'hyperliquid';
 const SUBGRAPH =
   'https://hyperevm.kingdomsubgraph.com/subgraphs/name/ramses-v3-pruned/';
@@ -136,7 +136,7 @@ async function apy() {
 }
 
 module.exports = {
-  protocolId: '6993',
+  protocolId: '8058',
   timetravel: false,
   apy: apy,
 };
