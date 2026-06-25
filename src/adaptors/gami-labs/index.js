@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, formatChain } = require('../utils');
 
 const VAULTS = [
   // ETHEREUM — Lagoon
@@ -13,10 +13,11 @@ const VAULTS = [
   { sdkChain: 'ethereum', address: '0x09252d2c4afca9b1479efdd39faa53de9ff23114', name: 'Coinshift USPC High Yield', url: 'https://gamilabs.io/vaults/1/0x09252d2c4afca9b1479efdd39faa53de9ff23114' },
   // ETHEREUM — Gearbox
   { sdkChain: 'ethereum', address: '0x683faf5bafd88d4c383ccaf3d61c26af2e164409', name: 'Gami Gearbox WBTC', url: 'https://gamilabs.io/vaults/1/0x683faf5bafd88d4c383ccaf3d61c26af2e164409' },
-  // BASE — Spectra
-  { sdkChain: 'base', address: '0x776f95321a0285f8bcde149e3264d16dc08da69a', name: 'Gami Spectra USDC', url: 'https://gamilabs.io/vaults/8453/0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a', isSpectra: true },
+  // BASE — Spectra (TVL/APY sourced from the Spectra API by MetaVault address; the
+  // on-chain wrapper's totalAssets() undercounts capital deployed into Spectra positions)
+  { sdkChain: 'base', address: '0x776f95321a0285f8bcde149e3264d16dc08da69a', name: 'Gami Spectra USDC', url: 'https://gamilabs.io/vaults/8453/0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a', isSpectra: true, spectraMetavault: '0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a' },
   // FLARE — Spectra
-  { sdkChain: 'flare', address: '0x6420a613e936602ca3f1ad5680b3f4d47d473bf1', name: 'Flare XRP Yield Prime', url: 'https://gamilabs.io/vaults/14/0x0c4f32c53d4b91a019c7c9d8da14af140295eef6', isSpectra: true },
+  { sdkChain: 'flare', address: '0x6420a613e936602ca3f1ad5680b3f4d47d473bf1', name: 'Flare XRP Yield Prime', url: 'https://gamilabs.io/vaults/14/0x0c4f32c53d4b91a019c7c9d8da14af140295eef6', isSpectra: true, spectraMetavault: '0x0c4f32c53d4b91a019c7c9d8da14af140295eef6' },
   // HEMI — Lagoon
   { sdkChain: 'hemi', address: '0x1e32c96757c07775ca4fc796c4f4311722eaf35e', name: 'Hemi USDC', url: 'https://gamilabs.io/vaults/43111/0x1e32c96757c07775ca4fc796c4f4311722eaf35e' },
   // AVAX — Lagoon
@@ -44,8 +45,22 @@ const ONE_DAY = 86400;
 const ONE_WEEK = 86400 * 7;
 const THIRTY_DAYS = 86400 * 30;
 
-async function fetchJson(url) {
-  const r = await fetch(url);
+// Spectra MetaVaults: their official API is the source of truth for TVL and APY.
+const SPECTRA_SLUG = { base: 'base', flare: 'flare' };
+const spectraApiUrl = (slug) =>
+  `https://api.spectra.finance/v1/${slug}/metavaults?source=defillama`;
+
+// Stellar (Soroban) Upshift vaults curated by Gami Labs. The August Digital API serves
+// both TVL (USD) and the reported target APY for these vaults.
+const AUGUST_API =
+  'https://api.augustdigital.io/api/v1/tokenized_vault?status=active&load_subaccounts=false&load_snapshots=false';
+const STELLAR_VAULT_ADDRESSES = [
+  'CCL3WITWFFXIHV2I52ECV5DPIEOFSTU3PBPR53ILPLF2IP5KHECXRUTY', // Gami earnUSDC
+  'CC6TRAPQD3NK7THUKWPV5SL2JHKQGNXZVB6S6MVYFSLRWAKEFUWZKZ7J', // Gami earnXLM
+];
+
+async function fetchJson(url, opts) {
+  const r = await fetch(url, opts);
   if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
   return r.json();
 }
@@ -63,13 +78,6 @@ function ppsRatio(ta, ts) {
   const tsNum = Number(ts);
   if (tsNum === 0 || !isFinite(taNum) || !isFinite(tsNum)) return null;
   return taNum / tsNum;
-}
-
-// Spectra MetaVaults use discrete mark-to-market: between revaluations totalAssets exactly
-// equals totalSupply (pps = 1.0). Such a reading carries no measurable yield, so it must not
-// be used as a baseline (annualizing against pps=1.0 produces artificial spikes) nor reported.
-function isResetState(ta, ts) {
-  return ta != null && ts != null && String(ta) === String(ts);
 }
 
 function annualizedApy(ppsNow, ppsPast, days) {
@@ -156,16 +164,13 @@ async function processChain(sdkChain, vaults) {
     const priceUsd = priceMap[`${sdkChain}:${asset.toLowerCase()}`]?.price;
     if (priceUsd == null) return null;
 
-    const isSpectra = !!v.isSpectra;
-
     const tvlUsd = (Number(ta) / 10 ** undDec) * priceUsd;
     const pricePerShare = Number(pps) / 10 ** undDec;
 
     const rNow = ppsRatio(ta, ts);
-    // Spectra: drop historical baselines that are in the reset state (pps=1.0).
-    const r1d = isSpectra && isResetState(taHist1d[i], tsHist1d[i]) ? null : ppsRatio(taHist1d[i], tsHist1d[i]);
-    const r7d = isSpectra && isResetState(taHist7d[i], tsHist7d[i]) ? null : ppsRatio(taHist7d[i], tsHist7d[i]);
-    const r30d = isSpectra && isResetState(taHist30d[i], tsHist30d[i]) ? null : ppsRatio(taHist30d[i], tsHist30d[i]);
+    const r1d = ppsRatio(taHist1d[i], tsHist1d[i]);
+    const r7d = ppsRatio(taHist7d[i], tsHist7d[i]);
+    const r30d = ppsRatio(taHist30d[i], tsHist30d[i]);
 
     const apy1d = annualizedApy(rNow, r1d, 1);
     const apyBase7d = annualizedApy(rNow, r7d, 7);
@@ -193,15 +198,104 @@ async function processChain(sdkChain, vaults) {
   }).filter(Boolean);
 }
 
+// Spectra vaults: pull authoritative TVL and APY from the Spectra API, matched by the
+// underlying MetaVault address. Reported under the gami-labs project with Gami branding.
+async function processSpectra(sdkChain, vaults) {
+  const slug = SPECTRA_SLUG[sdkChain];
+  if (!slug) return [];
+
+  let mvs;
+  try {
+    const data = await fetchJson(spectraApiUrl(slug), {
+      headers: { 'x-client-id': 'defillama' },
+    });
+    mvs = data.flat();
+  } catch (e) {
+    // Spectra API unavailable; skip rather than emit an undercounted on-chain TVL
+    return [];
+  }
+
+  const byAddr = {};
+  for (const mv of mvs) byAddr[(mv.address || '').toLowerCase()] = mv;
+
+  return vaults.map(v => {
+    const mv = byAddr[v.spectraMetavault.toLowerCase()];
+    if (!mv || mv.status !== 'VISIBLE') return null;
+
+    const tvlUsd = mv.tvl?.usd;
+    if (tvlUsd == null) return null;
+
+    const total = mv.liveApy?.total || 0;
+    const apyBase = mv.liveApy?.details?.base || 0;
+
+    return {
+      pool: `${v.address.toLowerCase()}-${sdkChain}`,
+      chain: sdkChain,
+      project: 'gami-labs',
+      symbol: mv.underlying.symbol,
+      tvlUsd,
+      apyBase,
+      apyReward: total - apyBase, // remove native APY to isolate rewards
+      rewardTokens: Object.values(mv.liveApy?.details?.rewardTokens || {}).map(t => t.address),
+      underlyingTokens: [mv.underlying.address],
+      poolMeta: v.name,
+      url: v.url,
+    };
+  }).filter(Boolean);
+}
+
+// Stellar vaults: pull TVL (USD) and the reported target APY from the August Digital API,
+// matched by Soroban contract address. Reported under the gami-labs project.
+async function processStellar() {
+  let vaults;
+  try {
+    vaults = await fetchJson(AUGUST_API);
+  } catch (e) {
+    // August API unavailable; skip the Stellar vaults this run
+    return [];
+  }
+
+  const byAddr = {};
+  for (const v of vaults) byAddr[(v.address || '').toUpperCase()] = v;
+
+  return STELLAR_VAULT_ADDRESSES.map(addr => {
+    const v = byAddr[addr.toUpperCase()];
+    if (!v) return null;
+
+    const tvlUsd = v.tvl;
+    if (tvlUsd == null || !isFinite(tvlUsd)) return null;
+
+    const meta = v.stellar_vault_metadata || {};
+    const reportedApy = v.reported_apy?.apy; // decimal fraction, e.g. 0.07 = 7%
+
+    return {
+      pool: `${addr}-stellar`.toLowerCase(),
+      chain: formatChain('stellar'),
+      project: 'gami-labs',
+      symbol: meta.deposit_token_symbol || v.receipt_token_symbol,
+      tvlUsd,
+      apyBase: (reportedApy != null ? reportedApy : 0) * 100,
+      underlyingTokens: meta.deposit_token_address ? [meta.deposit_token_address] : undefined,
+      poolMeta: v.vault_name,
+      url: 'https://gamilabs.io',
+    };
+  }).filter(Boolean);
+}
+
 const apy = async () => {
-  const byChain = VAULTS.reduce((acc, v) => {
+  const groupByChain = (vaults) => vaults.reduce((acc, v) => {
     (acc[v.sdkChain] ||= []).push(v);
     return acc;
   }, {});
 
-  const results = await Promise.all(
-    Object.entries(byChain).map(([chain, vaults]) => processChain(chain, vaults))
-  );
+  const onchainByChain = groupByChain(VAULTS.filter(v => !v.isSpectra));
+  const spectraByChain = groupByChain(VAULTS.filter(v => v.isSpectra));
+
+  const results = await Promise.all([
+    ...Object.entries(onchainByChain).map(([chain, vaults]) => processChain(chain, vaults)),
+    ...Object.entries(spectraByChain).map(([chain, vaults]) => processSpectra(chain, vaults)),
+    processStellar(),
+  ]);
 
   return results.flat();
 };
