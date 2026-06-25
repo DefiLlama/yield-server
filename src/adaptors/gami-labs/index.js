@@ -1,4 +1,5 @@
 const sdk = require('@defillama/sdk');
+const stellarSdk = require('@stellar/stellar-sdk');
 const { getPriceApiUrl, formatChain } = require('../utils');
 
 const VAULTS = [
@@ -58,6 +59,40 @@ const STELLAR_VAULT_ADDRESSES = [
   'CCL3WITWFFXIHV2I52ECV5DPIEOFSTU3PBPR53ILPLF2IP5KHECXRUTY', // Gami earnUSDC
   'CC6TRAPQD3NK7THUKWPV5SL2JHKQGNXZVB6S6MVYFSLRWAKEFUWZKZ7J', // Gami earnXLM
 ];
+const SOROBAN_RPC_URL = 'https://soroban-rpc.creit.tech/';
+// Deterministic, unfunded account used only to simulate read-only Soroban calls.
+const SOROBAN_READ_ACCOUNT = stellarSdk.StrKey.encodeEd25519PublicKey(Buffer.alloc(32));
+
+// Simulate a read-only Soroban contract call and return its decoded return value.
+async function sorobanRead(server, contractId, method) {
+  const account = new stellarSdk.Account(SOROBAN_READ_ACCOUNT, '0');
+  const tx = new stellarSdk.TransactionBuilder(account, {
+    fee: stellarSdk.BASE_FEE,
+    networkPassphrase: stellarSdk.Networks.PUBLIC,
+  })
+    .addOperation(new stellarSdk.Contract(contractId).call(method))
+    .setTimeout(30)
+    .build();
+  const sim = await server.simulateTransaction(tx);
+  if (stellarSdk.rpc.Api.isSimulationError(sim)) throw new Error(sim.error);
+  return stellarSdk.scValToNative(sim.result.retval);
+}
+
+// Assets-per-share for an OZ FungibleVault, normalising the share/asset decimals offset
+// (these vaults use a 6-decimal offset for inflation-attack mitigation, like Silo V2).
+async function stellarPricePerShare(server, contractId, assetDecimals) {
+  const [totalAssets, totalSupply, shareDecimals] = await Promise.all([
+    sorobanRead(server, contractId, 'total_assets'),
+    sorobanRead(server, contractId, 'total_supply'),
+    sorobanRead(server, contractId, 'decimals'),
+  ]);
+  if (BigInt(totalSupply) <= 0n) return undefined;
+  const SCALE = 10n ** 18n;
+  const offset = Number(shareDecimals) - assetDecimals; // shares carry `offset` extra decimals
+  const num = BigInt(totalAssets) * SCALE * (offset >= 0 ? 10n ** BigInt(offset) : 1n);
+  const den = BigInt(totalSupply) * (offset < 0 ? 10n ** BigInt(-offset) : 1n);
+  return Number(num / den) / 1e18;
+}
 
 async function fetchJson(url, opts) {
   const r = await fetch(url, opts);
@@ -236,6 +271,7 @@ async function processSpectra(sdkChain, vaults) {
       tvlUsd,
       apyBase,
       apyReward: total - apyBase, // remove native APY to isolate rewards
+      pricePerShare: mv.price?.underlying, // assets per share, in underlying terms
       rewardTokens: Object.values(mv.liveApy?.details?.rewardTokens || {}).map(t => t.address),
       underlyingTokens: [mv.underlying.address],
       poolMeta: v.name,
@@ -258,7 +294,9 @@ async function processStellar() {
   const byAddr = {};
   for (const v of vaults) byAddr[(v.address || '').toUpperCase()] = v;
 
-  return STELLAR_VAULT_ADDRESSES.map(addr => {
+  const server = new stellarSdk.rpc.Server(SOROBAN_RPC_URL);
+
+  const pools = await Promise.all(STELLAR_VAULT_ADDRESSES.map(async addr => {
     const v = byAddr[addr.toUpperCase()];
     if (!v) return null;
 
@@ -268,6 +306,15 @@ async function processStellar() {
     const meta = v.stellar_vault_metadata || {};
     const reportedApy = v.reported_apy?.apy; // decimal fraction, e.g. 0.07 = 7%
 
+    // pricePerShare is read on-chain (Soroban has no historical reads, so this is
+    // best-effort: publish without it if the RPC is unavailable).
+    let pricePerShare;
+    try {
+      pricePerShare = await stellarPricePerShare(server, addr, meta.deposit_token_decimals ?? 7);
+    } catch (e) {
+      // ignore — pricePerShare is optional
+    }
+
     return {
       pool: `${addr}-stellar`.toLowerCase(),
       chain: formatChain('stellar'),
@@ -275,11 +322,14 @@ async function processStellar() {
       symbol: meta.deposit_token_symbol || v.receipt_token_symbol,
       tvlUsd,
       apyBase: (reportedApy != null ? reportedApy : 0) * 100,
+      pricePerShare,
       underlyingTokens: meta.deposit_token_address ? [meta.deposit_token_address] : undefined,
       poolMeta: v.vault_name,
       url: 'https://gamilabs.io',
     };
-  }).filter(Boolean);
+  }));
+
+  return pools.filter(Boolean);
 }
 
 const apy = async () => {
