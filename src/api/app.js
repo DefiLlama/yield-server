@@ -54,8 +54,8 @@ app.use('/', [yieldRoutes, config, median, perp, enriched, lsd, pools]);
 
 function errorHandler (err, req, res, next) {
   console.log(err)
-  res.status(500)
-  res.render('error', { error: err })
+  const statusCode = err.statusCode ?? 500
+  res.status(statusCode).json({ status: err.status ?? 'error', message: err.message })
 }
 
 app.use(errorHandler)
