@@ -5,7 +5,8 @@ const axios = require('axios');
 const PROJECT_NAME = 't3tris-finance';
 
 // T3tris ecosystem API — authoritative list of vaults with curation flags.
-// Only vaults that are `verified` and not `blacklisted` are indexed.
+// Only vaults that are `verified`, not `blacklisted`, and not `public: false`
+// are indexed.
 const VAULTS_API = 'https://ecosystem.t3tris.finance/vaults';
 
 // ABIs for the T3tris vaults
@@ -154,13 +155,13 @@ const computeSmoothedApy = (currentPps, historicalPpsArray) => {
 };
 
 /**
- * Discover verified, non-blacklisted T3tris vaults for a chain from the
+ * Discover verified, non-blacklisted, public T3tris vaults for a chain from the
  * ecosystem API, then fetch each vault's metadata + oracle address on-chain.
  */
 const getVaultsForChain = async (chain) => {
-  // Discover verified, non-blacklisted vaults from the T3tris ecosystem API.
-  // Same curation gate as the TVL adapter: a vault must be verified, not
-  // blacklisted, on this chain, and carry a usable address/asset.
+  // Discover verified, non-blacklisted, public vaults from the T3tris ecosystem
+  // API. A vault must be verified, not blacklisted, not `public: false`, on this
+  // chain, and carry a usable address/asset.
   let vaultAddresses;
   try {
     const { data } = await axios.get(VAULTS_API, { timeout: 10000 });
@@ -170,6 +171,7 @@ const getVaultsForChain = async (chain) => {
         (v) =>
           v?.verified &&
           !v?.blacklisted &&
+          v?.public !== false &&
           Number(v?.chainId) === chainId &&
           typeof v?.address === 'string' &&
           v.address &&
