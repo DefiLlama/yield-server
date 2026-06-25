@@ -325,7 +325,7 @@ async function processStellar() {
       pricePerShare,
       underlyingTokens: meta.deposit_token_address ? [meta.deposit_token_address] : undefined,
       poolMeta: v.vault_name,
-      url: 'https://gamilabs.io',
+      url: `https://gamilabs.io/vaults/100148/${addr}`,
     };
   }));
 
