@@ -161,7 +161,6 @@ const excludedProtocols = [
   { id: '5801', slug: 'cadabra-finance' },
   { id: '3597', slug: 'zeroliquid' },
   { id: '5952', slug: 'corepound' },
-  { id: '4873', slug: 'midas-rwa' },
   { id: '2984', slug: 'stream-finance' },
   { id: '5981', slug: 'impermax-v3' },
   { id: '337', slug: 'gmx-v1-perps' },
