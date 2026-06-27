@@ -65,18 +65,20 @@ const getStzigApr = async () => {
 };
 
 const apy = async () => {
-  const [fundsRaised, apyBase, exchangeRate, priceData] = await Promise.all([
+  const [fundsRaised, apyBase, totalSupply, priceData] = await Promise.all([
     queryContract(STAKER_CONTRACT, { funds_raised: {} }),
     getStzigApr(),
-    queryContract(STAKER_CONTRACT, { exchange_rate: {} }),
+    queryContract(STAKER_CONTRACT, { total_supply: {} }),
     utils.getPriceApiData(`/prices/current/${ZIG_PRICE_KEY}`),
   ]);
 
   const zigPrice = priceData.coins[ZIG_PRICE_KEY]?.price;
   if (!zigPrice) throw new Error('Unable to fetch ZIG price');
 
-  const tvlUsd = (Number(fundsRaised.funds_raised || 0) / DECIMALS) * zigPrice;
-  const pricePerShare = Number(exchangeRate?.exchange_rate || 1);
+  const fundsRaisedValue = Number(fundsRaised.funds_raised || 0);
+  const totalSupplyValue = Number(totalSupply.total_supply || 1);
+  const tvlUsd = (fundsRaisedValue / DECIMALS) * zigPrice;
+  const pricePerShare = fundsRaisedValue / totalSupplyValue;
 
   return [
     {
