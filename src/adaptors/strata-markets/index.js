@@ -119,14 +119,14 @@ const apy = async () => {
       loadPool('ethena', 'jrUSDe'),
       loadPool('neutrl', 'srNUSD'),
       loadPool('neutrl', 'jrNUSD'),
-      loadPool('mhyper', 'srmHYPER', { stablecoin: true }),     // [FIX] underlying is USDC
-      loadPool('mhyper', 'jrmHYPER', { stablecoin: true }),     // [FIX] underlying is USDC
-      loadPool('mm1usd', 'srmM1USD', { stablecoin: true }),     // [FIX] underlying is USD-pegged
-      loadPool('mm1usd', 'jrmM1USD', { stablecoin: true }),     // [FIX] underlying is USD-pegged
+      loadPool('mhyper', 'srmHYPER'),
+      loadPool('mhyper', 'jrmHYPER'),
+      loadPool('mm1usd', 'srmM1USD'),
+      loadPool('mm1usd', 'jrmM1USD'),
       loadPool('saturn', 'srUSDat', { poolMeta: 'fixed-rate' }),// [FIX] constant APY by design
       loadPool('saturn', 'jrUSDat'),
-      loadPool('figure', 'srPRIME', { stablecoin: true }),       // [NEW] Figure/PRIME senior (USDC underlying)
-      loadPool('figure', 'jrPRIME', { stablecoin: true }),       // [NEW] Figure/PRIME junior (USDC underlying)
+      loadPool('figure', 'srPRIME'),
+      loadPool('figure', 'jrPRIME'),
     ]);
   } catch (error) {
     console.error('Error fetching APYs:', error);
