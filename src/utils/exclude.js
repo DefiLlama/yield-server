@@ -501,6 +501,9 @@ const excludedProtocols = [
   { id: '4552', slug: 'cove-boosties' },
   { id: '2226', slug: 'wombex-finance' },
   { id: '7391', slug: 'afi-protocol' },
+  { id: '5458', slug: 'pinto' },
+  { id: '5306', slug: 'maxapy' },
+  { id: '126', slug: 'loopring' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
