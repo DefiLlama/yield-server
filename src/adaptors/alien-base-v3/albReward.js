@@ -298,16 +298,29 @@ const getAlbAprs = async (chain, volumeUsd7dByPool = {}) => {
 };
 
 const getBaseTokensPrice = async (allTokens, chain) => {
-  let priceKeys = {
+  const priceKeys = {
     alb: '0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4',
   };
 
-  let prices = (
-    await utils.getPriceApiData(`/prices/current/${Object.values(priceKeys)
-        .map((t) => `base:${t}`)
-        .concat(allTokens.map((t) => `${chain}:${t.id}`))
-        .join(',')}`)
-  ).coins;
+  const tokenIds = [
+    ...Object.values(priceKeys).map((t) => `base:${t}`),
+    ...allTokens.map((t) => t?.id && `${chain}:${t.id}`),
+  ]
+    .filter(Boolean)
+    .map((id) => id.toLowerCase());
+
+  const uniqueTokenIds = [...new Set(tokenIds)];
+  const prices = {};
+  const maxSize = 50;
+
+  for (let i = 0; i < uniqueTokenIds.length; i += maxSize) {
+    const ids = uniqueTokenIds
+      .slice(i, i + maxSize)
+      .join(',')
+      .replaceAll('/', '');
+    const { coins } = await utils.getPriceApiData(`/prices/current/${ids}`);
+    Object.assign(prices, coins);
+  }
 
   const albriceData = prices[`base:${priceKeys.alb}`];
 
