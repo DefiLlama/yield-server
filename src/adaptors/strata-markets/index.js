@@ -35,6 +35,13 @@ const Addresses = {
     jrUSDat: '0x011e55d2b28306458e37Ca7E997C879BB25A455D',
     underlying: '0x23238f20b894f29041f48D88eE91131C395Aaa71', // USDat
   },
+  // [NEW] Figure/PRIME market
+  figure: {
+    cdo: '0xff408b4843CDD4a33CD49EB2aBe057fE8D71C234',
+    srPRIME: '0x35bFF778d3fc53a561486BF28e761428499232Eb',
+    jrPRIME: '0xF4C91F24E20EE8ed5eda905E501A1136334C2F27',
+    underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC (verified on-chain)
+  },
 };
 
 const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
@@ -82,7 +89,7 @@ const getAprs = async (cdoAddress, chain = 'ethereum') => {
   }
 };
 
-async function loadPool(tranche, symbol) {
+async function loadPool(tranche, symbol, overrides = {}) {
   const cdo = Addresses[tranche].cdo;
   const vault = Addresses[tranche][symbol];
 
@@ -101,6 +108,7 @@ async function loadPool(tranche, symbol) {
     tvlUsd: totalSupply * price,
     apyBase: apy,
     underlyingTokens: [Addresses[tranche].underlying],
+    ...overrides,
   };
 }
 
@@ -115,8 +123,10 @@ const apy = async () => {
       loadPool('mhyper', 'jrmHYPER'),
       loadPool('mm1usd', 'srmM1USD'),
       loadPool('mm1usd', 'jrmM1USD'),
-      loadPool('saturn', 'srUSDat'),
+      loadPool('saturn', 'srUSDat', { poolMeta: 'fixed-rate' }),// [FIX] constant APY by design
       loadPool('saturn', 'jrUSDat'),
+      loadPool('figure', 'srPRIME'),
+      loadPool('figure', 'jrPRIME'),
     ]);
   } catch (error) {
     console.error('Error fetching APYs:', error);
@@ -127,5 +137,5 @@ const apy = async () => {
 module.exports = {
   protocolId: '6873',
   apy,
-  url: 'https://strata.money/',
+  url: 'https://strata.markets/',
 };
