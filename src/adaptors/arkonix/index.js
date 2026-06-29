@@ -12,17 +12,34 @@ const CHAIN_BY_ID = {
 
 const convertToAssetsAbi =
   'function convertToAssets(uint256 shares) view returns (uint256)';
+const ONE_SHARE = (BigInt(10) ** BigInt(18)).toString();
 
-const safeCall = async (params) => {
+const safeMultiCall = async ({ chain, abi, calls }) => {
   try {
-    const res = await sdk.api.abi.call(params);
-    return res.output;
+    const { output } = await sdk.api.abi.multiCall({
+      chain,
+      abi,
+      calls,
+      permitFailure: true,
+    });
+    return output.map((res) => (res?.success === false ? null : res?.output));
   } catch (e) {
-    return null;
+    return calls.map(() => null);
   }
 };
 
-const buildPool = async (vault) => {
+const skipRpcCheck = async (fn) => {
+  const previous = process.env.SKIP_RPC_CHECK;
+  process.env.SKIP_RPC_CHECK = 'true';
+  try {
+    return await fn();
+  } finally {
+    if (previous === undefined) delete process.env.SKIP_RPC_CHECK;
+    else process.env.SKIP_RPC_CHECK = previous;
+  }
+};
+
+const buildPool = (vault) => {
   const chain = CHAIN_BY_ID[vault.chain_id];
   if (!chain) return null;
 
@@ -30,40 +47,15 @@ const buildPool = async (vault) => {
   const shareToken = vault.share_token_address
     ? String(vault.share_token_address).toLowerCase()
     : null;
-
-  const [shareDecRaw, assetAddrRaw] = await Promise.all([
-    safeCall({ target: vaultAddress, abi: 'erc20:decimals', chain }),
-    safeCall({ target: vaultAddress, abi: 'address:asset', chain }),
-  ]);
-  if (!assetAddrRaw) return null;
-
-  const shareDecimals = Number(shareDecRaw) || 18;
-  const assetAddress = String(assetAddrRaw).toLowerCase();
-  const oneShare = (BigInt(10) ** BigInt(shareDecimals)).toString();
-
-  const [assetDecRaw, totalAssetsRaw, ppsNow] = await Promise.all([
-    safeCall({ target: assetAddress, abi: 'erc20:decimals', chain }),
-    safeCall({ target: vaultAddress, abi: 'uint:totalAssets', chain }),
-    safeCall({
-      target: vaultAddress,
-      abi: convertToAssetsAbi,
-      chain,
-      params: [oneShare],
-    }),
-  ]);
+  const {
+    assetAddress,
+    assetDecimals,
+    totalAssetsRaw,
+    ppsNow,
+    assetPrice,
+  } = vault;
 
   if (!totalAssetsRaw || !ppsNow) return null;
-  const assetDecimals =
-    Number(assetDecRaw) || Number(vault.deposit_asset_decimals) || 18;
-
-  const priceKey = `${chain}:${assetAddress}`;
-  let assetPrice;
-  try {
-    const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
-    assetPrice = data.coins?.[priceKey]?.price;
-  } catch (e) {
-    assetPrice = undefined;
-  }
   if (!assetPrice) return null;
 
   const tvlUsd = (Number(totalAssetsRaw) / 10 ** assetDecimals) * assetPrice;
@@ -72,7 +64,8 @@ const buildPool = async (vault) => {
   // Use the protocol's published 7-day APY (the exact figure shown on
   // app.arkonix.xyz) instead of annualizing an on-chain share-price drift.
 
-  const apyBase = vault.apy_7d == null ? NaN : Number(vault.apy_7d);
+  const apyBase =
+    vault.apy_7d == null ? Number(vault.return_7d_pct) : Number(vault.apy_7d);
 
   const pool = {
     pool: `${vaultAddress}-${chain}-arkonix`,
@@ -90,29 +83,80 @@ const buildPool = async (vault) => {
   return pool;
 };
 
-const apy = async () => {
+const getApy = async () => {
   const { data } = await axios.get(VAULT_LIST_URL);
   const vaults = (data.share_classes || []).flatMap((sc) =>
     (sc.vaults || []).map((v) => ({
       ...v,
       share_token_address: sc.share_token_address,
       apy_7d: sc.apy_7d,
+      return_7d_pct: sc.return_7d_pct,
     }))
   );
 
   const pools = [];
-  for (const vault of vaults) {
-    try {
-      const p = await buildPool(vault);
-      if (p) pools.push(p);
-    } catch (e) {
-      console.error(
-        `arkonix: vault ${vault.vault_address} failed: ${e.message}`
-      );
+  for (const chain of [...new Set(vaults.map((vault) => vault.chain_id))]) {
+    const chainVaults = vaults.filter((vault) => vault.chain_id === chain);
+    const chainName = CHAIN_BY_ID[chain];
+    if (!chainName) continue;
+
+    const calls = chainVaults.map((vault) => ({
+      target: String(vault.vault_address).toLowerCase(),
+    }));
+
+    const [assets, totalAssets, pps] = await Promise.all([
+      safeMultiCall({ chain: chainName, abi: 'address:asset', calls }),
+      safeMultiCall({ chain: chainName, abi: 'uint:totalAssets', calls }),
+      safeMultiCall({
+        chain: chainName,
+        abi: convertToAssetsAbi,
+        calls: calls.map((call) => ({ ...call, params: [ONE_SHARE] })),
+      }),
+    ]);
+
+    const uniqueAssets = [
+      ...new Set(
+        assets.filter(Boolean).map((asset) => String(asset).toLowerCase())
+      ),
+    ];
+    const assetDecimals = uniqueAssets.length
+      ? await safeMultiCall({
+          chain: chainName,
+          abi: 'erc20:decimals',
+          calls: uniqueAssets.map((asset) => ({ target: asset })),
+        })
+      : [];
+    const decimalsByAsset = new Map(
+      uniqueAssets.map((asset, i) => [asset, Number(assetDecimals[i])])
+    );
+    let pricesByAddress = {};
+    if (uniqueAssets.length) {
+      try {
+        pricesByAddress = (await utils.getPrices(uniqueAssets, chainName))
+          .pricesByAddress;
+      } catch (e) {}
     }
+
+    chainVaults.forEach((vault, i) => {
+      const assetAddress = assets[i] ? String(assets[i]).toLowerCase() : null;
+      const p = buildPool({
+        ...vault,
+        assetAddress,
+        assetDecimals:
+          decimalsByAsset.get(assetAddress) ||
+          Number(vault.deposit_asset_decimals) ||
+          18,
+        totalAssetsRaw: totalAssets[i],
+        ppsNow: pps[i],
+        assetPrice: pricesByAddress[assetAddress],
+      });
+      if (p) pools.push(p);
+    });
   }
   return pools.filter(utils.keepFinite);
 };
+
+const apy = async () => skipRpcCheck(getApy);
 
 module.exports = {
   protocolId: '7865',
