@@ -112,9 +112,10 @@ const main = async () => {
     .filter((s) => s.price >= 0.7)
     .map((s) => s.symbol.toLowerCase())
     .filter((s) => !['r', 'm'].includes(s));
-  // symbol -> price map (keeps depegged stables too, so checkDepeg can flag them)
+  // symbol -> price map for depeg detection. USD-pegged only
   const stablecoinPrices = {};
   for (const s of peggedAssets) {
+    if (s.pegType !== 'peggedUSD') continue;
     const sym = s.symbol.toLowerCase();
     if (Number.isFinite(s.price) && !(sym in stablecoinPrices)) {
       stablecoinPrices[sym] = s.price;
