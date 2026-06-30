@@ -13,7 +13,7 @@ const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
 const { getExcludedAdaptors } = require('../utils/exclude');
-const { checkStablecoin } = require('../adaptors/checkStablecoin');
+const { checkStablecoin, checkDepeg } = require('../adaptors/checkStablecoin');
 
 const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
 
@@ -102,15 +102,24 @@ const main = async () => {
 
   // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
-  const stablecoins = (
+  const peggedAssets = (
     await axios.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
-  ).data.peggedAssets
+  ).data.peggedAssets;
+  const stablecoins = peggedAssets
     // removing any stable which a price 30% from 1usd
     .filter((s) => s.price >= 0.7)
     .map((s) => s.symbol.toLowerCase())
     .filter((s) => !['r', 'm'].includes(s));
+  // symbol -> price map (keeps depegged stables too, so checkDepeg can flag them)
+  const stablecoinPrices = {};
+  for (const s of peggedAssets) {
+    const sym = s.symbol.toLowerCase();
+    if (Number.isFinite(s.price) && !(sym in stablecoinPrices)) {
+      stablecoinPrices[sym] = s.price;
+    }
+  }
   if (!stablecoins.includes('eur')) stablecoins.push('eur');
   if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
   if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
@@ -121,7 +130,9 @@ const main = async () => {
   if (!stablecoins.includes('aiusd')) stablecoins.push('aiusd');
 
   // get catgory data (we hardcode IL to true for options protocols)
-  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
+  dataEnriched = dataEnriched.map((el) =>
+    addPoolInfo(el, stablecoins, stablecoinPrices, config)
+  );
 
   // add ML and overview plot fields
   // expanding mean, expanding standard deviation,
@@ -439,8 +450,9 @@ const checkExposure = (el) => {
   return exposure;
 };
 
-const addPoolInfo = (el, stablecoins, config) => {
+const addPoolInfo = (el, stablecoins, stablecoinPrices, config) => {
   el['stablecoin'] = checkStablecoin(el, stablecoins);
+  el['depeg'] = checkDepeg(el, stablecoinPrices);
 
   // complifi has single token exposure only cause the protocol
   // will pay traders via deposited amounts

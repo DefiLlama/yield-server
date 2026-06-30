@@ -12,6 +12,7 @@ const poolsResponseColumns = [
   'apyPct7D',
   'apyPct30D',
   'stablecoin',
+  'depeg',
   'ilRisk',
   'exposure',
   'predictions',

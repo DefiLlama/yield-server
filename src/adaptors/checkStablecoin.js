@@ -74,4 +74,27 @@ const checkStablecoin = (el, stablecoins) => {
   return stable;
 };
 
-module.exports = { checkStablecoin };
+const DEPEG_THRESHOLD = 0.95;
+
+// flags pools whose underlying stablecoin trades materially below peg (downside only,
+// so non-usd stables priced in usd ~1.08 don't false-positive). reuses the same token
+// matching as checkStablecoin, preferring the most specific (longest) symbol match.
+const checkDepeg = (el, stablecoinPrices, threshold = DEPEG_THRESHOLD) => {
+  const tokens = el.symbol.split('-').map((t) => t.toLowerCase());
+
+  return tokens.some((t) => {
+    const tokenClean = t.replace(/\s*\(.*?\)\s*/g, '');
+    let best = null;
+    for (const [sym, price] of Object.entries(stablecoinPrices)) {
+      if (!sym || sym.trim().length === 0) continue;
+      const match =
+        sym.length === 1 ? tokenClean === sym : tokenClean.includes(sym);
+      if (match && (best === null || sym.length > best.sym.length)) {
+        best = { sym, price };
+      }
+    }
+    return best !== null && Number.isFinite(best.price) && best.price < threshold;
+  });
+};
+
+module.exports = { checkStablecoin, checkDepeg, DEPEG_THRESHOLD };
