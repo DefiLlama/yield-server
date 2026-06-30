@@ -163,6 +163,7 @@ const getApy = async (): Promise<Pool[]> => {
 };
 
 module.exports = {
+	protocolId: '8079',
 	timetravel: false,
 	apy: getApy,
 	url: "https://boar.finance",
