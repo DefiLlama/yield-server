@@ -75,8 +75,17 @@ const apy = async () => {
   const zigPrice = priceData.coins[ZIG_PRICE_KEY]?.price;
   if (!zigPrice) throw new Error('Unable to fetch ZIG price');
 
-  const fundsRaisedValue = Number(fundsRaised.funds_raised || 0);
-  const totalSupplyValue = Number(totalSupply.total_supply || 1);
+  const fundsRaisedValue = Number(fundsRaised.funds_raised);
+  const totalSupplyValue = Number(totalSupply.total_supply);
+
+  if (!Number.isFinite(fundsRaisedValue) || fundsRaisedValue < 0) {
+    throw new Error('Invalid funds_raised contract response');
+  }
+
+  if (!Number.isFinite(totalSupplyValue) || totalSupplyValue <= 0) {
+    throw new Error('Invalid total_supply contract response');
+  }
+
   const tvlUsd = (fundsRaisedValue / DECIMALS) * zigPrice;
   const pricePerShare = fundsRaisedValue / totalSupplyValue;
 
