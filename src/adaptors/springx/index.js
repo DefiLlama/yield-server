@@ -1,10 +1,10 @@
 const { api } = require('@defillama/sdk');
 const utils = require('../utils');
 
-const CONTRACT_ADDRESS = '0x04B6E42eBD94beD6AbFE18B0077d3E0614E3085a';
+const CONTRACT_ADDRESS = '0xAfCf702c1bA93F48c39dF5CdF5Bffe780B705d1c';
 
 async function apy() {
-  const chain = 'plasma';
+  const chain = 'monad';
   const pools = (
     await api.abi.call({
       target: CONTRACT_ADDRESS,
