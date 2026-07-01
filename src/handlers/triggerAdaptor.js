@@ -171,7 +171,7 @@ const main = async (body) => {
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
       protocolConfig[body.adaptor]?.category === 'Options' ||
-      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
+      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv', 'gami-labs'].includes(
         body.adaptor
       )
         ? p.apyBase
