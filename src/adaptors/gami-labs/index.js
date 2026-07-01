@@ -50,6 +50,27 @@ const THIRTY_DAYS = 86400 * 30;
 const SPECTRA_SLUG = { base: 'base', flare: 'flare' };
 const spectraApiUrl = (slug) =>
   `https://api.spectra.finance/v1/${slug}/metavaults?source=defillama`;
+// The pools endpoint carries reward-token addresses; the metavaults endpoint only
+// exposes reward APYs keyed by symbol, so we join the two to recover the addresses.
+const spectraPoolsUrl = (slug) =>
+  `https://api.spectra.finance/v1/${slug}/pools?source=defillama`;
+
+// Recursively collect every reward-token symbol -> address mapping found under any
+// `rewardTokens` object in the Spectra pools response.
+function collectRewardAddrs(node, out) {
+  if (Array.isArray(node)) {
+    for (const item of node) collectRewardAddrs(item, out);
+  } else if (node && typeof node === 'object') {
+    for (const [key, val] of Object.entries(node)) {
+      if (key === 'rewardTokens' && val && typeof val === 'object') {
+        for (const [sym, tok] of Object.entries(val)) {
+          if (tok?.address) out[sym.toLowerCase()] = tok.address.toLowerCase();
+        }
+      }
+      collectRewardAddrs(val, out);
+    }
+  }
+}
 
 // Stellar (Soroban) Upshift vaults curated by Gami Labs. The August Digital API serves
 // both TVL (USD) and the reported target APY for these vaults.
@@ -250,6 +271,16 @@ async function processSpectra(sdkChain, vaults) {
     return [];
   }
 
+  // Reward-token addresses live on the pools endpoint; a failure here only means we
+  // emit the pools without rewardTokens, so keep it non-fatal.
+  const rewardAddrBySymbol = {};
+  try {
+    const pools = await fetchJson(spectraPoolsUrl(slug), {
+      headers: { 'x-client-id': 'defillama' },
+    });
+    collectRewardAddrs(pools, rewardAddrBySymbol);
+  } catch (e) {}
+
   const byAddr = {};
   for (const mv of mvs) byAddr[(mv.address || '').toLowerCase()] = mv;
 
@@ -260,8 +291,24 @@ async function processSpectra(sdkChain, vaults) {
     const tvlUsd = mv.tvl?.usd;
     if (tvlUsd == null) return null;
 
+    const details = mv.liveApy?.details || {};
     const total = mv.liveApy?.total || 0;
-    const apyBase = mv.liveApy?.details?.base || 0;
+    const apyBase = details.base || 0;
+
+    // Reward APY is spread across rewards/ibtRewards/mvRewards, each keyed by token
+    // symbol. Resolve those symbols to addresses via the pools endpoint join.
+    const rewardSymbols = new Set([
+      ...Object.keys(details.rewards || {}),
+      ...Object.keys(details.ibtRewards || {}),
+      ...Object.keys(details.mvRewards || {}),
+    ]);
+    const rewardTokens = [
+      ...new Set(
+        [...rewardSymbols]
+          .map((sym) => rewardAddrBySymbol[sym.toLowerCase()])
+          .filter(Boolean)
+      ),
+    ];
 
     return {
       pool: `${v.address.toLowerCase()}-${sdkChain}`,
@@ -272,7 +319,7 @@ async function processSpectra(sdkChain, vaults) {
       apyBase,
       apyReward: total - apyBase, // remove native APY to isolate rewards
       pricePerShare: mv.price?.underlying, // assets per share, in underlying terms
-      rewardTokens: Object.values(mv.liveApy?.details?.rewardTokens || {}).map(t => t.address),
+      rewardTokens,
       underlyingTokens: [mv.underlying.address],
       poolMeta: v.name,
       url: v.url,
