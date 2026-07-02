@@ -125,6 +125,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '8019',
   timetravel: false,
   apy,
   url: 'https://www.monetrix.xyz/',
