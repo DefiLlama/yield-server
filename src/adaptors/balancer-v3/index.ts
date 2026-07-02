@@ -51,6 +51,7 @@ const query = gql`
       poolTokens {
         address
         symbol
+        balanceUSD
       }
       dynamicData {
         totalLiquidity
@@ -71,6 +72,7 @@ type BalancerApiPoolData = {
   poolTokens: {
     address: string;
     symbol: string;
+    balanceUSD: string;
   }[];
   dynamicData: {
     totalLiquidity: string;
@@ -93,6 +95,7 @@ type V3Pool = {
   stakingApr: number;
   merklChainId: number;
   underlyingTokens: string[];
+  tokenBalances: Record<string, number>;
   url: string;
 };
 
@@ -127,6 +130,13 @@ const getV3Pools = async (
         .map((token) => token.address)
         .filter(Boolean);
 
+      const tokenBalances: Record<string, number> = {};
+      for (const token of pool.poolTokens) {
+        if (token.address) {
+          tokenBalances[token.address.toLowerCase()] = Number(token.balanceUSD || 0);
+        }
+      }
+
       const chainUrl =
         chainString === 'xdai'
           ? 'gnosis'
@@ -145,6 +155,7 @@ const getV3Pools = async (
         stakingApr: stakingApr * 100,
         merklChainId: MERKL_CHAIN_IDS[chainString],
         underlyingTokens: underlyingTokens,
+        tokenBalances,
         url: `https://balancer.fi/pools/${chainUrl}/v3/${pool.address}`,
       };
     });
@@ -164,9 +175,14 @@ const filterWhitelistedOpportunities = (opportunities: MerklOpportunity[]) =>
     )
   );
 
+type TokenOpportunityData = {
+  rewardTokens: string[];
+  apr: number;
+};
+
 const getTokenOpportunityRewardsMap = async (
   pools: PoolsWithMerklReward[]
-): Promise<Record<string, string[]>> => {
+): Promise<Record<string, TokenOpportunityData>> => {
   const keys = [
     ...new Set(
       pools.flatMap((pool) =>
@@ -177,7 +193,7 @@ const getTokenOpportunityRewardsMap = async (
     ),
   ].filter((key) => !key.startsWith('undefined:'));
 
-  const rewardsMap = {};
+  const rewardsMap: Record<string, TokenOpportunityData> = {};
   const batchSize = 10;
 
   for (let i = 0; i < keys.length; i += batchSize) {
@@ -205,19 +221,21 @@ const getTokenOpportunityRewardsMap = async (
             ),
           ];
 
-          return { key, rewardTokens };
+          const apr = filtered.reduce((sum, opp) => sum + (opp.apr || 0), 0);
+
+          return { key, rewardTokens, apr };
         } catch (error) {
           console.error(
             `Error fetching Merkl token opportunities for ${key}:`,
             error
           );
-          return { key, rewardTokens: [] };
+          return { key, rewardTokens: [], apr: 0 };
         }
       })
     );
 
-    batchResults.forEach(({ key, rewardTokens }) => {
-      rewardsMap[key] = rewardTokens;
+    batchResults.forEach(({ key, rewardTokens, apr }) => {
+      rewardsMap[key] = { rewardTokens, apr };
     });
   }
 
@@ -230,22 +248,34 @@ const addTokenOpportunityRewards = async (
   const rewardsMap = await getTokenOpportunityRewardsMap(pools);
 
   return pools.map((pool) => {
-    const tokenRewardTokens = [
-      ...new Set(
-        (pool.underlyingTokens || []).flatMap((tokenAddress) => {
-          const key = `${pool.merklChainId}:${tokenAddress.toLowerCase()}`;
-          return rewardsMap[key] || [];
-        })
-      ),
-    ];
+    let additionalApr = 0;
+    const allTokenRewardTokens: string[] = [];
 
-    if (!tokenRewardTokens.length) return pool;
+    for (const tokenAddress of pool.underlyingTokens || []) {
+      const key = `${pool.merklChainId}:${tokenAddress.toLowerCase()}`;
+      const data = rewardsMap[key];
+      if (!data || (!data.rewardTokens.length && !data.apr)) continue;
+
+      allTokenRewardTokens.push(...data.rewardTokens);
+
+      // Calculate token share of pool TVL (same approach as merkl-apr-handler)
+      const tokenBalanceUsd =
+        pool.tokenBalances?.[tokenAddress.toLowerCase()] || 0;
+      const tokenShareOfPoolTvl =
+        pool.tvlUsd > 0 && tokenBalanceUsd > 0
+          ? tokenBalanceUsd / pool.tvlUsd
+          : 0;
+
+      additionalApr += data.apr * tokenShareOfPoolTvl;
+    }
+
+    if (!allTokenRewardTokens.length && additionalApr === 0) return pool;
 
     return {
       ...pool,
-      // pool.apyReward = TODO we also need to add the APY of the token opportunity.
+      apyReward: (pool.apyReward || 0) + additionalApr,
       rewardTokens: [
-        ...new Set([...(pool.rewardTokens || []), ...tokenRewardTokens]),
+        ...new Set([...(pool.rewardTokens || []), ...allTokenRewardTokens]),
       ],
     };
   });
@@ -296,15 +326,16 @@ const poolsFunction = async () => {
   );
 
   // Boosted pools might receive additional rewards from forwarded Merkl token opportunities, so we need to add those as well.
-  // const poolsWithTokenOpRewards = await addTokenOpportunityRewards(
-  //   poolsWithMerkl
-  // );
+  const poolsWithTokenOpRewards = await addTokenOpportunityRewards(
+    poolsWithMerkl
+  );
 
-  return poolsWithMerkl.map((pool) => {
+  return poolsWithTokenOpRewards.map((pool) => {
     const apyReward = (pool.stakingApr || 0) + (pool.apyReward || 0);
     const {
       stakingApr: _stakingApr,
       merklChainId: _merklChainId,
+      tokenBalances: _tokenBalances,
       ...rest
     } = pool;
     return {
