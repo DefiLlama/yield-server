@@ -39,7 +39,11 @@ const query = gql`
   query GetPools($chain: GqlChain!) {
     poolGetPools(
       first: 1000
-      where: { chainIn: [$chain], protocolVersionIn: [3] }
+      where: {
+        chainIn: [$chain]
+        protocolVersionIn: [3]
+        idIn: ["0x430589b4aeee87e21721d657865d942f92d80f2f"]
+      }
     ) {
       chain
       symbol
@@ -251,36 +255,36 @@ type PoolsWithMerklReward = V3Pool & { apyReward?: number };
 
 const poolsFunction = async () => {
   const [
-    mainnetPools,
-    gnosisPools,
-    arbitrumPools,
-    optimismPools,
-    avalanchePools,
-    basePools,
-    hyperliquidPools,
-    plasmaPools,
+    // mainnetPools,
+    // gnosisPools,
+    // arbitrumPools,
+    // optimismPools,
+    // avalanchePools,
+    // basePools,
+    // hyperliquidPools,
+    // plasmaPools,
     monadPools,
   ] = await Promise.all([
-    getV3Pools('MAINNET', 'ethereum'),
-    getV3Pools('GNOSIS', 'xdai'),
-    getV3Pools('ARBITRUM', 'arbitrum'),
-    getV3Pools('OPTIMISM', 'optimism'),
-    getV3Pools('AVALANCHE', 'avax'),
-    getV3Pools('BASE', 'base'),
-    getV3Pools('HYPEREVM', 'hyperliquid'),
-    getV3Pools('PLASMA', 'plasma'),
+    // getV3Pools('MAINNET', 'ethereum'),
+    // getV3Pools('GNOSIS', 'xdai'),
+    // getV3Pools('ARBITRUM', 'arbitrum'),
+    // getV3Pools('OPTIMISM', 'optimism'),
+    // getV3Pools('AVALANCHE', 'avax'),
+    // getV3Pools('BASE', 'base'),
+    // getV3Pools('HYPEREVM', 'hyperliquid'),
+    // getV3Pools('PLASMA', 'plasma'),
     getV3Pools('MONAD', 'monad'),
   ]);
 
   const pools = [
-    ...mainnetPools,
-    ...gnosisPools,
-    ...arbitrumPools,
-    ...optimismPools,
-    ...avalanchePools,
-    ...basePools,
-    ...hyperliquidPools,
-    ...plasmaPools,
+    // ...mainnetPools,
+    // ...gnosisPools,
+    // ...arbitrumPools,
+    // ...optimismPools,
+    // ...avalanchePools,
+    // ...basePools,
+    // ...hyperliquidPools,
+    // ...plasmaPools,
     ...monadPools,
   ];
 
