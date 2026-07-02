@@ -45,6 +45,7 @@ const protocolDataProviders = {
   mantle: '0x487c5c669D9eee6057C44973207101276cf73b68',
   megaeth: '0x9588b453A4EE24a420830CB3302195cA7aA3b403',
   xlayer: '0x6C505C31714f14e8af2A03633EB2Cdfb4959138F',
+  monad: '0xB65A68B98274ef7D9a60E0C0747dD1BEc3D32fad',
 };
 
 const ethereumMarkets = {
