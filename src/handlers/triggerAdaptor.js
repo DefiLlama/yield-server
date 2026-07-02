@@ -1,10 +1,9 @@
-const crypto = require('crypto');
-
 const axios = require('axios');
 
 const utils = require('../adaptors/utils');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
+const { derivePoolId } = require('../utils/poolId');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
 const { upsertAdapterStats } = require('../queries/adapterStats');
@@ -238,8 +237,9 @@ const main = async (body) => {
   const precision = 5;
   const timestamp = new Date(Date.now());
   data = data.map((p) => {
-    // if pool not in mapping -> its a new pool -> create a new uuid, else keep existing one
-    const id = mapping[p.pool] ?? crypto.randomUUID();
+    // if pool not in mapping -> its a new pool -> mint the deterministic uuid
+    // (uuidv5 of the pool key, same derivation as yield-server-v2), else keep existing one
+    const id = mapping[p.pool] ?? derivePoolId(p.pool);
     return {
       ...p,
       config_id: id, // config PK field
