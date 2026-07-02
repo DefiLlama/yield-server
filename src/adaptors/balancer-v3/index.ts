@@ -39,7 +39,12 @@ const query = gql`
   query GetPools($chain: GqlChain!) {
     poolGetPools(
       first: 1000
-      where: { chainIn: [$chain], protocolVersionIn: [3], minTvl: 10000 }
+      where: {
+        chainIn: [$chain]
+        protocolVersionIn: [3]
+        minTvl: 10000
+        tagNotIn: ["BLACK_LISTED"]
+      }
     ) {
       chain
       symbol
