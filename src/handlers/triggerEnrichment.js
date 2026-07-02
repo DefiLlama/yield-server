@@ -119,6 +119,7 @@ const main = async () => {
   if (!stablecoins.includes('ustb')) stablecoins.push('ustb');
   if (!stablecoins.includes('usdn')) stablecoins.push('usdn');
   if (!stablecoins.includes('aiusd')) stablecoins.push('aiusd');
+  if (!stablecoins.includes('usdm')) stablecoins.push('usdm');
 
   // get catgory data (we hardcode IL to true for options protocols)
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
