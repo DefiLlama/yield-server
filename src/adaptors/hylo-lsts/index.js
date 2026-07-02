@@ -1,26 +1,22 @@
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getSanctumLstApy, getPriceApiUrl } = require('../utils');
 
 const HYLOSOL_MINT = 'hy1oXYgrBW6PVcJ4s6s2FKavRdwgWTXdfE69AxT7kPT';
 const priceKey = `solana:${HYLOSOL_MINT}`;
 const SOL = 'So11111111111111111111111111111111111111112';
 
 const apy = async () => {
-  const [totalSupply, priceRes, apyRes] = await Promise.all([
+  const [totalSupply, priceRes, apyBase] = await Promise.all([
     getTotalSupply(HYLOSOL_MINT),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
-    axios.get(
-      `https://extra-api.sanctum.so/v1/apy/latest?lst=${HYLOSOL_MINT}`
-    ),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
+    getSanctumLstApy(HYLOSOL_MINT),
   ]);
 
   const currentPrice = priceRes.data.coins[priceKey]?.price;
   if (!currentPrice) throw new Error('Unable to fetch hyloSOL price');
 
-  const apyRaw = apyRes?.data?.apys?.[HYLOSOL_MINT];
-  if (!Number.isFinite(apyRaw))
+  if (apyBase == null)
     throw new Error(`Unable to fetch APY for ${HYLOSOL_MINT}`);
-  const apyBase = apyRaw * 100;
 
   return [
     {
@@ -33,11 +29,13 @@ const apy = async () => {
       underlyingTokens: [SOL],
       searchTokenOverride: HYLOSOL_MINT,
       poolMeta: '0% rewards fee',
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '6648',
   timetravel: false,
   apy,
   url: 'https://hylo.so/lst',

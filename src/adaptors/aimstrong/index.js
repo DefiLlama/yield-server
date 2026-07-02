@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const abi = {
   getReservesList: 'function getReservesList() view returns (address[])',
@@ -188,13 +189,14 @@ async function getRewardApy(icAddr, chain) {
 async function getPrice(tokenAddress, chain) {
   const priceKey = `${chain}:${tokenAddress.toLowerCase()}`;
   const response = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
+    getPriceApiUrl(`/prices/current/${priceKey}`)
   );
   const price = response.data.coins[priceKey]?.price || 1;
   return price;
 }
 
 module.exports = {
+  protocolId: '6681',
   timetravel: false,
   apy: apy,
   url: 'https://app.aimstrong.ai/lending',

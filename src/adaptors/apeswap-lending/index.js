@@ -49,13 +49,9 @@ const getRewards = async (markets, isBorrow) => {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -107,6 +103,30 @@ const lendingApy = async () => {
         params: market,
       })),
       abi: comptrollerAbi.find(({ name }) => name === 'markets'),
+    })
+  ).output.map(({ output }) => output);
+
+  const borrowCaps = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowCaps'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
+  const isBorrowPaused = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowGuardianPaused'),
+      permitFailure: true,
     })
   ).output.map(({ output }) => output);
 
@@ -185,6 +205,15 @@ const lendingApy = async () => {
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Math.min(
+        Number(marketsCash[i]),
+        Number(borrowCaps[i]) > 0
+          ? Math.max(Number(borrowCaps[i]) - Number(totalBorrows[i]), 0)
+          : Number(marketsCash[i])
+      ) /
+        10 ** decimals) *
+      price;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
@@ -219,6 +248,8 @@ const lendingApy = async () => {
       rewardTokens: [apyReward > 0 ? PROTOCOL_TOKEN.address : null].filter(
         Boolean
       ),
+      availableBorrowUsd,
+      borrowable: isBorrowPaused[i] === false,
       totalSupplyUsd,
       totalBorrowUsd,
       apyBaseBorrow,
@@ -231,6 +262,7 @@ const lendingApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1940',
   timetravel: false,
   apy: lendingApy,
   url: 'https://lending.apeswap.finance/',

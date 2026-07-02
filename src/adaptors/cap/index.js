@@ -26,9 +26,10 @@ const poolsFunction = async () => {
         pool: stcUSDInfos.pool,
         chain: utils.formatChain(chain),
         project: 'cap',
-        symbol: utils.formatSymbol(stcUSD.id),
+        symbol: stcUSD.id,
         tvlUsd: tvlUsdNum,
         apy: stcUSDInfos.apyBase,
+        pricePerShare: stcUSDInfos.pricePerShare,
         underlyingTokens: [cUSD.address],
     };
 
@@ -36,6 +37,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '6579',
     apy: poolsFunction,
     url: 'https://cap.app',
 };

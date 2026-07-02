@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 
 /*
 export interface Market {

@@ -4,6 +4,7 @@ const { request, gql } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
 const { getAsset, getTotalSupply } = require('./queries');
 const { calculateInterestRate } = require('./helpers');
+const { getPriceApiData } = require('../utils');
 
 const endpoint = sdk.graph.modifyEndpoint('6pme7wuvRUDGjuV3zRcgyo6QdKcsHp87tSXZcS1U2QHb');
 
@@ -133,9 +134,7 @@ const lendingApys = async () => {
     .map((t) => `arbitrum:${t.tokenAddress}`)
     .concat([`arbitrum:${usdcAddress}`])
     .join(',');
-  const pricesEthereum = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const pricesEthereum = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return await Promise.all(
     pairs.map(async (pair) => {
@@ -248,6 +247,7 @@ const strategyApys = async () => {
 };
 
 module.exports = {
+  protocolId: '3324',
   timetravel: false,
   apy: async () => {
     const lendingApyResults = await lendingApys();

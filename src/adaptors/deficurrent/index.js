@@ -23,9 +23,7 @@ const getVaultTvl = async (vaults) => {
     coins.push(`${chain}:${vault.tokenAddress}`.toLowerCase());
   }
 
-  const coinsData = (
-    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).data.coins;
+  const coinsData = (await utils.getPriceApiData(`/prices/current/${coins}`)).coins;
 
   for (const vault of vaults) {
     const want = vault.tokenAddress;
@@ -68,7 +66,7 @@ const main = async () => {
         pool: `${vault.shipTokenAddress}-${chain}`.toLowerCase(),
         poolMeta: platform === undefined ? null : utils.formatChain(platform),
         project: 'deficurrent',
-        symbol: utils.formatSymbol(vault.id.split('-').slice(1).join('-')),
+        symbol: vault.id.split('-').slice(1).join('-'),
         tvlUsd: dicVaultAndTvl[vault.id],
         underlyingTokens: vault.tokenAddress ? [vault.tokenAddress] : undefined,
       };
@@ -82,6 +80,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2105',
   timetravel: false,
   apy: main,
   url,

@@ -107,7 +107,7 @@ const apy = async () => {
       pool: `${market['market']}-arbitrum`.toLowerCase(),
       chain: utils.formatChain('arbitrum'),
       project: 'sentiment',
-      symbol: utils.formatSymbol(config['symbol']),
+      symbol: config['symbol'],
       tvlUsd: tvl.toNumber(),
       apyBase: parseFloat(market['supplyAPY']),
       underlyingTokens: [config.underlyingAddress],
@@ -129,6 +129,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2285',
   timetravel: false,
   apy: apy,
   url: 'https://arbitrum.sentiment.xyz/lending',

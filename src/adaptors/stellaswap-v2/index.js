@@ -118,7 +118,7 @@ const apyBase = async (
   dataNow = dataNow.map((p) => utils.apy(p, dataPrior, dataPrior7d, version));
 
   dataNow = dataNow.map((p) => {
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
@@ -183,9 +183,7 @@ const apyBase = async (
       ((pool.dailyVolumes[0].volume * pool.swapFee) / 1e8 / tvlUsd) * 100;
     const apyBase7d =
       ((pool.weeklyVolumes[0].volume * pool.swapFee) / 1e8 / tvlUsd) * 100;
-    const symbol = utils.formatSymbol(
-      pool.tokens.map((t) => t.symbol).join('-')
-    );
+    const symbol = pool.tokens.map((t) => t.symbol).join('-');
     const underlyingTokens = pool.tokens.map((t) => t.address);
 
     return {
@@ -261,9 +259,7 @@ const getApy = async (timestamp = null) => {
     })
   ).output;
 
-  const stellaPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/moonbeam:${STELLA}`)
-  ).data.coins[`moonbeam:${STELLA}`].price;
+  const stellaPrice = (await utils.getPriceApiData(`/prices/current/moonbeam:${STELLA}`)).coins[`moonbeam:${STELLA}`].price;
 
   const [supplyRes, masterChefBalancesRes] = await Promise.all(
     ['totalSupply', 'balanceOf'].map((method) =>
@@ -284,9 +280,7 @@ const getApy = async (timestamp = null) => {
   const tokenKeys = Object.values(rewardTokenMapping)
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const extrRewardTokenPrices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${tokenKeys}`)
-  ).data.coins;
+  const extrRewardTokenPrices = (await utils.getPriceApiData(`/prices/current/${tokenKeys}`)).coins;
 
   const dataRewards = poolInfo.map((p, i) => {
     const pool = dataFee.find((d) => d.pool === p.lpToken.toLowerCase());
@@ -354,6 +348,7 @@ const getApy = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '1274',
   timetravel: false,
   apy: getApy,
   url: 'https://app.stellaswap.com/farm',

@@ -84,7 +84,7 @@ const apy = async () => {
       tvlUsd,
       ...COMMON_DATA,
       pool: `${poolContractAddress}-${CHAIN}`.toLowerCase(),
-      symbol: utils.formatSymbol(symbol),
+      symbol: symbol,
       underlyingTokens: [poolContractAddress],
     });
   }
@@ -93,6 +93,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3327',
   timetravel: false,
   url: 'https://linetoken.org/staking/all',
   apy,

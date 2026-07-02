@@ -1,8 +1,9 @@
-const { multiCall, call } = require('../../helper/starknet');
+const { multiCall, call } = require('../utils');
 const { marketAbi, erc20Abi, irmAbi, zTokenAbi } = require('./abi');
 const axios = require('axios');
 const BN = require('bn.js');
 const { default: BigNumber } = require('bignumber.js');
+const { getPriceApiData } = require('../utils');
 
 const SCALE = BigNumber('1000000000000000000000000000');
 const e = 2.7182818284590452353602874713527;
@@ -65,9 +66,7 @@ const assets = [
 
 const getTokenPrice = async (token) => {
   const networkTokenPair = `starknet:${token}`;
-  return (
-    await axios.get(`https://coins.llama.fi/prices/current/${networkTokenPair}`)
-  ).data.coins[networkTokenPair].price;
+  return (await getPriceApiData(`/prices/current/${networkTokenPair}`)).coins[networkTokenPair].price;
 };
 
 const getRewardApys = async () => {
@@ -196,6 +195,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3079',
   apy,
   url: 'https://app.zklend.com/markets',
 };

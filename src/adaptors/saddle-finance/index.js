@@ -140,9 +140,7 @@ const apy = async () => {
     .concat(sdl)
     .map((t) => `ethereum:${t}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${uniqueTokens}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${uniqueTokens}`)).coins;
 
   const finalPools = await Promise.all(
     pools.map(async (p, i) => {
@@ -216,6 +214,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '202',
   apy,
   url: 'https://saddle.exchange/#/pools',
 };

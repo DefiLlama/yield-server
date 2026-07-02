@@ -54,7 +54,7 @@ const apy = async () => {
       pool: `${UNIT_ADDRESS}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
       project: 'flat-money-v1',
-      symbol: utils.formatSymbol('UNIT'),
+      symbol: 'UNIT',
       tvlUsd,
       apyBase,
       apyReward: null,
@@ -65,6 +65,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4503',
   timetravel: false,
   apy,
   url: 'https://flat.money/flatcoin',

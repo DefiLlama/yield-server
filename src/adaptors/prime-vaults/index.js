@@ -86,7 +86,7 @@ const getTvl = async (vault, totalSupply, currentRate) => {
   const vaultKey = `${vault.chain}:${vault.vault}`;
   const underlyingKey = `${vault.chain}:${vault.underlyingToken}`;
   const priceRes = await axios.get(
-    `https://coins.llama.fi/prices/current/${vaultKey},${underlyingKey}`
+    utils.getPriceApiUrl(`/prices/current/${vaultKey},${underlyingKey}`)
   );
 
   if (priceRes.data.coins[vaultKey]?.price) {
@@ -144,7 +144,7 @@ const getTokenPrices = async (chain, tokens) => {
 
   const ids = tokens.map((token) => `${chain}:${token}`).join(',');
   const priceRes = await axios.get(
-    `https://coins.llama.fi/prices/current/${ids}`
+    utils.getPriceApiUrl(`/prices/current/${ids}`)
   );
 
   return priceRes.data.coins || {};
@@ -256,6 +256,10 @@ const apy = async () => {
         apyBase,
         apyReward,
         rewardTokens,
+        ...(Number(currentRate) / 10 ** (vault.decimals ?? 18) > 0 && {
+          pricePerShare:
+            Number(currentRate) / 10 ** (vault.decimals ?? 18),
+        }),
         underlyingTokens: [vault.underlyingToken],
         url: vault.url,
       });
@@ -268,6 +272,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7455',
   timetravel: false,
   apy,
   url: 'https://primevaults.finance/',

@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.json');
+const { getPriceApiUrl } = require('../utils');
 
 const spETH = '0xD06f6a56c5f599cB375B616DF306f32B7F6f4A0E';
 const mpETH = '0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710';
@@ -15,8 +16,8 @@ const apy = async () => {
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
   const [{ data: block1d }, { data: block7d }] = await Promise.all([
-    axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`),
-    axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`),
+    axios.get(getPriceApiUrl(`/block/ethereum/${timestamp1dayAgo}`)),
+    axios.get(getPriceApiUrl(`/block/ethereum/${timestamp7dayAgo}`)),
   ]);
   const block1dayAgo = block1d.height;
   const block7dayAgo = block7d.height;
@@ -40,7 +41,7 @@ const apy = async () => {
     sdk.api.abi.call({ target: spETH, abi: totalAssetsAbi }),
     sdk.api.abi.call({ target: mpETH, abi: totalAssetsAbi }),
     // ETH price
-    axios.get('https://coins.llama.fi/prices/current/coingecko:ethereum'),
+    axios.get(getPriceApiUrl('/prices/current/coingecko:ethereum')),
   ]);
 
   const ethPrice = priceRes.data.coins['coingecko:ethereum'].price;
@@ -48,7 +49,8 @@ const apy = async () => {
   const calcApy = (rates) => {
     const apyBase = ((rates[0].output - rates[1].output) / rates[1].output) * 365 * 100;
     const apyBase7d = ((rates[0].output - rates[2].output) / rates[2].output / 7) * 365 * 100;
-    return { apyBase, apyBase7d };
+    const pricePerShare = Number(rates[0].output) / 1e18;
+    return { apyBase, apyBase7d, pricePerShare };
   };
 
   return [
@@ -61,6 +63,7 @@ const apy = async () => {
       ...calcApy(spRates),
       underlyingTokens: [WETH],
       searchTokenOverride: spETH,
+      isIntrinsicSource: true,
     },
     {
       pool: mpETH,
@@ -71,11 +74,13 @@ const apy = async () => {
       ...calcApy(mpRates),
       underlyingTokens: [WETH],
       searchTokenOverride: mpETH,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '3405',
   apy,
   url: 'https://www.metapool.app/stake?token=ethereum',
 };

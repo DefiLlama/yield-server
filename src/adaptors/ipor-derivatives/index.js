@@ -1,19 +1,22 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const {liquidityMiningV2Abi} = require('./abiV2');
+const { getPriceApiUrl } = require('../utils');
 
-const COIN_PRICES_URL = 'https://coins.llama.fi/prices/current';
+const COIN_PRICES_URL = getPriceApiUrl('/prices/current');
 
 const CHAIN_CONFIG = {
   ethereum: {
     statsUrl: 'https://api.ipor.io/monitor/liquiditypool-statistics-1',
     lmAddress: '0xCC3Fc4C9Ba7f8b8aA433Bc586D390A70560FF366',
+    iporToken: '0x1e4746dC744503b53b4A082cB3607B169a289090',
     urlTemplate: (asset) => `https://app.ipor.io/zap/ethereum/${asset.toLowerCase()}`,
     blocksPerYear: (365 * 24 * 3600) / 12
   },
   arbitrum: {
     statsUrl: 'https://api.ipor.io/monitor/liquiditypool-statistics-42161',
     lmAddress: '0xdE645aB0560E5A413820234d9DDED5f4a55Ff6dd',
+    iporToken: '0x34229B3f16fBCDfA8d8d9d17C0852F9496f4C7BB',
     urlTemplate: (asset) => asset === 'USDM' ?
       `https://app.ipor.io/deposit/arbitrum/${asset.toLowerCase()}` : `https://app.ipor.io/zap/arbitrum/${asset.toLowerCase()}`,
     blocksPerYear: (365 * 24 * 3600) / 12 // On Arbitrum block.number is an approximated Ethereum block number
@@ -21,6 +24,7 @@ const CHAIN_CONFIG = {
   base: {
     statsUrl: 'https://api.ipor.io/monitor/liquiditypool-statistics-8453',
     lmAddress: '0xE9331948766593EE9CeBBB426faE317b44DaF0f2',
+    iporToken: '0xbd4e5C2f8dE5065993d29A9794E2B7cEfc41437A',
     urlTemplate: (asset) => `https://app.ipor.io/deposit/base/${asset.toLowerCase()}`,
     blocksPerYear: (365 * 24 * 3600) / 2
   }
@@ -111,6 +115,7 @@ const buildPool = (asset, chainData, chainConfig, chainName, coinPrices) => {
           2) * //50% early withdraw fee
         100; //percentage
 
+  const apyRewardNum = Number(apyReward);
   return {
     pool: `${asset.ipTokenAssetAddress}-${chainName}`,
     chain: chainName.charAt(0).toUpperCase() + chainName.slice(1),
@@ -118,9 +123,11 @@ const buildPool = (asset, chainData, chainConfig, chainName, coinPrices) => {
     symbol: asset.asset,
     tvlUsd: lpBalance * coinPrice,
     apyBase: Number(lpApr),
-    apyReward: Number(apyReward),
     underlyingTokens: [asset.assetAddress],
-    rewardTokens: [],
+    ...(apyRewardNum > 0 && {
+      apyReward: apyRewardNum,
+      rewardTokens: [chainConfig.iporToken],
+    }),
     url: chainConfig.urlTemplate(asset.asset),
   };
 };
@@ -150,6 +157,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2147',
   timetravel: false,
   apy: apy
 };

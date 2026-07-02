@@ -243,6 +243,7 @@ async function apy() {
           symbol: vault.symbol,
           tvlUsd: tvlUsd,
           apyBase: apyBase,
+          pricePerShare: erc4626Info.pricePerShare,
           underlyingTokens: [vault.asset],
           poolMeta: 'Instant withdraw | Points Incentive',
           url: `https://app.thesauros.io/vault/${vault.address}`,
@@ -264,6 +265,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7111',
   timetravel: false,
   apy,
 };

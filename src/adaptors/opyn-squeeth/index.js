@@ -12,14 +12,10 @@ const poolsFunction = async () => {
   const startTimestamp = currentTimestamp - 60 * 60 * 24 * 7;
   // get eth usd price
   const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
-  const ethPriceUSD = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins[key].price;
+  const ethPriceUSD = (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key].price;
   // get squeeth usd price
   const squeethKey = 'ethereum:0xf1b99e3e573a1a9c5e6b2ce818b617f0e664e86b';
-  const squeethPriceUSD = (
-    await axios.get(`https://coins.llama.fi/prices/current/${squeethKey}`)
-  ).data.coins[squeethKey].price;
+  const squeethPriceUSD = (await utils.getPriceApiData(`/prices/current/${squeethKey}`)).coins[squeethKey].price;
   const usdc = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
   const weth = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 
@@ -201,6 +197,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2399',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://squeeth.opyn.co/strategies/',

@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const EarnVault = require('./EarnVault.json');
 const Accountant = require('./Accountant.json');
+const { getPriceApiData } = require('../utils');
 
 const earnETH = '0x9Ed15383940CC380fAEF0a75edacE507cC775f22';
 const accountant = '0x411c78BC8c36c3c66784514f28c56209e1DF2755';
@@ -17,9 +18,7 @@ const apy = async () => {
     ).output / 1e18;
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const currentRate = (
     await sdk.api.abi.call({
@@ -35,12 +34,8 @@ const apy = async () => {
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
 
-  const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
-  ).data.height;
-  const block7dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
-  ).data.height;
+  const block1dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp1dayAgo}`)).height;
+  const block7dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp7dayAgo}`)).height;
 
   const exchangeRates = await Promise.all([
     sdk.api.abi.call({
@@ -68,13 +63,16 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apr1d,
       apyBase7d: apr7d,
+      ...(Number(currentRate) / 1e18 > 0 && { pricePerShare: Number(currentRate) / 1e18 }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: earnETH,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '5262',
   apy,
   timetravel: false,
   url: 'https://app.swellnetwork.io/earn/vaults',

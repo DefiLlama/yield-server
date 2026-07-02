@@ -149,9 +149,7 @@ const getApy = async () => {
 
       const pricesArray = reservesList.map((t) => `${chain}:${t}`);
 
-      const prices = (
-        await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-      ).data.coins;
+      const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
       const rewardPerYear =
         (rewardsPerSecond / 1e18) * 86400 * 365 * rewardTokenPrice;
@@ -200,6 +198,7 @@ const getApy = async () => {
           apyRewardBorrow: apyRewardBorrow,
           totalSupplyUsd,
           totalBorrowUsd,
+          availableBorrowUsd: tvlUsd,
           ltv,
           borrowable,
         };
@@ -210,5 +209,6 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '5048',
   apy: getApy,
 };

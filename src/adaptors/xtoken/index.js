@@ -189,7 +189,7 @@ const parseToken = (token) => {
   const isTokenEth = token.id === ethers.constants.AddressZero;
   return {
     address: token.id,
-    symbol: isTokenEth ? utils.formatSymbol('ETH') : token.symbol,
+    symbol: isTokenEth ? 'ETH' : token.symbol,
     decimals: isTokenEth ? 18 : token.decimals,
     name: isTokenEth ? 'Ethereum' : token.name,
   };
@@ -362,9 +362,7 @@ const getCurratedPoolData = async (poolData, network) => {
     pool: `${getAddress(pool.id)}-${network}`,
     chain: utils.formatChain(network),
     project: 'xtoken',
-    symbol: `${utils.formatSymbol(token0.symbol)}-${utils.formatSymbol(
-      token1.symbol
-    )}`,
+    symbol: `${token0.symbol}-${token1.symbol}`,
     tvlUsd: tvlUsd,
     apyReward: apy,
     rewardTokens: rewardTokens.map(({ address }) => address),
@@ -411,6 +409,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '206',
   timetravel: false,
   apy: getPools,
   url: `${constants.BASE_APP_URL}/discover`,

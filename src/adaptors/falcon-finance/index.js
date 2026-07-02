@@ -20,7 +20,7 @@ const SCALE  = BigInt('1000000000000')
 
 async function getBlockAt(ts, chain = CHAIN) {
   const { data } = await utils.withRetry(() =>
-    axios.get(`https://coins.llama.fi/block/${chain}/${ts}`)
+    axios.get(utils.getPriceApiUrl(`/block/${chain}/${ts}`))
   )
   return { block: data.height || data.number, ts: data.timestamp || ts }
 }
@@ -76,14 +76,25 @@ async function getData(vault, underlying) {
   const priceKey = `${CHAIN}:${underlying}`
   let price = 1
   try {
-    const { data } = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+    const data = await utils.getPriceApiData(`/prices/current/${priceKey}`)
     price = data.coins?.[priceKey]?.price ?? 1
   } catch (_) {}
 
   const tvlUsd = (Number(totalAssetsBn) / 1e18) * price
   const apyBase = await computeApyBase(vault)
 
-  return { tvlUsd, apyBase }
+  let pricePerShare
+  try {
+    const { output: pricePerShareBn } = await sdk.api.abi.call({
+      target: vault,
+      abi: abi.convertToAssets,
+      params: ['1000000000000000000'],
+      chain: CHAIN,
+    })
+    pricePerShare = Number(pricePerShareBn) / 1e18
+  } catch (_) {}
+
+  return { tvlUsd, apyBase, pricePerShare }
 }
 
 async function apy() {
@@ -100,6 +111,7 @@ async function apy() {
       symbol: 'sUSDf',
       tvlUsd: sUSDfData.tvlUsd,
       apyBase: sUSDfData.apyBase,
+      ...(sUSDfData.pricePerShare > 0 && { pricePerShare: sUSDfData.pricePerShare }),
       underlyingTokens: [USDf],
       poolMeta: 'ERC-4626: USDf → sUSDf',
       url: 'https://app.falcon.finance/earn/classic',
@@ -111,6 +123,7 @@ async function apy() {
       symbol: 'sFF',
       tvlUsd: sFFData.tvlUsd,
       apyBase: sFFData.apyBase,
+      ...(sFFData.pricePerShare > 0 && { pricePerShare: sFFData.pricePerShare }),
       underlyingTokens: [FF],
       poolMeta: 'ERC-4626: FF → sFF',
       url: 'https://app.falcon.finance/earn/classic',
@@ -119,6 +132,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6790',
   timetravel: false,
   apy,
   url: 'https://app.falcon.finance/earn/classic',

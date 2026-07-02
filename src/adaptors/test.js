@@ -8,9 +8,11 @@ const baseFields = {
 const adapter = global.adapter;
 const apy = global.apy;
 const poolsUrl = global.poolsUrl;
+const protocolId = global.protocolId;
 
 const uniquePoolIdentifiersDB = global.uniquePoolIdentifiersDB;
 const protocols = global.protocolsSlug;
+const protocolsBySlug = global.protocolsBySlug;
 
 // fast mode: only ensure adapter main function executed
 if (process.env.npm_config_fast) {
@@ -23,6 +25,9 @@ if (process.env.npm_config_fast) {
 } else {
 
 describe(`Running ${process.env.npm_config_adapter} Test`, () => {
+  const isRoutingOnlyPool = (pool) =>
+    ['routing_collateral', 'routing_reserve'].includes(pool.poolKind);
+
   describe('Check for allowed field names', () => {
     const optionalFields = [
       'apy',
@@ -40,7 +45,9 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'borrowable',
       'borrowFactor',
       'debtCeilingUsd',
+      'availableBorrowUsd',
       'mintedCoin',
+      'borrowToken',
       'apyBase7d',
       'apyRewardFake',
       'apyRewardBorrowFake',
@@ -49,7 +56,12 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'volumeUsd7d',
       'apyBaseInception',
       'searchTokenOverride',
+      'isIntrinsicSource',
       'token',
+      'pricePerShare',
+      'routeGroupKey',
+      'underlyingStateKey',
+      'poolKind',
     ];
     const fields = [...Object.keys(baseFields), ...optionalFields, 'tvlUsd'];
     apy.forEach((pool) => {
@@ -83,6 +95,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
 
     apy.forEach((pool) => {
       test(`Expects pool with id ${pool.pool} to have at least one number apy field`, () => {
+        if (isRoutingOnlyPool(pool)) return;
         expect(
           apyFields.map((field) => Number.isFinite(pool[field]))
         ).toContain(true);
@@ -93,6 +106,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
   describe('Check tvl data type', () => {
     apy.forEach((pool) => {
       test(`tvlUsd field of pool with id ${pool.pool} should be number `, () => {
+        if (isRoutingOnlyPool(pool)) return;
         expect(Number.isFinite(pool.tvlUsd)).toBe(true);
       });
     });
@@ -181,6 +195,14 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     expect(protocols).toContain(apy[0].project);
   });
 
+  test('Adapter exports the protocolId matching its protocol slug', () => {
+    const protocol = protocolsBySlug.get(adapter);
+
+    expect(protocol).toBeDefined();
+    expect(typeof protocolId).toBe('string');
+    expect(protocolId).toBe(String(protocol.id));
+  });
+
   describe('Check additional field data rules', () => {
     // All fields added here are treated as optional
     // If a field is present, it will be checked against its rules
@@ -191,18 +213,53 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       totalBorrowUsd: {
         type: 'number',
       },
+      availableBorrowUsd: {
+        type: 'number',
+        min: 0,
+      },
       ltv: {
         min: 0,
         max: 1,
       },
+      pricePerShare: {
+        type: 'number',
+        min: 0,
+      },
+      isIntrinsicSource: {
+        type: 'boolean',
+      },
+      borrowToken: {
+        type: 'string',
+      },
+      routeGroupKey: {
+        type: 'string',
+      },
+      underlyingStateKey: {
+        type: 'string',
+      },
+      poolKind: {
+        type: 'string',
+        values: ['routing_collateral', 'routing_reserve'],
+      },
     };
 
     apy.forEach((pool) => {
+      if (pool.mintedCoin != null) {
+        test(`Pool ${pool.pool} with mintedCoin should include a borrowToken`, () => {
+          expect(pool.borrowToken).toBeDefined();
+          expect(pool.borrowToken).not.toBeNull();
+        });
+      }
       Object.entries(additionalFieldRules).map(([field, rule]) => {
         if (pool[field] !== undefined) {
           if (rule.type !== undefined) {
             test(`${field} field of pool with id ${pool.pool} should be a ${rule.type}`, () => {
               expect(typeof pool[field]).toBe(rule.type);
+            });
+          }
+          if (rule.values !== undefined) {
+            test(`${field} field of pool with id ${pool.pool} should be one of ${rule.values.join(', ')}`, () => {
+              expect(rule.values).toContain(pool[field]);
             });
           }
           if (rule.max !== undefined && rule.min !== undefined) {

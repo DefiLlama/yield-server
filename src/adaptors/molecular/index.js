@@ -14,9 +14,7 @@ async function apy() {
   ).output;
 
   let coinsKey = allPools.map((pool) => `${chain}:${pool.asset}`);
-  let { coins } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${coinsKey}`
-  );
+  let { coins } = await utils.getPriceApiData(`/prices/current/${coinsKey}`);
 
   let farmToTvls = {};
   let farmAddresses = {};
@@ -69,6 +67,7 @@ let abi = {
 };
 
 module.exports = {
+  protocolId: '6888',
   apy: apy,
   url: 'https://molecular.finance/vault',
 };

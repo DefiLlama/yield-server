@@ -77,9 +77,7 @@ const topLvl = async (chainString, timestamp, url) => {
     ).output / 1e18;
 
   const priceKey = `arbitrum:${ZYB}`;
-  const zyberPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const zyberPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   const zyberPerYearUsd = zyberPerSec * 86400 * 365 * zyberPrice;
 
@@ -121,7 +119,7 @@ const topLvl = async (chainString, timestamp, url) => {
     const apyReward =
       (((x / totalAllocPoint) * zyberPerYearUsd) / p.totalValueLockedUSD) * 100;
 
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -147,6 +145,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2467',
   timetravel: true,
   apy: main,
   url: 'https://app.zyberswap.io/exchange/pool',

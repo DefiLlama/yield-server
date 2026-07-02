@@ -115,7 +115,7 @@ async function getPoolData(
 
 async function getApy() {
     const TON = 'ton:EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
-    const price = async (token) => (await utils.getData(`https://coins.llama.fi/prices/current/${token}`)).coins[token].price;
+    const price = async (token) => (await utils.getPriceApiData(`/prices/current/${token}`)).coins[token].price;
     const tonPrice = await price(TON);
     const borrowRate = (await utils.getData('https://api.daolama.co/api/v1/analytics/borrowed/rate')).value;
     const client = new TonClient({
@@ -127,7 +127,7 @@ async function getApy() {
         client,
         'EQCkeTvOSTBwBtP06X2BX7THj_dlX67PhgYRGuKfjWtB9FVb',
         'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
-        'TON',
+        'GRAM',
         tonPrice,
         1e9,
         'Main',
@@ -139,6 +139,7 @@ async function getApy() {
 }
 
 module.exports = {
+  protocolId: '3050',
     timetravel: false,
     apy: getApy,
     url: 'https://daolama.co/',

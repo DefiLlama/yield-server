@@ -50,13 +50,14 @@ const getApy = async (market) => {
     })
   ).output.map((o) => o.output);
 
-  const totalSupply = (
+  const poolsReserveCaps = (
     await sdk.api.abi.multiCall({
-      chain,
-      abi: 'erc20:totalSupply',
-      calls: aTokens.map((t) => ({
-        target: t.tokenAddress,
+      calls: reserveTokens.map((p) => ({
+        target: protocolDataProvider,
+        params: p.tokenAddress,
       })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
     })
   ).output.map((o) => o.output);
 
@@ -84,9 +85,7 @@ const getApy = async (market) => {
   const priceKeys = reserveTokens
     .map((t) => `${chain}:${t.tokenAddress}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
 
   return reserveTokens
@@ -96,15 +95,21 @@ const getApy = async (market) => {
 
       const p = poolsReserveData[i];
       const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
-
-      const supply = totalSupply[i];
-      let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const decimals = Number(underlyingDecimals[i]);
+      const toTokenAmount = (amount) => Number(amount) / 10 ** decimals;
 
       const currentSupply = underlyingBalances[i];
-      let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
+      const tvlUsd = toTokenAmount(currentSupply) * price;
 
-      const totalBorrowUsd = totalSupplyUsd - tvlUsd;
-      
+      const totalBorrow =
+        BigInt(p.totalStableDebt) + BigInt(p.totalVariableDebt);
+      const totalBorrowUsd = toTokenAmount(totalBorrow) * price;
+      const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+      const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const availableBorrowUsd = Number(poolsReserveCaps[i].borrowCap)
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
+
       const marketUrlParam =
         market === 'ethereum'
           ? 'mainnet'
@@ -116,7 +121,7 @@ const getApy = async (market) => {
           ? 'bnb'
           : market;
 
-      const url = `https:/lend.avalonfinance.xyz/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
+      const url = `https://lend.avalonfinance.xyz/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
 
       return {
         pool: `${aTokens[i].tokenAddress}-${
@@ -130,7 +135,9 @@ const getApy = async (market) => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        borrowToken: pool.tokenAddress,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
@@ -153,5 +160,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4473',
   apy,
 };

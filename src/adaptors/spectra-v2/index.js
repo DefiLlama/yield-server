@@ -105,7 +105,7 @@ const lpApy = (p) => {
     pool: poolId(p.address, p.chainId),
     chain: utils.formatChain(chain.name),
     project: 'spectra-v2',
-    symbol: utils.formatSymbol(`${p.pt.ibt.symbol}`),
+    symbol: `${p.pt.ibt.symbol}`,
     tvlUsd: p.liquidity?.usd,
     apyBase: p.lpApy.total - spectra,
     apyReward: spectra,
@@ -124,7 +124,7 @@ const fixedRateApy = (p) => {
     pool: poolId(p.pt.address, p.chainId),
     chain: utils.formatChain(chain.name),
     project: 'spectra-v2',
-    symbol: utils.formatSymbol(`${p.pt.ibt.symbol}`),
+    symbol: `${p.pt.ibt.symbol}`,
     tvlUsd: p.liquidity?.usd,
     apyBase: p.pt.ibt.apr?.total,
     underlyingTokens: [p.pt.underlying.address],
@@ -163,6 +163,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '4725',
   timetravel: false,
   apy,
 };

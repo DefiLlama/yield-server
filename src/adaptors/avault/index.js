@@ -7,6 +7,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1887',
   timetravel: false,
   apy: main,
   url: 'https://www.avault.network/vault',

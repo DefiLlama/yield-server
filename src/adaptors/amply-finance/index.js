@@ -49,6 +49,17 @@ const getApy = async (chain) => {
     })
   ).output.map((o) => o.output);
 
+  const poolsReserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: protocolDataProvider,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupply = (
     await sdk.api.abi.multiCall({
       chain,
@@ -83,9 +94,7 @@ const getApy = async (chain) => {
   const priceKeys = reserveTokens
     .map((t) => `${chain}:${t.tokenAddress}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return reserveTokens.map((pool, i) => {
     const p = poolsReserveData[i];
@@ -97,7 +106,12 @@ const getApy = async (chain) => {
     const currentSupply = underlyingBalances[i];
     let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
 
-    totalBorrowUsd = totalSupplyUsd - tvlUsd;
+    const totalBorrowUsd =
+      (Number(p.totalVariableDebt) / 10 ** underlyingDecimals[i]) * price;
+    const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+    const availableBorrowUsd = Number(poolsReserveCaps[i].borrowCap)
+      ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+      : tvlUsd;
 
     return {
       pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
@@ -109,7 +123,9 @@ const getApy = async (chain) => {
       underlyingTokens: [pool.tokenAddress],
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+      borrowToken: pool.tokenAddress,
       ltv: poolsReservesConfigurationData[i].ltv / 10000,
       borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
     };
@@ -125,6 +141,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5107',
   timetravel: false,
   apy,
   url: 'https://amply.finance/',

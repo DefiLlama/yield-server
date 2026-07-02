@@ -10,7 +10,7 @@ const apy = async () => {
   const totalSupply = await getTotalSupply(BBSOL_ADDRESS);
 
   const priceResponse = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
+    utils.getPriceApiUrl(`/prices/current/${priceKey}`)
   );
   const currentPrice = priceResponse.data.coins[priceKey].price;
 
@@ -27,11 +27,12 @@ const apy = async () => {
       project: 'bybit-staked-sol',
       symbol: 'BBSOL',
       tvlUsd: totalSupply * currentPrice,
-      apy: bbSolApy,
+      apyBase: bbSolApy,
       underlyingTokens: [SOL],
       searchTokenOverride: BBSOL_ADDRESS,
+      isIntrinsicSource: true,
     },
   ];
 };
 
-module.exports = { apy, url: 'https://www.bybit.com/en/web3/staking/BybitSOL' };
+module.exports = { protocolId: '5179', apy, url: 'https://www.bybit.com/en/web3/staking/BybitSOL' };

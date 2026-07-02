@@ -61,9 +61,7 @@ const getApy = async () => {
 
   const priceKeys = tokens.map((i) => `${chain}:${i}`).join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const optionTokens = Object.keys(optionTokenToGovToken);
   // get discount for redeeming option token to liquidity token
@@ -244,7 +242,7 @@ const getApy = async () => {
       pool: p,
       chain: utils.formatChain(chain),
       project: 'velocimeter-v2',
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      symbol: s.split('-')[1],
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [...new Set(rewardTokens)] : [],
@@ -256,6 +254,7 @@ const getApy = async () => {
   return pools.filter((p) => utils.keepFinite(p));
 };
 module.exports = {
+  protocolId: '2668',
   timetravel: false,
   apy: getApy,
 };

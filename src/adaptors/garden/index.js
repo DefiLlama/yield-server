@@ -130,7 +130,7 @@ const getTvl = async () => {
 
     // Get SEED price
     const priceData = await axios.get(
-      'https://coins.llama.fi/prices/current/arbitrum:0x86f65121804D2Cdbef79F9f072D4e0c2eEbABC08'
+      utils.getPriceApiUrl('/prices/current/arbitrum:0x86f65121804D2Cdbef79F9f072D4e0c2eEbABC08')
     );
 
     const seedPrice =
@@ -144,7 +144,7 @@ const getTvl = async () => {
         pool: '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf-base',
         chain: utils.formatChain(chain),
         project: 'garden',
-        symbol: utils.formatSymbol('SEED'),
+        symbol: 'SEED',
         tvlUsd: tvlUsd,
         apy: apyData.data,
         underlyingTokens: [SEED_TOKEN],
@@ -157,6 +157,7 @@ const getTvl = async () => {
 };
 
 module.exports = {
+  protocolId: '4086',
   timetravel: false,
   apy: getTvl,
   url: 'https://app.garden.finance/stake',

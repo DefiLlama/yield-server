@@ -1,6 +1,8 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
+const { merklGet } = require('../merkl/merkl-client');
+const { getPriceApiUrl } = require('../utils');
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -136,10 +138,10 @@ const VAULT_BLACKLIST = {
 };
 
 async function getMerklOpportunities() {
-  const res = await axios.get(
-    new URL('https://api.merkl.xyz/v4/opportunities?name=termmax')
-  );
-  return res.data.filter((o) => o.status === 'LIVE');
+  const data = await merklGet('/v4/opportunities', {
+    params: { name: 'termmax' },
+  });
+  return data.filter((o) => o.status === 'LIVE');
 }
 
 async function getPrices(chain, addresses) {
@@ -148,7 +150,7 @@ async function getPrices(chain, addresses) {
   const tasks = [];
   for (const address of addresses) {
     const url = new URL(
-      `https://coins.llama.fi/prices/current/${chain}:${address}`
+      getPriceApiUrl(`/prices/current/${chain}:${address}`)
     );
     tasks.push(
       axios.get(url).then((response) => {
@@ -909,5 +911,6 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '4799',
   apy,
 };

@@ -5,7 +5,6 @@ const abiMcV3PolygonZkevm = require('./masterchefv3PolygonZkevm.json');
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
-const fetch = require('node-fetch');
 
 const CAKE = {
   ethereum: '0x152649eA73beAb28c5b49B26eb48f7EAD6d4c898',
@@ -217,12 +216,10 @@ const getBaseTokensPrice = async (allTokens, chain) => {
   };
 
   let prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${Object.values(priceKeys)
+    await utils.getPriceApiData(`/prices/current/${Object.values(priceKeys)
         .map((t) => `bsc:${t}`)
         .concat(allTokens.map((t) => `${chain}:${t}`))
-        .join(',')}`
-    )
+        .join(',')}`)
   ).coins;
 
   const cakePriceData = prices[`bsc:${priceKeys.cake}`];

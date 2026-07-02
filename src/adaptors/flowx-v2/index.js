@@ -41,5 +41,6 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3196',
   apy: main,
 };

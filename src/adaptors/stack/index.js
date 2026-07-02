@@ -7,9 +7,7 @@ const { contracts, tokens } = require('./constants');
 
 const apy = async () => {
   const underlying = tokens.MORE;
-  const tokenPrices = (
-    await axios.get(`https://coins.llama.fi/prices/current/real:${underlying}`)
-  ).data.coins;
+  const tokenPrices = (await utils.getPriceApiData(`/prices/current/real:${underlying}`)).coins;
 
   const underlyingPrice = tokenPrices[`real:${underlying}`]?.price;
 
@@ -51,7 +49,7 @@ const apy = async () => {
       pool: tokens.sMORE,
       chain: 'real',
       project: 'stack',
-      symbol: utils.formatSymbol('sMORE'),
+      symbol: 'sMORE',
       tvlUsd,
       underlyingTokens: [tokens.MORE],
       apyBase: apr * 100,
@@ -62,6 +60,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4838',
   timetravel: false,
   apy,
   url: 'https://www.stackmore.xyz/stake',

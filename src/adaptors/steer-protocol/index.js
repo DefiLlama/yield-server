@@ -72,11 +72,7 @@ const getPools = async () => {
       });
 
       // get prices
-      const tokenPrices = (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${[...tokenList]}`
-        )
-      ).data.coins;
+      const tokenPrices = (await utils.getPriceApiData(`/prices/current/${[...tokenList]}`)).coins;
 
       const chainPools = data.vaults.map((vault) => {
         // calculate tvl
@@ -117,6 +113,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '3043',
   timetravel: false,
   apy: getPools,
 };

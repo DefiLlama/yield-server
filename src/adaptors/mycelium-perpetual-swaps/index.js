@@ -121,7 +121,7 @@ const getPoolMlp = async (
     pool: pInflationTracker,
     chain: utils.formatChain(CHAIN_STRING),
     project: projectSlug,
-    symbol: utils.formatSymbol('MLP'),
+    symbol: 'MLP',
     tvlUsd: parseFloat(pTvl),
     apyBase: apyFee,
     apyReward: apyInflation,
@@ -136,7 +136,7 @@ const getPoolMyc = async (pTvl, pApy, pStaking, pPriceData) => {
     pool: pStaking,
     chain: utils.formatChain(CHAIN_STRING),
     project: projectSlug,
-    symbol: utils.formatSymbol('MYC'),
+    symbol: 'MYC',
     tvlUsd: pTvl * pPriceData['coingecko:mycelium'].price,
     apyBase: pApy,
     rewardTokens: [arbitrumMyc],
@@ -151,9 +151,7 @@ const getPools = async () => {
   const priceKeys = ['mycelium', 'ethereum']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: priceData } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: priceData } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const arbitrumFeeMlp = await getAdjustedAmount(
     arbitrumFeeMlpTracker,
@@ -186,6 +184,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '1989',
   timetravel: false,
   apy: getPools,
   url: 'https://swaps.mycelium.xyz/',

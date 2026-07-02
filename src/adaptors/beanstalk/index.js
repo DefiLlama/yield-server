@@ -107,6 +107,7 @@ async function getPoolsForChain(chain, timestamp) {
 }
 
 module.exports = {
+  protocolId: '631',
   timetravel: true,
   apy: getPools,
   url: 'https://app.bean.money/#/silo'

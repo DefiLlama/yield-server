@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 const {
   callReadOnlyFunction,
   contractPrincipalCV,
@@ -75,7 +76,7 @@ const POOLS = [
 
 async function fetchPrices() {
   const keys = [...new Set(POOLS.flatMap((p) => p.priceKeys))].join(',');
-  const url = `https://coins.llama.fi/prices/current/${keys}`;
+  const url = getPriceApiUrl(`/prices/current/${keys}`);
   const { data } = await axios.get(url);
   return data.coins;
 }
@@ -150,6 +151,7 @@ async function getZestV2Pools() {
           tvlUsd: tvlUsd,
           apyBase: apys.supplyApy,
           apyBaseBorrow: apys.borrowApy,
+          borrowToken: `${pool.assetAddress}.${pool.contractName}`,
           underlyingTokens: [`${pool.assetAddress}.${pool.contractName}`],
           token: `${pool.assetAddress}.${pool.contractName}`,
           url: 'https://app.zestprotocol.com/market/main',
@@ -167,6 +169,7 @@ async function getZestV2Pools() {
 }
 
 module.exports = {
+  protocolId: '7449',
   timetravel: false,
   apy: getZestV2Pools,
   url: 'https://app.zestprotocol.com/market/main',

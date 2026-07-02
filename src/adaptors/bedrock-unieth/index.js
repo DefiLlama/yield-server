@@ -1,6 +1,7 @@
 const axios = require('axios');
 const ethers = require('ethers');
 const { differenceInDays, isBefore, parseISO, startOfDay, subDays } = require('date-fns');
+const { getPriceApiData } = require('../utils');
 
 const UNIETH_CONTRACT_ADDRESS = '0xF1376bceF0f78459C0Ed0ba5ddce976F1ddF51F4';
 
@@ -9,7 +10,7 @@ const UNIETH_CONTRACT_ADDRESS = '0xF1376bceF0f78459C0Ed0ba5ddce976F1ddF51F4';
  */
 async function useTvlUsd(totalSupply) {
   const priceKey = `ethereum:${UNIETH_CONTRACT_ADDRESS}`;
-  const uniETHPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
+  const uniETHPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
   return totalSupply.mul(ethers.utils.parseEther(String(uniETHPrice)));
 }
 async function useE2LSServerLatestQuarterly() {
@@ -121,10 +122,12 @@ const getApy = async () => {
       apyBase: 100 * Number(ethers.utils.formatEther(apyAsBigNumber30)),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: UNIETH_CONTRACT_ADDRESS,
+      isIntrinsicSource: true,
     }
   ];
 };
 module.exports = {
+  protocolId: '2832',
   timetravel: false,
   apy: getApy,
   url: 'https://app.bedrock.technology/unieth',

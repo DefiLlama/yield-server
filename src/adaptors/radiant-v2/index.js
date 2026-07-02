@@ -175,9 +175,7 @@ const fetchPoolsFromLendingPool = async (chain, lendingPool, protocolDataProvide
 
   const pricesArray = reservesList.map((t) => `${chain}:${t}`);
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
   return reservesList.map((t, i) => {
     const config = reserveConfigurationData[i];
@@ -211,7 +209,9 @@ const fetchPoolsFromLendingPool = async (chain, lendingPool, protocolDataProvide
       // borrow fields
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd: tvlUsd,
       apyBaseBorrow,
+      borrowToken: t,
       ltv,
       borrowable,
       poolMeta: poolMeta || (frozen ? 'frozen' : null),
@@ -277,5 +277,6 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2706',
   apy: getApy,
 };

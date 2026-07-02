@@ -101,7 +101,7 @@ const apy = async () => {
       pool: `osmosis-${pool.pool_id}`,
       chain: 'Osmosis',
       project: 'osmosis-dex',
-      symbol: utils.formatSymbol(symbol),
+      symbol: symbol,
       tvlUsd: pool.liquidity,
       apyBase,
       apyBase7d: apyBase,
@@ -119,5 +119,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '383',
   apy,
 };

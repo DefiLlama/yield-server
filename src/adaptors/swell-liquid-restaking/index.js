@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const { BigNumber } = require('ethers');
 
 const abi = require('./abi.json');
+const { getPriceApiData } = require('../utils');
 
 const rswETH = '0xFAe103DC9cf190eD75350761e95403b7b8aFa6c0';
 
@@ -27,22 +28,20 @@ const apy = async () => {
   const eventPrev = repriceEvents[1];
   const { closestBefore, closestAfter, timestamp7DaysAgo } = await getCloseestTo7dAgo(repriceEvents);
 
-  const interpolatedRate = await interpolate7d(closestBefore, closestAfter, timestamp7DaysAgo);
-  const startTime = await sdk.api.util.getTimestamp(eventPrev.blockNumber, "ethereum");
-  const endTime = await sdk.api.util.getTimestamp(eventNow.blockNumber, "ethereum");
-
   const apr1d = await calcRate(eventNow, eventPrev);
 
-  // Calculate 7-day APR using BigNumber operations
-  const currentRate = BigNumber.from(eventNow.decoded.newRswETHToETHRate.toString());
-  const sevenDayRateChange = currentRate.mul(BigNumber.from(10).pow(18)).div(interpolatedRate).sub(BigNumber.from(10).pow(18));
-  const timeElapsed = BigNumber.from(endTime - timestamp7DaysAgo);
-  const apr7d = sevenDayRateChange.mul(365 * 86400).div(timeElapsed).mul(100).toString() / 1e18;
+  let apr7d;
+  if (closestBefore && closestAfter) {
+    const interpolatedRate = await interpolate7d(closestBefore, closestAfter, timestamp7DaysAgo);
+    const endTime = await sdk.api.util.getTimestamp(eventNow.blockNumber, "ethereum");
+    const currentRate = BigNumber.from(eventNow.decoded.newRswETHToETHRate.toString());
+    const sevenDayRateChange = currentRate.mul(BigNumber.from(10).pow(18)).div(interpolatedRate).sub(BigNumber.from(10).pow(18));
+    const timeElapsed = BigNumber.from(endTime - timestamp7DaysAgo);
+    apr7d = sevenDayRateChange.mul(365 * 86400).div(timeElapsed).mul(100).toString() / 1e18;
+  }
 
   const priceKey = `ethereum:${rswETH}`;
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const rate = (await sdk.api.abi.call({
     target: rswETH,
@@ -58,14 +57,17 @@ const apy = async () => {
       symbol: 'rswETH',
       tvlUsd: tvlUsd,
       apyBase: apr1d,
-      apyBase7d: apr7d,
+      ...(apr7d !== undefined && { apyBase7d: apr7d }),
+      ...(rate > 0 && { pricePerShare: rate }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: rswETH,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '4078',
   apy,
   timetravel: false,
   url: 'https://app.swellnetwork.io/stake/rsweth',
@@ -78,9 +80,7 @@ async function get7dRepriceEvents() {
   const timestamp14dayAgo = timestampNow - 86400 * 14;
 
   const blockNow = await sdk.api.util.getLatestBlock("ethereum")
-  const block14dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp14dayAgo}`)
-  ).data.height;
+  const block14dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp14dayAgo}`)).height;
 
   const repriceEvents = await sdk.getEventLogs({
     target: rswETH,

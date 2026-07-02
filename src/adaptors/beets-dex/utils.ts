@@ -71,7 +71,7 @@ const getPools = async (backendChain, chainString, version) => {
         pool: pool.address,
         chain: utils.formatChain(chainString),
         project: version === 3 ? 'beets-dex-v3' : 'beets-dex',
-        symbol: utils.formatSymbol(pool.symbol),
+        symbol: pool.symbol,
         tvlUsd: Number(pool.dynamicData.totalLiquidity),
         apyBase: baseApr * 100,
         apyReward: stakingApr * 100,

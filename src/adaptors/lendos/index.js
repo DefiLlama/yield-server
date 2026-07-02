@@ -10,5 +10,6 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '4658',
   apy: poolsFunction,
 };

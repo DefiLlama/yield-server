@@ -35,7 +35,7 @@ const main = async () => {
             pool: `${vault.address}-${networkMapping[chain]}`.toLowerCase(),
             chain: utils.formatChain(networkMapping[chain]),
             project: 'goat-protocol',
-            symbol: utils.formatSymbol(vault.asset.symbol),
+            symbol: vault.asset.symbol,
             tvlUsd: vault.tvl,
             apy: vault.apy * 100,
             underlyingTokens: [vault.asset.address],
@@ -48,6 +48,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '4162',
     timetravel: false,
     apy: main,
     url: 'https://goat.fi/',

@@ -2,7 +2,7 @@ const axios = require('axios');
 const { gql, request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 
-const { capitalizeFirstLetter } = require('../utils');
+const { capitalizeFirstLetter, getPriceApiUrl } = require('../utils');
 
 const ETHEREUM_OETH_TOKEN = '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3';
 const BASE_WETH_TOKEN = '0x4200000000000000000000000000000000000006';
@@ -65,7 +65,7 @@ const fetchPoolData = async ({
 
   const ethPriceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPriceRes = await axios.get(
-    `https://coins.llama.fi/prices/current/${ethPriceKey}`
+    getPriceApiUrl(`/prices/current/${ethPriceKey}`)
   );
   const ethPrice = ethPriceRes.data.coins[ethPriceKey].price;
 
@@ -94,6 +94,7 @@ const apy = async () => {
       project: 'origin-ether',
       underlyingToken: '0x0000000000000000000000000000000000000000',
       tokenAddress: ETHEREUM_OETH_TOKEN,
+      isIntrinsicSource: true,
     }),
     fetchPoolData({
       chain: 'base',
@@ -104,6 +105,7 @@ const apy = async () => {
       project: 'origin-ether',
       underlyingToken: '0x0000000000000000000000000000000000000000',
       tokenAddress: BASE_SUPER_OETH_TOKEN,
+      isIntrinsicSource: true,
     }),
     fetchPoolData({
       chain: 'plume_mainnet',
@@ -114,12 +116,14 @@ const apy = async () => {
       project: 'origin-ether',
       underlyingToken: '0x0000000000000000000000000000000000000000',
       tokenAddress: PLUME_SUPER_OETH_TOKEN,
+      isIntrinsicSource: true,
     }),
   ]);
   return pools.filter((i) => i.status === 'fulfilled').map((i) => i.value);
 };
 
 module.exports = {
+  protocolId: '2950',
   timetravel: false,
   apy,
   url: 'https://originprotocol.com',

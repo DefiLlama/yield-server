@@ -4,6 +4,7 @@ const utils = require('../utils');
 const { sTokenPools, CHAIN_CONFIG } = require('./config');
 
 const OCTO_POOL_APR_URL = 'https://api.symbiosis.finance/crosschain/v1/octo-pool-apr';
+const TELOS_RPC = 'https://rpc.telos.net/evm';
 
 // Get chain name for DefiLlama price API
 const getPriceApiChain = (chain, isTron) => {
@@ -14,6 +15,26 @@ const getPriceApiChain = (chain, isTron) => {
 // Format chain name for DefiLlama display
 const formatChainName = (chain) => {
   return CHAIN_CONFIG[chain]?.display || utils.formatChain(chain);
+};
+
+const balanceOfCalldata = (account) =>
+  `0x70a08231${account.toLowerCase().replace(/^0x/, '').padStart(64, '0')}`;
+
+const getTelosBalance = async (pool) => {
+  const response = await utils.getData(TELOS_RPC, {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'eth_call',
+    params: [
+      {
+        to: pool.token,
+        data: balanceOfCalldata(pool.portal),
+      },
+      'latest',
+    ],
+  });
+
+  return BigInt(response.result || 0).toString();
 };
 
 // This API returns APR by sToken address on Symbiosis chain
@@ -46,41 +67,88 @@ const loadTvlData = async () => {
   // Fetch all prices in a single batch request
   let prices = {};
   try {
-    const priceResponse = await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKeys.join(',').toLowerCase()}`
-    );
+    const priceResponse = await utils.getPriceApiData(`/prices/current/${priceKeys.join(',').toLowerCase()}`);
     prices = priceResponse.coins || {};
   } catch (err) {
     console.log(`Failed to fetch prices: ${err.message}`);
   }
 
-  // Query all token balances in parallel
+  const pricedPools = [];
+  for (const pool of pools) {
+    const priceChain = getPriceApiChain(pool.chain, pool.isTron);
+    const priceKey = `${priceChain}:${pool.token}`.toLowerCase();
+    const tokenPrice = prices[priceKey]?.price || 0;
+
+    if (tokenPrice === 0) {
+      console.log(`No price found for ${pool.chain} ${pool.symbol} (${priceKey})`);
+      tvlData[pool.sToken] = 0;
+      continue;
+    }
+
+    pricedPools.push({ ...pool, tokenPrice });
+  }
+
+  const poolsByChain = pricedPools.reduce((acc, pool) => {
+    const chain = pool.isTron ? 'tron' : pool.chain;
+    if (!acc[chain]) acc[chain] = [];
+    acc[chain].push(pool);
+    return acc;
+  }, {});
+
   await Promise.all(
-    pools.map(async (pool) => {
+    Object.entries(poolsByChain).map(async ([chain, chainPools]) => {
+      if (chain === 'telos') {
+        await Promise.all(
+          chainPools.map(async (pool) => {
+            try {
+              const balance = new BigNumber(await getTelosBalance(pool));
+              const tokenAmount = balance.div(new BigNumber(10).pow(pool.decimals));
+              tvlData[pool.sToken] = tokenAmount.times(pool.tokenPrice).toNumber();
+            } catch (err) {
+              console.log(`Failed to fetch TVL for ${pool.chain} ${pool.symbol}: ${err.message}`);
+              tvlData[pool.sToken] = 0;
+            }
+          })
+        );
+        return;
+      }
+
       try {
-        const balanceResult = await sdk.api.abi.call({
-          target: pool.token,
-          params: pool.portal,
-          chain: pool.isTron ? 'tron' : pool.chain,
+        const balances = await sdk.api.abi.multiCall({
+          calls: chainPools.map((pool) => ({
+            target: pool.token,
+            params: pool.portal,
+          })),
           abi: 'erc20:balanceOf',
+          chain,
+          permitFailure: true,
         });
 
-        const balance = new BigNumber(balanceResult.output);
-        const tokenAmount = balance.div(new BigNumber(10).pow(pool.decimals));
-
-        // Get USD price for this token
-        const priceChain = getPriceApiChain(pool.chain, pool.isTron);
-        const priceKey = `${priceChain}:${pool.token}`.toLowerCase();
-        const tokenPrice = prices[priceKey]?.price || 0;
-
-        if (tokenPrice === 0) {
-          console.log(`No price found for ${pool.chain} ${pool.symbol} (${priceKey})`);
-        }
-
-        tvlData[pool.sToken] = tokenAmount.times(tokenPrice).toNumber();
+        balances.output.forEach((balanceResult, index) => {
+          const pool = chainPools[index];
+          const balance = new BigNumber(balanceResult.output || 0);
+          const tokenAmount = balance.div(new BigNumber(10).pow(pool.decimals));
+          tvlData[pool.sToken] = tokenAmount.times(pool.tokenPrice).toNumber();
+        });
       } catch (err) {
-        console.log(`Failed to fetch TVL for ${pool.chain} ${pool.symbol}: ${err.message}`);
-        tvlData[pool.sToken] = 0;
+        await Promise.all(
+          chainPools.map(async (pool) => {
+            try {
+              const balanceResult = await sdk.api.abi.call({
+                target: pool.token,
+                params: pool.portal,
+                chain,
+                abi: 'erc20:balanceOf',
+              });
+              const balance = new BigNumber(balanceResult.output);
+              const tokenAmount = balance.div(new BigNumber(10).pow(pool.decimals));
+              tvlData[pool.sToken] = tokenAmount.times(pool.tokenPrice).toNumber();
+            } catch (poolErr) {
+              console.log(`Failed to fetch TVL for ${pool.chain} ${pool.symbol}: ${poolErr.message}`);
+              tvlData[pool.sToken] = 0;
+            }
+          })
+        );
       }
     })
   );
@@ -123,6 +191,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1594',
   timetravel: false,
   apy: main,
   url: 'https://app.symbiosis.finance/liquidity-v2/pools',

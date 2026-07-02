@@ -20,7 +20,7 @@ async function sleep(ms) {
 }
 
 async function getBlockAtTs(chain, ts) {
-  const url = `https://coins.llama.fi/block/${chain}/${ts}`;
+  const url = utils.getPriceApiUrl(`/block/${chain}/${ts}`);
   let lastError;
 
   for (let i = 0; i < 4; i++) {
@@ -216,6 +216,7 @@ const collectPools = async (timestamp = Math.floor(Date.now() / 1000)) => {
 };
 
 module.exports = {
+  protocolId: '3958',
   timetravel: true,
   apy: collectPools,
   url: 'https://dsf.finance/',

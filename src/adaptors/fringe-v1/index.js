@@ -3,6 +3,7 @@ const axios = require('axios');
 
 const abiProtocol = require('./abis/protocolContractABI.json')
 const abiLendingPools = require('./abis/lendingPoolsABI.json');
+const { getPriceApiUrl } = require('../utils');
 
 // Fringe's primary contract addy for each chain. 
 // The primary contract tells us the list of lending pool contracts.
@@ -17,9 +18,9 @@ const primaryContractAddys = [
 const getPrices = async (chain, addresses) => {
     const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
 
-    try {    
-        const res = await axios.get('https://coins.llama.fi/prices/current/' + uri);
- 
+    try {
+        const res = await axios.get(getPriceApiUrl('/prices/current/') + uri);
+
         const prices = res.data.coins;
         const pricesObj = Object.entries(prices).reduce(
             (acc, [address, price]) => ({
@@ -162,8 +163,8 @@ const allLendingTokens = async () => {
             
             // Calc the USD-equivalent.
             let totalBorrowUSD = totalBorrow * priceUSD;
-    
-            let totalSupplyUSD = balanceOwnedUSD + totalBorrowUSD; 
+
+            let totalSupplyUSD = balanceOwnedUSD + totalBorrowUSD;
 
             // Push it good.
             lendingTokens.push({
@@ -188,6 +189,7 @@ const allLendingTokens = async () => {
 };
 
 module.exports = {
+  protocolId: '1858',
   timetravel: false,
   apy: allLendingTokens,
   url: 'https://app.fringe.fi/lend'

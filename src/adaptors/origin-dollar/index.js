@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { gql, request } = require('graphql-request');
 const sdk = require('@defillama/sdk');
+const { getPriceApiData } = require('../utils');
 
 const OUSD = '0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86';
 const graphUrl = 'https://origin.squids.live/origin-squid/graphql';
@@ -39,9 +40,7 @@ const apy = async () => {
     ).output / 1e18;
 
   const priceKey = `ethereum:${OUSD}`;
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const price = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const ousd = {
     pool: OUSD,
@@ -62,6 +61,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '427',
   timetravel: false,
   apy,
 };

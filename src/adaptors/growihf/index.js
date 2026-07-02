@@ -128,6 +128,7 @@ function computeAPY7Day(vaultDetails) {
 }
 
 module.exports = {
+  protocolId: '5883',
   timetravel: false,
   apy: async () => {
     const vaultDetails = await fetchVaultDetails();

@@ -15,6 +15,7 @@ async function apy() {
       symbol: 'savBTC',
       tvlUsd: savBTCData.tvlUsd,
       apyBase: savBTCData.apyBase,
+      ...(savBTCData.pricePerShare > 0 && { pricePerShare: savBTCData.pricePerShare }),
       underlyingTokens: [avBTC],
       poolMeta: 'ERC-4626: savBTC → avBTC',
       url: 'https://www.avantprotocol.com',
@@ -23,6 +24,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6323',
   timetravel: false,
   apy,
   url: 'https://www.avantprotocol.com',

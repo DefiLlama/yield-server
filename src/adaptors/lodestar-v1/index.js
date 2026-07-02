@@ -37,13 +37,9 @@ const ARB_TOKEN = {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -114,6 +110,8 @@ const main = async () => {
   const extraRewards = await getRewards(allMarkets, REWARD_SPEED);
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
   const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
+  const borrowCaps = await getRewards(allMarkets, 'borrowCaps');
+  const isBorrowPaused = await getRewards(allMarkets, 'borrowGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -192,6 +190,15 @@ const main = async () => {
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Math.min(
+        Number(marketsCash[i]),
+        Number(borrowCaps[i]) > 0
+          ? Math.max(Number(borrowCaps[i]) - Number(totalBorrows[i]), 0)
+          : Number(marketsCash[i])
+      ) /
+        10 ** decimals) *
+      price;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
@@ -270,6 +277,8 @@ const main = async () => {
         // borrow fields
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
+        borrowable: isBorrowPaused[i] === false,
         apyBaseBorrow,
         apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
@@ -282,6 +291,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3307',
   timetravel: false,
   apy: main,
   url: 'https://app.lodestarfinance.io/',

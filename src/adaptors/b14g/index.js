@@ -1,8 +1,7 @@
 const sdk = require('@defillama/sdk');
 const { getLatestBlock } = require('@defillama/sdk/build/util');
 const { RateLimiter } = require('limiter');
-const { getPrices } = require('../utils');
-const { fetchURL } = require('../../helper/utils');
+const { getData, getPrices } = require('../utils');
 
 // ---------- Constants ----------
 const STAKING_CONTRACT = '0xee21ab613d30330823D35Cf91A84cE964808B83F';
@@ -58,9 +57,9 @@ const blockchainInfoUrl = (addrs) =>
 async function _sumTokensBlockchain({ balances = {}, owners = [] }) {
   const STEP = 200;
   for (let i = 0; i < owners.length; i += STEP) {
-    const {
-      data: { addresses },
-    } = await fetchURL(blockchainInfoUrl(owners.slice(i, i + STEP)));
+    const { addresses } = await getData(
+      blockchainInfoUrl(owners.slice(i, i + STEP))
+    );
     for (const addr of addresses)
       sdk.util.sumSingleBalance(balances, 'bitcoin', addr.final_balance / 1e8);
   }
@@ -85,16 +84,14 @@ async function sumTokens({ balances = {}, owners = [], timestamp }) {
 
 const totalBTC = async () => {
   const {
-    data: {
-      data: { result },
-    },
-  } = await fetchURL(
+    data: { result },
+  } = await getData(
     'https://api.b14g.xyz/restake/marketplace/defillama/btc-tx-hash'
   );
 
   const owners = new Set();
   for (const { txHash } of result) {
-    const { data: tx } = await fetchURL(
+    const tx = await getData(
       `https://mempool.space/api/tx/${reverseBytes(txHash.slice(2))}`
     );
     const vinAddrs = new Set(
@@ -376,7 +373,11 @@ const getDualCOREVault = async (blockNumber) => {
   const apy =
     ((currentExchangeRate.output / exchangeRateYesterday.output) ** 365 - 1) *
     100;
-  return { apy, totalStake: totalStake.output / 1e18 };
+  return {
+    apy,
+    totalStake: totalStake.output / 1e18,
+    pricePerShare: Number(currentExchangeRate.output) / 1e18,
+  };
 };
 
 const getBTCMarketplace = async (blockNumber, corePrice, btcPrice) => {
@@ -452,6 +453,7 @@ const getApy = async () => {
         token: DUAL_CORE_TOKEN,
         tvlUsd: v.totalStake * corePrice,
         apyBase: v.apy,
+        ...(v.pricePerShare > 0 && { pricePerShare: v.pricePerShare }),
         chain: 'core',
         url: 'https://app.b14g.xyz/vaults/core',
         underlyingTokens: [CORE_NATIVE],
@@ -512,6 +514,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '5541',
   timetravel: false,
   apy: getApy,
 };

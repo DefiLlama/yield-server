@@ -33,6 +33,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1166',
   timetravel: false,
   apy: getApy,
   url: 'https://defichain.com/dex',

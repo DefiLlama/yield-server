@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 // Time constants
 const SECONDS_PER_DAY = 86400;
@@ -30,10 +31,10 @@ const apy = async () => {
   // Fetch block numbers for current and 2 days ago
   const [blockNow, block2daysAgo] = await Promise.all([
     axios
-      .get(`https://coins.llama.fi/block/monad/${now}`)
+      .get(getPriceApiUrl(`/block/monad/${now}`))
       .then((r) => r.data.height),
     axios
-      .get(`https://coins.llama.fi/block/monad/${timestamp2daysAgo}`)
+      .get(getPriceApiUrl(`/block/monad/${timestamp2daysAgo}`))
       .then((r) => r.data.height),
   ]);
 
@@ -169,7 +170,7 @@ const apy = async () => {
   let tvlUsd;
   try {
     const monPriceResponse = await axios.get(
-      'https://coins.llama.fi/prices/current/coingecko:monad'
+      getPriceApiUrl('/prices/current/coingecko:monad')
     );
     const monPrice =
       monPriceResponse.data.coins['coingecko:monad']?.price || 1;
@@ -187,13 +188,16 @@ const apy = async () => {
       symbol: 'shMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
+      ...(Number(shareValueNow) / 1e18 > 0 && { pricePerShare: Number(shareValueNow) / 1e18 }),
       underlyingTokens: [WMON],
       searchTokenOverride: SHMONAD_CONTRACT,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '7047',
   apy,
   url: 'https://shmonad.xyz',
 };

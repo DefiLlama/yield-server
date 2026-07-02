@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 // Time constants
 const MS_PER_SECOND = 1000;
@@ -31,9 +32,7 @@ const apy = async () => {
   const timestamp30DaysAgoSeconds = timestampNowSeconds - THIRTY_DAYS_SECONDS;
 
   // Fetch block number for 30d ago
-  const block30dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp30DaysAgoSeconds}`)
-  ).data.height;
+  const block30dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp30DaysAgoSeconds}`)).height;
 
   if (block30dayAgo === 0 || typeof block30dayAgo !== 'number') {
     throw new Error('RPC issue: Block number for 30d ago is invalid');
@@ -72,9 +71,7 @@ const apy = async () => {
   
   // Fetch ezETH price
   const priceKey = `ethereum:${EZETH_CONTRACT_ADDRESS}`;
-  const ezethPriceUsd = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const ezethPriceUsd = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   if (ezethPriceUsd === 0 || typeof ezethPriceUsd !== 'number') {
     throw new Error('Oracle issue: ezETH price is invalid');
@@ -90,14 +87,17 @@ const apy = async () => {
       project: 'renzo',
       symbol: 'ezETH',
       apyBase: apy30d * 100,
+      ...(Number(rateNow.output) / 1e18 > 0 && { pricePerShare: Number(rateNow.output) / 1e18 }),
       tvlUsd: tvlUsd,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: EZETH_CONTRACT_ADDRESS,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '3933',
   apy,
   url: 'https://app.renzoprotocol.com',
 };

@@ -1,9 +1,10 @@
 const axios = require('axios');
 const { uint256 } = require('starknet');
-const { call } = require('../../helper/starknet');
+const { call } = require('../utils');
 const { metricsAbi } = require('./abis/metricsAbi');
 const { default: BigNumber } = require('bignumber.js');
 const { erc20abi } = require('./abis/erc20abi');
+const { getPriceApiData } = require('../utils');
 const oracle =
   '0x07b05e8dc9c770b72befcf09599132093cf9e57becb2d1b3e89514e1f9bdf0ab';
 
@@ -153,9 +154,7 @@ const TOKENS = [
 
 const getTokenPrice = async (token) => {
   const networkTokenPair = `starknet:${token}`;
-  return (
-    await axios.get(`https://coins.llama.fi/prices/current/${networkTokenPair}`)
-  ).data.coins[networkTokenPair].price;
+  return (await getPriceApiData(`/prices/current/${networkTokenPair}`)).coins[networkTokenPair].price;
 };
 
 const market= '0x548f38cb45720a101a1ec2edfaf608b47d2b39d137d0d3134087315f1b5f4a5'
@@ -300,6 +299,7 @@ async function apy() {
 }
 apy()
 module.exports = {
+  protocolId: '3909',
   apy,
   url: 'https://app.hashstack.finance',
 };

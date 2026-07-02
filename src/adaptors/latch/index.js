@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { GraphQLClient, gql } = require('graphql-request');
+const { getPriceApiData } = require('../utils');
 
 const atETH = '0xc314b8637B05A294Ae9D9C29300d5f667c748baD';
 const atUSD = '0xc4af68Dd5b96f0A544c4417407773fEFDc97F58d';
@@ -44,13 +45,9 @@ const apy = async () => {
 
 
   const ethPriceKey = `ethereum:${eth}`;
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${ethPriceKey}`)
-  ).data.coins[ethPriceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${ethPriceKey}`)).coins[ethPriceKey]?.price;
   const usdtPriceKey = `ethereum:${usdt}`;
-  const usdtPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${usdtPriceKey}`)
-  ).data.coins[usdtPriceKey]?.price;
+  const usdtPrice = (await getPriceApiData(`/prices/current/${usdtPriceKey}`)).coins[usdtPriceKey]?.price;
 
   const { GetAPYs: atUsdApy } = await graphClient.request(apyQuery, { lsdToken: atUSD });
   const { GetAPYs: atEthApy } = await graphClient.request(apyQuery, { lsdToken: atETH });
@@ -78,4 +75,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://savings.latch.io/' };
+module.exports = { protocolId: '5580', apy, url: 'https://savings.latch.io/' };

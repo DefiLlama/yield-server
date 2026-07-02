@@ -72,9 +72,7 @@ const getMarketPrices = async () => {
     KGL: `astar:${KGL_TOKEN}`,
     MUUU: `astar:${MUUU_TOKEN}`,
   };
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${Object.entries(assets)}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${Object.entries(assets)}`);
 
   return {
     [WASTR_TOKEN]: prices[assets.ASTR].price,

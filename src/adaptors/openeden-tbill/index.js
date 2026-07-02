@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getPriceApiUrl } = require('../utils');
 
 const config = {
   ethereum: {
@@ -27,7 +27,7 @@ const symbol = 'TBILL';
 
 const getBlock = (timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/ethereum/${timestamp}`)
+    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`))
     .then((r) => r.data.height);
 
 // Helper to fetch oracle price at a specific block
@@ -176,6 +176,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3057',
   timetravel: false,
   apy,
   url: 'https://app.openeden.com/tbill',

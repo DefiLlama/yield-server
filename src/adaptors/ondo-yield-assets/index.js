@@ -2,6 +2,8 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 
+const CANONICAL_USDY = '0x96f6ef951840721adbf46ac996b59e0235cb985c';
+
 // Ondo Finance RWA tokens with oracle configuration
 // USDY oracles have getPriceHistorical(timestamp) for direct historical queries
 // OUSG oracle uses getAssetPrice(token) - requires block-based historical queries
@@ -188,7 +190,7 @@ const ousgOracleAbi = {
 
 const getBlock = async (chain, timestamp) => {
   const response = await axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
+    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
   );
   return response.data.height;
 };
@@ -306,11 +308,11 @@ const getPoolsForChain = async (chain, sharedData) => {
       const apyBase = calculateApy(currentPrice, price30d, 30);
       const apyBase7d = calculateApy(currentPrice, price7d, 7);
 
-      poolData.push({
+      const pool = {
         pool: `${token.address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: 'ondo-yield-assets',
-        symbol: utils.formatSymbol(token.symbol),
+        symbol: token.symbol,
         token: token.address,
         tvlUsd,
         apyBase: Number(apyBase.toFixed(2)),
@@ -320,7 +322,13 @@ const getPoolsForChain = async (chain, sharedData) => {
         url: token.oracleType === 'usdy'
           ? 'https://app.ondo.finance/assets/usdy'
           : 'https://app.ondo.finance/assets/ousg',
-      });
+      };
+
+      if (token.address.toLowerCase() === CANONICAL_USDY) {
+        pool.isIntrinsicSource = true;
+      }
+
+      poolData.push(pool);
     } catch (e) {
       console.error(`Ondo Finance: Error processing ${token.symbol} on ${chain}:`, e.message);
       continue;
@@ -444,7 +452,7 @@ const getXrplPools = async (sharedData) => {
           pool: `${xrplConfig.ousg.issuer}-xrpl`,
           chain: 'Ripple',
           project: 'ondo-yield-assets',
-          symbol: utils.formatSymbol(xrplConfig.ousg.symbol),
+          symbol: xrplConfig.ousg.symbol,
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
           apyBase7d: Number(apyBase7d.toFixed(2)),
@@ -478,7 +486,7 @@ const getSuiPools = async (sharedData) => {
           pool: `${suiConfig.usdy.coinType}-sui`,
           chain: 'Sui',
           project: 'ondo-yield-assets',
-          symbol: utils.formatSymbol(suiConfig.usdy.symbol),
+          symbol: suiConfig.usdy.symbol,
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
           apyBase7d: Number(apyBase7d.toFixed(2)),
@@ -512,7 +520,7 @@ const getStellarPools = async (sharedData) => {
           pool: `${stellarConfig.usdy.issuer}-stellar`,
           chain: 'Stellar',
           project: 'ondo-yield-assets',
-          symbol: utils.formatSymbol(stellarConfig.usdy.symbol),
+          symbol: stellarConfig.usdy.symbol,
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
           apyBase7d: Number(apyBase7d.toFixed(2)),
@@ -546,7 +554,7 @@ const getOsmosisPools = async (sharedData) => {
           pool: `${osmosisConfig.usdy.ibcDenom}-osmosis`,
           chain: 'Osmosis',
           project: 'ondo-yield-assets',
-          symbol: utils.formatSymbol(osmosisConfig.usdy.symbol),
+          symbol: osmosisConfig.usdy.symbol,
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
           apyBase7d: Number(apyBase7d.toFixed(2)),
@@ -580,7 +588,7 @@ const getNoblePools = async (sharedData) => {
           pool: `${nobleConfig.usdy.denom}-noble`,
           chain: 'Noble',
           project: 'ondo-yield-assets',
-          symbol: utils.formatSymbol(nobleConfig.usdy.symbol),
+          symbol: nobleConfig.usdy.symbol,
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
           apyBase7d: Number(apyBase7d.toFixed(2)),
@@ -615,7 +623,7 @@ const getSolanaPools = async (sharedData) => {
           pool: `${solanaConfig.usdy.address}-solana`,
           chain: 'Solana',
           project: 'ondo-yield-assets',
-          symbol: utils.formatSymbol(solanaConfig.usdy.symbol),
+          symbol: solanaConfig.usdy.symbol,
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
           apyBase7d: Number(apyBase7d.toFixed(2)),
@@ -642,7 +650,7 @@ const getSolanaPools = async (sharedData) => {
           pool: `${solanaConfig.ousg.address}-solana`,
           chain: 'Solana',
           project: 'ondo-yield-assets',
-          symbol: utils.formatSymbol(solanaConfig.ousg.symbol),
+          symbol: solanaConfig.ousg.symbol,
           tvlUsd,
           apyBase: Number(apyBase.toFixed(2)),
           apyBase7d: Number(apyBase7d.toFixed(2)),
@@ -729,10 +737,11 @@ const apy = async () => {
     ...stellarPools,
     ...osmosisPools,
     ...noblePools,
-  ].filter((p) => utils.keepFinite(p));
+  ].filter((p) => utils.keepFinite(p))
 };
 
 module.exports = {
+  protocolId: '2542',
   timetravel: false,
   apy,
   url: 'https://app.ondo.finance/',

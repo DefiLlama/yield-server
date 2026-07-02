@@ -91,7 +91,7 @@ const apy = async () => {
                 pool: `${data[i].vault}-${chain}`.toLowerCase(),
                 chain: utils.formatChain(chain),
                 project: 'travessia-credit',
-                symbol: utils.formatSymbol(data[i].symbols),
+                symbol: data[i].symbols,
                 underlyingTokens: [data[i].asset],
                 tvlUsd: tvlAndBorrow[i].tvl,
                 apyBase: (Number(rawApy[i]) * (1 - Number(performanceFees[i]) / 1e6)) / 1e4,
@@ -104,6 +104,7 @@ const apy = async () => {
 }
 
 module.exports = {
+  protocolId: '7674',
     timetravel: false,
     apy,
     url: "https://www.travessiacredit.com",

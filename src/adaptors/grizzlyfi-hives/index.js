@@ -296,9 +296,7 @@ const getPrices = async (addresses) => {
     .map((address) => `bsc:${address}`)
     .join(',')
     .toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${coins}`)).coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -604,6 +602,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2007',
   timetravel: false,
   apy,
   url: 'https://grizzly.fi/',

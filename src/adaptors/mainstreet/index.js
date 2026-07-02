@@ -32,7 +32,7 @@ const poolsFunction = async () => {
     pool: msUSD.address,
     chain: utils.formatChain('ethereum'),
     project: 'mainstreet',
-    symbol: utils.formatSymbol('msUSD'),
+    symbol: 'msUSD',
     tvlUsd: Number(totalSupply) / 1e18,
     apyBase: apy,
     apyReward: 0,
@@ -45,6 +45,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '6022',
   timetravel: false,
   apy: poolsFunction,
 };

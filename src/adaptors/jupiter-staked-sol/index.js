@@ -1,18 +1,19 @@
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getSanctumLstApy, getPriceApiUrl } = require('../utils');
 
 const JUPSOL_ADDRESS = 'jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v';
 const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${JUPSOL_ADDRESS}`;
 
 const apy = async () => {
-  const [apyResponse, priceResponse, totalSupply] = await Promise.all([
-    axios.get('https://worker.jup.ag/lst-apys'),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+  const [apyBase, priceResponse, totalSupply] = await Promise.all([
+    getSanctumLstApy(JUPSOL_ADDRESS),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
     getTotalSupply(JUPSOL_ADDRESS),
   ]);
 
-  const apyValue = apyResponse.data.apys[JUPSOL_ADDRESS];
+  if (apyBase == null)
+    throw new Error(`Unable to fetch APY for ${JUPSOL_ADDRESS}`);
   const currentPrice = priceResponse.data.coins[priceKey].price;
   const tvlUsd = totalSupply * currentPrice;
 
@@ -23,11 +24,13 @@ const apy = async () => {
       project: 'jupiter-staked-sol',
       symbol: 'JUPSOL',
       tvlUsd: tvlUsd,
-      apyBase: apyValue * 100,
+      apyBase,
       underlyingTokens: [SOL],
       searchTokenOverride: JUPSOL_ADDRESS,
+      isIntrinsicSource: true,
+
     },
   ];
 };
 
-module.exports = { apy, url: 'https://station.jup.ag/guides/jupsol/jupsol' };
+module.exports = { protocolId: '4996', apy, url: 'https://station.jup.ag/guides/jupsol/jupsol' };

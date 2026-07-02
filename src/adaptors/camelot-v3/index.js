@@ -107,7 +107,7 @@ const topLvl = async (chainString, timestamp, url) => {
   data = data.map((el) => utils.apy(el, dataPrior, dataPrior7d, 'v3'));
 
   data = data.map((p) => {
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -132,6 +132,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2792',
   timetravel: true,
   apy: main,
 };

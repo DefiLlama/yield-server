@@ -6,6 +6,7 @@ const abiVoter = require('./abiVoter');
 const abiMasterPlatypusV4 = require('./abiMasterPlatypusV4');
 const abiLP = require('./abiLP');
 const abiBoostedMultiRewarder = require('./abiBoostedMultiRewarder');
+const { getPriceApiData } = require('../utils');
 
 const Voter = '0x1f6B6b505D199B9bd0a6642B8d44533a811598da';
 const MasterPlatypusV4 = '0xfF6934aAC9C94E1C39358D4fDCF70aeca77D0AB0';
@@ -149,9 +150,7 @@ const apy = async () => {
     .map((u) => `avax:${u}`)
     .join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   // for pool names (eg Main Pool, BTC pool etc)
   const { assets } = await request(POOLS_URL, poolsQuery);
@@ -221,6 +220,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '944',
   timetravel: false,
   apy,
   url: 'https://app.platypus.finance/pool',

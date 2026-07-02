@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { addAddressPadding } = require('starknet');
-const { call } = require('../../helper/starknet');
+const { call } = require('../utils');
 const abi = require('./abi');
 
 const factory =
@@ -48,6 +48,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '4053',
   apy,
   url: 'https://app.nostra.finance',
 };

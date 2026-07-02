@@ -57,7 +57,15 @@ const getApy = async () => {
     const tvlUsd = Number(bank.tvl_usd_current) || 0;
     const totalDepositsUsd = Number(bank.total_deposits_usd_current) || 0;
     const totalBorrowsUsd = Number(bank.total_borrows_usd_current) || 0;
-    
+    const liquidityUsd = Math.max(totalDepositsUsd - totalBorrowsUsd, 0);
+    const borrowLimitUsd =
+      bank.borrow_limit_usd_current == null
+        ? null
+        : Number(bank.borrow_limit_usd_current);
+    const availableBorrowUsd = Number.isFinite(borrowLimitUsd)
+      ? Math.max(Math.min(liquidityUsd, borrowLimitUsd - totalBorrowsUsd), 0)
+      : liquidityUsd;
+
     // deposit_rate and borrow_rate are in decimal form (e.g., 0.05 for 5%)
     // Convert to percentage by multiplying by 100
     const depositRate = Number(bank.deposit_rate) || 0;
@@ -69,14 +77,17 @@ const getApy = async () => {
       pool: `project-0-${bankAddress}`,
       chain: 'Solana',
       project: 'project-0',
-      symbol: utils.formatSymbol(symbol),
+      symbol: symbol,
       underlyingTokens: mint ? [mint] : undefined,
       tvlUsd: tvlUsd,
       url: mint ? `https://app.0.xyz/markets/${mint}` : 'https://app.0.xyz/',
       apyBase: apyBase,
       totalSupplyUsd: totalDepositsUsd,
       totalBorrowUsd: totalBorrowsUsd,
+      availableBorrowUsd,
       apyBaseBorrow: apyBaseBorrow,
+      ...(mint && { borrowToken: mint }),
+      borrowable: availableBorrowUsd > 0,
     };
   });
 
@@ -84,6 +95,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '7184',
   apy: getApy,
   url: 'https://app.0.xyz/',
 };

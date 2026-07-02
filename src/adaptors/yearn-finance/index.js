@@ -2,6 +2,11 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
+const NATIVE_SENTINEL = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+const normalizeNativeAddress = (addr) =>
+  addr && addr.toLowerCase() === NATIVE_SENTINEL.toLowerCase() ? ZERO_ADDRESS : addr;
+
 const chains = {
   ethereum: 1,
   fantom: 250,
@@ -9,6 +14,7 @@ const chains = {
   optimism: 10,
   base: 8453,
   katana: 747474,
+  polygon: 137,
 };
 
 // For Velodrome/Aerodrome LP vaults where the API doesn't provide underlying tokens,
@@ -45,6 +51,8 @@ const getApy = async () => {
             underlying = lpTokens || [p.token.address.toLowerCase()];
           }
 
+          underlying = underlying.map(normalizeNativeAddress);
+
           // OP incentives via yvToken staking
           const apyReward = p.apr?.extra?.stakingRewardsAPR * 100 ?? 0;
 
@@ -55,7 +63,7 @@ const getApy = async () => {
             pool: p.address,
             chain: utils.formatChain(chain[0]),
             project: 'yearn-finance',
-            symbol: utils.formatSymbol(p.token.display_symbol),
+            symbol: p.token.display_symbol,
             tvlUsd: p.tvl.tvl,
             apyBase,
             apyReward,
@@ -81,6 +89,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '113',
   timetravel: false,
   apy: getApy,
 };

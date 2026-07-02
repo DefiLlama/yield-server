@@ -59,6 +59,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7610',
   timetravel: false,
   apy,
   url: 'https://app.yieldseeker.xyz',

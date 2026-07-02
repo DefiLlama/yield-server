@@ -1,5 +1,7 @@
 const utils = require('../utils');
 
+const RUNE = 'coingecko:thorchain';
+
 const chainMapping = {
   ETH: 'ethereum',
   BTC: 'bitcoin',
@@ -11,7 +13,7 @@ const chainMapping = {
   GAIA: 'cosmos',
   AVAX: 'avalanche',
   BASE: 'base',
-  XRP: 'ripple'
+  XRP: 'ripple',
 };
 
 // Native assets without contract addresses - use coingecko IDs
@@ -50,32 +52,32 @@ const buildPool = (entry, runePrice) => {
     (Number(entry.assetDepth) / 1e8) * Number(entry.assetPriceUSD);
   const balanceRune = (Number(entry.runeDepth) / 1e8) * runePrice;
 
+  // poolAPY is net of pendulum: 0 when bonder-favored rewards cancel fees.
   const newObj = {
     pool: entry.asset,
     chain: chain !== undefined ? utils.formatChain(chain) : null,
     project: 'thorchain-dex',
-    symbol: utils.formatSymbol(symbol),
+    symbol: symbol,
     tvlUsd: balanceAsset + balanceRune,
     apy: Number(entry.poolAPY) * 100,
     // Resolve underlying: native assets use coingecko, EVM tokens extract address
-    underlyingTokens: [resolveUnderlying(entry.asset, chain)],
+    underlyingTokens: [
+      ...new Set([resolveUnderlying(entry.asset, chain), RUNE]),
+    ],
   };
 
   return newObj;
 };
 
 const topLvl = async () => {
-  // https://midgard.ninerealms.com/v2/doc (for more info)
-  const url = 'https://midgard.ninerealms.com/v2/pools';
-  let data = await utils.getData(url);
-  const runePrice = await utils.getData(
-    'https://midgard.ninerealms.com/v2/stats'
-  );
+  const base = 'https://gateway.liquify.com/chain/thorchain_midgard/v2';
+  const [data, stats] = await Promise.all([
+    utils.getData(`${base}/pools`),
+    utils.getData(`${base}/stats`),
+  ]);
 
-  // build pool objects
-  const pools = data.map((el) => buildPool(el, Number(runePrice.runePriceUSD)));
-
-  return [...pools].filter((p) => p.chain && utils.keepFinite(p));
+  const pools = data.map((el) => buildPool(el, Number(stats.runePriceUSD)));
+  return pools.filter((p) => p.chain && utils.keepFinite(p));
 };
 
 const main = async () => {
@@ -84,6 +86,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '412',
   timetravel: false,
   apy: main,
   url: 'https://app.thorswap.finance/liquidity',

@@ -118,9 +118,7 @@ const getPools = async () => {
 
   const priceKeys = ['kinetixfi'].map((t) => `coingecko:${t}`).join(',');
 
-  const { coins: priceData } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: priceData } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const klpTvl = await getKlpTvl();
   const klpPrice = await calculateKlpPrice();
@@ -135,6 +133,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '3465',
   timetravel: false,
   apy: getPools,
   url: 'https://kinetix.finance/pool/perpv1',

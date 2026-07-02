@@ -331,10 +331,10 @@ const getFarmAPY = async (block, blockPrior, blockPrior7d, hydtPrice) => {
     const pool = `${p.id}-${formattedChain}`.toLowerCase();
     const symbol =
       p.token0.symbol === 'HYDT'
-        ? utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`)
+        ? `${p.token0.symbol}-${p.token1.symbol}`
         : p.token1.symbol === 'HYDT'
-        ? utils.formatSymbol(`${p.token1.symbol}-${p.token0.symbol}`)
-        : utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+        ? `${p.token1.symbol}-${p.token0.symbol}`
+        : `${p.token0.symbol}-${p.token1.symbol}`;
     const rewardTokens = [hygt];
     const underlyingTokens = [p.token0.id, p.token1.id];
     const url = 'https://app.hydtprotocol.com/HYDT/farm';
@@ -398,6 +398,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3688',
   timetravel: false,
   apy: main,
 };

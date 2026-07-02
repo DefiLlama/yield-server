@@ -64,9 +64,7 @@ const poolsFunction = async () => {
   const pricesArray = pools.poolsInfo.map(
     (t) => `${chain[t.productInfo.chainId]}:${t.currencyInfo.currencyAddress}`
   );
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
   const poolConfiguration = (
     await axios.get(
@@ -144,6 +142,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3572',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.solv.finance/',

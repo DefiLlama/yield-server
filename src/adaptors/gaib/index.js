@@ -17,7 +17,7 @@ const APY_LOOKBACK_DAYS = 30;
 const poolsFunction = async () => {
   const timestamp30d = Math.floor(Date.now() / 1000) - APY_LOOKBACK_DAYS * DAY;
   const block30d = (
-    await utils.getData(`https://coins.llama.fi/block/ethereum/${timestamp30d}`)
+    await utils.getPriceApiData(`/block/ethereum/${timestamp30d}`)
   ).height;
 
   const [
@@ -80,9 +80,10 @@ const poolsFunction = async () => {
       pool: `${SAID_VAULT}-ethereum`.toLowerCase(),
       chain: utils.formatChain("ethereum"),
       project: "gaib",
-      symbol: utils.formatSymbol("sAID"),
+      symbol: "sAID",
       tvlUsd,
       apyBase,
+      ...(navNow > 0 && { pricePerShare: navNow }),
       underlyingTokens: [AID_TOKEN],
       poolMeta: "30d withdrawal cycle",
     },
@@ -90,6 +91,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '6535',
   timetravel: false,
   apy: poolsFunction,
   url: "https://aid.gaib.ai",

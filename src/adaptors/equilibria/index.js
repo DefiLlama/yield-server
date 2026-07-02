@@ -106,6 +106,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3091',
   timetravel: false,
   apy,
   url: 'https://equilibria.fi/home',

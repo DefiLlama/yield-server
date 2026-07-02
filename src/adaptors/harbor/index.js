@@ -170,7 +170,7 @@ async function calculateAPRFromRewards(poolAddress, poolTVLUsd, chain) {
         let rewardTokenPrice = 0;
         try {
           const priceResponse = await axios.get(
-            `https://coins.llama.fi/prices/current/${chain}:${rewardTokenAddress}`,
+            utils.getPriceApiUrl(`/prices/current/${chain}:${rewardTokenAddress}`),
             { timeout: 10000 } // 10 second timeout
           );
           const priceKey = Object.keys(priceResponse.data.coins || {}).find(
@@ -454,6 +454,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7244',
   timetravel: false,
   apy,
   url: 'https://app.harborfinance.io/anchor',

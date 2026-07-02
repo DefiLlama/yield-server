@@ -65,9 +65,9 @@ const getNablaIndexerPoolsMetrics = async (chain) => {
       let usdPrices = {};
       try {
         const priceResponse = await axios.get(
-          `https://coins.llama.fi/prices/current/${priceKeys
+          utils.getPriceApiUrl(`/prices/current/${priceKeys
             .join(',')
-            .toLowerCase()}`
+            .toLowerCase()}`)
         );
         usdPrices = priceResponse.data.coins || {};
       } catch (err) {
@@ -110,7 +110,7 @@ const getNablaIndexerPoolsMetrics = async (chain) => {
           pool: `${poolAddress}-${chain}`,
           chain: utils.formatChain(chain),
           project: 'nabla-finance',
-          symbol: utils.formatSymbol(asset_symbol),
+          symbol: asset_symbol,
           underlyingTokens: [tokenAddress],
           tvlUsd: tvlUsd,
           apyBase: apyBase,
@@ -144,9 +144,9 @@ const getGraphPoolsMetrics = async (chain) => {
     let usdPrices = {};
     try {
       const priceResponse = await axios.get(
-        `https://coins.llama.fi/prices/current/${priceKeys
+        utils.getPriceApiUrl(`/prices/current/${priceKeys
           .join(',')
-          .toLowerCase()}`
+          .toLowerCase()}`)
       );
       usdPrices = priceResponse.data.coins || {};
     } catch (err) {
@@ -179,7 +179,7 @@ const getGraphPoolsMetrics = async (chain) => {
           pool: `${pool}-${chain}`,
           chain: utils.formatChain(chain),
           project: 'nabla-finance',
-          symbol: utils.formatSymbol(symbol),
+          symbol: symbol,
           underlyingTokens: [tokenAddress],
           tvlUsd: tvlUsd,
           apyBase: apyBase,
@@ -224,6 +224,7 @@ const poolsOnAllChains = async () => {
 };
 
 module.exports = {
+  protocolId: '5309',
   timetravel: false,
   apy: poolsOnAllChains,
   url: 'https://app.nabla.fi/pools',

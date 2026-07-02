@@ -77,6 +77,7 @@ const getCats = async () => {
 };
 
 module.exports = {
+  protocolId: '2627',
   timetravel: false,
   apy: getCats,
   url: 'https://catinabox.finance/app',

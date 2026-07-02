@@ -30,6 +30,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6432',
   timetravel: false,
   apy,
   url: 'https://app.onre.finance',

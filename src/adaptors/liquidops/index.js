@@ -51,7 +51,7 @@ const apy = async () => {
         pool: `${oTokenID}-${chain}`.toLowerCase(),
         chain,
         project: 'liquidops',
-        symbol: utils.formatSymbol(`o${ticker}`),
+        symbol: `o${ticker}`,
         tvlUsd: totalLends * tokenUSDPrice,
         apyBase: supplyAPY,
         underlyingTokens: [tokenID],
@@ -116,6 +116,7 @@ function formatSupplyAPR(borrowAPR, infoTagsObject, totalBorrows, totalSupply) {
 
 
 module.exports = {
+  protocolId: '5980',
     apy,
 };
 // npm run test --adapter=liquidops

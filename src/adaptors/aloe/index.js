@@ -62,13 +62,9 @@ async function getPrices(chain, addresses) {
   const priceKeys = [...new Set(addresses)].map(
     (address) => `${chain}:${address}`
   );
-  return (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${priceKeys
+  return (await utils.getPriceApiData(`/prices/current/${priceKeys
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 }
 
 async function getPoolsFor(chain) {
@@ -163,7 +159,7 @@ async function getPoolsFor(chain) {
         pool: `${lender.address}-${chain}`.toLowerCase(),
         chain,
         project: 'aloe',
-        symbol: symbol.toUpperCase(),
+        symbol: symbol,
         tvlUsd: tvl * price,
         apyBase: apyBaseLend * 100,
         underlyingTokens: [info.asset],
@@ -184,6 +180,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '4370',
   apy,
   timetravel: false,
   url: 'https://app.aloe.capital/markets',

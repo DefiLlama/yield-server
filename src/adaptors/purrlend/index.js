@@ -89,9 +89,7 @@ const apy = async () => {
   const priceKeys = reserveTokens
     .map((t) => `${CHAIN}:${t.tokenAddress}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const pools = reserveTokens
     .map((pool, i) => {
@@ -137,5 +135,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7473',
   apy,
 };

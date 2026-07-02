@@ -1,6 +1,6 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
-const { formatChain, keepFinite } = require('../utils.js');
+const { formatChain, keepFinite, getPriceApiData } = require('../utils.js');
 
 const vaultAbi = require('./vaultAbi.json');
 
@@ -47,9 +47,7 @@ const getVaults = async (chainID) => {
 };
 
 async function getTokenPrice(chain, token) {
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${chain}:${token}`
-  );
+  const data = await getPriceApiData(`/prices/current/${chain}:${token}`);
   return data.coins[`${chain}:${token}`]?.price;
 }
 
@@ -140,6 +138,7 @@ const apy = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '1791',
   apy,
   url: 'https://app.vaultcraft.io/vaults',
 };

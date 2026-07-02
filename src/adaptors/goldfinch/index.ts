@@ -23,7 +23,7 @@ const apyQuery = gql`
 
 async function apy() {
   const priceResponse = await axios.get(
-    `https://coins.llama.fi/prices/current/ethereum:${USDC_ADDRESS},ethereum:${GFI_ADDRESS}`
+    utils.getPriceApiUrl(`/prices/current/ethereum:${USDC_ADDRESS},ethereum:${GFI_ADDRESS}`)
   );
   const prices = priceResponse.data.coins;
   const usdcPrice = prices[`ethereum:${USDC_ADDRESS}`].price;
@@ -56,6 +56,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '703',
   timetravel: false,
   apy: apy,
   url: 'https://app.goldfinch.finance/pools/senior',

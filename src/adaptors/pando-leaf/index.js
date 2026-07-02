@@ -36,11 +36,7 @@ async function main() {
   const coinKeys = [
     ...new Set(mapped.map((col) => `coingecko:${MIXIN_TO_COINGECKO[col.gem]}`)),
   ];
-  const priceResp = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${coinKeys.join(',')}`
-    )
-  ).data.coins;
+  const priceResp = (await utils.getPriceApiData(`/prices/current/${coinKeys.join(',')}`)).coins;
 
   return mapped
     .map((col) => {
@@ -81,6 +77,7 @@ async function main() {
 
 // mixin
 module.exports = {
+  protocolId: '2205',
   timetravel: false,
   apy: main,
   url: 'https://pando.im/',

@@ -308,6 +308,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '5460',
     timetravel: false,
     apy: getApy,
     url: 'https://www.upshift.finance/'

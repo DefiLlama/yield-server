@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 const TROVE_MANAGER_ADDRESS = '0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2';
 const LUSD_ADDRESS = '0x5f98805A4E8be255a32880FDeC7F6728C6568bA0';
 const URL = 'https://api.instadapp.io/defi/mainnet/liquity/trove-types';
@@ -25,6 +26,13 @@ const ABIS = {
     stateMutability: 'view',
     type: 'function',
   },
+  getCCR: {
+    inputs: [],
+    name: 'CCR',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 };
 const main = async () => {
   const troveEthTvl = (
@@ -42,9 +50,13 @@ const main = async () => {
       chain: 'ethereum',
     })
   ).output;
-
-  const troveType = (await axios.get(URL)).data;
-
+  const ccr = (
+    await sdk.api.abi.call({
+      target: TROVE_MANAGER_ADDRESS,
+      abi: ABIS.getCCR,
+      chain: 'ethereum',
+    })
+  ).output;
   const lusdTotalSupply = (
     await sdk.api.abi.call({
       target: LUSD_ADDRESS,
@@ -53,12 +65,18 @@ const main = async () => {
     })
   ).output;
 
-  const key = `ethereum:${LUSD_ADDRESS}`.toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins;
+  const troveType = (await axios.get(URL)).data;
 
-  const totalSupplyUsd = (Number(lusdTotalSupply) / 1e18) * prices[key].price;
+  const key = `ethereum:${LUSD_ADDRESS}`.toLowerCase();
+  const prices = (await getPriceApiData(`/prices/current/${key}`)).coins;
+
+  const totalSupplyUsd = (Number(troveEthTvl) / 1e18) * Number(troveType.price);
+  const totalBorrowUsd =
+    (Number(lusdTotalSupply) / 1e18) * prices[key].price;
+  const availableBorrowUsd = Math.max(
+    totalSupplyUsd / (ccr / 1e18) - totalBorrowUsd,
+    0
+  );
 
   return [
     {
@@ -68,18 +86,22 @@ const main = async () => {
       chain: 'ethereum',
       token: null,
       apy: 0,
-      tvlUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
+      tvlUsd: totalSupplyUsd,
       apyBaseBorrow: Number(troveType.borrowFee) * 100,
-      totalSupplyUsd: (Number(troveEthTvl) / 1e18) * Number(troveType.price),
-      totalBorrowUsd: totalSupplyUsd,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      availableBorrowUsd,
       ltv: 1 / (mcr / 1e18),
       mintedCoin: 'LUSD',
+      borrowToken: LUSD_ADDRESS,
+      borrowable: true,
       underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     },
   ];
 };
 
 module.exports = {
+  protocolId: '270',
   timetravel: false,
   apy: main,
   url: 'https://www.liquity.org/',

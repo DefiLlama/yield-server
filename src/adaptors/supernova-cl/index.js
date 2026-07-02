@@ -297,7 +297,7 @@ const getGaugeApy = async () => {
             .replaceAll('/', '');
         pricesA = [
             ...pricesA,
-            (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
+            (await utils.getPriceApiData(`/prices/current/${x}`))
                 .coins,
         ];
     }
@@ -413,6 +413,7 @@ async function main(timestamp = null) {
 }
 
 module.exports = {
+  protocolId: '7382',
     timetravel: false,
     apy: main,
     url: 'https://supernova.xyz/liquidity',

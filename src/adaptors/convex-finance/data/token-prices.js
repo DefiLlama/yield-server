@@ -1,4 +1,4 @@
-const fetch = require('node-fetch')
+const { getPriceApiUrl } = require('../../utils');
 
 // [['a', '1'], ['b', 2], …] -> { a: 1, b: 2, … }
 const arrayToHashmap = (array) => (
@@ -6,7 +6,7 @@ const arrayToHashmap = (array) => (
 );
 
 const getTokensPrices = async (addresses, platform = 'ethereum') => (
-  (await fetch(`https://coins.llama.fi/prices/current/${addresses.map((a) => `${platform}:${a}`).join(',')}`)).json()
+  (await fetch(getPriceApiUrl(`/prices/current/${addresses.map((a) => `${platform}:${a}`).join(',')}`))).json()
     .then(({ coins: prices }) => arrayToHashmap(Object.entries(prices).map(([platformAndAddress, { price: usdPrice }]) => [
       platformAndAddress.split(':')[1].toLowerCase(),
       usdPrice,

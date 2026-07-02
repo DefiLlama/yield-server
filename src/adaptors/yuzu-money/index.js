@@ -3,13 +3,15 @@ const utils = require('../utils');
 const axios = require('axios');
 
 // Constants
-const CHAINS = ['plasma', 'ethereum', 'monad'];
+// Plasma must remain first — calculateTvlByToken assumes index 0 is the home chain.
+const CHAINS = ['plasma', 'ethereum', 'monad', 'hyperliquid', 'sei'];
 const UNIT = 1e18;
 const YEAR_IN_DAYS = 365;
 const DAY_IN_SECONDS = 24 * 60 * 60;
 const APY_REFERENCE_PERIOD_IN_DAYS = 7;
 
 const USDT_UNIT = 1e6;
+const USDC_UNIT = 1e6;
 
 const yuzuConfig = {
   plasma: {
@@ -26,9 +28,24 @@ const yuzuConfig = {
   },
   monad: {
     usdt: '0xe7cd86e13ac4309349f30b3435a9d337750fc82d',
+    usdc: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603',
     yzUSD: { address: '0x9dcB0D17eDDE04D27F387c89fECb78654C373858', unit: UNIT },
     syzUSD: { address: '0x484be0540aD49f351eaa04eeB35dF0f937D4E73f', unit: UNIT },
     yzPP: { address: '0xb37476cB1F6111cC682b107B747b8652f90B0984', unit: UNIT },
+    yzPrime: { address: '0xc9ea90692757831d98ac629f2a0140e02b80a7da', unit: UNIT },
+  },
+  hyperliquid: {
+    usdt: '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb',
+    yzUSD: { address: '0xF72CE39998D2075f6661CF4214CfFE3cf38Da72f', unit: UNIT },
+    syzUSD: { address: '0x34C07f50c4f55B322E85DEeb265d278E6af112E4', unit: UNIT },
+    yzPP: { address: '0x8CBafE7847606FF9aC5eb5e8dd54E5459E8dcC51', unit: UNIT },
+  },
+  sei: {
+    // Sei settles yzPP redemptions into USDC, not USDT.
+    usdc: '0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392',
+    yzUSD: { address: '0x9dcB0D17eDDE04D27F387c89fECb78654C373858', unit: UNIT },
+    syzUSD: { address: '0xB98b14d316d13f012d52f30A3d46641092AC6944', unit: UNIT },
+    yzPP: { address: '0x5a4958AE05640b6483d44B45d36E5eBF7Cd20fe4', unit: UNIT },
   },
 };
 
@@ -36,21 +53,27 @@ const yuzuConfig = {
 const TOKEN_META = {
   syzUSD: {
     symbol: 'syzUSD',
-    url: 'https://app.yuzu.money/yzusd-syzusd',
+    url: 'https://app.yuzu.money/alpha/yzusd-syzusd',
     getUnderlyingTokens: (chain) => [yuzuConfig[chain].yzUSD.address],
   },
   yzPP: {
     symbol: 'yzPP',
-    url: 'https://app.yuzu.money/yzpp',
-    getUnderlyingTokens: (chain) => [yuzuConfig[chain].usdt],
+    url: 'https://app.yuzu.money/alpha/yzpp',
+    // Settlement token: USDT on most chains, USDC on Sei.
+    getUnderlyingTokens: (chain) => [
+      yuzuConfig[chain].usdt ?? yuzuConfig[chain].usdc,
+    ],
+  },
+  yzPrime: {
+    symbol: 'yzPrime',
+    url: 'https://app.yuzu.money/rwa/yzprime',
+    getUnderlyingTokens: () => [yuzuConfig.monad.usdc],
   },
 };
 
 const getUsdPrice = async (chain, token) => {
   const priceKey = `${chain}:${token.address}`;
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`,
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
   const price = data.coins[priceKey]?.price;
   if (price === undefined) {
     throw new Error(`Price not found for ${priceKey}`);
@@ -85,32 +108,41 @@ const getRedemptionPrice = async (
 };
 
 /**
- * Calculate TVL for a token across all chains
- * Plasma supply = total - bridged amounts (monad + ethereum)
+ * Calculate TVL for a token across all chains.
+ * Plasma is the home chain — its totalSupply already counts shares bridged out
+ * via OFT, so we subtract every other chain's supply to avoid double-counting.
  */
 const calculateTvlByToken = async (tokenKey) => {
-  const [plasmaSupply, monadSupply, ethereumSupply] = await Promise.all([
-    getTotalSupply('plasma', yuzuConfig.plasma[tokenKey]),
-    getTotalSupply('monad', yuzuConfig.monad[tokenKey]),
-    getTotalSupply('ethereum', yuzuConfig.ethereum[tokenKey]),
-  ]);
-
-  // Price always fetched from Plasma
-  const tokenPrice = await getUsdPrice('plasma', yuzuConfig.plasma[tokenKey]);
-  const effectivePlasmaSupply = Math.max(
-    0,
-    plasmaSupply - monadSupply - ethereumSupply,
+  const supplies = await Promise.all(
+    CHAINS.map((chain) => getTotalSupply(chain, yuzuConfig[chain][tokenKey])),
   );
 
-  return {
-    plasma: effectivePlasmaSupply * tokenPrice,
-    ethereum: ethereumSupply * tokenPrice,
-    monad: monadSupply * tokenPrice,
-  };
+  // Price always fetched from Plasma (home chain). Fall back to 0 if DefiLlama
+  // has no quote so a missing price yields tvlUsd: 0 (filtered downstream)
+  // instead of rejecting and taking down every pool.
+  const tokenPrice = await getUsdPrice(
+    'plasma',
+    yuzuConfig.plasma[tokenKey],
+  ).catch(() => 0);
+
+  const tvlByChain = {};
+  let bridgedSum = 0;
+  CHAINS.forEach((chain, i) => {
+    if (chain === 'plasma') return;
+    tvlByChain[chain] = supplies[i] * tokenPrice;
+    bridgedSum += supplies[i];
+  });
+
+  const plasmaIdx = CHAINS.indexOf('plasma');
+  const effectivePlasmaSupply = Math.max(0, supplies[plasmaIdx] - bridgedSum);
+  tvlByChain.plasma = effectivePlasmaSupply * tokenPrice;
+
+  return tvlByChain;
 };
 
 /**
- * Calculate APY based on redemption price appreciation over reference period
+ * Returns { apy, currentPrice } — currentPrice is the redemption price used
+ * as pricePerShare (drops on loss events, e.g. yzPP).
  */
 const calculateApy = async (chain, token, underlyingAssetUnit) => {
   const currentBlock = await sdk.api.util.getLatestBlock(chain);
@@ -128,15 +160,15 @@ const calculateApy = async (chain, token, underlyingAssetUnit) => {
     !Number.isFinite(currentPrice) ||
     startPrice <= 0
   ) {
-    return 0;
+    return { apy: 0, currentPrice: Number.isFinite(currentPrice) ? currentPrice : null };
   }
 
   const appreciationRatio = currentPrice / startPrice;
-  return (
+  const apy =
     (Math.pow(appreciationRatio, YEAR_IN_DAYS / APY_REFERENCE_PERIOD_IN_DAYS) -
       1) *
-    100
-  );
+    100;
+  return { apy, currentPrice };
 };
 
 /**
@@ -145,7 +177,7 @@ const calculateApy = async (chain, token, underlyingAssetUnit) => {
 const fetchPoolsForToken = async (tokenKey, unit) => {
   const meta = TOKEN_META[tokenKey];
 
-  const [tvlUsd, apyBase] = await Promise.all([
+  const [tvlUsd, apyResult] = await Promise.all([
     calculateTvlByToken(tokenKey),
     calculateApy('plasma', yuzuConfig.plasma[tokenKey], unit),
   ]);
@@ -156,21 +188,57 @@ const fetchPoolsForToken = async (tokenKey, unit) => {
     project: 'yuzu-money',
     symbol: meta.symbol,
     tvlUsd: tvlUsd[chain],
-    apyBase,
+    apyBase: apyResult.apy,
+    ...(apyResult.currentPrice > 0 && { pricePerShare: apyResult.currentPrice }),
     underlyingTokens: meta.getUnderlyingTokens(chain),
     url: meta.url,
   }));
 };
 
-const apy = async () => {
-  const [syzUSDPools, yzPPPools] = await Promise.all([
-    fetchPoolsForToken('syzUSD', UNIT),
-    fetchPoolsForToken('yzPP', USDT_UNIT),
+/**
+ * yzPrime is deployed on Monad only and redeems into USDC.
+ * TVL = totalSupply × pricePerShare(USDC) × USDC price.
+ */
+const fetchYzPrimePool = async () => {
+  const chain = 'monad';
+  const meta = TOKEN_META.yzPrime;
+  const token = yuzuConfig[chain].yzPrime;
+
+  const [totalSupply, apyResult, usdcPrice] = await Promise.all([
+    getTotalSupply(chain, token),
+    calculateApy(chain, token, USDC_UNIT),
+    // USDC is a stablecoin; fall back to $1 if the price lookup fails so a
+    // missing quote doesn't reject apy() and take down every pool.
+    getUsdPrice(chain, { address: yuzuConfig[chain].usdc }).catch(() => 1),
   ]);
 
-  return [...syzUSDPools, ...yzPPPools];
+  const navInUsdc = apyResult.currentPrice ?? 0;
+  const tvlUsd = totalSupply * navInUsdc * usdcPrice;
+
+  return {
+    pool: `${token.address}-${chain}`.toLowerCase(),
+    chain: utils.formatChain(chain),
+    project: 'yuzu-money',
+    symbol: meta.symbol,
+    tvlUsd,
+    apyBase: apyResult.apy,
+    ...(apyResult.currentPrice > 0 && { pricePerShare: apyResult.currentPrice }),
+    underlyingTokens: meta.getUnderlyingTokens(),
+    url: meta.url,
+  };
+};
+
+const apy = async () => {
+  const [syzUSDPools, yzPPPools, yzPrimePool] = await Promise.all([
+    fetchPoolsForToken('syzUSD', UNIT),
+    fetchPoolsForToken('yzPP', USDT_UNIT),
+    fetchYzPrimePool(),
+  ]);
+
+  return [...syzUSDPools, ...yzPPPools, yzPrimePool];
 };
 
 module.exports = {
+  protocolId: '6997',
   apy,
 };

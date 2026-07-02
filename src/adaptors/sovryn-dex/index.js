@@ -125,6 +125,7 @@ const getTvl = async (tvl, type, id) => {
 };
 
 module.exports = {
+  protocolId: '329',
   timetravel: false,
   apy: getApy,
   url: 'https://alpha.sovryn.app',

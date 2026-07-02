@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const { merklGet } = require('../merkl/merkl-client');
 
 const gammaMerklesOpportunities = [
   {
@@ -12,7 +13,7 @@ const getApy = async () => {
       gammaMerklesOpportunities
         .map(async (gammaMerkleOpportunity) => {
           try {
-            const merkleData = await utils.getData(`https://api.merkl.xyz/v4/opportunities/${gammaMerkleOpportunity.id}`);
+            const merkleData = await merklGet(`/v4/opportunities/${gammaMerkleOpportunity.id}`);
             const chainName = merkleData.chain.name.toLowerCase();
             const tvlUsd = merkleData.tvl;
             const apr = merkleData.apr;
@@ -29,7 +30,7 @@ const getApy = async () => {
               pool: `${identifier}-${chainName}`.toLowerCase(),
               chain: utils.formatChain(chainName),
               project: 'betswirl',
-              symbol: utils.formatSymbol(symbol),
+              symbol: symbol,
               tvlUsd: tvlUsd,
               apy: apr,
               rewardTokens,
@@ -47,6 +48,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1911',
   timetravel: false,
   apy: getApy
 };

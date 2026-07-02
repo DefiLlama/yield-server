@@ -33,9 +33,7 @@ const ONE_UNIT = '1000000000000000000';
 
 const getBlockByTimestamp = async (timestamp, chain) => {
   try {
-    const { data } = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
-    );
+    const data = await utils.getPriceApiData(`/block/${chain}/${timestamp}`);
     return data.height;
   } catch {
     console.error(`Error getting block for timestamp ${timestamp} on chain ${chain}`);
@@ -159,10 +157,11 @@ const main = async () => {
         pool: `${key}-${chain}`,
         chain: utils.formatChain(chain),
         project: 'gauntlet',
-        symbol: utils.formatSymbol(data.symbol || 'GAUNTLET'),
+        symbol: data.symbol || 'GAUNTLET',
         tvlUsd: data.tvlUsd,
         apyBase,
         apyBase7d,
+        ...(currentPrices[key] > 0 && { pricePerShare: currentPrices[key] / 1e6 }),
         poolMeta: data.name || undefined,
         url: 'https://app.gauntlet.xyz/vaults/gtusda',
         underlyingTokens: [USDC[chain]],
@@ -174,6 +173,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '6202',
   timetravel: false,
   apy: main,
   url: 'https://app.gauntlet.xyz',

@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 
 const utils = require('../utils');
 
@@ -43,7 +42,7 @@ const getApy = async () => {
             pool: contract.address,
             chain: utils.formatChain('kujira'),
             project,
-            symbol: utils.formatSymbol(contract.config.oracle.live),
+            symbol: contract.config.oracle.live,
             tvlUsd: (available * exchange_rate) / 10 ** contract.config.decimals,
             apy: lendApy,
             apyBaseBorrow: borrowApy,
@@ -62,7 +61,7 @@ const getApy = async () => {
             pool: contract.address,
             chain: utils.formatChain('kujira'),
             project,
-            symbol: utils.formatSymbol('USK'),
+            symbol: 'USK',
             tvlUsd: available / 10 ** contract.config.decimals,
             apy: lendApy,
             apyBaseBorrow: borrowApy,
@@ -86,6 +85,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2866',
   timetravel: false,
   apy: getApy,
   url: 'https://ghost.kujira.network/lend',

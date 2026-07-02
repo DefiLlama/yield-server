@@ -1,4 +1,4 @@
-const axios = require('axios');
+const { merklGet } = require('./merkl-client');
 
 // Chain ID mapping for Merkl API
 const CHAIN_IDS = {
@@ -50,10 +50,9 @@ const getMerklRewardsByIdentifier = async (
   if (!chainId) return null;
 
   try {
-    const response = await axios.get(
-      `https://api.merkl.xyz/v4/opportunities?chainId=${chainId}&identifier=${identifier}`
-    );
-    const data = response.data;
+    const data = await merklGet('/v4/opportunities', {
+      params: { chainId, identifier },
+    });
     if (!data || data.length === 0) return null;
 
     const opportunity = data[0];

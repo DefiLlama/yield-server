@@ -25,7 +25,8 @@ const extractConfigBits = (configData) => {
   const frozen = Boolean((data >> 57n) & 1n);
   const borrowingEnabled = Boolean((data >> 58n) & 1n);
   const paused = Boolean((data >> 60n) & 1n);
-  return { ltv, borrowable: active && !frozen && borrowingEnabled && !paused };
+  const borrowCap = Number((data >> 80n) & ((1n << 36n) - 1n));
+  return { ltv, borrowCap, borrowable: active && !frozen && borrowingEnabled && !paused };
 };
 
 const apy = async () => {
@@ -67,10 +68,11 @@ const apy = async () => {
   const symbolResults = symbols.output.map((o) => o.output);
   const decimalResults = decimals.output.map((o) => o.output);
 
-  // 4. Get aToken addresses and their total supply + underlying balances
+  // 4. Get supply, liquidity, and debt token balances
   const aTokenAddresses = reserveDataResults.map((r) => r.aTokenAddress);
 
-  const [aTokenSupply, underlyingBalances] = await Promise.all([
+  const [aTokenSupply, underlyingBalances, stableDebtSupply, variableDebtSupply] =
+    await Promise.all([
     sdk.api.abi.multiCall({
       calls: aTokenAddresses.map((t) => ({ target: t })),
       abi: "erc20:totalSupply",
@@ -84,17 +86,31 @@ const apy = async () => {
       abi: "erc20:balanceOf",
       chain,
     }),
+    sdk.api.abi.multiCall({
+      calls: reserveDataResults.map((r) => ({ target: r.stableDebtTokenAddress })),
+      abi: "erc20:totalSupply",
+      chain,
+    }),
+    sdk.api.abi.multiCall({
+      calls: reserveDataResults.map((r) => ({ target: r.variableDebtTokenAddress })),
+      abi: "erc20:totalSupply",
+      chain,
+    }),
   ]);
 
   const aTokenSupplyResults = aTokenSupply.output.map((o) => o.output);
   const underlyingBalanceResults = underlyingBalances.output.map(
     (o) => o.output
   );
+  const stableDebtSupplyResults = stableDebtSupply.output.map((o) => o.output);
+  const variableDebtSupplyResults = variableDebtSupply.output.map(
+    (o) => o.output
+  );
 
   // 5. Prices
   const priceKeys = reservesList.map((t) => `${chain}:${t}`).join(",");
   const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`, {
+    await axios.get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`), {
       timeout: 30_000,
     })
   ).data.coins;
@@ -110,7 +126,11 @@ const apy = async () => {
       const totalSupplyUsd = supply * price;
       const available = underlyingBalanceResults[i] / 10 ** dec;
       const tvlUsd = available * price;
-      const totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      const totalBorrowUsd =
+        ((Number(stableDebtSupplyResults[i]) +
+          Number(variableDebtSupplyResults[i])) /
+          10 ** dec) *
+        price;
 
       const apyBase = aprRayToApyPercent(
         reserveDataResults[i].currentLiquidityRate
@@ -119,27 +139,30 @@ const apy = async () => {
         reserveDataResults[i].currentVariableBorrowRate
       );
 
-      const { ltv, borrowable } = extractConfigBits(
+      const { ltv, borrowCap, borrowable } = extractConfigBits(
         reserveDataResults[i].configuration.data
       );
+      const borrowCapUsd = borrowCap * price;
+      const availableBorrowUsd = borrowCap
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
 
       return {
         pool: `${aTokenAddresses[i]}-hypurrfi-pooled`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: "hypurrfi-pooled",
-        symbol: utils.formatSymbol(symbolResults[i]),
+        symbol: symbolResults[i],
         tvlUsd,
         apyBase,
         underlyingTokens: [asset],
         totalSupplyUsd,
         totalBorrowUsd,
-        debtCeilingUsd: null,
+        availableBorrowUsd,
         apyBaseBorrow,
+        borrowToken: asset,
         ltv: ltv / 10000,
-        url: `https://hypurrfi.com/markets/pooled/999/${asset}`,
+        url: `https://app.hypurrfi.com/markets/pooled/999/${asset}?from=pooled`,
         borrowable,
-        mintedCoin: null,
-        poolMeta: null,
       };
     })
     .filter(Boolean)
@@ -149,6 +172,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5838',
   timetravel: false,
   apy,
   url: "https://hypurrfi.com/lend",

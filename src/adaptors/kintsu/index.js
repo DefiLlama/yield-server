@@ -1,133 +1,99 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const SECONDS_PER_DAY = 86400;
 const DAYS_PER_YEAR = 365;
+const SCALE = BigInt(1e18);
 const WMON = '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A';
 
-const vaults = {
-  monad: '0xA3227C5969757783154C60bF0bC1944180ed81B9',
-}
-const underlyingTokenPriceId = {
-  monad: 'coingecko:monad',
+const chains = {
+  monad: {
+    vault: '0xA3227C5969757783154C60bF0bC1944180ed81B9',
+    priceId: 'coingecko:monad',
+    inception: { block: 36068335, timestamp: 1763335037 },
+  },
+};
+
+const call = (chain, target, abi, block) =>
+  sdk.api.abi.call({ target, abi, chain, block }).then((r) => r.output);
+
+const getBlock = (chain, timestamp) =>
+  axios
+    .get(getPriceApiUrl(`/block/${chain}/${timestamp}`))
+    .then((r) => r.data.height);
+
+const getUsdPrice = (priceId) =>
+  axios
+    .get(getPriceApiUrl(`/prices/current/${priceId}`))
+    .then((r) => r.data.coins[priceId].price);
+
+const getShareValue = async (chain, vault, block) => {
+  const [totalPooled, totalSupply] = await Promise.all([
+    call(chain, vault, 'function totalPooled() view returns (uint96)', block),
+    call(chain, vault, 'erc20:totalSupply', block),
+  ]);
+  if (BigInt(totalSupply) === 0n) {
+    throw new Error(`RPC issue: zero totalSupply at block ${block}`);
+  }
+  return (BigInt(totalPooled) * SCALE) / BigInt(totalSupply);
+};
+
+const annualize = (svNow, svThen, periodDays) => {
+  if (svThen === 0n) throw new Error('RPC issue: previous share value is zero');
+  const ratio = Number((svNow * SCALE) / svThen) / 1e18;
+  if (ratio <= 0) throw new Error('RPC issue: invalid ratio');
+  return (Math.pow(ratio, DAYS_PER_YEAR / periodDays) - 1) * 100;
 };
 
 const chainApy = async (chain) => {
-  // Get current timestamp
+  const { vault, priceId, inception } = chains[chain];
   const now = Math.floor(Date.now() / 1000);
-  const timestamp1DayAgo = now - SECONDS_PER_DAY;
+  const inceptionDays = (now - inception.timestamp) / SECONDS_PER_DAY;
 
-  // Fetch block numbers for current and 1 day ago
-  const [blockNow, block1DayAgo] = await Promise.all([
-    axios
-      .get(`https://coins.llama.fi/block/${chain}/${now}`)
-      .then((r) => r.data.height),
-    axios
-      .get(`https://coins.llama.fi/block/${chain}/${timestamp1DayAgo}`)
-      .then((r) => r.data.height),
+  const [blockNow, block7dAgo] = await Promise.all([
+    getBlock(chain, now),
+    getBlock(chain, now - SECONDS_PER_DAY * 7),
   ]);
-
-  if (!blockNow || !block1DayAgo) {
+  if (!blockNow || !block7dAgo) {
     throw new Error('RPC issue: Failed to fetch block numbers');
   }
 
-  // Fetch current totalPooled, totalSupply, and symbol
-  const [totalPooledNow, totalSupplyNow, symbol] = await Promise.all([
-    sdk.api.abi.call({
-      target: vaults[chain],
-      abi: 'function totalPooled() view returns (uint96)',
-      chain: chain,
-      block: blockNow,
-    }),
-    sdk.api.abi.call({
-      target: vaults[chain],
-      abi: 'erc20:totalSupply',
-      chain: chain,
-      block: blockNow,
-    }),
-    sdk.api.abi.call({
-      target: vaults[chain],
-      abi: 'erc20:symbol',
-      chain: chain,
-      block: blockNow,
-    }),
-  ]);
+  const [totalPooledNow, symbol, svNow, sv7d, svInception, underlyingPrice] =
+    await Promise.all([
+      call(chain, vault, 'function totalPooled() view returns (uint96)', blockNow),
+      call(chain, vault, 'erc20:symbol', blockNow),
+      getShareValue(chain, vault, blockNow),
+      getShareValue(chain, vault, block7dAgo),
+      getShareValue(chain, vault, inception.block),
+      getUsdPrice(priceId),
+    ]);
 
-  // Fetch totalPooled and totalSupply from 1 day ago
-  const [totalPooled1DayAgo, totalSupply1DayAgo] = await Promise.all([
-    sdk.api.abi.call({
-      target: vaults[chain],
-      abi: 'function totalPooled() view returns (uint96)',
-      chain: chain,
-      block: block1DayAgo,
-    }),
-    sdk.api.abi.call({
-      target: vaults[chain],
-      abi: 'erc20:totalSupply',
-      chain: chain,
-      block: block1DayAgo,
-    }),
-  ]);
+  const apyBase = annualize(svNow, sv7d, 7);
+  const apyBaseInception = annualize(svNow, svInception, inceptionDays);
+  const pricePerShare = Number(svNow) / 1e18;
+  const tvlUsd = (Number(totalPooledNow) / 1e18) * underlyingPrice;
 
-  // Calculate share values (multiply by 1e18 to handle decimals)
-  const shareValueNow =
-    (BigInt(totalPooledNow.output) * BigInt(1e18)) /
-    BigInt(totalSupplyNow.output);
-  const shareValue1DayAgo =
-    (BigInt(totalPooled1DayAgo.output) * BigInt(1e18)) /
-    BigInt(totalSupply1DayAgo.output);
-
-  if (shareValue1DayAgo === 0n) {
-    throw new Error('RPC issue: Previous share value is zero');
-  }
-
-  // Calculate proportion: shareValueNow / shareValue1DayAgo
-  // Multiply by 1e18 to maintain precision
-  const proportion =
-    Number((shareValueNow * BigInt(1e18)) / shareValue1DayAgo) / 1e18;
-
-  if (proportion <= 0) {
-    throw new Error('RPC issue: Invalid proportion calculated');
-  }
-
-  // Calculate APY using the formula:
-  // APY = ((1 + ((proportion - 1) / 365)) ** 365 - 1) * 100
-  // This is equivalent to: APY = (proportion ** 365 - 1) * 100
-  const apyBase = (Math.pow(proportion, DAYS_PER_YEAR) - 1) * 100;
-
-  // Convert to number (assuming 18 decimals for underlying token)
-  const tvlUnderlyingToken = Number(totalPooledNow.output) / 1e18;
-
-  // Get native token price to convert to USD
-  const underlyingTokenPriceResponse = await axios.get(
-    `https://coins.llama.fi/prices/current/${underlyingTokenPriceId[chain]}`
-  );
-  const underlyingTokenPrice =
-    underlyingTokenPriceResponse.data.coins[underlyingTokenPriceId[chain]].price;
-  const tvlUsd = tvlUnderlyingToken * underlyingTokenPrice;
-
-  return [
-    {
-      pool: vaults[chain].toLowerCase(),
-      chain: chain,
-      project: 'kintsu',
-      symbol: symbol.output,
-      tvlUsd: tvlUsd,
-      apyBase: apyBase,
-      underlyingTokens: [WMON],
-      searchTokenOverride: vaults[chain],
-    },
-  ];
+  return {
+    pool: vault.toLowerCase(),
+    chain,
+    project: 'kintsu',
+    symbol,
+    tvlUsd,
+    apyBase,
+    apyBase7d: apyBase,
+    apyBaseInception,
+    ...(pricePerShare > 0 && { pricePerShare }),
+    underlyingTokens: [WMON],
+    searchTokenOverride: vault,
+    isIntrinsicSource: true,
+  };
 };
 
-const apy = async () => {
-  const chains = Object.keys(vaults);
-  const apys = await Promise.all(chains.map(async (chain) => await chainApy(chain)));
-  return apys.flat();
-};
+const apy = async () => Promise.all(Object.keys(chains).map(chainApy));
 
 module.exports = {
+  protocolId: '7042',
   apy,
   url: 'https://kintsu.xyz/staking',
 };
-

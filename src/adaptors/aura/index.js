@@ -68,7 +68,7 @@ async function poolsFunction() {
           pool: `${pool.lptoken.toLowerCase()}-aura`,
           chain: chainConfig.llamaChainName,
           project: 'aura',
-          symbol: utils.formatSymbol(symbolsData[idx] ?? 'Unknown'),
+          symbol: symbolsData[idx] ?? 'Unknown',
           tvlUsd: tvlsData[poolIndex] ?? 0,
           apyBase: poolBalancerData.apyBase,
           apyReward,
@@ -90,6 +90,7 @@ async function poolsFunction() {
 }
 
 module.exports = {
+  protocolId: '1918',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.aura.finance/',

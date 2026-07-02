@@ -107,6 +107,7 @@ const poolInfo = async (chain) => {
   };
 
   yieldMarkets.map((data, i) => {
+    data.isListed = markets[i].isListed;
     data.collateralFactor = collateralFactor[i];
     data.borrowRate = borrowRatePerBlock[i];
     data.supplyRate = supplyRatePerBlock[i];
@@ -206,9 +207,7 @@ const getPrices = async (chain, addresses) => {
     .map((a) => `${chain}:${a.toLowerCase()}`)
     .join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return Object.entries(prices).reduce((acc, [k, v]) => {
     acc[k.replace(`${chain}:`, '')] = { usd: v.price };
@@ -255,6 +254,8 @@ const getApy = async () => {
       pool.underlyingTokenDecimals
     );
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (parseFloat(pool.getCash) / pool.underlyingTokenDecimals) * pool.price;
     const apyBase = calculateApy(pool.supplyRate);
     const apyReward = Number.isFinite(wCantoUsd)
       ? calculateApy(pool.compSupplySpeeds, wCantoUsd, totalSupplyUsd)
@@ -278,7 +279,9 @@ const getApy = async () => {
       apyRewardBorrow,
       totalSupplyUsd,
       totalBorrowUsd,
-      ltv
+      availableBorrowUsd,
+      ltv,
+      pool.isListed
     );
 
     return readyToExport;
@@ -304,7 +307,9 @@ function exportFormatter(
   apyRewardBorrow,
   totalSupplyUsd,
   totalBorrowUsd,
-  ltv
+  availableBorrowUsd,
+  ltv,
+  borrowable
 ) {
   return {
     pool: `${pool}-${chain}`.toLowerCase(),
@@ -318,13 +323,17 @@ function exportFormatter(
     rewardTokens,
     apyBaseBorrow,
     apyRewardBorrow,
+    borrowToken: underlyingTokens,
     totalSupplyUsd,
     totalBorrowUsd,
+    availableBorrowUsd,
     ltv,
+    borrowable,
   };
 }
 
 module.exports = {
+  protocolId: '1986',
   timetravel: false,
   apy: getApy,
   url: 'https://lending.canto.io/',

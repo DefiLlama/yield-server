@@ -17,7 +17,7 @@ const poolsFunction = async () => {
     pool: '0x01502CAE9E6f973EaB687aA99bA1b332AAa1837F-filecoin',
     chain: utils.formatChain('filecoin'),
     project: 'filet-finance',
-    symbol: utils.formatSymbol('FIL'),
+    symbol: 'FIL',
     tvlUsd: tvlData.data.tvl,
     apy: Number(poolData.incomeRate),
     poolMeta: '360days lockup',
@@ -28,6 +28,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1894',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://www.filet.finance',

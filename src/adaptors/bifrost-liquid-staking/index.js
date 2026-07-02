@@ -17,9 +17,7 @@ const getApy = async () => {
   ]
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const vDOT = {
     pool: 'polkadot-vdot',
@@ -31,6 +29,7 @@ const getApy = async () => {
     apyReward: Number(vToken.vDOT.apyReward),
     rewardTokens: ['DOT'],
     underlyingTokens: ['coingecko:polkadot'],
+    isIntrinsicSource: true,
   };
 
   const vGLMR = {
@@ -43,6 +42,7 @@ const getApy = async () => {
     apyReward: Number(vToken.vGLMR.apyReward),
     rewardTokens: ['GLMR'],
     underlyingTokens: ['0xacc15dc74880c9944775448304b263d191c6077f'], // WGLMR
+    isIntrinsicSource: true,
   };
 
   const vASTR = {
@@ -55,6 +55,7 @@ const getApy = async () => {
     apyReward: Number(vToken.vASTR.apyReward),
     rewardTokens: ['ASTR'],
     underlyingTokens: ['0xaeaaf0e2c81af264101b9129c00f4440ccf0f720'], // WASTR
+    isIntrinsicSource: true,
   };
 
   const vMOVR = {
@@ -67,6 +68,7 @@ const getApy = async () => {
     apyReward: Number(vToken.vMOVR.apyReward),
     rewardTokens: ['MOVR'],
     underlyingTokens: ['0x98878b06940ae243284ca214f92bb71a2b032b8a'], // WMOVR
+    isIntrinsicSource: true,
   };
 
   const vBNC = {
@@ -79,6 +81,7 @@ const getApy = async () => {
     apyReward: Number(vToken.vBNC.apyReward),
     rewardTokens: ['BNC'],
     underlyingTokens: ['coingecko:bifrost-native-coin'],
+    isIntrinsicSource: true,
   };
 
   const vKSM = {
@@ -91,6 +94,7 @@ const getApy = async () => {
     apyReward: Number(vToken.vKSM.apyReward),
     rewardTokens: ['KSM'],
     underlyingTokens: ['coingecko:kusama'],
+    isIntrinsicSource: true,
   };
 
   const vMANTA = {
@@ -103,6 +107,7 @@ const getApy = async () => {
     apyReward: Number(vToken.vMANTA.apyReward),
     rewardTokens: ['MANTA'],
     underlyingTokens: ['0x0dc808adce2099a9f62aa87d9670745aba741746'], // WMANTA
+    isIntrinsicSource: true,
   };
 
   const vETH = {
@@ -116,12 +121,14 @@ const getApy = async () => {
     underlyingTokens: ['0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     rewardTokens: ['ETH'],
     searchTokenOverride: veth,
+    isIntrinsicSource: true,
   };
 
   return [vETH, vDOT, vGLMR, vMOVR, vKSM, vBNC, vASTR, vMANTA];
 };
 
 module.exports = {
+  protocolId: '1738',
   timetravel: false,
   apy: getApy,
   url: 'https://bifrost.app/vstaking',

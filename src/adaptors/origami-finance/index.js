@@ -1,123 +1,229 @@
-const { request, gql } = require('graphql-request');
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
 const {
   utils: { getAddress },
 } = require('ethers');
 
-const GRAPH_URLS = {
-  ethereum: {
-    chainId: 1,
-    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmgzm4q1q009c5np2angrczxw/subgraphs/origami-mainnet/prod/gn',
-  },
-  arbitrum: {
-    chainId: 42161,
-    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmgzm4q1q009c5np2angrczxw/subgraphs/origami-arbitrum/prod/gn',
-  },
-  berachain: {
-    chainId: 80094,
-    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmgzm4q1q009c5np2angrczxw/subgraphs/origami-berachain/prod/gn',
-  },
+const API_HOST = 'https://origami-api.automation-templedao.link';
+
+const CHAINS = {
+  ethereum: 1,
+  berachain: 80094,
+  plasma: 9745,
+};
+
+/**
+ * @param {number} chainId
+ * @returns {string}
+ */
+function getVaultApyUrl(chainId) {
+  const input = encodeURIComponent(JSON.stringify({ chain: chainId }));
+  return `${API_HOST}/public/external/vault-apy?input=${input}`;
 }
 
-function getSubgraphQuery() {
-  const nowUnix = Math.floor(new Date().getTime() / 1000);
-  return gql`
-  {
-    vaults {
-      id
-      symbol
-      vaultKinds
-      underlyingTokens
-      latestMetrics: metrics(
-        where: {
-          metricsType: LATEST
-        }
-      ) {
-        vaultPriceBasedApr
-        totalTvlUSD
-      }
+/**
+ * @param {string | number | bigint} x
+ * @returns {bigint}
+ */
+const bi = (x) => BigInt(String(x));
 
-      averageMetrics: metrics(
-        where: {
-         metricsType_not: LATEST
-        }
-      ) {
-        yieldSpreadApr
-      }
-
-      offchainPoints(
-        where: {
-          and: [
-            {
-              or: [
-                {end: "0"},
-                {end_gte: "${nowUnix}"},
-              ],
-            },
-            {
-              or: [
-                {start: "0"},
-                {start_lte: "${nowUnix}"},
-              ],
-            },
-          ],
-        }
-        orderBy: sortWeight,
-        orderDirection: asc
-      ) {
-        averageMetrics: metrics(
-          where: {
-            metricsType_not: LATEST
-          }
-        ) {
-          apr
-        }
-      }
-    }
-  }`;
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function leverageTvl(api, balances, vault) {
+  const [reserveToken, al] = await Promise.all([
+    api.call({ abi: 'address:reserveToken', target: vault }),
+    api.call({
+      abi: 'function assetsAndLiabilities() external view returns (uint256 assets, uint256 liabilities, uint256 ratio)',
+      target: vault,
+    }),
+  ]);
+  balances.addToken(reserveToken, bi(al.assets) - bi(al.liabilities));
 }
 
-function vaultApy(chain, chainId, vault) {
-  let isLeveraged = vault.vaultKinds.includes("Leverage");
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function repricingTvl(api, balances, vault) {
+  const [decimals, supply, reserve, reserveToken] = await Promise.all([
+    api.call({ abi: 'uint8:decimals', target: vault }),
+    api.call({ abi: 'uint256:totalSupply', target: vault }),
+    api.call({ abi: 'uint256:reservesPerShare', target: vault }),
+    api.call({ abi: 'address:reserveToken', target: vault }),
+  ]);
+  const baseToken = await api.call({
+    abi: 'address:baseToken',
+    target: reserveToken,
+  });
+  const bal = (bi(reserve) * bi(supply)) / 10n ** bi(decimals);
+  balances.addToken(baseToken, bal);
+}
 
-  let totalApr = 0;
-  if (isLeveraged) {
-    const totalPendleBasedAPr = vault.offchainPoints
-      .map(op => parseFloat(op.averageMetrics[0].apr))
-      .reduce((total, apr) => total + apr, 0);
-    totalApr = (parseFloat(vault.averageMetrics[0].yieldSpreadApr) + totalPendleBasedAPr);   
-  } else {
-    totalApr = vault.latestMetrics[0].vaultPriceBasedApr;
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function erc4626Tvl(api, balances, vault) {
+  const [asset, totalAssets] = await Promise.all([
+    api.call({ abi: 'address:asset', target: vault }),
+    api.call({ abi: 'uint256:totalAssets', target: vault }),
+  ]);
+  balances.addToken(asset, String(totalAssets));
+}
+
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function balanceSheetTvl(api, balances, vault) {
+  const [tokens, sheet] = await Promise.all([
+    api.call({
+      abi: 'function tokens() external view returns (address[] assetTokens, address[] liabilityTokens)',
+      target: vault,
+    }),
+    api.call({
+      abi: 'function balanceSheet() external view returns (uint256[] totalAssets, uint256[] totalLiabilities)',
+      target: vault,
+    }),
+  ]);
+  tokens.assetTokens.forEach((token, j) =>
+    balances.addToken(token, String(sheet.totalAssets[j]))
+  );
+  tokens.liabilityTokens.forEach((token, j) =>
+    balances.subtractToken(token, String(sheet.totalLiabilities[j]))
+  );
+}
+
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function autoStakingTvl(api, balances, vault) {
+  const [stakingToken, totalSupply] = await Promise.all([
+    api.call({
+      abi: 'function stakingToken() external view returns (address)',
+      target: vault,
+    }),
+    api.call({ abi: 'uint256:totalSupply', target: vault }),
+  ]);
+  balances.addToken(stakingToken, String(totalSupply));
+}
+
+/**
+ * @param {ChainApi} api
+ * @param {Balances} balances
+ * @param {VaultKind} kind
+ * @param {string} vault
+ * @returns {Promise<void>}
+ */
+async function vaultKindTvl(api, balances, kind, vault) {
+  switch (kind) {
+    case 'LEVERAGE':
+      return leverageTvl(api, balances, vault);
+    case 'REPRICING':
+      return repricingTvl(api, balances, vault);
+    case 'ERC4626':
+      return erc4626Tvl(api, balances, vault);
+    case 'BALANCE_SHEET':
+      return balanceSheetTvl(api, balances, vault);
+    case 'AUTO_STAKING':
+      return autoStakingTvl(api, balances, vault);
+    default:
+      throw new Error(`Unsupported vault kind: ${kind}`);
   }
-
-  const result = {
-    pool: `${vault.id}-${chain}`,
-    chain: chain,
-    project: 'origami-finance',
-    symbol: vault.symbol,
-    tvlUsd: parseFloat(vault.latestMetrics[0].totalTvlUSD),
-    apyBase: (Math.exp(totalApr / 100) - 1) * 100,
-    underlyingTokens: vault.underlyingTokens,
-    url: `https://origami.finance/vaults/${chainId}-${getAddress(vault.id)}/info`,
-  };
-  return result;
 }
 
-async function chainApy(chain, config, sgraphQuery) {
-  const chainResults = await request(config.subgraphUrl, sgraphQuery);
-  return chainResults.vaults.map(vault => vaultApy(chain, config.chainId, vault));
+/**
+ * @param {ChainApi} api
+ * @param {string} chain
+ * @param {VaultApy} vault
+ * @returns {Promise<number>}
+ */
+async function vaultTvlUsd(api, chain, vault) {
+  const balances = new sdk.Balances({ chain });
+  for (const kind of vault.vault_kinds) {
+    await vaultKindTvl(api, balances, kind, vault.address);
+  }
+  return Math.max(0, await balances.getUSDValue());
+}
+
+/**
+ * @param {string} chain
+ * @param {number} chainId
+ * @returns {Promise<Pool[]>}
+ */
+async function chainPools(chain, chainId) {
+  const api = new sdk.ChainApi({ chain });
+  const { data } = await axios.get(getVaultApyUrl(chainId), {
+    timeout: 10_000,
+  });
+
+  const results = await Promise.allSettled(
+    data.vaults.map(async (vault) => ({
+      pool: `${vault.address}-${chain}`,
+      chain: chain,
+      project: 'origami-finance',
+      symbol: vault.symbol,
+      tvlUsd: await vaultTvlUsd(api, chain, vault),
+      apyBase: vault.apy,
+      underlyingTokens: vault.underlying_tokens,
+      url: `https://origami.finance/vaults/${chainId}-${getAddress(
+        vault.address
+      )}/info`,
+    }))
+  );
+  return results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 }
 
 const apy = async () => {
-  const sgraphQuery = getSubgraphQuery();
-
-  const results = await Promise.all(
-    Object.keys(GRAPH_URLS).map(async (chainName) => await chainApy(chainName, GRAPH_URLS[chainName], sgraphQuery))
+  const results = await Promise.allSettled(
+    Object.entries(CHAINS).map(([chain, chainId]) => chainPools(chain, chainId))
   );
-
-  return results.flat();
+  return results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 };
-  
+
 module.exports = {
+  protocolId: '4592',
   timetravel: false,
   apy,
 };
+
+/** @typedef {import('@defillama/sdk').ChainApi} ChainApi */
+/** @typedef {import('@defillama/sdk').Balances} Balances */
+
+/**
+ * @typedef {'ERC4626' | 'REPRICING' | 'LEVERAGE' | 'BALANCE_SHEET' | 'AUTO_STAKING'} VaultKind
+ */
+
+/**
+ * @typedef {Object} VaultApy
+ * @property {string} address
+ * @property {string} symbol
+ * @property {VaultKind[]} vault_kinds
+ * @property {string[]} underlying_tokens
+ * @property {number} apy
+ */
+
+/**
+ * @typedef {Object} Pool
+ * @property {string} pool
+ * @property {string} chain
+ * @property {string} project
+ * @property {string} symbol
+ * @property {number} tvlUsd
+ * @property {number} apyBase
+ * @property {string[]} underlyingTokens
+ * @property {string} url
+ */

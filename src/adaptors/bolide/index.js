@@ -78,6 +78,7 @@ const getChainNameById = (chainId) => {
 };
 
 module.exports = {
+  protocolId: '1636',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.bolide.fi/#/',

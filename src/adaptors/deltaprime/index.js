@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const fetch = require('node-fetch')
 
 const utils = require('../utils');
 const getPoolDepositRateAbi = {
@@ -97,9 +96,7 @@ const getPoolTVL = async (poolAddress, chain = 'avax') => {
 }
 
 const getTokenPrice = async (tokenAddress, chain='avax') => {
-  const data = await utils.getData(
-      `https://coins.llama.fi/prices/current/${chain}:${tokenAddress}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${chain}:${tokenAddress}`);
   return data.coins[Object.keys(data.coins)[0]].price
 }
 
@@ -227,7 +224,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${USDC_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     tvlUsd: usdcPoolTvl,
     apyBase: await getUsdcPoolDepositRate(),
     underlyingTokens: [USDC_TOKEN_ADDRESS]
@@ -238,7 +235,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${USDT_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('USDt'),
+    symbol: 'USDt',
     tvlUsd: usdtPoolTvl,
     apyBase: await getUsdtPoolDepositRate(),
     underlyingTokens: [USDT_TOKEN_ADDRESS]
@@ -249,7 +246,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${WAVAX_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('WAVAX'),
+    symbol: 'WAVAX',
     tvlUsd: wavaxPoolTvl,
     apyBase: await getWavaxPoolDepositRate(),
     underlyingTokens: [WAVAX_TOKEN_ADDRESS],
@@ -260,7 +257,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${BTC_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('BTC.b'),
+    symbol: 'BTC.b',
     tvlUsd: btcPoolTvl,
     apyBase: await getBtcPoolDepositRate(),
     underlyingTokens: [BTC_TOKEN_ADDRESS]
@@ -271,7 +268,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${ETH_TOKEN_ADDRESS}-avalanche`,
     chain: utils.formatChain('avalanche'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('WETH.e'),
+    symbol: 'WETH.e',
     tvlUsd: ethPoolTvl,
     apyBase: await getEthPoolDepositRate(),
     underlyingTokens: [ETH_TOKEN_ADDRESS],
@@ -282,7 +279,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${ETH_TOKEN_ARBI_ADDRESS}-arbitrum`,
     chain: utils.formatChain('arbitrum'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('WETH'),
+    symbol: 'WETH',
     tvlUsd: ethPoolArbiTvl,
     apyBase: await getEthPoolArbiDepositRate(),
     underlyingTokens: [ETH_TOKEN_ARBI_ADDRESS],
@@ -293,7 +290,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${USDC_TOKEN_ARBI_ADDRESS}-arbitrum`,
     chain: utils.formatChain('arbitrum'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     tvlUsd: usdcPoolArbiTvl,
     apyBase: await getUsdcPoolArbiDepositRate(),
     underlyingTokens: [USDC_TOKEN_ARBI_ADDRESS],
@@ -304,7 +301,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${ARB_TOKEN_ARBI_ADDRESS}-arbitrum`,
     chain: utils.formatChain('arbitrum'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('ARB'),
+    symbol: 'ARB',
     tvlUsd: arbPoolArbiTvl,
     apyBase: await getArbPoolArbiDepositRate(),
     underlyingTokens: [ARB_TOKEN_ARBI_ADDRESS],
@@ -315,7 +312,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${BTC_TOKEN_ARBI_ADDRESS}-arbitrum`,
     chain: utils.formatChain('arbitrum'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('WBTC'),
+    symbol: 'WBTC',
     tvlUsd: btcPoolArbiTvl,
     apyBase: await getBtcPoolArbiDepositRate(),
     underlyingTokens: [BTC_TOKEN_ARBI_ADDRESS],
@@ -326,7 +323,7 @@ const getPoolsAPYs = async () => {
     pool: `dp-${DAI_TOKEN_ARBI_ADDRESS}-arbitrum`,
     chain: utils.formatChain('arbitrum'),
     project: 'deltaprime',
-    symbol: utils.formatSymbol('DAI'),
+    symbol: 'DAI',
     tvlUsd: daiPoolArbiTvl,
     apyBase: await getDaiPoolArbiDepositRate(),
     underlyingTokens: [DAI_TOKEN_ARBI_ADDRESS],
@@ -341,6 +338,7 @@ const getPoolsAPYs = async () => {
 };
 
 module.exports = {
+  protocolId: '2479',
   timetravel: false,
   start: 1673346953,
   apy: getPoolsAPYs,

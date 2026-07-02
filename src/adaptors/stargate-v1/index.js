@@ -157,7 +157,7 @@ const pools = async (poolIndex, chain) => {
 const getPrices = async (chain, addresses) => {
   const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
   const prices = (
-    await axios.get('https://coins.llama.fi/prices/current/' + uri)
+    await axios.get(utils.getPriceApiUrl('/prices/current/') + uri)
   ).data.coins;
 
   const pricesObj = Object.entries(prices).reduce(
@@ -226,7 +226,7 @@ const calcApy = async (
       const blocks = (
         await Promise.all(
           [dateNow, date7daysPrior].map((d) =>
-            axios.get(`https://coins.llama.fi/block/${chain}/${d}`)
+            axios.get(utils.getPriceApiUrl(`/block/${chain}/${d}`))
           )
         )
       )
@@ -330,6 +330,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1571',
   timetravel: false,
   apy: main,
 };

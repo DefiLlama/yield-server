@@ -233,7 +233,7 @@ const getApy = async () => {
             .replaceAll('/', '');
         pricesA = [
             ...pricesA,
-            (await axios.get(`https://coins.llama.fi/prices/current/${x}`)).data
+            (await utils.getPriceApiData(`/prices/current/${x}`))
                 .coins,
         ];
     }
@@ -272,7 +272,7 @@ const getApy = async () => {
             pool: pair,
             chain: utils.formatChain(chain),
             project: 'stratum-exchange',
-            symbol: utils.formatSymbol(poolSymbol[poolIndex].split('-')[1]),
+            symbol: poolSymbol[poolIndex].split('-')[1],
             tvlUsd,
             apyReward,
             rewardTokens: apyReward ? [STRAT] : [],
@@ -324,7 +324,7 @@ const getApy = async () => {
             pool: multipool,
             chain: utils.formatChain(chain),
             project: 'stratum-exchange',
-            symbol: utils.formatSymbol(customSymbol),
+            symbol: customSymbol,
             tvlUsd,
             apyReward,
             rewardTokens: apyReward ? [STRAT] : [],
@@ -358,6 +358,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4142',
     timetravel: true,
     apy: getApy,
     url: 'https://app.stratumexchange.com/liquidity',

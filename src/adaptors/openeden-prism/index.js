@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const BigNumber = require('bignumber.js');
+const { getPriceApiUrl } = require('../utils');
 
 const PRISM = '0x06Bb4ab600b7D22eB2c312f9bAbC22Be6a619046';
 const xPRISM = '0x12E04c932D682a2999b4582F7c9B86171B73220D';
@@ -10,7 +11,7 @@ const project = 'openeden-prism';
 
 const getBlock = async (timestamp) => {
   const response = await axios.get(
-    `https://coins.llama.fi/block/ethereum/${timestamp}`
+    getPriceApiUrl(`/block/ethereum/${timestamp}`)
   );
   return response.data.height;
 };
@@ -82,7 +83,7 @@ const apy = async () => {
       abi: 'uint256:totalAssets',
     }),
     axios.get(
-      `https://coins.llama.fi/prices/current/ethereum:${PRISM},ethereum:${USDO}`
+      getPriceApiUrl(`/prices/current/ethereum:${PRISM},ethereum:${USDO}`)
     ),
   ]);
 
@@ -106,6 +107,7 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       apyBase7d,
+      ...(rateNow && rateNow.gt(0) && { pricePerShare: rateNow.toNumber() }),
       underlyingTokens: [PRISM],
       url: 'https://app.openeden.com/prism?chain=mainnet',
     },
@@ -113,6 +115,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7670',
   timetravel: false,
   apy,
   url: 'https://app.openeden.com/prism',

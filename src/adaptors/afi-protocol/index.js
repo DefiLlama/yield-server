@@ -15,7 +15,7 @@ const POOL = {
 
 const getBlock = async (chain, timestamp) => {
   const res = await axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
+    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
   );
   return res.data.height;
 };
@@ -40,8 +40,11 @@ const getRateAndSupply = async (block) => {
       block,
     }),
   ]);
+  // afiUSD shares are 18-dec, underlying USDC is 6-dec — scale to human ratio.
   const rate =
-    supply.output === '0' ? null : Number(assets.output) / Number(supply.output);
+    supply.output === '0'
+      ? null
+      : Number(assets.output) / 1e6 / (Number(supply.output) / 1e18);
   return { rate, supply: supply.output };
 };
 
@@ -72,6 +75,7 @@ const apy = async () => {
       tvlUsd: supply * price,
       apyBase: annualizedApy(resNow.rate, res1d.rate, 1),
       apyBase7d: annualizedApy(resNow.rate, res7d.rate, 7),
+      ...(resNow.rate > 0 && { pricePerShare: resNow.rate }),
       underlyingTokens: [POOL.underlying],
       url: `https://yield.afiprotocol.xyz/invest/${POOL.symbol}`,
     },
@@ -79,6 +83,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7391',
   timetravel: false,
   apy,
   url: 'https://afiprotocol.xyz/',

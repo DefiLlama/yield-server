@@ -10,7 +10,9 @@ function aprToApy(apr) {
 }
 
 async function apy() {
-  const liquidityPools = (await utils.getData(POOL_LIST_URL))?.data;
+  const liquidityPools = (
+    await utils.getEgressData('hyperion/files/pool-list.json', POOL_LIST_URL)
+  )?.data;
   if (!liquidityPools) {
     return [];
   }
@@ -49,6 +51,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5480',
   timetravel: false,
   apy: apy,
   url: 'https://hyperion.xyz/pools',

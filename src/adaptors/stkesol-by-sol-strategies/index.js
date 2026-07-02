@@ -1,5 +1,10 @@
 const axios = require('axios');
-const { getStakePoolInfo, calcSolanaLstApy } = require('../utils');
+const {
+  getStakePoolInfo,
+  calcSolanaLstApy,
+  solanaLstPricePerShare,
+  getPriceApiUrl,
+} = require('../utils');
 
 const STKESOL_MINT = 'stke7uu3fXHsGqKVVjKnkmj65LRPVrqr4bLG2SJg7rh';
 const STAKE_POOL = 'StKeDUdSu7jMSnPJ1MPqDnk3RdEwD2QbJaisHMebGhw';
@@ -10,13 +15,14 @@ const solKey = `solana:${SOL}`;
 const apy = async () => {
   const [stakePool, priceRes] = await Promise.all([
     getStakePoolInfo(STAKE_POOL),
-    axios.get(`https://coins.llama.fi/prices/current/${solKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${solKey}`)),
   ]);
 
   const solPrice = priceRes.data.coins[solKey]?.price;
   if (!solPrice) throw new Error('Unable to fetch SOL price');
 
   const apyBase = calcSolanaLstApy(stakePool);
+  const pricePerShare = solanaLstPricePerShare(stakePool);
 
   // Dynamic pool meta from on-chain fee
   const feePct = stakePool.epochFee
@@ -31,14 +37,17 @@ const apy = async () => {
       symbol: 'STKESOL',
       tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
+      pricePerShare,
       underlyingTokens: [SOL],
       searchTokenOverride: STKESOL_MINT,
       poolMeta: feePct,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '7301',
   timetravel: false,
   apy,
   url: 'https://app.solstrategies.io',

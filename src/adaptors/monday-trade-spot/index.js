@@ -48,9 +48,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // Get block number for a timestamp via DefiLlama API
 const getBlock = async (timestamp) => {
-  const { data } = await axios.get(
-    `https://coins.llama.fi/block/${CHAIN}/${timestamp}`
-  );
+  const data = await utils.getPriceApiData(`/block/${CHAIN}/${timestamp}`);
   return data.height;
 };
 
@@ -278,7 +276,7 @@ const apy = async () => {
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
         poolMeta: `${pool.fee / 1e4}%`,
-        symbol: utils.formatSymbol(`${pool.symbol0}-${pool.symbol1}`),
+        symbol: `${pool.symbol0}-${pool.symbol1}`,
         tvlUsd,
         apyBase,
         underlyingTokens: [pool.token0, pool.token1],
@@ -294,6 +292,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7076',
   apy,
   url: 'https://app.monday.trade',
 };

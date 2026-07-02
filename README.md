@@ -23,6 +23,7 @@ Our goal is to display minimum attainable yield values for all listed projects:
 - If rewards are slashed when exiting a pool early, then set the apy value to that lower bound.
 - Omit any yield which requires an additional token aside from the LP token (eg veCRV to boost reward yields)
 - Omit any locked rewards
+- `apyReward` must not include pre-TGE points, non-transferable tokens, or other non-tradable incentives. Only include reward APY for incentives paid in tokens that are already tradable.
 - Fee based APY values should be calculated over a 24h window
 
 ### Adaptors
@@ -38,25 +39,52 @@ interface Pool {
   tvlUsd: number; // for lending protocols: tvlUsd = totalSupplyUsd - totalBorrowUsd
   apyBase?: number;
   apyReward?: number;
+  pricePerShare?: number; // underlying assets per share (e.g. ERC-4626 convertToAssets / 1 share); NOT a USD price. Omit when not applicable.
   rewardTokens?: Array<string>;
   underlyingTokens?: Array<string>;
   poolMeta?: string;
   url?: string;
   token?: string; // the pool's token contract address (e.g. the LP token or receipt token address)
   searchTokenOverride?: string; // override token used for search/display matching (see below)
+  isIntrinsicSource?: boolean; // marks LST/LRT/yield-bearing stablecoin primitives used for intrinsic APY linkage
   // optional lending protocol specific fields:
   apyBaseBorrow?: number;
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
+  availableBorrowUsd?: number; // current available borrow liquidity in USD, accounting for caps and constraints; do not zero solely because borrowable is false
+  borrowToken?: string; // underlying token address/string the borrower receives; not a debt receipt token
   ltv?: number; // btw [0, 1]
+  borrowable?: boolean; // whether a new borrow can be opened right now for this asset
 }
 ```
 
 #### `token` and `searchTokenOverride`
 
-- **`token`** — The pool's token contract address. This is the actual token associated with the pool (e.g. the LP token, vault receipt token, or staked asset address). Currently optional but will eventually be required for all adaptors.
+- **`token`** — The pool's token contract address as a single hex string (e.g. the LP token, vault receipt token, or staked asset address). Stored on `config.token` and exposed by the yields API as `poolTokenAddress`. Drives holder analytics (the holder pipeline reads `config.token` to look up on-chain holders) and downstream features that need a single canonical token per pool. Currently optional but will eventually be required for all adapters.
+
+  **How it gets populated** (see `src/handlers/triggerAdaptor.js`):
+
+  1. If the adapter sets `token` on the pool, that value is used (lowercased; `''`/`undefined` are treated as missing).
+  2. Otherwise the handler runs a regex over the `pool` id and uses the **first** `0x…` address it finds.
+  3. If neither produces an address, `config.token` is stored as `null`.
+
+  **When is it `null`?** Whenever the adapter doesn't set it _and_ the pool id has no `0x` address — typically API-driven adapters that use UUIDs as pool ids, or non-EVM chains (Solana, Cosmos, etc.) where addresses aren't `0x…`. For those, set `token` explicitly.
+
+  **Edge cases — set `token` explicitly when:**
+
+  - The pool id is not address-shaped (UUID, name, subgraph id without an address).
+  - The pool id contains an address but it isn't the right one (e.g. Aave v4 hub address, Uniswap v4 id).
+  - The pool id contains multiple addresses (LP-style ids); the regex picks the first, so override if a different one is canonical.
+  - You explicitly want no token associated with the pool — pass `token: null` to opt out of the fallback extraction.
+
+  **Borrow / CDP pools — pass `token: null`.** When the position is debt against collateral (Morpho Blue borrow markets, Liquity v1/v2 Troves, Liquity v2 stability pools, MakerDAO/Sky vaults, etc.), there is no transferable ERC-20 representing the user's position 1:1, so there are no holders to track and no canonical "pool token". The pool id in these adapters typically points at a market/vault/join contract (e.g. `morpho-blue-${uniqueKey}-${chain}`, the trove manager, an `ilk` join), and letting the fallback regex grab that address would surface a misleading value as `poolTokenAddress` and pollute holder analytics. Setting `token: null` explicitly suppresses the fallback and signals "no token" to downstream consumers.
+
+  ERC-4626-style "Earn" / vault pools on the same protocols (e.g. Morpho Blue MetaMorpho vaults, Liquity v2 stability-pool wrappers via 4626) **do** have a receipt token — for those, set `token` to the share-token address and don't pass `null`.
+
 - **`searchTokenOverride`** — Used for LSTs (Liquid Staking Tokens), LRTs (Liquid Restaking Tokens), and similar derivative tokens where the pool's token address differs from the underlying token. When set, this address is used instead of the underlying token for search and display matching. Only set this if the default matching produces incorrect results.
+- **`isIntrinsicSource`** — Set to `true` only for LST, LRT, or yield-bearing stablecoin primitives whose APY should be used as intrinsic APY for downstream pools. Example: Lido stETH APY can be linked as intrinsic APY for an Aave stETH/wstETH market.
+  If an adapter lists multiple bridged versions with the same intrinsic APY, set this only on the canonical deployment.
 
 ```typescript
 {
@@ -70,6 +98,7 @@ interface Pool {
     rewardTokens: ['0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'], // Array of reward token addresses (you can omit this field if a pool doesn't have rewards)
     underlyingTokens: ['0xdAC17F958D2ee523a2206206994597C13D831ec7'], // Array of underlying token addresses from a pool, eg here USDT address on ethereum
     poolMeta: "V3 market", // A string value which can stand for any specific details of a pool position, market, fee tier, lock duration, specific strategy etc
+    isIntrinsicSource: true, // only for LST/LRT/yield-bearing stablecoin primitives used for intrinsic APY linkage
   };
 ```
 
@@ -99,11 +128,14 @@ That page has stricter filters than other pages, only pools with >1M TVL and on 
 
 ```js
 module.exports = {
+  protocolId: '294', // id from https://api.llama.fi/protocols for this adapter's exact slug
   timetravel: false,
   apy: apy, // Main function, returns pools
   url: 'https://example.com/pools', // Link to page with pools (Only required if you do not provide url's for each pool)
 };
 ```
+
+`protocolId` is required and must match the protocol `id` from `https://api.llama.fi/protocols`, using the adapter folder name as the protocol `slug`. Store it as a string. The adapter test fails if the folder name has no exact protocol slug match, if `protocolId` is missing, or if it does not equal the matched protocol's `id`.
 
 An example of the most basic adaptor is the following for Anchor on terra:
 
@@ -122,7 +154,7 @@ const poolsFunction = async () => {
     pool: 'terra1hzh9vpxhsk8253se0vv5jj6etdvxu3nv8z07zu',
     chain: utils.formatChain('terra'),
     project: 'anchor',
-    symbol: utils.formatSymbol('UST'),
+    symbol: 'UST',
     tvlUsd: Number(dataTvl.total_ust_deposits) / 1e6,
     apy: apyData.deposit_apy * 100,
   };
@@ -131,6 +163,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '294',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.anchorprotocol.com/#/earn',

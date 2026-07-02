@@ -43,6 +43,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4818',
   apy: apy,
   url: 'https://bitu.io',
 };

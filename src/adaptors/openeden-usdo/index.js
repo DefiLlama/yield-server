@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const BigNumber = require('bignumber.js');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getPriceApiUrl } = require('../utils');
 
 // USDO is a rebasing stablecoin, cUSDO is wrapped non-rebasing version
 // Both earn the same yield - we track USDO supply for TVL, cUSDO rate for APY
@@ -32,7 +32,7 @@ const symbol = 'USDO';
 // Helper to fetch block number for a timestamp
 const getBlock = async (chain, timestamp) => {
   const response = await axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
+    getPriceApiUrl(`/block/${chain}/${timestamp}`)
   );
   return response.data.height;
 };
@@ -151,6 +151,7 @@ const apy = async () => {
         tvlUsd,
         apyBase,
         apyBase7d,
+        ...(chain === 'solana' && { pricePerShare: rateNow.toNumber() }),
         underlyingTokens: [tokenAddress],
         url: 'https://app.openeden.com/usdo',
       };
@@ -163,6 +164,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5995',
   timetravel: false,
   apy,
   url: 'https://app.openeden.com/usdo',

@@ -19,9 +19,7 @@ const apy = async () => {
     ).output / 1e18;
 
   const priceKey = `ethereum:${USDz}`;
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const price = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const tvlUsd = totalSupply * price;
 
@@ -60,6 +58,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4744',
   apy,
   url: 'https://anzen.finance/',
 };

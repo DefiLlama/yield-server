@@ -15,9 +15,7 @@ const apy = async () => {
     abi: 'uint:primeETHPrice',
     target: LRT_ORACLE,
   });
-  const priceData = await utils.getData(
-    'https://coins.llama.fi/prices/current/coingecko:ethereum?searchWidth=4h'
-  );
+  const priceData = await utils.getPriceApiData('/prices/current/coingecko:ethereum?searchWidth=4h');
   const ethPrice = priceData.coins['coingecko:ethereum'].price;
   const tvlUsd =
     ((totalSupply.output * primeEthPrice.output) / 1e36) * ethPrice;
@@ -35,11 +33,13 @@ const apy = async () => {
     tvlUsd,
     underlyingTokens: ['0x0000000000000000000000000000000000000000', '0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3'],
     searchTokenOverride: PRIME_ETH,
+    isIntrinsicSource: true,
   };
 
   return [primeStaked];
 };
 module.exports = {
+  protocolId: '4103',
   timetravel: false,
   apy,
   url: 'https://www.primestaked.com',

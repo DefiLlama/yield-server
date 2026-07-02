@@ -21,13 +21,9 @@ const wrappers = [
 ];
 
 const main = async () => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${wrappers
+  const prices = (await utils.getPriceApiData(`/prices/current/${wrappers
         .map((w) => `sonic:${w.underlyingToken}`)
-        .join(',')}`
-    )
-  ).data.coins;
+        .join(',')}`)).coins;
   const infos = await Promise.all(
     wrappers.map((w) => utils.getERC4626Info(w.address, 'sonic'))
   );
@@ -40,12 +36,14 @@ const main = async () => {
       symbol: wrappers[i].symbol,
       tvlUsd: (info.tvl / 10 ** prices[token].decimals) * prices[token].price,
       apyBase: info.apyBase,
+      pricePerShare: info.pricePerShare,
       underlyingTokens: [wrappers[i].underlyingToken],
     };
   });
 };
 
 module.exports = {
+  protocolId: '5526',
   timetravel: false,
   apy: main,
   url: 'https://app.rings.money/earn/mint/',

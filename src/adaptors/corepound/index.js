@@ -34,9 +34,7 @@ async function apy() {
     })
     .join(',');
 
-  let { coins } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceInfo}`
-  );
+  let { coins } = await utils.getPriceApiData(`/prices/current/${priceInfo}`);
 
   let { tokenPrices } = await utils.getData(
     'https://corepound.xyz/farmData.json'
@@ -94,5 +92,6 @@ let abiInfo = {
 };
 
 module.exports = {
+  protocolId: '5952',
   apy,
 };

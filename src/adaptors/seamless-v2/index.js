@@ -233,6 +233,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6286',
   timetravel: false,
   apy,
   url: 'https://app.seamlessprotocol.com',

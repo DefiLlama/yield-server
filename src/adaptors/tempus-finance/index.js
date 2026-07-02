@@ -2,6 +2,7 @@ const { default: BigNumber } = require('bignumber.js');
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const tempStaking = require('./abis/TempStaking.json');
+const { getPriceApiData } = require('../utils');
 
 const STAKING = '0x6C6D4753a1107585121599746c2E398cCbEa5119';
 const TEMP = '0xA36FDBBAE3c9d55a1d67EE5821d53B50B63A1aB9';
@@ -39,9 +40,7 @@ async function getEstimatedApy(
 
 async function getTokenPrice(token) {
   const networkTokenPair = `ethereum:${token}`;
-  return (
-    await axios.get(`https://coins.llama.fi/prices/current/${networkTokenPair}`)
-  ).data.coins[networkTokenPair].price;
+  return (await getPriceApiData(`/prices/current/${networkTokenPair}`)).coins[networkTokenPair].price;
 }
 
 async function apy() {
@@ -101,6 +100,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '1045',
   apy,
   url: 'https://stake.tempus.finance/',
 };

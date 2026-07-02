@@ -387,9 +387,9 @@ async function apy() {
     const vaultIdDecimal = BigInt(vault.id).toString();
     const poolId = `${sirAddress}-${vaultIdDecimal}-${chainKey}`;
 
-    const symbol = `${utils.formatSymbol(
+    const symbol = `${
       vault.collateralToken.symbol || "UNKNOWN"
-    )}-${utils.formatSymbol(vault.debtToken.symbol || "UNKNOWN")}`;
+    }-${vault.debtToken.symbol || "UNKNOWN"}`;
 
     const poolMeta = `Leverage ratio: ${1 + 2 ** Number(vault.leverageTier)}`;
 
@@ -415,6 +415,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5842',
   timetravel: false,
   apy,
 };

@@ -18,9 +18,7 @@ const gammaPools = [
 const unwrappedTokenData = async (tokenAddress, tokenAmount) => {
   try {
     const priceKey = `arbitrum:${tokenAddress}`;
-    const { coins } = await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKey}`
-    );
+    const { coins } = await utils.getPriceApiData(`/prices/current/${priceKey}`);
     const tokenData = coins[priceKey];
 
     if (!tokenData) {
@@ -129,6 +127,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3503',
   timetravel: false,
   apy: getApy,
   url: 'https://app.thestandard.io',

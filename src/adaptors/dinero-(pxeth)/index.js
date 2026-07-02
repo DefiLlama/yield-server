@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const token = '0x9ba021b0a9b958b5e75ce9f6dff97c7ee52cb3e6';
 
@@ -9,9 +10,7 @@ const getApy = async () => {
 
   const apyData = (await axios.get('https://dinero.xyz/api/apr')).data;
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   return [
     {
@@ -23,11 +22,13 @@ const getApy = async () => {
       apyBase: Number(apyData.apxEth),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: token, //autocompounding Pirex Ether
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '3912',
   timetravel: false,
   apy: getApy,
   url: 'https://dineroismoney.com/pxeth/deposit',

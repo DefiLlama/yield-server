@@ -9,7 +9,7 @@ const apy = async () => {
 
   const priceKey = 'coingecko:solana';
   const solana = (
-    await utils.getData(`https://coins.llama.fi/prices/current/${priceKey}`)
+    await utils.getPriceApiData(`/prices/current/${priceKey}`)
   ).coins[priceKey].price;
 
   return pools.map((pool) => ({
@@ -23,6 +23,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2000',
   timetravel: false,
   apy: apy,
   url: 'https://frakt.xyz/lend',

@@ -16,7 +16,8 @@ const getYieldHistory = async (req, res) => {
               "apyBase",
               "apyReward",
               "il7d",
-              "apyBase7d"
+              "apyBase7d",
+              "pricePerShare"
           FROM
               yield
           WHERE
@@ -35,39 +36,6 @@ const getYieldHistory = async (req, res) => {
               timestamp ASC
         `;
 
-  const response = await conn.query(query, { configIDValue: configID });
-
-  if (!response) {
-    return new AppError(`Couldn't get data`, 404);
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: response,
-  });
-};
-
-const getYieldHistoryHourly = async (req, res) => {
-  const configID = req.params.pool;
-  if (!validator.isUUID(configID))
-    return res.status(400).json('invalid configID!');
-
-  const query = `
-          SELECT
-              timestamp,
-              "tvlUsd",
-              apy,
-              "apyBase",
-              "apyReward",
-              "il7d",
-              "apyBase7d"
-          FROM
-              yield
-          WHERE
-              "configID" = $<configIDValue>
-          ORDER BY
-              timestamp ASC
-        `;
   const response = await conn.query(query, { configIDValue: configID });
 
   if (!response) {
@@ -166,7 +134,6 @@ const getVolumeHistory = async (req, res) => {
 
 module.exports = {
   getYieldHistory,
-  getYieldHistoryHourly,
   getYieldLendBorrowHistory,
   getVolumeHistory,
 };

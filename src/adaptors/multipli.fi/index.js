@@ -3,16 +3,19 @@ const utils = require('../utils');
 
 const XTOKENS = {
   xusdc: {
+    symbol: 'xUSDC',
     address: '0xE9bE066a32c854dBbBc797823c445ec3fB0C42Ee',
     underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     statsKey: 'usdc',
   },
   xusdt: {
+    symbol: 'xUSDT',
     address: '0x721E483FE764d3A6B636aEB87Ab391d23E6ffD3B',
     underlying: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
     statsKey: 'usdt',
   },
   xwbtc: {
+    symbol: 'xWBTC',
     address: '0x889Af8a5a5Cc6Db869c967b3f9e86B76a17145e1',
     underlying: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
     statsKey: 'btc',
@@ -94,7 +97,7 @@ async function apy() {
       pool: token.address,
       chain: utils.formatChain('ethereum'),
       project: 'multipli.fi',
-      symbol: currency.toUpperCase(),
+      symbol: token.symbol,
       tvlUsd,
       apy: apyMap[currency] || 0,
       underlyingTokens: [token.underlying],
@@ -120,7 +123,7 @@ async function apy() {
     try {
       const priceKey = `ethereum:${RWAUSDI.ethereum.toLowerCase()}`;
       const priceRes = await axios.get(
-        `https://coins.llama.fi/prices/current/${priceKey}`
+        utils.getPriceApiUrl(`/prices/current/${priceKey}`)
       );
       const price = priceRes.data.coins[priceKey]?.price;
       if (price) {
@@ -173,6 +176,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5905',
   timetravel: false,
   apy,
   url: 'https://app.multipli.fi/',

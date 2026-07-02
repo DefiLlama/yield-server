@@ -2,29 +2,50 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
-const chainIdToName = { 143: 'monad' };
+const chainIdToName = { 1: 'ethereum', 143: 'monad', 4114: 'citrea' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const abis = {
     asset: 'function asset() view returns (address)',
     convertToAssets: 'function convertToAssets(uint256 shares) view returns (uint256)',
+    vault: 'function vault() view returns (address)',
 };
 
-const basisPointsToPercent = (value) => Number(value) / 1e4;
-const formatAmount = (value, decimals = 18) => (value == null ? null : Number(value) / 10 ** decimals);
-
-const fetchVaultsByLoanIds = async(loanIds) => {
-    const results = await Promise.allSettled(
-        loanIds.map((id) => utils.getData(`${API_URL}/${id}`))
+// Resolve each loan's vault + underlying on-chain. The loan contract exposes
+// both vault() and asset(), so one multicall per chain replaces a per-loan API
+// request each. The marketplace API rate-limits those bursts (503), and a
+// dropped response previously left the pool with no vault -> no on-chain stats
+// (undefined totalSupplyUsd / totalBorrowUsd / underlyingTokens).
+const fetchLoanMeta = async(loansByChain) => {
+    const map = {};
+    await Promise.all(
+        Object.entries(loansByChain).map(async([chain, loans]) => {
+            const [vaultsRes, assetsRes] = await Promise.all([
+                sdk.api.abi.multiCall({
+                    chain,
+                    abi: abis.vault,
+                    calls: loans.map((l) => ({ target: l.loan_address })),
+                    permitFailure: true,
+                }),
+                sdk.api.abi.multiCall({
+                    chain,
+                    abi: abis.asset,
+                    calls: loans.map((l) => ({ target: l.loan_address })),
+                    permitFailure: true,
+                }),
+            ]);
+            loans.forEach((l, i) => {
+                const vault = vaultsRes.output[i].output;
+                const asset = assetsRes.output[i].output;
+                if (vault && vault !== ZERO_ADDRESS)
+                    map[l.id] = {
+                        vault: vault.toLowerCase(),
+                        asset: asset || null,
+                    };
+            });
+        })
     );
-
-    return results.reduce((acc, res, idx) => {
-        if (res.status !== 'fulfilled') return acc;
-        const vault = res.value.on_chain_loan.loan.vault;
-        if (vault && vault !== ZERO_ADDRESS)
-            acc[loanIds[idx]] = vault.toLowerCase();
-        return acc;
-    }, {});
+    return map;
 };
 
 const getVaultAddressesFromApi = async() => {
@@ -82,7 +103,7 @@ const getVaultStats = async(vaults, chain = 'monad') => {
     const liquidity = liquidityRes.output.map((o) => o.output);
     return vaults.reduce((acc, address, i) => {
         acc[address] = {
-            totalSupplied: supplies[i],
+            totalAssets: totalAssets[i],
             totalBorrowed: Number(totalAssets[i]) - Number(liquidity[i] || 0),
             tvl: liquidity[i],
             underlying: underlyings[i],
@@ -91,93 +112,132 @@ const getVaultStats = async(vaults, chain = 'monad') => {
     }, {});
 };
 
-const fetchBreakdowns = async(loanIds) => {
-    const results = await Promise.allSettled(
-        loanIds.map((id) => utils.getData(`${API_URL}/${id}/apy/breakdown`))
-    );
-
-    return results.reduce((acc, res, idx) => {
-        if (res.status !== 'fulfilled') return acc;
-        acc[loanIds[idx]] = res.value || {};
-        return acc;
-    }, {});
-};
-
 const apy = async() => {
     const { items } = await utils.getData(API_URL);
-    const activeLoans = items.filter((item) => item.loan_state === 3);
-    const loanIds = activeLoans.map((item) => item.id);
+    const activeLoans = items.filter(
+        (item) => item.loan_state === 3 && chainIdToName[item.chain_id]
+    );
 
-    const loanVaultMap = await fetchVaultsByLoanIds(loanIds);
-    const vaultAddresses = Object.values(loanVaultMap);
-    const vaultStats = await getVaultStats(vaultAddresses);
-    const breakdowns = await fetchBreakdowns(loanIds);
+    const loansByChain = {};
+    activeLoans.forEach((item) => {
+        const chain = chainIdToName[item.chain_id];
+        (loansByChain[chain] ||= []).push(item);
+    });
+    const loanMetaMap = await fetchLoanMeta(loansByChain);
+
+    const vaultsByChain = {};
+    activeLoans.forEach((item) => {
+        const meta = loanMetaMap[item.id];
+        if (!meta) return;
+        const chain = chainIdToName[item.chain_id];
+        (vaultsByChain[chain] ||= new Set()).add(meta.vault);
+    });
+    const vaultStats = {};
+    await Promise.all(
+        Object.entries(vaultsByChain).map(async([chain, vaultSet]) => {
+            const stats = await getVaultStats(Array.from(vaultSet), chain);
+            for (const [address, s] of Object.entries(stats)) {
+                vaultStats[`${chain}:${address}`] = s;
+            }
+        })
+    );
+
+    const underlyingsByChain = {};
+    activeLoans.forEach((item) => {
+        const meta = loanMetaMap[item.id];
+        if (!meta?.asset) return;
+        const chain = chainIdToName[item.chain_id];
+        (underlyingsByChain[chain] ||= new Set()).add(meta.asset.toLowerCase());
+    });
+    const pricesByChainToken = {};
+    await Promise.all(
+        Object.entries(underlyingsByChain).map(async([chain, addressSet]) => {
+            const { pricesByAddress } = await utils.getPrices(Array.from(addressSet), chain);
+            for (const [address, price] of Object.entries(pricesByAddress)) {
+                pricesByChainToken[`${chain}:${address.toLowerCase()}`] = price;
+            }
+        })
+    );
 
     return Promise.all(
         activeLoans.map(async(item) => {
-            const chainName = chainIdToName[item.chain_id] || 'unknown';
-            const vaultAddress = loanVaultMap[item.id];
-            const stats = vaultAddress ? vaultStats[vaultAddress] || {} : {};
-            const pointBoosts = item?.all_points_apy_boost?.boosts_by_points || [];
+            const chainName = chainIdToName[item.chain_id];
+            const meta = loanMetaMap[item.id];
+            const vaultAddress = meta?.vault;
+            const stats = vaultAddress ? vaultStats[`${chainName}:${vaultAddress}`] || {} : {};
+            const d = Number(item.asset_decimals);
+            const decimals = Number.isFinite(d) ? d : null;
+            const underlying = meta?.asset || stats.underlying;
+            const priceUsd = underlying
+                ? pricesByChainToken[`${chainName}:${underlying.toLowerCase()}`]
+                : undefined;
+            const toUsd = (raw) => {
+                if (raw == null || decimals == null || priceUsd == null) return null;
+                return (Number(raw) / 10 ** decimals) * priceUsd;
+            };
+            const rewardBoostPct = Number(item?.rewards_apy_boost?.total_apy_boost_percent ?? 0);
+            const pointBoostPct = Number(item?.all_points_apy_boost?.total_apy_boost_percent ?? 0);
 
-            const breakdown = breakdowns[item.id]?.main || {};
-
-            const interestRate = Number(breakdown?.interest_rate);
-            const perfFeePctRaw = Number(breakdown?.performance_fee_percentage);
-            const perfFeePct =
-                !Number.isNaN(perfFeePctRaw) && perfFeePctRaw > 1 ? perfFeePctRaw / 100 : perfFeePctRaw;
-            const perfFeePoints = Number(breakdown?.performance_fee_points);
-            const netInterest = breakdown?.net_interest_rate;
+            // Share-price (yield-strategy / NAV) vaults expose rolling-window net
+            // APY. Use the 7d window, falling back to 30d. We do NOT fall back to
+            // since-inception (maintainer caps the horizon at 30d), so a NAV vault
+            // younger than 7d reports no apyBase until a 7d/30d window exists.
+            // A non-null apy_inception_annualized is only the discriminator for NAV
+            // vaults here (contractual open/fixed-term vaults also carry apy_7d, so
+            // it can't be used for detection); they take the net_apy path.
+            const navWindowApy = item.apy_7d ?? item.apy_30d;
             const baseApy =
-                netInterest != null
-                    ? Number(netInterest)
-                    : !Number.isNaN(interestRate) && !Number.isNaN(perfFeePct)
-                        ? interestRate * (1 - perfFeePct)
-                        : !Number.isNaN(interestRate) && !Number.isNaN(perfFeePoints)
-                            ? interestRate - perfFeePoints
-                            : basisPointsToPercent(item.apy);
+                item.apy_inception_annualized != null
+                    ? (navWindowApy != null ? Number(navWindowApy) : null)
+                    : item.net_apy != null
+                        ? Number(item.net_apy) - (rewardBoostPct + pointBoostPct)
+                        : null;
 
-            const merklApy = Number(breakdown?.merkl_apy_boost?.total_apr ?? breakdown?.merkle_apy ?? 0);
-            const pointBoostsFromBreakdown = breakdown?.points_apy_boost?.boosts_by_points || pointBoosts;
-            const pointRewardApyFromBreakdown =
-                breakdown?.points_apy_boost?.total_apy_boost_percent ??
-                pointBoostsFromBreakdown.reduce((sum, b) => sum + Number(b?.apy_boost_percent || 0), 0);
-            const pointRewardTokens = pointBoostsFromBreakdown.map((b) => b?.point_name).filter(Boolean);
-
-            const merklTokens =
-                breakdown?.merkl_apy_boost?.tokens?.map((t) => t?.address?.toLowerCase()).filter(Boolean) || [];
-
-            const rewardsBoost = Number(breakdown?.rewards_apy_boost?.total_apy_boost_percent ?? 0);
-            const rewardBoostTokens =
-                breakdown?.rewards_apy_boost?.boosts_by_token
-                    ?.map((b) => b?.token?.address || b?.address || b?.token_address)
-                    .filter(Boolean)
-                    .map((addr) => addr.toLowerCase()) || [];
-
-            const totalApyReward = merklApy + pointRewardApyFromBreakdown + rewardsBoost || null;
-            const combinedRewardTokens = Array.from(
-                new Set([...(merklTokens || []), ...rewardBoostTokens, ...pointRewardTokens])
+            // Rewards must be live tokens only (DefiLlama policy). Points (e.g.
+            // ACC, not yet launched) are excluded from apyReward / rewardTokens
+            // and surfaced via poolMeta instead.
+            const rewardTokens = Array.from(
+                new Set(
+                    (item?.rewards_apy_boost?.boosts_by_token || [])
+                        .map((b) => b?.token_address)
+                        .filter(Boolean)
+                        .map((addr) => addr.toLowerCase())
+                )
             );
+
+            const apyReward = rewardTokens.length ? rewardBoostPct || null : null;
+
+            const pointNames = (item?.all_points_apy_boost?.boosts_by_points || [])
+                .map((b) => b?.point_name)
+                .filter(Boolean);
+            const poolMeta = pointNames.length
+                ? `Earn ${pointNames.map((n) => n.replace(/\s*points?$/i, '')).join(', ')} Points`
+                : undefined;
 
             return {
                 pool: `${item.loan_address}-${chainName}`.toLowerCase(),
                 chain: utils.formatChain(chainName),
                 project: 'accountable',
-                symbol: utils.formatSymbol(item.asset_symbol),
-                tvlUsd: formatAmount(stats.tvl, 6),
+                symbol: item.asset_symbol,
+                // Vault size (total deposited), straight from the API. These
+                // credit vaults run ~fully lent, so the on-chain idle-liquidity
+                // figure is ~$0 and would hide them below DefiLlama's thresholds.
+                tvlUsd: item.tvl_in_usd ?? null,
                 apyBase: baseApy,
-                apyReward: totalApyReward,
-                rewardTokens: combinedRewardTokens,
+                apyReward,
+                rewardTokens,
+                poolMeta,
                 url: `https://yield.accountable.capital/vaults/${item.loan_address}`,
-                totalSupplyUsd: formatAmount(stats.totalSupplied, 6),
-                totalBorrowUsd: formatAmount(stats.totalBorrowed, 6),
-                underlyingTokens: stats.underlying ? [stats.underlying] : undefined,
+                totalSupplyUsd: toUsd(stats.totalAssets) ?? undefined,
+                totalBorrowUsd: toUsd(stats.totalBorrowed) ?? undefined,
+                underlyingTokens: underlying ? [underlying] : undefined,
             };
         })
     );
 };
 
 module.exports = {
+  protocolId: '7092',
     timetravel: false,
     apy,
 };

@@ -1,7 +1,5 @@
-const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const {
   formatChain,
-  formatSymbol,
   getData,
   removeDuplicates,
 } = require('../utils');
@@ -14,6 +12,11 @@ const urlGovVaults = `${url}/gov-vaults`;
 const urlAddressbook = `${url}/tokens`;
 
 const urlVaultsStatus = `${url}/vaults`;
+
+const retiredStatuses = ['eol', 'paused'];
+
+const isRetiredVault = (vault) =>
+  retiredStatuses.includes(vault?.status?.toLowerCase());
 
 const networkMapping = {
   1: 'ethereum',
@@ -87,12 +90,13 @@ const main = async () => {
       const s = vaultStatus.find(
         (i) => i.id.toLowerCase() === vaultId.toLowerCase()
       );
-      if (s && ['eol', 'paused'].includes(s.status.toLowerCase())) continue;
 
       let vault = vaults.find((v) => v.id === vaultId);
       if (vault === undefined) {
         vault = govVaults.find((v) => v.id === vaultId);
       }
+
+      if (isRetiredVault(s) || isRetiredVault(vault)) continue;
 
       if (vault === undefined) {
         // console.debug(`Skipping vault ${vaultId}, no vault data`);
@@ -156,7 +160,7 @@ const main = async () => {
         pool: `${earnContractAddress}-${llamaChain}`.toLowerCase(),
         chain: formatChain(llamaChain),
         project: 'beefy',
-        symbol: formatSymbol(tokenSymbols.join('-')),
+        symbol: tokenSymbols.join('-'),
         tvlUsd: tvl,
         apy: apy * 100,
         poolMeta,
@@ -166,10 +170,11 @@ const main = async () => {
     }
   }
 
-  return addMerklRewardApy(removeDuplicates(data), 'beefy', (p) => p.pool.split('-')[0]);
+  return removeDuplicates(data);
 };
 
 module.exports = {
+  protocolId: '326',
   timetravel: false,
   apy: main,
 };

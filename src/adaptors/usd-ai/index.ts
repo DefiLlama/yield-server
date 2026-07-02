@@ -345,9 +345,11 @@ const apy = async () => {
         symbol: 'sUSDai',
         tvlUsd: redemptionValueUsd,
         apyBase,
+        ...(Number(pricePerShareResult.output) / 1e18 > 0 && { pricePerShare: Number(pricePerShareResult.output) / 1e18 }),
         underlyingTokens: [PYUSD_ADDRESS],
         poolMeta: '30d unlock',
         url: 'https://app.usd.ai',
+        isIntrinsicSource: true,
       },
     ];
   } catch (error) {
@@ -357,6 +359,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6190',
   timetravel: false,
   apy,
   url: 'https://app.usd.ai',

@@ -10,7 +10,7 @@ const LENDING_VAULTS = [
     {
         address: "EQADQ6JcK0NMuNM5uwCcS9bjcn2RTvcxYIZjNlhIhywUrfBN",
         underlying: "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c",
-        symbol: "TON",
+        symbol: "GRAM",
     },
     {
         address: "EQAGtgnr1G0XDilGURcOB3pUhl-Lo__J-TaJP0K4ey8cuSaW",
@@ -31,7 +31,7 @@ const getAPY = async () => {
         ]);
 
         const merged = [...strategy, ...share];
-        return merged;
+        return merged.filter((p) => Number.isFinite(p.apyBase));
     } catch (err) {
         console.error("getAPY failed:", err);
         return [];
@@ -137,8 +137,8 @@ async function getAssetMap() {
     for (const item of data) {
         let symbol = item.symbol;
 
-        if (symbol === "FactorialTON") {
-            symbol = "TON";
+        if (symbol === "FactorialTON" || symbol === "TON") {
+            symbol = "GRAM";
         }
 
         map[item.address] = symbol;
@@ -148,6 +148,7 @@ async function getAssetMap() {
 }
 
 module.exports = {
+  protocolId: '5726',
     apy: getAPY,
     timetravel: false,
     url: "https://affluent.org",

@@ -34,7 +34,7 @@ const sdk = (() => {
 })();
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
-const { formatChain, formatSymbol } = utils;
+const { formatChain } = utils;
 
 const CONFIG = {
   monad: {
@@ -124,9 +124,7 @@ const getErc20TotalSupply = async (target, chain) =>
 
 const getTokenPrice = async (tokenAddress, chain) => {
   const priceKey = `${chain}:${tokenAddress.toLowerCase()}`;
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
   return data.coins?.[priceKey]?.price ?? 0;
 };
 
@@ -348,13 +346,18 @@ const getMuBondPool = async (
   aznd
 ) => {
   try {
-    const [circulatingSupplyRes, decimalsRes, symbolRes, price] =
+    const [circulatingSupplyRes, decimalsRes, symbolRes, priceFromFeed] =
       await Promise.all([
         getMuBondSupply(muBond, chain),
         getErc20Decimals(muBond, chain),
         getErc20Symbol(muBond, chain),
-        getPriceWithFallback(priceFeed, muBond, chain),
+        getPriceFromFeed(priceFeed, muBond, chain).catch(() => null),
       ]);
+
+    const price =
+      priceFromFeed && !priceFromFeed.isZero()
+        ? priceFromFeed
+        : new BigNumber(await getTokenPrice(muBond, chain));
 
     const tokenDecimals = Number(decimalsRes);
     const tvlUsd = calcTvlUsd(circulatingSupplyRes.toFixed(0), tokenDecimals, price);
@@ -365,9 +368,12 @@ const getMuBondPool = async (
       pool: `${muBond}-${chain}`.toLowerCase(),
       chain: formatChain(chain),
       project: 'mu-digital',
-      symbol: formatSymbol(symbolRes),
+      symbol: symbolRes,
       tvlUsd,
       apyBase,
+      ...(priceFromFeed && !priceFromFeed.isZero() && {
+        pricePerShare: priceFromFeed.toNumber(),
+      }),
       url,
       underlyingTokens: [aznd],
     };
@@ -386,7 +392,14 @@ const getMuBondPool = async (
   }
 };
 
-const getERC4626InfoSafe = async (vault, chain, timestamp, assetUnit) => {
+const getERC4626InfoSafe = async (
+  vault,
+  chain,
+  timestamp,
+  assetUnit,
+  assetDecimals,
+  shareDecimals
+) => {
   try {
     const latest = await sdk.api.util.getLatestBlock(chain);
     const now = timestamp || Math.floor(Date.now() / MS_PER_SECOND);
@@ -419,12 +432,20 @@ const getERC4626InfoSafe = async (vault, chain, timestamp, assetUnit) => {
     ]);
     const priceNowBN = new BigNumber(priceNow.output);
     const priceYesterdayBN = new BigNumber(priceYesterday.output);
+    const shareScale = new BigNumber(10).pow(Number(shareDecimals));
+    const assetScale = new BigNumber(10).pow(Number(assetDecimals));
+    const pricePerShare = priceNowBN.isZero()
+      ? null
+      : priceNowBN
+          .times(shareScale)
+          .div(new BigNumber(assetUnit).times(assetScale))
+          .toNumber();
     if (priceNowBN.isZero() || priceYesterdayBN.isZero()) {
-      return { tvl: tvl.output, apyBase: 0 };
+      return { tvl: tvl.output, apyBase: 0, pricePerShare };
     }
     const ratio = priceNowBN.div(priceYesterdayBN);
     const apy = annualizeRatio(ratio, getDaysInYear(safeTimestamp));
-    return { tvl: tvl.output, apyBase: apy };
+    return { tvl: tvl.output, apyBase: apy, pricePerShare };
   } catch (error) {
     return null;
   }
@@ -455,7 +476,7 @@ const getVaultData = async (
 
     const assetDecimals = await getErc20Decimals(asset, chain);
     const erc4626Info =
-      (await getERC4626InfoSafe(vault, chain, timestamp, assetUnit)) ||
+      (await getERC4626InfoSafe(vault, chain, timestamp, assetUnit, assetDecimals, shareDecimals)) ||
       (await sdk.api.abi
         .call({
           target: vault,
@@ -470,9 +491,10 @@ const getVaultData = async (
       pool: `${vault}-${chain}`.toLowerCase(),
       chain: formatChain(chain),
       project: 'mu-digital',
-      symbol: formatSymbol(vaultSymbolRes),
+      symbol: vaultSymbolRes,
       tvlUsd,
       apyBase: erc4626Info?.apyBase ?? 0,
+      ...(Number.isFinite(erc4626Info?.pricePerShare) && erc4626Info.pricePerShare > 0 && { pricePerShare: erc4626Info.pricePerShare }),
       underlyingTokens: [asset],
       poolMeta: 'loAZND Vault',
       url,
@@ -524,6 +546,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '7055',
   timetravel: false,
   apy,
   url: 'https://mudigital.net/',

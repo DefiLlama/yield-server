@@ -228,14 +228,14 @@ async function getApy(chain) {
       try {
         let priceKey = `${chain}:${tokenAddress}`;
         config.token_contract_address = tokenAddress;
-        let priceResponse = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`);
+        let priceResponse = await axios.get(utils.getPriceApiUrl(`/prices/current/${priceKey}`));
         let price = priceResponse.data.coins[priceKey];
         // some share tokens (like sGYD) have no price
         // so instead we price the base token (like GYD) and multiply by the latest vaultSharePrice in Hyperdrive
         if (price === undefined && config.baseToken !== ethers.constants.AddressZero) {
           tokenAddress = config.baseToken;
           priceKey = `${chain}:${tokenAddress}`;
-          priceResponse = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`);
+          priceResponse = await axios.get(utils.getPriceApiUrl(`/prices/current/${priceKey}`));
           price = priceResponse.data.coins[priceKey];
           config.token_contract_address = config.baseToken;
           priceWithBase = true;
@@ -312,5 +312,6 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5219',
   apy,
 };

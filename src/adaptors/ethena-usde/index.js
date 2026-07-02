@@ -19,9 +19,7 @@ const apy = async () => {
     ).output / 1e18;
 
   const priceKey = `ethereum:${sUSDe}`;
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const price = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const tvlUsd = totalSupply * price;
 
@@ -53,11 +51,13 @@ const apy = async () => {
       apyBase,
       poolMeta: '7 days unstaking',
       underlyingTokens: [USDe],
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '4133',
   apy,
   url: 'https://www.ethena.fi/',
 };

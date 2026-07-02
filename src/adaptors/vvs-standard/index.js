@@ -111,7 +111,7 @@ const getExtraRewardPoolsPerYear = async () => {
     .map((t) => `coingecko:${t}`)
     .join(',');
   const prices = (
-    await utils.getData(`https://coins.llama.fi/prices/current/${tokens}`)
+    await utils.getPriceApiData(`/prices/current/${tokens}`)
   ).coins;
 
   const poolsRewardPerSec = {
@@ -142,11 +142,9 @@ const getExtraRewardPoolsPerYear = async () => {
 
 const getBaseTokensPrice = async () => {
   const prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${BASE_TOKENS.map(
+    await utils.getPriceApiData(`/prices/current/${BASE_TOKENS.map(
         ({ cgName }) => `coingecko:${cgName}`
-      ).join(',')}`
-    )
+      ).join(',')}`)
   ).coins;
 
   const pricesMap = BASE_TOKENS.reduce(
@@ -280,6 +278,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '831',
   timetravel: false,
   apy: main,
   url: 'https://vvs.finance/farms',

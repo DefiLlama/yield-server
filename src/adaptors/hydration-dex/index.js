@@ -32,6 +32,7 @@ const cgMapping = {
   SKY: 'sky',
   LINK: 'chainlink',
   SOL: 'solana',
+  GSOL: 'solana',
   CRU: 'crust-network',
   EWT: 'energy-web-token',
   UNQ: 'unique-network',
@@ -151,7 +152,7 @@ const poolsFunction = async () => {
         pool: `${symbol}-hydration-dex`,
         chain: 'Polkadot',
         project: 'hydration-dex',
-        symbol: utils.formatSymbol(symbol),
+        symbol: symbol,
         tvlUsd,
         apyBase: apyBase > 0 ? apyBase : null,
         apyReward: apyReward > 0 ? apyReward : null,
@@ -246,7 +247,7 @@ const poolsFunction = async () => {
         pool: `stableswap-${poolId}-hydration-dex`,
         chain: 'Polkadot',
         project: 'hydration-dex',
-        symbol: utils.formatSymbol(poolSymbol),
+        symbol: poolSymbol,
         tvlUsd,
         apyBase: apyBase > 0 ? apyBase : null,
         apyReward: apyReward > 0 ? apyReward : null,
@@ -393,7 +394,7 @@ async function getTokenPrices() {
   const cgIds = [...new Set(Object.values(cgMapping))];
   const coins = cgIds.map((id) => `coingecko:${id}`).join(',');
   const res = await axios.get(
-    `https://coins.llama.fi/prices/current/${coins}`
+    utils.getPriceApiUrl(`/prices/current/${coins}`)
   );
 
   const prices = {};
@@ -478,6 +479,7 @@ function cleanSymbol(symbol) {
 }
 
 module.exports = {
+  protocolId: '3439',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.hydration.net/liquidity/all-pools',

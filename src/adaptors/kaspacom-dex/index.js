@@ -15,7 +15,7 @@ const fetchKasPrice = async () => {
   try {
     const priceKey = 'coingecko:kaspa';
     const kaspa = (
-      await utils.getData(`https://coins.llama.fi/prices/current/${priceKey}`)
+      await utils.getPriceApiData(`/prices/current/${priceKey}`)
     ).coins[priceKey].price;
     if (Number.isFinite(kaspa) && kaspa > 0) return kaspa;
   } catch (error) {
@@ -100,9 +100,7 @@ const buildPools = (pairs, volumeData, kasPrice, chain) => {
       const apyBase7d =
         tvlUsd > 0 ? ((volumeUsd7d * FEE_RATE * 52) / tvlUsd) * 100 : 0;
 
-      const symbol = utils.formatSymbol(
-        `${pair.token0.symbol}-${pair.token1.symbol}`
-      );
+      const symbol = `${pair.token0.symbol}-${pair.token1.symbol}`;
 
       return {
         pool: `${pair.id}-${chain}`,
@@ -145,6 +143,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6965',
   timetravel: false,
   apy,
   url: 'https://defi.kaspa.com',

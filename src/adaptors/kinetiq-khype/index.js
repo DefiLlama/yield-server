@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const BigNumber = require('bignumber.js');
+const { getPriceApiUrl } = require('../utils');
 
 const chain = 'hyperliquid';
 const project = 'kinetiq-khype';
@@ -86,6 +87,7 @@ const getSkntqPool = async (block1dAgo, block7dAgo, kntqPrice) => {
     searchTokenOverride: skntq,
     apyBase,
     apyBase7d,
+    ...(curr.gt(0) && { pricePerShare: curr.div(1e18).toNumber() }),
     tvlUsd,
     url: 'https://kinetiq.xyz/kntq',
   };
@@ -149,8 +151,10 @@ const getKhypePool = async (block1dAgo, block7dAgo, hypePrice) => {
     underlyingTokens: [whype],
     apyBase,
     apyBase7d,
+    ...(curr.gt(0) && { pricePerShare: curr.div(1e18).toNumber() }),
     tvlUsd,
     url: 'https://kinetiq.xyz/stake-hype',
+    isIntrinsicSource: true,
   };
 };
 
@@ -162,7 +166,7 @@ const apy = async () => {
 
   const [priceResp, block1dData, block7dData] = await Promise.all([
     axios.get(
-      `https://coins.llama.fi/prices/current/${kntqPriceKey},${hypePriceKey}`
+      getPriceApiUrl(`/prices/current/${kntqPriceKey},${hypePriceKey}`)
     ),
     sdk.api.util.lookupBlock(now - 86400, { chain }),
     sdk.api.util.lookupBlock(now - 86400 * 7, { chain }),
@@ -196,4 +200,4 @@ const apy = async () => {
   );
 };
 
-module.exports = { timetravel: false, apy, url: 'https://kinetiq.xyz' };
+module.exports = { protocolId: '6447', timetravel: false, apy, url: 'https://kinetiq.xyz' };

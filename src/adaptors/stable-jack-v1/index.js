@@ -7,6 +7,7 @@ const abiRebalancePool = require('./abirebalancePool.js');
 const abiAUSD = require('./abiAUSD');
 const { apyBase } = require('../barnbridge/numbers');
 const { rewardTokens } = require('../sommelier/config');
+const { getPriceApiData } = require('../utils');
 
 const sAVAX = 'avax:0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be';
 const sAVAXTreasury = '0xDC325ad34C762C19FaAB37d439fbf219715f9D58';
@@ -44,8 +45,7 @@ const getWSAVAXtoSAVAXRatio = async () => {
 };
 
 const getSAVAXPrice = async () => {
-  return (await axios.get(`https://coins.llama.fi/prices/current/${sAVAX}`))
-    .data.coins[sAVAX].price;
+  return (await getPriceApiData(`/prices/current/${sAVAX}`)).coins[sAVAX].price;
 };
 
 const getaUSDPrice = async () => {
@@ -102,6 +102,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '4806',
   apy: main,
   url: 'https://app.stablejack.xyz/rebalancepool',
 };

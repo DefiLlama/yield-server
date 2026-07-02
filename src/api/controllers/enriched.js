@@ -48,7 +48,13 @@ const getPoolEnriched = async (req, res) => {
     .status(200)
     .json({
       status: 'success',
-      data: data.filter((t) => t.pool == configID),
+      data: data
+        .filter((t) => t.pool == configID)
+        .map((pool) => {
+          const responsePool = { ...pool };
+          delete responsePool.poolTokenAddress;
+          return responsePool;
+        }),
     });
 };
 
@@ -90,9 +96,10 @@ const getPoolsBorrow = async (req, res) => {
   const lendBorrow = data[1];
 
   // join supply side fields (all enriched fields) onto borrow object
+  const poolsMap = new Map(pools.map((i) => [i.pool, i]));
   const poolsBorrow = lendBorrow
     .map((p) => {
-      const poolSupplySide = pools.find((i) => i.pool === p.pool);
+      const poolSupplySide = poolsMap.get(p.pool);
       if (poolSupplySide === undefined) return null;
 
       return {

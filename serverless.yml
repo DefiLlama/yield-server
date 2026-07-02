@@ -61,9 +61,6 @@ functions:
               - Arn
           batchSize: 4
     environment:
-      ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
-      ALCHEMY_CONNECTION_ETHEREUM: ${file(./env.js):ALCHEMY_CONNECTION_ETHEREUM}
-      ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
@@ -87,6 +84,7 @@ functions:
       LLAMA_INDEXER_V2_ENDPOINT: ${env:LLAMA_INDEXER_V2_ENDPOINT}
       LLAMA_INDEXER_V2_API_KEY: ${env:LLAMA_INDEXER_V2_API_KEY}
       PROJECT_0_API_KEY: ${env:PROJECT_0_API_KEY}
+      SANCTUM_API_KEY: ${env:SANCTUM_API_KEY}
 
   # --- data enrichment
   triggerEnrichment:

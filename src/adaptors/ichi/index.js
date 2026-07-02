@@ -23,9 +23,22 @@ const SUBGRAPHS = {
       url: 'https://api.goldsky.com/api/public/project_clynrq1h8gam301xx6vgngo9p/subgraphs/g2/citrea-v2-satsuma/gn',
       version: 'v2',
       vaults: [
+        '0x8B759858f688A3e04411805f8954724f552b8061',
+        '0x0b3E6074502301D4CF62F9748D38Ca781d95F944',
+        '0xb5747c92D41540DFb7F04f6CbC739367fD25ED73',
+        '0xA0DAc5c92d4537043FC989a730EF3247c6BfA7e8',
+        '0x6a5e1718953e4a332d199e1f2cff24b18e97f067',
+        '0xcc16b6944f0b48599af596a79c6bf5cec93740ad',
+        '0x5f4164313912ef8ADFC569d90B15550228B43ba1',
+        '0x3B13E09dEA65ab83644B44C50CfA75a06A589421',
         '0xe6cA7dEd0a0D5B07B40999E90f84f85B242441Dd',
         '0xb665ffd7422b89B7138cD58bDa244de97c27067e',
         '0xFb7ea62B5721eeCAF80D53bD05C9E61BD57A3352',
+        '0xbd55166776c944A3f47B775d9727cE888e69a010',
+        '0x87aC471B15EbFaB2Ab7F2Ac37434A95F914F8030',
+        '0x2C667401846c5B8820e8C43bb04Fd39A6D92C54A',
+        '0x5704c4116F3D34CB1b6a8559e20998D67030431d',
+        '0xcAb47638478935A6FEac6B919Da6976db740D7d1',
       ],
     },
   ],
@@ -281,6 +294,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '874',
   timetravel: false,
   apy,
   url: 'https://app.ichi.org/',

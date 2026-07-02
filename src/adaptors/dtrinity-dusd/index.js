@@ -49,6 +49,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '5589',
   timetravel: false,
   apy,
   url: 'https://app.dtrinity.org/dstake/vault/',

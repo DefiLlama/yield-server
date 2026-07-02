@@ -60,8 +60,9 @@ const getPoolData = async (poolContract, block1dayAgo, block7dayAgo) => {
   const apyBase7d =
     ((rateNow.output - rate7d.output) / rate7d.output / 7) * 365 * 100;
   const totalEth = totalAssets.output / 1e18;
+  const pricePerShare = Number(rateNow.output) / 1e18;
 
-  return { apyBase, apyBase7d, totalEth };
+  return { apyBase, apyBase7d, totalEth, pricePerShare };
 };
 
 const getApy = async () => {
@@ -72,17 +73,15 @@ const getApy = async () => {
   const [{ height: block1dayAgo }, { height: block7dayAgo }] =
     await Promise.all([
       axios
-        .get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
+        .get(utils.getPriceApiUrl(`/block/ethereum/${timestamp1dayAgo}`))
         .then((r) => r.data),
       axios
-        .get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
+        .get(utils.getPriceApiUrl(`/block/ethereum/${timestamp7dayAgo}`))
         .then((r) => r.data),
     ]);
 
   const ethPriceKey = 'coingecko:ethereum';
-  const ethPriceRes = (
-    await axios.get(`https://coins.llama.fi/prices/current/${ethPriceKey}`)
-  ).data;
+  const ethPriceRes = (await utils.getPriceApiData(`/prices/current/${ethPriceKey}`));
   const ethPrice = ethPriceRes?.coins?.[ethPriceKey]?.price;
   if (!ethPrice) throw new Error('nodedao: failed to fetch ETH price');
 
@@ -101,9 +100,11 @@ const getApy = async () => {
       tvlUsd: nEthData.totalEth * ethPrice,
       apyBase: nEthData.apyBase,
       apyBase7d: nEthData.apyBase7d,
+      ...(nEthData.pricePerShare > 0 && { pricePerShare: nEthData.pricePerShare }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: nETH,
       url: `https://app.nodedao.com/`,
+      isIntrinsicSource: true,
     },
     {
       pool: `${rnETH}-ethereum`.toLowerCase(),
@@ -114,14 +115,17 @@ const getApy = async () => {
       tvlUsd: rnEthData.totalEth * ethPrice,
       apyBase: rnEthData.apyBase,
       apyBase7d: rnEthData.apyBase7d,
+      ...(rnEthData.pricePerShare > 0 && { pricePerShare: rnEthData.pricePerShare }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: rnETH,
       url: `https://app.nodedao.com/re_stake`,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '2993',
   timetravel: false,
   apy: getApy,
   url,

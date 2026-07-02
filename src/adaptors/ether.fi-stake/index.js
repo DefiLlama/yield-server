@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const weETH = '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee';
 const eETH = '0x35fA164735182de50811E8e2E824cFb9B6118ac2'
@@ -34,13 +35,9 @@ const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
-  const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
-  ).data.height;
+  const block1dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp1dayAgo}`)).height;
 
-  const block7dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
-  ).data.height;
+  const block7dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp7dayAgo}`)).height;
 
   const abi = 'function getRate() external view returns (uint256)';
 
@@ -91,10 +88,10 @@ const apy = async () => {
   const priceKeyWBTC = `ethereum:${WBTC}`;
 
   const [eigenPriceRes, eethPriceRes, weethPriceRes, wbtcPriceRes, lombardApyRes] = await Promise.all([
-    axios.get(`https://coins.llama.fi/prices/current/ethereum:${eigen}`),
-    axios.get(`https://coins.llama.fi/prices/current/ethereum:${eETH}`),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKeyWBTC}`),
+    axios.get(getPriceApiUrl(`/prices/current/ethereum:${eigen}`)),
+    axios.get(getPriceApiUrl(`/prices/current/ethereum:${eETH}`)),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKeyWBTC}`)),
     axios.get(LOMBARD_APY_API),
   ]);
 
@@ -121,6 +118,14 @@ const apy = async () => {
 
   const eBTCTvlUsd = eBTCTotalSupply * (btcPrice || 0);
 
+  const pricePerShare = Number(weETHRates[0].output) / 1e18;
+  const bridgedWeethPools = await getBridgedWeethPools({
+    apyBase: apr1d,
+    apyBase7d: apr7d,
+    apyReward: restakingApy,
+    pricePerShare,
+  });
+
   return [
     {
       pool: weETH,
@@ -131,10 +136,12 @@ const apy = async () => {
       apyBase: apr1d,
       apyBase7d: apr7d,
       apyReward: restakingApy,
+      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: weETH,
       rewardTokens: [lrt2],
       url: 'https://ether.fi/app/weeth',
+      isIntrinsicSource: true
     },
     {
       pool: eBTC,
@@ -144,14 +151,69 @@ const apy = async () => {
       tvlUsd: eBTCTvlUsd,
       apyBase: eBTCApyBase,
       apyBase7d: eBTCApyBase7d,
+      ...(eBTCRateCurrent / 1e8 > 0 && { pricePerShare: eBTCRateCurrent / 1e8 }),
       underlyingTokens: [LBTC, WBTC],
       searchTokenOverride: eBTC,
       url: 'https://ether.fi/app/ebtc',
+      isIntrinsicSource: true
     },
+    ...bridgedWeethPools,
   ];
 };
 
+const BRIDGED_WEETH = {
+  base: '0x04c0599ae5a44757c0af6f9ec3b93da8976c150a',
+  linea: '0x1bf74c010e6320bab11e2e5a532b5ac15e0b8aa6',
+  scroll: '0x01f0a31698c4d065659b9bdc21b3610292a1c506',
+};
+
+const getBridgedWeethPools = async ({ apyBase, apyBase7d, apyReward, pricePerShare }) => {
+  const entries = Object.entries(BRIDGED_WEETH);
+
+  const supplies = await Promise.all(
+    entries.map(([chain, addr]) =>
+      sdk.api.abi
+        .call({ target: addr, abi: 'erc20:totalSupply', chain })
+        .then((r) => Number(r.output))
+        .catch(() => null)
+    )
+  );
+
+  const priceKeys = entries.map(([chain, addr]) => `${chain}:${addr}`).join(',');
+  const priceRes = await axios.get(
+    getPriceApiUrl(`/prices/current/${priceKeys}`)
+  );
+  const prices = priceRes.data.coins;
+
+  return entries
+    .map(([chain, addr], i) => {
+      const supply = supplies[i];
+      const priceKey = `${chain}:${addr}`;
+      const price = prices[priceKey]?.price;
+      if (!supply || !price) return null;
+
+      return {
+        pool: `${addr}-${chain}`,
+        chain,
+        project: 'ether.fi-stake',
+        symbol: 'weETH',
+        tvlUsd: (supply / 1e18) * price,
+        apyBase,
+        apyBase7d,
+        apyReward,
+        ...(pricePerShare > 0 && { pricePerShare }),
+        underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+        searchTokenOverride: addr,
+        rewardTokens: [lrt2],
+        url: 'https://ether.fi/app/weeth',
+        isIntrinsicSource: true,
+      };
+    })
+    .filter(Boolean);
+};
+
 module.exports = {
+  protocolId: '2626',
   apy,
   url: 'https://app.ether.fi/',
 };

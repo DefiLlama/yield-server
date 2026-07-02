@@ -16,7 +16,7 @@ const convertToAssetsAbi = {
 const getJson = (url) => utils.withRetry(() => axios.get(url)).then((r) => r.data);
 
 const getBlock = async (chain, ts) => {
-    const d = await getJson(`https://coins.llama.fi/block/${chain}/${ts}`);
+    const d = await getJson(utils.getPriceApiUrl(`/block/${chain}/${ts}`));
     if (typeof d?.height !== 'number') {
         throw new Error(
             `treehouse-protocol: invalid block response for ${chain} @ ${ts}: ${JSON.stringify(d)}`
@@ -27,7 +27,7 @@ const getBlock = async (chain, ts) => {
 
 const getPrice = async (chain, token) => {
     const key = `${chain}:${token}`;
-    const d = await getJson(`https://coins.llama.fi/prices/current/${key}`);
+    const d = await getJson(utils.getPriceApiUrl(`/prices/current/${key}`));
     const price = d?.coins?.[key]?.price;
     if (typeof price !== 'number') {
         throw new Error(`treehouse-protocol: missing price for ${chain}:${token}`);
@@ -145,6 +145,7 @@ const getPool = async ({ symbol, chain, vault, underlying, underlyingApr }) => {
         underlyingTokens: [underlying],
         apyBase: vaultApr1d + extra.apr1d,
         apyBase7d: vaultApr7d !== null ? vaultApr7d + extra.apr7d : null,
+        ...(n(rateNow) > 0 && { pricePerShare: n(rateNow) }),
         tvlUsd: n(totalAssets) * price,
     };
 };
@@ -172,6 +173,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5131',
     timetravel: false,
     apy,
     url: 'https://www.treehouse.finance/',

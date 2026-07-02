@@ -1,9 +1,10 @@
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const API_BASE = 'https://api.indexer.omnipair.fi/api/v1';
 const MARKETS_URL = 'https://www.omnipair.fi/markets';
 const MARKET_URL_BASE = 'https://www.omnipair.fi/market';
-const DEFILLAMA_PRICES_URL = 'https://coins.llama.fi/prices/current';
+const DEFILLAMA_PRICES_URL = getPriceApiUrl('/prices/current');
 
 function toNumber(value) {
   const n = Number(value);
@@ -180,6 +181,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7566',
   timetravel: false,
   url: MARKETS_URL,
   apy: main,

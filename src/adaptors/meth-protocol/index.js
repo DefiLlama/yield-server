@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const stakingAbi = require('./stakingAbi.json');
+const { getPriceApiData } = require('../utils');
 
 const mETH = '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa';
 const stakingContract = '0xe3cBd06D7dadB3F4e6557bAb7EdD924CD1489E8f';
@@ -19,13 +20,9 @@ const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
-  const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
-  ).data.height;
+  const block1dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp1dayAgo}`)).height;
 
-  const block7dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
-  ).data.height;
+  const block7dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp7dayAgo}`)).height;
 
   const exchangeRates = await Promise.all([
     sdk.api.abi.call({
@@ -59,9 +56,7 @@ const apy = async () => {
     100;
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   return [
     {
@@ -72,13 +67,16 @@ const apy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase,
       apyBase7d,
+      ...(Number(exchangeRates[0].output) / 1e18 > 0 && { pricePerShare: Number(exchangeRates[0].output) / 1e18 }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: mETH,
+      isIntrinsicSource: true
     },
   ];
 };
 
 module.exports = {
+  protocolId: '3882',
   apy,
   url: 'https://meth.mantle.xyz/stake',
 };

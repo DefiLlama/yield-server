@@ -92,9 +92,7 @@ const topLvl = async (chainString, url) => {
   );
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethUSDPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethUSDPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   let apyList = [],
     tvlUsd;
@@ -112,11 +110,12 @@ const topLvl = async (chainString, url) => {
         pool: `${result.savETHPool}-${chainString}`.toLowerCase(),
         chain: utils.formatChain(chainString),
         project: 'stakehouse',
-        symbol: utils.formatSymbol(Object.values(aprData)[i].Ticker),
+        symbol: Object.values(aprData)[i].Ticker,
         tvlUsd: tvlUsd,
         apyBase: Number(Object.values(aprData)[i].APR),
         underlyingTokens: ['0x0000000000000000000000000000000000000000'],
         searchTokenOverride: result.savETHPool,
+        isIntrinsicSource: true,
       });
 
       totalTvl += tvlUsd;
@@ -137,6 +136,7 @@ const topLvl = async (chainString, url) => {
     apyBase: totalApy / noOfActiveLSDs,
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],
     searchTokenOverride: '0x3d1E5Cf16077F349e999d6b21A4f646e83Cd90c5',
+    isIntrinsicSource: true,
   });
 
   return apyList;
@@ -152,6 +152,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2838',
   timetravel: false,
   apy: main,
   url: 'https://joinstakehouse.com/',

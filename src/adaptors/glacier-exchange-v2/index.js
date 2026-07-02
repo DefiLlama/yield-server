@@ -87,9 +87,7 @@ const getApy = async () => {
   ];
   const priceKeys = tokens.map((i) => `avax:${i}`).join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const pools = allPairs.map((p, i) => {
     const poolMeta = metaData[i];
@@ -123,7 +121,7 @@ const getApy = async () => {
       pool: p,
       chain: utils.formatChain('avax'),
       project: 'glacier-exchange-v2',
-      symbol: utils.formatSymbol(s.split('-')[1]),
+      symbol: s.split('-')[1],
       tvlUsd,
       apyReward,
       rewardTokens: apyReward ? [GLCR] : [],
@@ -135,6 +133,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2757',
   timetravel: false,
   apy: getApy,
   url: 'https://glacier.exchange/liquidity',

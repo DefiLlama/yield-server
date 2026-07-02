@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { uint256 } = require('starknet');
-const { call } = require('../../helper/starknet');
+const { call } = require('../utils');
 const { assetTokenAbi } = require('./abis/AssetToken');
 const { interestRateModelAbi } = require('./abis/InterestRateModel');
 const { default: BigNumber } = require('bignumber.js');
@@ -160,9 +160,7 @@ const starknetFoundationIncentivesEndpoint =
 
 async function getTokenPrice(token) {
   const networkTokenPair = `starknet:${token}`;
-  return (
-    await axios.get(`https://coins.llama.fi/prices/current/${networkTokenPair}`)
-  ).data.coins[networkTokenPair]?.price;
+  return (await utils.getPriceApiData(`/prices/current/${networkTokenPair}`)).coins[networkTokenPair]?.price;
 }
 
 async function getApys(debtToken) {
@@ -239,6 +237,7 @@ async function apy() {
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           underlyingTokens: [address],
           apyBaseBorrow: borrowApy,
+          borrowToken: address,
           totalSupplyUsd,
           totalBorrowUsd,
           url: `https://app.nostra.finance/lend-borrow/${name}/deposit`,
@@ -250,6 +249,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2825',
   apy,
   url: 'https://app.nostra.finance',
 };

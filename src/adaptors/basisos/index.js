@@ -197,7 +197,7 @@ async function apy() {
 
     pools.push({
       pool: `${vault}-arbitrum`.toLowerCase(),
-      symbol: utils.formatSymbol(symbol.output),
+      symbol: symbol.output,
       project: 'basisos',
       chain: utils.formatChain('arbitrum'),
       tvlUsd: tvl_in_usd,
@@ -211,6 +211,7 @@ async function apy() {
 
   
 module.exports = {
+  protocolId: '6167',
   timetravel: false,
   apy: apy,
   url: 'https://basisos.org/vaults',

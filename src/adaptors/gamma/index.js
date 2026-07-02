@@ -2,7 +2,6 @@ const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const { print } = require('graphql');
 
 const EXCHANGES_API = {
   uniswapv3: '',
@@ -295,8 +294,7 @@ const getApy = async () => {
       .toLowerCase()
     pricesA = [
       ...pricesA,
-      (await axios.get(`https://coins.llama.fi/prices/current/${url}`))
-        .data.coins,
+      (await utils.getPriceApiData(`/prices/current/${url}`)).coins,
     ];
   }
   let prices = {};
@@ -396,6 +394,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '355',
   timetravel: false,
   apy: getApy,
   url: 'https://app.gamma.xyz/dashboard',

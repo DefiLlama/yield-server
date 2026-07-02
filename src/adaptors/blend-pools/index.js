@@ -5,7 +5,7 @@ const {
   FixedMath,
   TokenMetadata,
 } = require('@blend-capital/blend-sdk');
-const { getPrices, keepFinite, formatChain, getData } = require('../utils');
+const { getPrices, keepFinite, formatChain, getData, getPriceApiData } = require('../utils');
 
 const BACKSTOP_ID = 'CAO3AGAMZVRMHITL36EJ2VZQWKYRPWMQAPDQD5YEOF3GIF7T44U4JAL3';
 const BLND_ID = 'CD25MNVTZDL4Y3XBCPCJXGXATV5WUHHOWMYFF4YBEGU5FCPGMYTVG5JY';
@@ -84,9 +84,7 @@ const getApy = async (poolId, backstop, blndPrice) => {
 const apy = async () => {
   let backstop = await Backstop.load(NETWORK, BACKSTOP_ID);
   let pools = [];
-  const data = await getData(
-    'https://coins.llama.fi/prices/current/coingecko:blend'
-  );
+  const data = await getPriceApiData('/prices/current/coingecko:blend');
   for (const poolId of BLEND_POOLS) {
     let poolApys = await getApy(
       poolId,
@@ -99,5 +97,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4727',
   apy,
 };

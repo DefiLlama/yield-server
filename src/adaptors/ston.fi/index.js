@@ -39,15 +39,16 @@ const getApy = async () => {
                 console.error("Can't find symbol", pool_info);
                 return null;
             }
-            const s1 = asset2symbol[pool_info.tokens[0]]
-            const s2 = asset2symbol[pool_info.tokens[1]];
+            const renameNativeTon = (s) => (s === 'TON' ? 'GRAM' : s);
+            const s1 = renameNativeTon(asset2symbol[pool_info.tokens[0]]);
+            const s2 = renameNativeTon(asset2symbol[pool_info.tokens[1]]);
             // use apropriate base-quote order
             let symbol = '';
             if (s1 == 'USD₮') {
                 symbol = `${s2}-${s1}`
             } else if (s2 == 'USD₮') {
                 symbol = `${s1}-${s2}`
-            } else if (s1 == 'TON') {
+            } else if (s1 == 'TON' || s1 == 'GRAM') {
                 symbol = `${s2}-${s1}`
             } else {
                 symbol = `${s1}-${s2}`
@@ -70,6 +71,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2337',
     timetravel: false,
     apy: getApy,
     url: 'https://ston.fi/',

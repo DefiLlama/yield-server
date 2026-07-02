@@ -1,5 +1,10 @@
 const axios = require('axios');
-const { getStakePoolInfo, calcSolanaLstApy } = require('../utils');
+const {
+  getStakePoolInfo,
+  calcSolanaLstApy,
+  solanaLstPricePerShare,
+  getPriceApiUrl,
+} = require('../utils');
 
 const SAVESOL_MINT = 'SAVEDpx3nFNdzG3ymJfShYnrBuYy7LtQEABZQ3qtTFt';
 const STAKE_POOL = 'SAVEY1fVMBeRVo9V9rgEz8ENTvHreftd3QgpAKBDFV4';
@@ -10,13 +15,14 @@ const solKey = `solana:${SOL}`;
 const apy = async () => {
   const [stakePool, priceRes] = await Promise.all([
     getStakePoolInfo(STAKE_POOL),
-    axios.get(`https://coins.llama.fi/prices/current/${solKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${solKey}`)),
   ]);
 
   const solPrice = priceRes.data.coins[solKey]?.price;
   if (!solPrice) throw new Error('Unable to fetch SOL price');
 
   const apyBase = calcSolanaLstApy(stakePool);
+  const pricePerShare = solanaLstPricePerShare(stakePool);
 
   const feePct = stakePool.epochFee
     ? `${((stakePool.epochFee.numerator / stakePool.epochFee.denominator) * 100).toFixed(0)}% epoch fee`
@@ -30,14 +36,17 @@ const apy = async () => {
       symbol: 'saveSOL',
       tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
+      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: [SOL],
       searchTokenOverride: SAVESOL_MINT,
       poolMeta: feePct,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '6085',
   timetravel: false,
   apy,
   url: 'https://save.finance/saveSOL',

@@ -163,5 +163,6 @@ async function getGdexFarmsApy() {
 }
 
 module.exports = {
+  protocolId: '3277',
   apy: getGdexFarmsApy,
 };

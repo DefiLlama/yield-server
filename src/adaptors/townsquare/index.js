@@ -79,9 +79,7 @@ const apy = async () => {
 
   // Get token prices
   const priceKeys = tokenAddresses.map((t) => `${chain}:${t}`).join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const poolsWithoutRewards = poolAddresses
     .map((poolAddr, i) => {
@@ -122,7 +120,7 @@ const apy = async () => {
         pool: `${poolAddr}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: 'townsquare',
-        symbol: utils.formatSymbol(symbol),
+        symbol: symbol,
         tvlUsd,
         apyBase,
         underlyingTokens: [tokenAddr],
@@ -132,6 +130,7 @@ const apy = async () => {
           apyBaseBorrow,
           borrowable,
           totalBorrowUsd,
+          borrowToken: tokenAddr,
         })
       };
     })
@@ -141,6 +140,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7028',
   apy,
   url: 'https://townesquare.xyz',
 };

@@ -41,13 +41,15 @@ async function sDAIPool() {
     chain: utils.formatChain('xdai'),
     project: 'sdai',
     symbol: 'sDAI',
-    apy: await getApy(),
+    apyBase: await getApy(),
     tvlUsd: await getTVL(),
     underlyingTokens: [chains.xdai.wxDAI],
+    isIntrinsicSource: true,
   };
   return [sDAIPoolData];
 }
 module.exports = {
+  protocolId: '3603',
   timetravel: false,
   apy: sDAIPool,
   url: 'https://agave.finance/sdai/',

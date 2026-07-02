@@ -119,7 +119,7 @@ const calculateTVL = async (config: AssetConfig) => {
 
   const priceKey = `${chain}:${underlying}`;
   const underlyingPriceCall = axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}?searchWidth=24h`,
+    utils.getPriceApiUrl(`/prices/current/${priceKey}?searchWidth=24h`),
   );
 
   const currentRateCall = sdk.api.abi.call({
@@ -175,10 +175,10 @@ const calculateAPR = async (config: AssetConfig, currentRate: number) => {
   const timestamp7dayAgo = now - 86400 * 7;
 
   const block1dayAgoCall = axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp1dayAgo}`,
+    utils.getPriceApiUrl(`/block/${chain}/${timestamp1dayAgo}`),
   );
   const block7dayAgoCall = axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp7dayAgo}`,
+    utils.getPriceApiUrl(`/block/${chain}/${timestamp7dayAgo}`),
   );
 
   const [block1dayAgoResponse, block7dayAgoResponse] = await Promise.all([
@@ -267,6 +267,7 @@ const apy = async () => {
         tvlUsd: tvlUsd,
         apyBase: apr1d,
         apyBase7d: apr7d,
+        ...(Number(currentRate) / 10 ** chainConfig.decimals > 0 && { pricePerShare: Number(currentRate) / 10 ** chainConfig.decimals }),
         underlyingTokens: [chainConfig.underlying],
       };
     }),
@@ -276,6 +277,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6407',
   apy,
   timetravel: false,
   url: "https://app.hyperwavefi.xyz/assets/hwhlp",

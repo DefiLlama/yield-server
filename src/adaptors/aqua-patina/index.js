@@ -17,7 +17,7 @@ const getApy = async () => {
             pool: APETH,
             chain: utils.formatChain('ethereum'),
             project: 'aqua-patina',
-            symbol: utils.formatSymbol('APETH'),
+            symbol: 'APETH',
             tvlUsd: tvl,
             apy: apy.data.apy,
             underlyingTokens: [ETH],
@@ -39,9 +39,7 @@ async function tvlUsd() {
         chain: 'ethereum'
     });
 
-    const ethPrice = (
-        await axios.get('https://coins.llama.fi/prices/current/coingecko:ethereum')
-    ).data.coins['coingecko:ethereum'].price;
+    const ethPrice = (await utils.getPriceApiData('/prices/current/coingecko:ethereum')).coins['coingecko:ethereum'].price;
 
     let tvl = BigInt(supply.output) * BigInt(multiplier.output) / BigInt(1e18) / BigInt(1e18);
 
@@ -49,6 +47,7 @@ async function tvlUsd() {
 }
 
 module.exports = {
+  protocolId: '5267',
     timetravel: false,
     apy: getApy,
     url: 'https://aquapatina.eth/',

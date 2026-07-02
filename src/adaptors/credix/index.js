@@ -29,6 +29,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '1786',
   timetravel: false,
   apy: apy,
   url: 'https://app.credix.finance',

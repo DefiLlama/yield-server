@@ -28,20 +28,19 @@ const getFilecoinPool = async () => {
 
   // <- Filecoin ->
   const filPriceKey = `coingecko:filecoin`;
-  const filPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${filPriceKey}`)
-  ).data.coins[filPriceKey]?.price;
+  const filPrice = (await utils.getPriceApiData(`/prices/current/${filPriceKey}`)).coins[filPriceKey]?.price;
 
   return {
     pool: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd-filecoin',
     chain: utils.formatChain('filecoin'),
     project: 'glif',
-    symbol: utils.formatSymbol('IFIL'),
+    symbol: 'IFIL',
     tvlUsd: tvlFIL * filPrice,
-    apy: Number(apyData.apy),
+    apyBase: Number(apyData.apy),
     poolMeta: 'GLIF',
     underlyingTokens: [WFIL],
     searchTokenOverride: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd', // iFIL
+    isIntrinsicSource: true,
   };
 };
 
@@ -52,7 +51,7 @@ const getICNTPool = async () => {
     pool: '0xAeD7C2eD7Bb84396AfCB55fF72c8F8E87FFb68f3-base',
     chain: utils.formatChain('base'),
     project: 'glif',
-    symbol: utils.formatSymbol('stICNT'),
+    symbol: 'stICNT',
     tvlUsd: 0,
     apy: 0,
     poolMeta: 'GLIF',
@@ -123,7 +122,7 @@ const getICNTPool = async () => {
     try {
       const icntPriceKey = `coingecko:impossible-cloud-network-token`;
       const priceResponse = await axios.get(
-        `https://coins.llama.fi/prices/current/${icntPriceKey}`,
+        utils.getPriceApiUrl(`/prices/current/${icntPriceKey}`),
         {
           timeout: 10000, // 10 second timeout
         }
@@ -143,6 +142,7 @@ const getICNTPool = async () => {
 };
 
 module.exports = {
+  protocolId: '2858',
   timetravel: false,
   apy: fetchApy,
   url: 'https://www.glif.io',

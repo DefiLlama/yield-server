@@ -18,9 +18,9 @@ const apy = async () => {
   const timestamp30d = timestampNow - 86400 * 30;
 
   const [blockNow, block7d, block30d] = await Promise.all([
-    axios.get(`https://coins.llama.fi/block/ethereum/${timestampNow}`),
-    axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7d}`),
-    axios.get(`https://coins.llama.fi/block/ethereum/${timestamp30d}`),
+    axios.get(utils.getPriceApiUrl(`/block/ethereum/${timestampNow}`)),
+    axios.get(utils.getPriceApiUrl(`/block/ethereum/${timestamp7d}`)),
+    axios.get(utils.getPriceApiUrl(`/block/ethereum/${timestamp30d}`)),
   ]).then((res) => res.map((r) => r.data.height));
 
   const callOracle = (block) =>
@@ -67,6 +67,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3698',
   timetravel: false,
   apy,
   url: 'https://www.circle.com/usyc',

@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.json');
+const { getPriceApiData } = require('../utils');
 
 const apr = 'https://v3.svc.swellnetwork.io/swell.v3.StatsService/All';
 const apr7d = 'https://v3-public.svc.swellnetwork.io/api/tokens/sweth/apr';
@@ -25,9 +26,7 @@ const apy = async () => {
     ).output / 1e18;
 
   const priceKey = `ethereum:${swETH}`;
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const tvlUsd = totalSupply * rate * ethPrice;
 
@@ -43,13 +42,16 @@ const apy = async () => {
       tvlUsd,
       apyBase: apyBase7d,
       apyBase7d,
+      ...(rate > 0 && { pricePerShare: rate }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: swETH,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '2901',
   timetravel: false,
   apy,
   url: 'https://app.swellnetwork.io/',

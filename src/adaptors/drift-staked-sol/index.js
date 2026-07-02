@@ -1,23 +1,21 @@
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
 const utils = require('../utils');
+const { getTotalSupply, getSanctumLstApy } = utils;
 
 const DSOL_ADDRESS = 'Dso1bDeDjCQxTrWHqUUi63oBvV7Mdm6WaobLbQ7gnPQ'
 const SOL = 'So11111111111111111111111111111111111111112';
 const priceKey = `solana:${DSOL_ADDRESS}`;
 
 const apy = async () => {
-  const totalSupply = await getTotalSupply(DSOL_ADDRESS);
+  const [totalSupply, priceResponse, apyBase] = await Promise.all([
+    getTotalSupply(DSOL_ADDRESS),
+    axios.get(utils.getPriceApiUrl(`/prices/current/${priceKey}`)),
+    getSanctumLstApy(DSOL_ADDRESS),
+  ]);
 
-  const priceResponse = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
   const currentPrice = priceResponse.data.coins[priceKey].price;
-
-  const driftResponse = await axios.get(
-    'https://extra-api.sanctum.so/v1/apy/latest?lst=dSOL'
-  );
-  const apy = driftResponse.data.apys.dSOL;
+  if (apyBase == null)
+    throw new Error(`Unable to fetch APY for ${DSOL_ADDRESS}`);
 
   return [
     {
@@ -26,11 +24,12 @@ const apy = async () => {
       project: 'drift-staked-sol',
       symbol: 'dSOL',
       tvlUsd: totalSupply * currentPrice,
-      apyBase: apy * 100,
+      apyBase,
       underlyingTokens: [SOL],
       searchTokenOverride: DSOL_ADDRESS,
+      isIntrinsicSource: true,
     },
   ];
 };
 
-module.exports = { apy, url: 'https://app.drift.trade/earn/dsol-liquid-staking' };
+module.exports = { protocolId: '5046', apy, url: 'https://app.drift.trade/earn/dsol-liquid-staking' };

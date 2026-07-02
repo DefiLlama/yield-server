@@ -75,7 +75,7 @@ async function apy() {
       pool: `dexter-pool-${p.poolId}-${tokenSymbol1}-${tokenSymbol2}`,
       chain: 'Persistence',
       project: 'persistence-dex',
-      symbol: utils.formatSymbol(`${tokenSymbol1}-${tokenSymbol2}`),
+      symbol: `${tokenSymbol1}-${tokenSymbol2}`,
       url: `https://app.dexter.zone/pools/${p.poolContractAddress}`,
       apyReward: 0,
       rewardTokens: [],
@@ -126,6 +126,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2737',
   timetravel: false,
   apy,
   url: 'https://app.dexter.zone/pools',

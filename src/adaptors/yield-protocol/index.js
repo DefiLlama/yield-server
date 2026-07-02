@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
-const { formatChain, formatSymbol } = require('../utils');
+const { formatChain, formatSymbol, getPriceApiUrl } = require('../utils');
 const axios = require('axios');
 const { format } = require('date-fns');
 const { compact } = require('lodash');
@@ -147,7 +147,7 @@ const getPools = async (chain) => {
       // price of base token in USD terms
       const key = `${chain}:${baseAddr}`;
       const priceRes = await axios.get(
-        `https://coins.llama.fi/prices/current/${key}`
+        getPriceApiUrl(`/prices/current/${key}`)
       );
       const price = priceRes.data.coins[key];
       const priceBaseUsd = price ? price.price : 0;
@@ -220,6 +220,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '876',
   timetravel: false,
   apy: main,
   url: 'https://app.yieldprotocol.com/',

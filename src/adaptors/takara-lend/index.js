@@ -109,15 +109,12 @@ const apy = async () => {
     const pool = `${marketInfo.token}-${chain}`.toLowerCase();
     const underlyingSymbol = marketInfo.underlyingSymbol;
 
-    const poolMeta = `Takara Lend ${underlyingSymbol} Market`;
     const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl));
     const ltv = Number(ethers.utils.formatEther(marketInfo.ltv));
-    const totalSupplyUsd = Number(
-      ethers.utils.formatEther(marketInfo.totalSupply)
-    );
     const totalBorrowUsd = Number(
       ethers.utils.formatEther(marketInfo.totalBorrows)
     );
+    const totalSupplyUsd = tvlUsd + totalBorrowUsd;
     const borrowRatePerBlock = marketInfo.borrowRatePerBlock;
     const supplyRatePerBlock = marketInfo.supplyRatePerBlock;
     const timestampsPerYear = marketInfo.timestampsPerYear;
@@ -177,13 +174,15 @@ const apy = async () => {
       pool,
       chain,
       project,
-      poolMeta,
       ltv,
       tvlUsd,
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd: tvlUsd,
       apyBase,
       apyBaseBorrow,
+      borrowToken: marketInfo.underlying,
+      borrowable: true,
       apyReward: apyReward,
       rewardTokens: rewardTokens,
       symbol: underlyingSymbol,
@@ -196,6 +195,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5783',
   timetravel: false,
   apy: apy,
   url: 'https://app.takaralend.com',

@@ -3,6 +3,7 @@ const axios = require('axios');
 
 const abi = require('./abi');
 const abiVault = require('./abiVault');
+const { getPriceApiData } = require('../utils');
 
 const inETH = '0xf073bAC22DAb7FaF4a3Dd6c6189a70D54110525C';
 const vault = '0x122ee24cb3cc1b6b987800d3b54a68fc16910dbf';
@@ -36,9 +37,7 @@ const apy = async () => {
     ).output / 1e18;
 
   const priceKey = `coingecko:genesislrt-restaked-eth`;
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const price = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   console.log(apr7d, price);
   process.exit();
@@ -58,6 +57,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4030',
   apy,
   url: 'https://www.inceptionlrt.com/app/restaking/restake/?token=ETH',
 };

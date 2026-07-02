@@ -2,10 +2,15 @@ const { api2 } = require("@defillama/sdk");
 const { AddressZero } = require("@ethersproject/constants");
 const { aprToApy, getBlocksByTime, getPrices } = require("../utils");
 
+// Exactly Markets have one variable debt leg and several fixed maturity debt
+// legs for the same underlying asset. Standard rows carry those borrow-side
+// metrics: one row for the variable market and one row per fixed maturity. The
+// Auditor defines collateral eligibility at the collateral Market -> debt Market
+// level, not per maturity, so all debt rows for a Market share `routeGroupKey`.
+// `routing_collateral` rows are pure collateral/debt edges; they link back to
+// the collateral variable Market state with `underlyingStateKey` and avoid
+// duplicating supply APY/TVL on every route.
 const config = {
-  ethereum: {
-    auditor: "0x310A2694521f75C7B2b64b5937C16CE65C3EFE01",
-  },
   optimism: {
     auditor: "0xaEb62e6F27BC103702E7BC879AE98bceA56f027E",
   },
@@ -13,6 +18,10 @@ const config = {
 const url = "https://app.exact.ly";
 const INTERVAL = 86_400 * 7 * 4;
 const WAD = 10n ** 18n;
+const getMarketKey = (market) => market.toLowerCase();
+const getRoutePoolId = (collateralMarket, debtMarket, chain) =>
+  `${collateralMarket}-${debtMarket}-${chain}`.toLowerCase();
+const toUsd = (amount, price, baseUnit) => (Number(amount) * price) / baseUnit;
 
 const apy = async () =>
   Promise.all(
@@ -34,7 +43,7 @@ const apy = async () =>
         })
       ).map(([adjustFactor]) => adjustFactor);
 
-      /** @type [assets: string[], decimals: number[], maxFuturePools: number[], prevTotalAssets: string[], prevTotalSupply: string[], prevTotalFloatingBorrowAssets: string[], prevTotalFloatingBorrowShares: string[], totalAssets: string[], totalSupply: string[], totalFloatingBorrowAssets: string[], totalFloatingBorrowShares: string[], previewFloatingAssetsAverages: string[], backupFeeRates: bigint[], interestRateModels: number[], reserveFactors: string[] ] */
+      /** @type [assets: string[], decimals: number[], maxFuturePools: number[], prevTotalAssets: string[], prevTotalSupply: string[], prevTotalFloatingBorrowAssets: string[], prevTotalFloatingBorrowShares: string[], totalAssets: string[], totalSupply: string[], totalFloatingBorrowAssets: string[], totalFloatingBorrowShares: string[], previewFloatingAssetsAverages: string[], backupFeeRates: bigint[], interestRateModels: number[], floatingBackupBorrowed: string[], reserveFactors: string[], frozen: (boolean | null)[] ] */
       const [
         assets,
         decimals,
@@ -50,7 +59,9 @@ const apy = async () =>
         previewFloatingAssetsAverages,
         backupFeeRates,
         interestRateModels,
+        floatingBackupBorrowed,
         reserveFactors,
+        frozen,
       ] = await Promise.all([
         ...[
           "asset",
@@ -69,8 +80,10 @@ const apy = async () =>
           "previewFloatingAssetsAverage",
           "backupFeeRate",
           "interestRateModel",
+          "floatingBackupBorrowed",
           "reserveFactor",
         ].map((key) => api2.abi.multiCall({ abi: abis[key], calls: markets, chain, block })),
+        api2.abi.multiCall({ abi: abis.isFrozen, calls: markets, chain, block, permitFailure: true }),
       ]);
 
       /** @type string[] */
@@ -81,6 +94,8 @@ const apy = async () =>
 
       return Promise.all(
         markets.map(async (market, i) => {
+          if (frozen[i]) return [];
+
           /** @type {number} */
           const usdUnitPrice = pricesByAddress[assets[i].toLowerCase()];
           const poolMetadata = {
@@ -88,11 +103,10 @@ const apy = async () =>
             project: "exactly",
             /** @type {string} */
             symbol: symbols[i],
-            tvlUsd: ((totalAssets[i] - totalFloatingBorrowAssets[i]) * usdUnitPrice) / 10 ** decimals[i],
+            tvlUsd: 0,
             /** @type {string[]} */
             underlyingTokens: [assets[i]],
             url: `${url}/${symbols[i]}`,
-            ltv: (adjustFactors[i] / 1e18) ** 2,
           };
           const shareValue = (totalAssets[i] * 1e18) / totalSupply[i];
           const prevShareValue = (prevTotalAssets[i] * 1e18) / prevTotalSupply[i];
@@ -103,6 +117,61 @@ const apy = async () =>
           const borrowProportion = (borrowShareValue * 1e18) / prevBorrowShareValue;
           const borrowAPR = (borrowProportion / 1e18 - 1) * 365 * 100;
           const baseUnit = 10 ** decimals[i];
+
+          const maturities = Array.from({ length: maxFuturePools[i] }, (_, j) => minMaturity + INTERVAL * j);
+          /** @type FixedPool[] */
+          const fixedPools = await api2.abi.multiCall({
+            abi: abis.fixedPools,
+            calls: maturities.map((maturity) => ({ target: market, params: [maturity] })),
+            chain,
+            block,
+          });
+          const reserveAdjustedFloatingAssets =
+            (BigInt(totalAssets[i]) * (WAD - BigInt(reserveFactors[i]))) / WAD;
+          const floatingDebtAssets = BigInt(totalFloatingBorrowAssets[i]);
+          const floatingBackupAssets = BigInt(floatingBackupBorrowed[i]);
+          const floatingAvailableBorrowAssets =
+            reserveAdjustedFloatingAssets > floatingDebtAssets + floatingBackupAssets
+              ? reserveAdjustedFloatingAssets - floatingDebtAssets - floatingBackupAssets
+              : 0n;
+          const floatingSupplyUsd = toUsd(BigInt(totalAssets[i]), usdUnitPrice, baseUnit);
+          const floatingBorrowUsd = toUsd(floatingDebtAssets, usdUnitPrice, baseUnit);
+          const floatingAvailableBorrowUsd = toUsd(floatingAvailableBorrowAssets, usdUnitPrice, baseUnit);
+          const getFixedAvailableBorrowAssets = ({ borrowed, supplied }) => {
+            const fixedBorrowedAssets = BigInt(borrowed);
+            const fixedSuppliedAssets = BigInt(supplied);
+            const fixedPoolLiquidity =
+              fixedSuppliedAssets > fixedBorrowedAssets ? fixedSuppliedAssets - fixedBorrowedAssets : 0n;
+            return fixedPoolLiquidity + floatingAvailableBorrowAssets;
+          };
+          const debtRouteGroupKey = getMarketKey(market);
+
+          const buildCollateralRoutes = () =>
+            markets
+              .map((collateralMarket, j) => {
+                if (frozen[j]) return null;
+
+                const collateralUsdUnitPrice = pricesByAddress[assets[j].toLowerCase()];
+                const ltv = (adjustFactors[j] / 1e18) * (adjustFactors[i] / 1e18);
+                if (!Number.isFinite(collateralUsdUnitPrice) || ltv <= 0) return null;
+
+                return {
+                  chain,
+                  project: "exactly",
+                  pool: getRoutePoolId(collateralMarket, market, chain),
+                  poolKind: "routing_collateral",
+                  routeGroupKey: debtRouteGroupKey,
+                  underlyingStateKey: getMarketKey(collateralMarket),
+                  symbol: symbols[j],
+                  token: null,
+                  poolMeta: `${symbols[j]}/${symbols[i]}`,
+                  underlyingTokens: [assets[j]],
+                  borrowToken: assets[i],
+                  ltv,
+                  url: `${url}/${symbols[i]}`,
+                };
+              })
+              .filter(Boolean);
 
           let aprReward, aprRewardBorrow, rewardTokens;
           const controller = await api2.abi.call({ target: market, abi: abis.rewardsController, block, chain });
@@ -178,23 +247,23 @@ const apy = async () =>
             Number.isFinite(borrowAPR) && {
               ...poolMetadata,
               pool: `${market}-${chain}`.toLowerCase(),
+              routeGroupKey: debtRouteGroupKey,
+              underlyingStateKey: debtRouteGroupKey,
+              poolMeta: "Variable Rate",
               apyBase: aprToApy(apr),
               apyBaseBorrow: aprToApy(borrowAPR),
-              totalSupplyUsd: (totalSupply[i] * usdUnitPrice) / baseUnit,
-              totalBorrowUsd: (totalFloatingBorrowAssets[i] * usdUnitPrice) / baseUnit,
+              borrowToken: assets[i],
+              borrowable: floatingAvailableBorrowUsd > 0,
+              ltv: 0,
+              tvlUsd: floatingAvailableBorrowUsd,
+              ...(shareValue / 1e18 > 0 && { pricePerShare: shareValue / 1e18 }),
+              totalSupplyUsd: floatingSupplyUsd,
+              totalBorrowUsd: floatingBorrowUsd,
+              availableBorrowUsd: floatingAvailableBorrowUsd,
               rewardTokens,
               apyReward: aprReward ? aprToApy(aprReward) : undefined,
               apyRewardBorrow: aprRewardBorrow ? aprToApy(aprRewardBorrow) : undefined,
             };
-
-          const maturities = Array.from({ length: maxFuturePools[i] }, (_, j) => minMaturity + INTERVAL * j);
-          /** @type FixedPool[] */
-          const fixedPools = await api2.abi.multiCall({
-            abi: abis.fixedPools,
-            calls: maturities.map((maturity) => ({ target: market, params: [maturity] })),
-            chain,
-            block,
-          });
 
           /** @type {Pool[]} */
           const fixed = await Promise.all(
@@ -207,10 +276,10 @@ const apy = async () =>
 
               if (fixSupplied + BigInt(previewFloatingAssetsAverages[i]) === 0n) return;
 
-              const { rate: minFixedRate } = await api2.abi.call({
+              const fixedBorrowRate = await api2.abi.call({
                 target: interestRateModels[i],
-                abi: abis.minFixedRate,
-                params: [borrowed, supplied, previewFloatingAssetsAverages[i]],
+                abi: abis.fixedBorrowRate,
+                params: [maturity, 0, borrowed, supplied, previewFloatingAssetsAverages[i]],
                 block,
                 chain,
               });
@@ -230,37 +299,47 @@ const apy = async () =>
                   : 0;
 
               const secsToMaturity = maturity - timestampNow;
-              const poolMeta = new Date(maturity * 1_000).toISOString().slice(0, 10);
+              const maturityDate = new Date(maturity * 1_000).toISOString().slice(0, 10);
+              const poolMeta = `Fixed mat: ${maturityDate}`;
+              const fixedAvailableBorrowAssets = getFixedAvailableBorrowAssets({ borrowed, supplied });
+              const fixedAvailableBorrowUsd = toUsd(fixedAvailableBorrowAssets, usdUnitPrice, baseUnit);
+              const fixedBorrowAPR = (Number(fixedBorrowRate) / 1e16) * ((365 * 86_400) / secsToMaturity);
 
               /** @type {Pool} */
-              return {
+              const fixedPool = {
                 ...poolMetadata,
-                pool: `${market}-${chain}-${poolMeta}`.toLowerCase(),
+                pool: `${market}-${chain}-${maturityDate}`.toLowerCase(),
+                routeGroupKey: debtRouteGroupKey,
                 poolMeta,
+                tvlUsd: fixedAvailableBorrowUsd,
                 apyBase: aprToApy(fixedDepositAPR, secsToMaturity / 86_400),
-                apyBaseBorrow: aprToApy(minFixedRate / 1e16, secsToMaturity / 86_400),
-                totalSupplyUsd:
-                  (Number(
-                    BigInt(supplied) +
-                      (BigInt(totalSupply[i]) * (WAD - BigInt(reserveFactors[i]))) / WAD -
-                      BigInt(totalFloatingBorrowAssets[i])
-                  ) *
-                    usdUnitPrice) /
-                  baseUnit,
-                totalBorrowUsd: (borrowed * usdUnitPrice) / baseUnit,
+                apyBaseBorrow: aprToApy(fixedBorrowAPR, secsToMaturity / 86_400),
+                borrowToken: assets[i],
+                borrowable: fixedAvailableBorrowUsd > 0,
+                totalSupplyUsd: toUsd(fixSupplied, usdUnitPrice, baseUnit),
+                totalBorrowUsd: toUsd(fixBorrowed, usdUnitPrice, baseUnit),
+                availableBorrowUsd: fixedAvailableBorrowUsd,
+                ltv: 0,
                 rewardTokens,
                 apyRewardBorrow: aprRewardBorrow ? aprToApy(aprRewardBorrow, secsToMaturity / 86_400) : undefined,
               };
+
+              return fixedPool;
             })
           );
 
-          return [floating, ...fixed].filter(Boolean);
+          return [
+            floating,
+            ...buildCollateralRoutes(),
+            ...fixed.flat(),
+          ].filter(Boolean);
         })
       );
     })
   ).then((pools) => pools.flat(2));
 
 module.exports = {
+  protocolId: '2385',
   apy,
   url,
 };
@@ -281,7 +360,11 @@ const abis = {
   previewFloatingAssetsAverage: "function previewFloatingAssetsAverage() view returns (uint256)",
   backupFeeRate: "function backupFeeRate() view returns (uint256)",
   interestRateModel: "function interestRateModel() view returns (address)",
-  minFixedRate: "function minFixedRate(uint256, uint256, uint256) view returns (uint256 rate, uint256)",
+  floatingBackupBorrowed: "function floatingBackupBorrowed() view returns (uint256)",
+  reserveFactor: "function reserveFactor() view returns (uint128)",
+  isFrozen: "function isFrozen() view returns (bool)",
+  fixedBorrowRate:
+    "function fixedBorrowRate(uint256 maturity, uint256 amount, uint256 borrowed, uint256 supplied, uint256 backupAssets) view returns (uint256)",
   marketsData: "function markets(address) view returns (uint128, uint8, uint8, bool, address)",
   rewardsController: "function rewardsController() view returns (address)",
   rewardConfig:
@@ -294,8 +377,7 @@ const abis = {
     "function distributionTime(address market, address reward) external view returns (uint32 start, uint32 end, uint32 lastUpdate)",
   fixedPoolBalance: "function fixedPoolBalance(uint256 maturity) external view returns (uint256 borrowed, uint256)",
   previewRepay: "function previewRepay(uint256 assets) external view returns (uint256)",
-  reserveFactor: "function reserveFactor() view returns (uint128)",
 };
 
-/** @typedef {{ pool: string, chain: string, project: string, symbol: string, tvlUsd: number, apyBase?: number, apyReward?: number, rewardTokens?: Array<string>, underlyingTokens?: Array<string>, poolMeta?: string, url?: string, apyBaseBorrow?: number, apyRewardBorrow?: number, totalSupplyUsd?: number, totalBorrowUsd?: number, ltv?: number }} Pool */
+/** @typedef {{ pool: string, chain: string, project: string, symbol: string, tvlUsd: number, apy?: number, apyBase?: number, apyReward?: number, rewardTokens?: Array<string>, underlyingTokens?: Array<string>, poolMeta?: string, url?: string, routeGroupKey?: string, underlyingStateKey?: string, poolKind?: string, borrowToken?: string, borrowable?: boolean, availableBorrowUsd?: number, apyBaseBorrow?: number, apyRewardBorrow?: number, totalSupplyUsd?: number, totalBorrowUsd?: number, ltv?: number }} Pool */
 /** @typedef {{ borrowed: string, supplied: string, unassignedEarnings: string, lastAccrual: number }} FixedPool */

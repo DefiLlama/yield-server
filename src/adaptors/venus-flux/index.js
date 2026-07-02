@@ -32,9 +32,7 @@ const apy = async () => {
   ]);
 
   const priceKeys = underlying.map((i) => `${CHAIN}:${i}`).join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return fTokensEntireData
     .map((token, i) => {
@@ -49,7 +47,7 @@ const apy = async () => {
         pool: `${token.tokenAddress}-${CHAIN}`.toLowerCase(),
         chain: utils.formatChain(CHAIN),
         project: 'venus-flux',
-        symbol: utils.formatSymbol(sym),
+        symbol: sym,
         tvlUsd: (token.totalAssets / 10 ** dec) * price,
         apyBase: Number((token.supplyRate / 1e2).toFixed(2)),
         apyReward: Number((token.rewardsRate / 1e12).toFixed(2)),
@@ -62,6 +60,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7496',
   timetravel: false,
   apy,
 };

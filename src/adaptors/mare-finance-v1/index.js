@@ -48,13 +48,9 @@ const getRewards = async (markets, isBorrow) => {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -220,6 +216,7 @@ const lendingApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2622',
   timetravel: false,
   apy: lendingApy,
   url: 'v1.mare.finance',

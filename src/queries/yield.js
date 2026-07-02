@@ -10,9 +10,8 @@ const getYieldFiltered = async (lendingProjects = []) => {
   const conn = await connect();
 
   // -- get latest yield row per unique configID (a pool)
-  // -- keep lending projects even if 0 <= latest tvlUsd < LB
-  // -- drop lending projects if latest tvlUsd is negative
-  // -- for all other projects, exclude if latest tvlUsd is < LB
+  // -- for lending rows, use totalSupplyUsd for the UI threshold when it is at least tvlUsd
+  // -- otherwise exclude if latest tvlUsd is < LB
   // -- exclude if pool age > 7days (speeds up query)
   // -- join config data
   const query = `
@@ -33,6 +32,7 @@ const getYieldFiltered = async (lendingProjects = []) => {
       c."poolMeta",
       c."underlyingTokens",
       c."rewardTokens",
+      c.token              AS "poolTokenAddress",
       y."tvlUsd",
       y.apy,
       y."apyBase",
@@ -52,9 +52,14 @@ const getYieldFiltered = async (lendingProjects = []) => {
           ORDER  BY timestamp DESC
           LIMIT  1
   ) AS y
-  WHERE  ((c.project IN ($<lendingProjects:csv>) AND y."tvlUsd" >= 0)
-     OR  y."tvlUsd" >= $<tvlLB>
-  )
+  WHERE  (
+          CASE
+            WHEN c.project IN ($<lendingProjects:csv>)
+              AND y."tvlUsd" >= 0
+              THEN GREATEST(y."tvlUsd", COALESCE(y."totalSupplyUsd", y."tvlUsd"))
+            ELSE y."tvlUsd"
+          END
+     ) >= $<tvlLB>
   `;
 
   const response = await conn.query(query, {
@@ -348,6 +353,8 @@ const buildInsertYieldQuery = (payload) => {
     { name: 'totalSupplyUsd', def: null },
     { name: 'totalBorrowUsd', def: null },
     { name: 'debtCeilingUsd', def: null },
+    { name: 'availableBorrowUsd', def: null },
+    { name: 'pricePerShare', def: null },
   ];
   const cs = new pgp.helpers.ColumnSet(columns, { table: tableName });
   return pgp.helpers.insert(payload, cs);

@@ -1,6 +1,10 @@
-const { getData, formatChain, formatSymbol, keepFinite } = require('../utils');
+const { getData, formatChain, keepFinite } = require('../utils');
 
 const PROJECT = 'metrom';
+const METROM_REWARDS_URL = 'https://app.metrom.xyz/en?type=rewards';
+const TURTLE_OPPORTUNITY_URL =
+  'https://gateway.turtle.xyz/turtle/opportunities';
+const BASE_USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
 
 type ByChainTypeAndId<I> = Record<string, Record<number, I>>;
 
@@ -22,7 +26,9 @@ const CHAIN_TYPE_AND_NAMES: ByChainTypeAndId<string> = {
     42_161: 'Arbitrum',
     9_745: 'Plasma',
     5_464: 'Saga',
-    56: 'BSC',
+    747_474: 'Katana',
+    4_326: 'MegaETH',
+    1: 'Ethereum',
   },
   aptos: {
     1: 'Aptos',
@@ -39,11 +45,13 @@ interface Token {
 interface BaseTarget {
   chainType: string;
   chainId: number;
+  url?: string;
 }
 
 interface AmmPoolLiquidityTarget extends BaseTarget {
   type: 'amm-pool-liquidity';
   id: string;
+  dex: string;
   tokens: Token[];
   usdTvl: number;
 }
@@ -84,6 +92,34 @@ interface AaveV3NetSupplyTarget extends BaseAaveV3Target {
   type: 'aave-v3-net-supply';
 }
 
+interface Incentive {
+  name: string;
+  apr?: number;
+  yield?: number;
+  rewardTypeName?: string;
+}
+
+interface TurtleTarget extends BaseTarget {
+  type: 'turtle';
+  opportunityId: string;
+  name: string;
+  incentives?: Incentive[];
+}
+
+interface YieldSeekerTarget extends BaseTarget {
+  type: 'yield-seeker';
+}
+
+interface Erc4626Target extends BaseTarget {
+  type: 'erc4626-vault';
+  brand: string;
+  vault: {
+    name: string;
+    symbol: string;
+    asset: string;
+  };
+}
+
 interface Reward extends Token {
   amount: string;
   remaining: string;
@@ -104,8 +140,11 @@ interface Campaign {
     | GmxV1LiquidityTarget
     | AaveV3SupplyTarget
     | AaveV3BorrowTarget
-    | AaveV3NetSupplyTarget;
-  rewards: Rewards;
+    | AaveV3NetSupplyTarget
+    | TurtleTarget
+    | YieldSeekerTarget
+    | Erc4626Target;
+  rewards?: Rewards;
   usdTvl?: number;
   apr?: number;
 }
@@ -115,7 +154,17 @@ interface CampaignsResponse {
   campaigns: Campaign[];
 }
 
+interface TurtleOpportunity {
+  slug: string;
+  name: string;
+  url?: string;
+  baseTokens?: Token;
+  depositTokens?: Token[];
+  incentives?: Incentive[];
+}
+
 module.exports = {
+  protocolId: '5214',
   timetravel: false,
   apy: async () => {
     const campaigns = [];
@@ -137,15 +186,14 @@ module.exports = {
         if (
           !chain ||
           chainId !== campaign.target.chainId ||
-          !campaign.apr ||
-          !campaign.usdTvl ||
-          !campaign.rewards?.assets?.length
+          !Number.isFinite(campaign.apr) ||
+          !campaign.usdTvl
         )
           continue;
 
         let processedCampaign;
         try {
-          processedCampaign = processCampaign(campaign);
+          processedCampaign = await processCampaign(campaign);
         } catch (err) {
           console.error(
             `Could not process campaign with id ${campaign.id}: ${err}`
@@ -153,15 +201,17 @@ module.exports = {
           continue;
         }
 
+        if (!processedCampaign) continue;
+
         campaigns.push({
           ...processedCampaign,
           pool: campaign.id.toLowerCase(),
           chain: formatChain(chain),
           project: PROJECT,
-          apyReward: campaign.apr,
           tvlUsd: campaign.usdTvl,
-          rewardTokens: campaign.rewards.assets.map((reward) => reward.address),
-          url: `https://app.metrom.xyz/en/campaigns/${chainType}/${chainId}/${campaign.id}`,
+          ...getCampaignApyFields(campaign, processedCampaign),
+          url:
+            processedCampaign.url || campaign.target.url || METROM_REWARDS_URL,
         });
       }
 
@@ -177,23 +227,40 @@ module.exports = {
 interface ProcessedCampaign {
   symbol: string;
   underlyingTokens: string[];
+  url?: string;
+  apy?: number;
+  apyBase?: number;
+  apyReward?: number;
+  rewardTokens?: string[];
+  poolMeta: string;
 }
 
-function processCampaign(campaign: Campaign): ProcessedCampaign | null {
+async function processCampaign(
+  campaign: Campaign
+): Promise<ProcessedCampaign | null> {
   switch (campaign.target.type) {
     case 'amm-pool-liquidity': {
       return {
-        symbol: formatSymbol(
-          campaign.target.tokens.map((token) => token.symbol).join(' - ')
-        ),
+        symbol: campaign.target.tokens.map((token) => token.symbol).join(' - '),
         underlyingTokens: campaign.target.tokens.map((token) => token.address),
+        poolMeta: humanizeTargetProtocol('Pool on', campaign.target.dex),
       };
     }
-    case 'liquity-v2-debt':
+    case 'liquity-v2-debt': {
+      return {
+        symbol: campaign.target.collateral.symbol,
+        underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Borrow on', campaign.target.brand),
+      };
+    }
     case 'liquity-v2-stability-pool': {
       return {
-        symbol: formatSymbol(campaign.target.collateral.symbol),
+        symbol: campaign.target.collateral.symbol,
         underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol(
+          'Stability pool on',
+          campaign.target.brand
+        ),
       };
     }
     case 'gmx-v1-liquidity': {
@@ -201,16 +268,161 @@ function processCampaign(campaign: Campaign): ProcessedCampaign | null {
       // campaigns, address this later on
       return null;
     }
-    case 'aave-v3-supply':
-    case 'aave-v3-borrow':
+    case 'aave-v3-supply': {
+      return {
+        symbol: campaign.target.collateral.symbol,
+        underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Lend on', campaign.target.brand),
+      };
+    }
+    case 'aave-v3-borrow': {
+      return {
+        symbol: campaign.target.collateral.symbol,
+        underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Borrow on', campaign.target.brand),
+      };
+    }
     case 'aave-v3-net-supply': {
       return {
-        symbol: formatSymbol(campaign.target.collateral.symbol),
+        symbol: campaign.target.collateral.symbol,
         underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Net lend on', campaign.target.brand),
+      };
+    }
+    case 'turtle': {
+      const opportunity = await getTurtleOpportunity(
+        campaign.target.opportunityId
+      );
+      const incentives =
+        opportunity?.incentives || campaign.target.incentives || [];
+
+      return {
+        symbol: (opportunity?.name || campaign.target.name).replace(
+          /^Katana\s+/i,
+          ''
+        ),
+        underlyingTokens: getTurtleUnderlyingTokens(opportunity),
+        url: opportunity?.url,
+        ...getTurtleApyFields(incentives, campaign.apr),
+        poolMeta: humanizeTargetProtocol('Deposit to', campaign.target.name),
+      };
+    }
+    case 'yield-seeker': {
+      return {
+        symbol: 'USDC',
+        underlyingTokens: [BASE_USDC],
+        poolMeta: 'Deposit',
+      };
+    }
+    case 'erc4626-vault': {
+      return {
+        symbol: campaign.target.vault.symbol,
+        underlyingTokens: [campaign.target.vault.asset],
+        poolMeta: humanizeTargetProtocol(
+          'Deposit to',
+          campaign.target.vault.name
+        ),
       };
     }
     default: {
       return null;
     }
   }
+}
+
+async function getTurtleOpportunity(
+  opportunityId: string
+): Promise<TurtleOpportunity | null> {
+  if (!opportunityId) return null;
+
+  try {
+    return (await getData(
+      `${TURTLE_OPPORTUNITY_URL}/${opportunityId}`
+    )) as TurtleOpportunity;
+  } catch (err) {
+    console.error(
+      `Could not fetch Turtle opportunity with id ${opportunityId}: ${err}`
+    );
+    return null;
+  }
+}
+
+function getTurtleUnderlyingTokens(opportunity?: TurtleOpportunity | null) {
+  const token = opportunity?.baseTokens || opportunity?.depositTokens?.[0];
+  if (!token?.address) return [];
+
+  return [token.address.toLowerCase()];
+}
+
+function getTurtleApyFields(incentives: Incentive[], totalApy?: number) {
+  const baseIncentives = incentives.filter(isBaseYieldIncentive);
+  const rewardIncentives = incentives.filter(
+    (incentive) => !isBaseYieldIncentive(incentive)
+  );
+  const apyBase = sumIncentives(baseIncentives);
+  const apyReward = sumIncentives(rewardIncentives);
+
+  if (!apyBase && !apyReward) return { apy: totalApy };
+
+  return {
+    ...(apyBase ? { apyBase } : {}),
+    ...(apyReward
+      ? {
+          apyReward,
+          rewardTokens: Array.from(
+            new Set(rewardIncentives.map(getRewardToken).filter(Boolean))
+          ),
+        }
+      : {}),
+  };
+}
+
+function isBaseYieldIncentive(incentive: Incentive) {
+  return ['native yield', 'lending yield'].includes(
+    incentive.name.toLowerCase()
+  );
+}
+
+function sumIncentives(incentives: Incentive[]) {
+  return incentives.reduce((sum, incentive) => {
+    const apy = incentive.apr ?? incentive.yield ?? 0;
+    return Number.isFinite(apy) ? sum + apy : sum;
+  }, 0);
+}
+
+function getRewardToken(incentive: Incentive) {
+  if (incentive.rewardTypeName) return incentive.rewardTypeName;
+
+  const token = incentive.name.match(/^[A-Z0-9]+/)?.[0];
+  return token || incentive.name;
+}
+
+function getCampaignApyFields(
+  campaign: Campaign,
+  processedCampaign: ProcessedCampaign
+) {
+  if (
+    Number.isFinite(processedCampaign.apy) ||
+    Number.isFinite(processedCampaign.apyBase) ||
+    Number.isFinite(processedCampaign.apyReward)
+  )
+    return {};
+
+  const rewards = campaign.rewards?.assets || [];
+  return rewards.length
+    ? {
+        apyReward: campaign.apr,
+        rewardTokens: rewards.map((reward) => reward.address),
+      }
+    : { apy: campaign.apr };
+}
+
+function humanizeTargetProtocol(action: string, protocolSlug?: string): string {
+  const normalizedSlug = protocolSlug?.trim();
+  if (!normalizedSlug) return action;
+
+  return `${action} ${normalizedSlug
+    .split(/[-_]/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')}`;
 }

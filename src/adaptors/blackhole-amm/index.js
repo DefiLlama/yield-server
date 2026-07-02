@@ -330,6 +330,7 @@ async function main(timestamp = null) {
 }
 
 module.exports = {
+  protocolId: '6430',
   timetravel: false,
   apy: main,
   url: 'https://blackhole.xyz/liquidity',

@@ -137,6 +137,11 @@ const apy = async () => {
 
   const borrowPools = positionData.map((pos) => {
     const chain = 'ethereum';
+    const borrowToken = (
+      chain == 'ethereum'
+        ? defaultFrankencoin
+        : ChainAddressMap[chain].bridgedFrankencoin
+    ).toLowerCase();
 
     const collateralBalance =
       pos.collateralBalance / 10 ** pos.collateralDecimals;
@@ -162,6 +167,7 @@ const apy = async () => {
       debtCeilingUsd: (pos.availableForClones / 10 ** 18) * price,
       ltv,
       mintedCoin: 'ZCHF',
+      borrowToken,
       url: `https://app.frankencoin.com/monitoring/${pos.position}?chain=${chain}`,
       poolMeta: `PositionV2`,
     };
@@ -172,5 +178,6 @@ const apy = async () => {
 
 // export
 module.exports = {
+  protocolId: '3790',
   apy,
 };

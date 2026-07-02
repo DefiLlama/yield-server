@@ -130,7 +130,7 @@ async function queryVaults(chain) {
         pool,
         chain: utils.formatChain(chain),
         project,
-        symbol: utils.formatSymbol(e.name),
+        symbol: e.name,
         tvlUsd,
         apyBase,
         apyReward,
@@ -153,6 +153,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '173',
   timetravel: false,
   apy: main,
   url: 'https://app.badger.com',

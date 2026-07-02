@@ -191,6 +191,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7065',
   timetravel: false,
   apy,
   url: 'https://app.sherpa.trade/earn',

@@ -52,6 +52,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '438',
   timeTravel: false,
   apy: main,
   url: 'https://app.auto.finance',

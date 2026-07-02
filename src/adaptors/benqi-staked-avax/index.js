@@ -36,10 +36,10 @@ const main = async () => {
       abi: abi.totalPooledAvax,
     }),
     axios
-      .get(`https://coins.llama.fi/block/avax/${timestamp1dAgo}`)
+      .get(utils.getPriceApiUrl(`/block/avax/${timestamp1dAgo}`))
       .then((r) => r.data.height),
     axios
-      .get(`https://coins.llama.fi/block/avax/${timestamp7dAgo}`)
+      .get(utils.getPriceApiUrl(`/block/avax/${timestamp7dAgo}`))
       .then((r) => r.data.height),
   ]);
 
@@ -76,9 +76,7 @@ const main = async () => {
       : 0;
 
   const priceKey = `avax:${AVAX_ADDRESS}`;
-  const avaxPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const avaxPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   const tvlUsd = (totalPooledAvax.output / 1e18) * avaxPrice;
 
@@ -91,14 +89,17 @@ const main = async () => {
       tvlUsd,
       apyBase,
       apyBase7d,
+      ...(Number(rateNow.output) / 1e18 > 0 && { pricePerShare: Number(rateNow.output) / 1e18 }),
       underlyingTokens: [AVAX_ADDRESS],
       searchTokenOverride: SAVAX_ADDRESS,
       poolMeta: 'Unstaking Cooldown: 15days',
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '1427',
   timetravel: false,
   apy: main,
   url: 'https://staking.benqi.fi/stake',

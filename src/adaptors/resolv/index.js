@@ -37,9 +37,7 @@ const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
 const getTokenPrice = async (tokenAddress) => {
   try {
     const priceKey = `ethereum:${tokenAddress}`;
-    const { data } = await axios.get(
-      `https://coins.llama.fi/prices/current/${priceKey}`
-    );
+    const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
     return data.coins[priceKey].price;
   } catch (error) {
     console.error(`Error fetching price for ${tokenAddress}:`, error);
@@ -99,6 +97,7 @@ const rlpPool = async () => {
       project: 'resolv',
       tvlUsd: tvl,
       apyBase: aprBase * 100,
+      ...(price > 0 && { pricePerShare: price }),
       underlyingTokens: [USR],
     };
   } catch (error) {
@@ -135,8 +134,13 @@ const stUsrPool = async () => {
     ).sort((a, b) => a.blockNumber - b.blockNumber);
 
     let aprBase = 0;
+    let pricePerShare = null;
     if (logs.length > 0) {
-      aprBase = calculateStUSRApy(logs[logs.length - 1]);
+      const lastLog = logs[logs.length - 1];
+      aprBase = calculateStUSRApy(lastLog);
+      const { _totalUSRAfter, _totalShares } = lastLog.args;
+      const sharesNum = Number(_totalShares);
+      pricePerShare = sharesNum > 0 ? Number(_totalUSRAfter) / sharesNum : null;
     }
 
     return {
@@ -146,6 +150,7 @@ const stUsrPool = async () => {
       project: 'resolv',
       tvlUsd: tvl,
       apyBase: aprBase * 100,
+      pricePerShare,
       underlyingTokens: [USR],
     };
   } catch (error) {
@@ -164,6 +169,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5655',
   apy,
   url: 'https://www.resolv.xyz/',
 };

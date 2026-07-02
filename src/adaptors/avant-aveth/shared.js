@@ -12,7 +12,7 @@ const SCALE  = BigInt(1e18)
 const SHARES = BigInt(1e18)
 
 async function getBlockAtTimestamp(chain, ts) {
-  const { data } = await axios.get(`https://coins.llama.fi/block/${chain}/${ts}`)
+  const data = await utils.getPriceApiData(`/block/${chain}/${ts}`)
   return { block: data.height || data.number, ts: data.timestamp || ts }
 }
 
@@ -62,7 +62,7 @@ async function computeApyBase(chain, vault) {
 async function getPrice(chain, token, tokenSubstitute) {
   async function _getPrice(chain, tokenAddress) {
     const priceKey = `${chain}:${tokenAddress}`
-    const { data } = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+    const data = await utils.getPriceApiData(`/prices/current/${priceKey}`)
     return data.coins?.[priceKey]?.price ?? 0
   }
   const price = await _getPrice(chain, token)
@@ -101,9 +101,32 @@ async function getData(chain, vault, underlying, underlyingSubstitute = undefine
     )
   }
 
-  const tvlUsd = (Number(totalAssetsBn) / 1e18) * price
+  // Shares are 18-dec; underlying varies (avETH 18, avUSD/avBTC may not be).
+  let assetDecimals = 18
+  try {
+    const { output: dec } = await sdk.api.abi.call({
+      target: underlying,
+      abi: 'erc20:decimals',
+      chain,
+    })
+    const parsed = Number(dec)
+    if (Number.isFinite(parsed) && parsed > 0) assetDecimals = parsed
+  } catch (_) {}
 
-  return { tvlUsd, apyBase }
+  let pricePerShare
+  try {
+    const { output } = await sdk.api.abi.call({
+      target: vault,
+      abi: abi.convertToAssets,
+      params: [SHARES.toString()],
+      chain,
+    })
+    pricePerShare = (Number(output) * 10 ** (18 - assetDecimals)) / 1e18
+  } catch (_) {}
+
+  const tvlUsd = (Number(totalAssetsBn) / 10 ** assetDecimals) * price
+
+  return { tvlUsd, apyBase, ...(pricePerShare > 0 && { pricePerShare }) }
 }
 
 module.exports = {

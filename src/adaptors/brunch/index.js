@@ -66,7 +66,7 @@ const apy = async () => {
       pool: SBUSD_ADDRESS,
       chain: CHAIN,
       project: 'brunch',
-      symbol: utils.formatSymbol('sbUSD'),
+      symbol: 'sbUSD',
       tvlUsd,
       underlyingTokens: [BUSD_ADDRESS],
       apyBase: apr,
@@ -77,6 +77,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6023',
   timetravel: false,
   apy,
   url: 'https://brunch.finance/stake',

@@ -155,7 +155,7 @@ const getPoolsForChain = async (chain) => {
       const chunk = uniqueTokens.slice(i, i + chunkSize);
       const priceKeys = chunk.map((t) => `${chain}:${t}`).join(',');
       const response = await axios.get(
-        `https://coins.llama.fi/prices/current/${priceKeys}`
+        utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
       );
       Object.assign(prices, response.data.coins);
     }
@@ -198,21 +198,22 @@ const getPoolsForChain = async (chain) => {
       const apyBase = annualizedRate * 100 * 0.9; // Lender rate
       const apyBaseBorrow = annualizedRate * 100;
 
-      const symbol = `${quoteSymbol}-${collateralSymbol}`;
+      const symbol = collateralSymbol
 
       poolData.push({
         pool: `${pool}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: 'ajna-v2',
-        symbol: utils.formatSymbol(symbol),
+        symbol: symbol,
         tvlUsd,
         apyBase,
-        underlyingTokens: [quoteToken],
+        underlyingTokens: [collateralToken],
         totalSupplyUsd,
         totalBorrowUsd,
         apyBaseBorrow,
-        poolMeta: `${collateralSymbol} collateral`,
         url: `https://ajnafi.com/${chain}/pools/${pool}`,
+        mintedCoin: quoteSymbol,
+        borrowToken: quoteToken,
       });
     }
 
@@ -232,6 +233,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4019',
   timetravel: false,
   apy,
   url: 'https://ajnafi.com/',

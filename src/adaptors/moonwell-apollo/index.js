@@ -47,13 +47,9 @@ const REWARD_TYPES = {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
       ...acc,
@@ -120,6 +116,30 @@ const getApy = async () => {
       })),
     })
   ).output.map((o) => o.output);
+
+  const borrowCaps = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowCaps'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
+  const isBorrowPaused = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowGuardianPaused'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
 
   // supply side
   const protocolRewards = await getRewards(
@@ -217,6 +237,15 @@ const getApy = async () => {
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Math.min(
+        Number(marketsCash[i]),
+        Number(borrowCaps[i]) > 0
+          ? Math.max(Number(borrowCaps[i]) - Number(totalBorrows[i]), 0)
+          : Number(marketsCash[i])
+      ) /
+        10 ** decimals) *
+      price;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
@@ -269,6 +298,8 @@ const getApy = async () => {
       // borrow fields
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
+      borrowable: isBorrowPaused[i] === false,
       apyBaseBorrow,
       apyRewardBorrow: apyRewardBorrow + apyNativeRewardBorrow,
       ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
@@ -279,6 +310,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1401',
   timetravel: false,
   apy: getApy,
   url: 'https://moonwell.fi/apollo/MOVR',

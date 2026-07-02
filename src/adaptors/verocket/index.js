@@ -46,9 +46,7 @@ function buildPool(entry) {
     pool: entry[1].pool,
     chain: utils.formatChain('vechain'),
     project: 'verocket',
-    symbol: utils.formatSymbol(
-      `${entry[1].token0.toUpperCase()}-${entry[1].token1.toUpperCase()}`
-    ),
+    symbol: `${entry[1].token0.toUpperCase()}-${entry[1].token1.toUpperCase()}`,
     tvlUsd: Number(entry[1].tvl_usd),
     apy: entry[1].apy_status * 100,
   };
@@ -70,6 +68,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1876',
   timetravel: false,
   apy: main,
   url: 'https://app.verocket.com/',

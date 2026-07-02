@@ -50,9 +50,7 @@ const getApy = async () => {
 
   // fetch ETH price
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   return [
     {
@@ -61,14 +59,16 @@ const getApy = async () => {
       project: 'stakewise-v2',
       symbol: 'osETH',
       tvlUsd: tvl * ethPrice,
-      apy: Number(apyBN) / 100,
+      apyBase: Number(apyBN) / 100,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: osTokenAddress,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '277',
   timetravel: false,
   apy: getApy,
   url: 'https://app.stakewise.io/',

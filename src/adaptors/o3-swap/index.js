@@ -298,6 +298,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '333',
   timetravel: false,
   apy: main,
   url: 'https://o3swap.com',

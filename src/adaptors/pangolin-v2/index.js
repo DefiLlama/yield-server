@@ -40,9 +40,7 @@ const queryPrior = gql`
 `;
 
 const buildPool = (entry, chainString) => {
-  const symbol = utils.formatSymbol(
-    `${entry.token0.symbol}-${entry.token1.symbol}`
-  );
+  const symbol = `${entry.token0.symbol}-${entry.token1.symbol}`;
   const newObj = {
     pool: entry.id,
     chain: utils.formatChain(chainString),
@@ -129,9 +127,7 @@ const main = async (timestamp = null) => {
     ).output / 1e18;
 
   const priceKey = `avax:${PNG}`;
-  const pngPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const pngPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
   const pngPerYearUsd = rewardPerSecond * 60 * 60 * 24 * 365 * pngPrice;
 
   const totalAllocPoint = (
@@ -157,6 +153,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '246',
   timetravel: true,
   apy: main,
   url: 'https://app.pangolin.exchange/#/pool',

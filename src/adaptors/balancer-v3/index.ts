@@ -148,7 +148,7 @@ const getV3Pools = async (
         pool: pool.address,
         chain: chainString,
         project: 'balancer-v3',
-        symbol: utils.formatSymbol(pool.symbol),
+        symbol: pool.symbol,
         tvlUsd: Number(pool.dynamicData.totalLiquidity),
         apyBase: baseApr * 100,
         rewardTokens,
@@ -347,6 +347,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '5491',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://balancer.fi/pools',

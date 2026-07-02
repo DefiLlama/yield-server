@@ -49,11 +49,7 @@ const getPairInfo = async (pairs, apiUrl) => {
 
 const getPrices = async (addresses, chain) => {
   const addy = addresses.map((address) => `${chain}:${address}`).join(',');
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addy.toLowerCase()}`
-    )
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${addy.toLowerCase()}`)).coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -428,6 +424,7 @@ const main = async () => {
     .filter((p) => utils.keepFinite(p));
 };
 module.exports = {
+  protocolId: '398',
   timetravel: false,
   apy: main,
   url: 'https://apeswap.finance/farms',

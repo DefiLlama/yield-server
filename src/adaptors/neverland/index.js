@@ -93,6 +93,17 @@ const getApy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const poolsReserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: protocolDataProvider,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupply = (
     await sdk.api.abi.multiCall({
       chain,
@@ -229,9 +240,7 @@ const getApy = async () => {
     .map((t) => `${chain}:${t.tokenAddress}`)
     .concat(allRewardTokens.map((t) => `${chain}:${t}`))
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return reserveTokens
     .map((pool, i) => {
@@ -250,7 +259,14 @@ const getApy = async () => {
       const currentSupply = underlyingBalances[i];
       const tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
 
-      const totalBorrowUsd = totalSupplyUsd - tvlUsd;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** underlyingDecimals[i]) *
+        price;
+      const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const availableBorrowUsd = Number(poolsReserveCaps[i].borrowCap)
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
 
       const apyBase = (p.liquidityRate / 10 ** 27) * 100;
       const apyBaseBorrow = Number(p.variableBorrowRate) / 1e25;
@@ -293,11 +309,13 @@ const getApy = async () => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow,
         apyRewardBorrow: debtRewardsData.length > 0 ? apyRewardBorrow : null,
         ltv: config.ltv / 10000,
         url,
         borrowable: config.borrowingEnabled,
+        borrowToken: pool.tokenAddress,
       };
     })
     .filter((p) => p !== null && utils.keepFinite(p));
@@ -406,9 +424,7 @@ const apy = async () => {
     .map((t) => `${chain}:${t}`)
     .join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const veDustPool = await getVeDustPool(
     chain,
@@ -421,6 +437,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7005',
   apy,
   url: 'https://app.neverland.money',
 };

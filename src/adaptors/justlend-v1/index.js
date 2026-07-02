@@ -1,0 +1,76 @@
+const { chunk } = require('lodash');
+const utils = require('../utils');
+
+const API_URL = 'https://labc.ablesdxd.link/justlend/yieldInfos';
+const WTRX = 'TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR';
+const TRX_NATIVE = 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb';
+const CONCURRENCY = 11;
+
+const getMarketDetails = async (tokedAddress) =>
+  utils.withRetry(() =>
+    utils.getData(
+      `https://labc.ablesdxd.link/justlend/markets/jtokenDetails?jtokenAddr=${tokedAddress}`
+    )
+  );
+
+const getRewardApy = async (marketsData) => {
+  const tokens = marketsData.map(
+    ({ data: { jtokenAddress } }) => jtokenAddress
+  );
+  const tvls = marketsData.map(({ data: { depositedUSD } }) => depositedUSD);
+  const rewards = await utils.getData(
+    `https://labc.ablesdxd.link/sunProject/tronbull?pool=${tokens.join(
+      ','
+    )}&tvl=${tvls.join(',')}`
+  );
+
+  return rewards;
+};
+
+const getApy = async () => {
+  const tokensData = await utils.getData(API_URL);
+  const tokensAddress = tokensData.data.assetList.map(
+    ({ jtokenAddress }) => jtokenAddress
+  );
+
+  const marketsData = [];
+  for (const batch of chunk(tokensAddress, CONCURRENCY)) {
+    marketsData.push(...(await Promise.all(batch.map(getMarketDetails))));
+  }
+  const { data: rewards } = await utils.withRetry(() =>
+    getRewardApy(marketsData)
+  );
+
+  const pools = marketsData.map(({ data: market }) => {
+    const collateralToken =
+      market.collateralAddress === TRX_NATIVE ? WTRX : market.collateralAddress;
+
+    return {
+      pool: market.jtokenAddress,
+      chain: utils.formatChain('tron'),
+      project: 'justlend-v1',
+      symbol: market.collateralSymbol,
+      tvlUsd: Number(market.depositedUSD) - Number(market.borrowedUSD),
+      apyBase:
+        ((Number(market.earnUSDPerDay) * 365) / Number(market.depositedUSD)) *
+        100,
+      apyReward: rewards[market.jtokenAddress]['USDDNEW'] * 100,
+      rewardTokens: ['TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn'],
+      underlyingTokens: [collateralToken],
+      apyBaseBorrow: market.borrowedAPY * 100,
+      borrowToken: collateralToken,
+      totalSupplyUsd: Number(market.depositedUSD),
+      totalBorrowUsd: Number(market.borrowedUSD),
+      ltv: market.collateralFactor,
+    };
+  });
+
+  return pools;
+};
+
+module.exports = {
+  protocolId: '494',
+  timetravel: false,
+  apy: getApy,
+  url: 'https://justlend.just.network/#/market',
+};

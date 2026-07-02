@@ -250,7 +250,7 @@ function formatPool(p) {
     pool: p.pair_address,
     chain: utils.formatChain('real'),
     project: 'pearl-v2',
-    symbol: utils.formatSymbol(p.symbol.split('-')[1]),
+    symbol: p.symbol.split('-')[1],
     tvlUsd: p.pairTvlUsd,
     apyReward: p.apr,
     rewardTokens: p.apr ? [PEARL_ADDRESS] : [],
@@ -259,6 +259,7 @@ function formatPool(p) {
 }
 
 module.exports = {
+  protocolId: '4668',
   timetravel: false,
   apy: getAPY,
   url: 'https://www.pearl.exchange/pools',

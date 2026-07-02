@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 // Time constants
 const SECONDS_PER_DAY = 86400;
@@ -30,10 +31,10 @@ const apy = async () => {
   // Fetch block numbers for current and 1 day ago
   const [blockNow, block1dayAgo] = await Promise.all([
     axios
-      .get(`https://coins.llama.fi/block/monad/${now}`)
+      .get(getPriceApiUrl(`/block/monad/${now}`))
       .then((r) => r.data.height),
     axios
-      .get(`https://coins.llama.fi/block/monad/${timestamp1dayAgo}`)
+      .get(getPriceApiUrl(`/block/monad/${timestamp1dayAgo}`))
       .then((r) => r.data.height),
   ]);
 
@@ -192,7 +193,7 @@ const apy = async () => {
   let tvlUsd;
   try {
     const monPriceResponse = await axios.get(
-      'https://coins.llama.fi/prices/current/coingecko:monad'
+      getPriceApiUrl('/prices/current/coingecko:monad')
     );
     const monPrice =
       monPriceResponse.data.coins['coingecko:monad']?.price || 1;
@@ -210,13 +211,16 @@ const apy = async () => {
       symbol: symbol.output || 'gMON',
       tvlUsd: tvlUsd,
       apyBase: apyBase,
+      ...(Number(shareValueNow) / 1e18 > 0 && { pricePerShare: Number(shareValueNow) / 1e18 }),
       underlyingTokens: [WMON],
       searchTokenOverride: MAGMA_ADDRESS,
+      isIntrinsicSource: true,
     },
   ];
 };
 
 module.exports = {
+  protocolId: '7036',
   apy,
   url: 'https://www.magmastaking.xyz/',
 };

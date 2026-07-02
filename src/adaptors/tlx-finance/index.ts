@@ -1,5 +1,5 @@
 const sdk = require('@defillama/sdk');
-const { getPrices, getBlocksByTime } = require('../utils');
+const { getPrices, getBlocksByTime, getPriceApiUrl } = require('../utils');
 
 const LOCKER_ADDRESS = '0xc068c3261522c97ff719dc97c98c63a1356fef0f';
 const TLX_ADDRESS = '0xd9cc3d70e730503e7f28c1b407389198c4b75fa2';
@@ -26,7 +26,7 @@ const getTlxPrice = async (timestamp: number | null): Promise<number> => {
     return reponse.pricesBySymbol.tlx;
   } else {
     const id = `${CHAIN}:${TLX_ADDRESS}`;
-    const url = `https://coins.llama.fi/prices/historical/${timestamp}/${id}`;
+    const url = getPriceApiUrl(`/prices/historical/${timestamp}/${id}`);
     const res = await fetch(url);
     const data: any = await res.json();
     return data.coins[id].price;
@@ -121,6 +121,7 @@ const apy = async (timestamp: number | null = null) => {
 };
 
 module.exports = {
+  protocolId: '4555',
   timetravel: true,
   apy: apy,
   url: 'https://tlx.fi/rewards',

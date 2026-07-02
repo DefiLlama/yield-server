@@ -231,9 +231,7 @@ const topLv = async (chainString, version, timestamp) => {
     ).output / 1e18;
 
   const wethPriceKey = `base:${WETH}`;
-  const wethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)
-  ).data.coins[wethPriceKey]?.price;
+  const wethPrice = (await utils.getPriceApiData(`/prices/current/${wethPriceKey}`)).coins[wethPriceKey]?.price;
 
   WILDxPrice = (
     await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${WILDx}`)
@@ -304,7 +302,7 @@ const topLv = async (chainString, version, timestamp) => {
     const isWILDxStake = p.id == WILDx;
     const symbol = isWILDxStake
       ? p.token0.symbol
-      : utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+      : `${p.token0.symbol}-${p.token1.symbol}`;
     const underlyingTokens = [p.token0.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
@@ -361,6 +359,7 @@ const main = async (timestamp = Date.now() / 1000) => {
 };
 
 module.exports = {
+  protocolId: '3610',
   timetravel: false,
   apy: main,
 };

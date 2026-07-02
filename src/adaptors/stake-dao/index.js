@@ -110,7 +110,7 @@ const poolsFunction = async () => {
           pool: `sd-${strat.key}-${CHAINS[strat.chainId]}`.toLowerCase(),
           chain: utils.formatChain(CHAINS[strat.chainId]),
           project: 'stake-dao',
-          symbol: symbol ? utils.formatSymbol(symbol) : null,
+          symbol: symbol ? symbol : null,
           poolMeta,
           tvlUsd: strat.tvl,
           apyReward,
@@ -133,7 +133,7 @@ const poolsFunction = async () => {
         pool: locker.sdToken.symbol.toLowerCase(),
         chain: utils.formatChain(CHAINS[locker.chainId]),
         project: 'stake-dao',
-        symbol: utils.formatSymbol(locker.sdToken.symbol),
+        symbol: locker.sdToken.symbol,
         poolMeta: locker.protocol ? utils.formatChain(locker.protocol) : null,
         tvlUsd: locker.tvl,
         // Select lower bounds of rewards, without veSDT boost
@@ -153,6 +153,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '249',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://stakedao.org',

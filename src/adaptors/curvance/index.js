@@ -27,7 +27,7 @@ const getPrices = async (addresses) => {
     const chunk = addresses.slice(i, i + chunkSize);
     try {
       const { data } = await axios.get(
-        `https://coins.llama.fi/prices/current/${chunk.join(',')}`,
+        utils.getPriceApiUrl(`/prices/current/${chunk.join(',')}`),
         { timeout: 10_000 }
       );
       for (const [key, val] of Object.entries(data.coins || {})) {
@@ -46,6 +46,8 @@ const config = {
     protocolReader: '0x878cDfc2F3D96a49A5CbD805FAF4F3080768a6d2',
   },
 };
+
+const getMerklMarketAddress = (pool) => pool.market;
 
 const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
   const managersRes = await sdk.api.abi.call({
@@ -173,7 +175,7 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
     uniqueUnderlyings.map((a) => `${chain}:${a}`)
   );
 
-  return markets
+  const marketRecords = markets
     .map((market, i) => {
       const marketData = dynamicByMarket[market.toLowerCase()];
 
@@ -193,36 +195,92 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
       const totalSupplyUsd = ((cash + debt) / factor) * price;
       const totalBorrowUsd = (debt / factor) * price;
       const tvlUsd = (cash / factor) * price;
-
       const apyBase = calcApy(marketData ? marketData.supplyRate : '0');
-      const isBorrowable = marketData ? Number(marketData.borrowRate) > 0 : false;
-      const apyBaseBorrow = isBorrowable ? calcApy(marketData.borrowRate) : null;
 
       const manager = marketToManager[market.toLowerCase()];
-      const poolMeta = managerSymbols[manager].join("/");
+      const poolMeta = managerSymbols[manager].join('/');
 
       const staticToken = staticByMarket[market.toLowerCase()];
-      const ltv = staticToken ? Number(staticToken.collRatio) / 10000 : undefined;
+      const isBorrowable =
+        Boolean(staticToken?.isBorrowable) &&
+        Boolean(staticToken?.isListed) &&
+        Number(staticToken?.debtCap || 0) > 0;
+      const debtCap = Number(staticToken?.debtCap || 0);
+      const availableBorrow = isBorrowable ? Math.min(cash, Math.max(debtCap - debt, 0)) : 0;
+      const availableBorrowUsd = (availableBorrow / factor) * price;
+      const apyBaseBorrow = isBorrowable ? calcApy(marketData ? marketData.borrowRate : '0') : null;
+      const collateralLtv = staticToken ? Number(staticToken.collRatio) / 10000 : 0;
+      const collateralEnabled =
+        Boolean(staticToken?.isListed) &&
+        collateralLtv > 0 &&
+        Number(staticToken?.collateralCap || 0) > 0;
 
       return {
+        market: market.toLowerCase(),
+        manager,
         pool: `${market.toLowerCase()}-${chain}`,
         chain: utils.formatChain(chain),
         project: 'curvance',
-        symbol: utils.formatSymbol(symbol),
-        tvlUsd,
+        symbol: symbol,
         apyBase,
         poolMeta,
-        ltv,
-        ...(isBorrowable && {
-          apyBaseBorrow,
-          totalSupplyUsd,
-          totalBorrowUsd,
-          borrowable: true,
-        }),
+        tvlUsd,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        availableBorrowUsd,
+        apyBaseBorrow,
+        isBorrowable,
+        collateralEnabled,
+        collateralLtv,
+        borrowToken: underlying,
         underlyingTokens: [underlying],
       };
     })
     .filter(Boolean);
+
+  const poolsByManager = marketRecords.reduce((acc, pool) => {
+    if (!acc[pool.manager]) {
+      acc[pool.manager] = [];
+    }
+    acc[pool.manager].push(pool);
+    return acc;
+  }, {});
+
+  return Object.values(poolsByManager).flatMap((managerPools) => {
+    return managerPools.map((collateralPool) => {
+      const siblingPools = managerPools.filter(
+        (pool) => pool.market !== collateralPool.market
+      );
+      const debtPool = siblingPools.length === 1 ? siblingPools[0] : null;
+      const canBorrow =
+        collateralPool.collateralEnabled && debtPool?.isBorrowable;
+
+      return {
+        market: collateralPool.market,
+        debtMarket: canBorrow ? debtPool.market : null,
+        pool: collateralPool.pool,
+        chain: collateralPool.chain,
+        project: collateralPool.project,
+        symbol: collateralPool.symbol,
+        tvlUsd: collateralPool.tvlUsd,
+        totalSupplyUsd: collateralPool.totalSupplyUsd,
+        apyBase: collateralPool.apyBase,
+        poolMeta: collateralPool.poolMeta,
+        underlyingTokens: collateralPool.underlyingTokens,
+        ...(canBorrow
+          ? {
+              borrowToken: debtPool.borrowToken,
+              apyBaseBorrow: debtPool.apyBaseBorrow,
+              totalBorrowUsd: debtPool.totalBorrowUsd,
+              availableBorrowUsd: debtPool.availableBorrowUsd,
+              borrowable: true,
+              ltv: collateralPool.collateralLtv,
+              url: 'https://app.curvance.com',
+            }
+          : {}),
+      };
+    });
+  });
 };
 
 const main = async () => {
@@ -231,10 +289,55 @@ const main = async () => {
       getPoolsForChain(chain, addresses)
     )
   );
-  return addMerklRewardApy(results.flat(), 'curvance', (p) => p.pool.split('-')[0]);
+  const poolsWithRewards = await addMerklRewardApy(
+    results.flat(),
+    'curvance',
+    getMerklMarketAddress
+  );
+  const rewardsByMarket = Object.fromEntries(
+    poolsWithRewards.map((pool) => [
+      pool.market,
+      {
+        apyRewardBorrow: pool.apyRewardBorrow,
+        rewardTokens: pool.rewardTokens || [],
+      },
+    ])
+  );
+
+  return poolsWithRewards.map((pool) => {
+    const debtRewards = pool.debtMarket
+      ? rewardsByMarket[pool.debtMarket]
+      : null;
+    const rewardTokens = [
+      ...new Set([
+        ...(pool.apyReward > 0 ? pool.rewardTokens || [] : []),
+        ...(debtRewards?.apyRewardBorrow > 0
+          ? debtRewards.rewardTokens || []
+          : []),
+      ]),
+    ];
+    const {
+      market,
+      debtMarket,
+      apyReward,
+      apyRewardBorrow,
+      rewardTokens: _rewardTokens,
+      ...cleanPool
+    } = pool;
+
+    return {
+      ...cleanPool,
+      ...(apyReward > 0 ? { apyReward } : {}),
+      ...(debtRewards?.apyRewardBorrow > 0
+        ? { apyRewardBorrow: debtRewards.apyRewardBorrow }
+        : {}),
+      ...(rewardTokens.length ? { rewardTokens } : {}),
+    };
+  });
 };
 
 module.exports = {
+  protocolId: '7053',
   timetravel: false,
   apy: main,
   url: 'https://app.curvance.com',

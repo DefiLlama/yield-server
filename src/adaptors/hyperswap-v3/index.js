@@ -4,40 +4,28 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const PROJECT = 'hyperswap-v3';
 const CHAIN = 'hyperevm';
+const MIN_TVL_USD = 10000;
+// App uses 'HYPE' alias in URL paths instead of WHYPE's address.
+const WHYPE = '0x5555555555555555555555555555555555555555';
+const tokenForUrl = (addr) => (addr.toLowerCase() === WHYPE ? 'HYPE' : addr);
 
-// HyperSwap V3 subgraph on Goldsky
 const SUBGRAPH_URL =
-  'https://api.goldsky.com/api/public/project_cm97l77ib0cz601wlgi9wb0ec/subgraphs/v3-subgraph/6.0.0/gn';
+  'https://api.subgraph.ormilabs.com/api/public/33c67399-d625-4929-b239-5709cd66e422/subgraphs/hyperswap-v3/v0.1.2/gn';
 
 const poolsQuery = gql`
-  query getPools($first: Int!, $skip: Int!) {
+  query getPools($first: Int!, $skip: Int!, $minTvl: BigDecimal!) {
     pools(
       first: $first
       skip: $skip
       orderBy: totalValueLockedUSD
       orderDirection: desc
-      where: { totalValueLockedUSD_gt: 1000 }
+      where: { totalValueLockedUSD_gt: $minTvl }
     ) {
       id
-      token0 {
-        id
-        symbol
-        decimals
-      }
-      token1 {
-        id
-        symbol
-        decimals
-      }
+      token0 { id symbol decimals }
+      token1 { id symbol decimals }
       feeTier
-      liquidity
-      sqrtPrice
-      tick
       totalValueLockedUSD
-      totalValueLockedToken0
-      totalValueLockedToken1
-      volumeUSD
-      feesUSD
       poolDayData(first: 7, orderBy: date, orderDirection: desc) {
         date
         volumeUSD
@@ -49,111 +37,74 @@ const poolsQuery = gql`
 `;
 
 async function fetchAllPools() {
-  let allPools = [];
-  let skip = 0;
+  const all = [];
   const first = 1000;
-
+  let skip = 0;
   while (true) {
-    try {
-      const poolsData = await request(SUBGRAPH_URL, poolsQuery, {
-        first,
-        skip,
-      });
-      const pools = poolsData.pools;
-
-      if (pools.length === 0) break;
-
-      allPools = allPools.concat(pools);
-
-      if (pools.length < first) break;
-
-      skip += first;
-    } catch (error) {
-      console.error('Error fetching pools from subgraph:', error);
-      throw error;
-    }
+    const { pools } = await request(SUBGRAPH_URL, poolsQuery, {
+      first,
+      skip,
+      minTvl: String(MIN_TVL_USD),
+    });
+    if (!pools?.length) break;
+    all.push(...pools);
+    if (pools.length < first) break;
+    skip += first;
   }
-
-  return allPools;
-}
-
-function calculateApyBase(volumeUSD1d, feeTier, tvlUSD) {
-  if (!tvlUSD || tvlUSD <= 0) return 0;
-  if (!volumeUSD1d || volumeUSD1d <= 0) return 0;
-
-  const feeUSD1d = (volumeUSD1d * Number(feeTier)) / 1e6;
-  const apyBase = (feeUSD1d * 365 / tvlUSD) * 100;
-  return apyBase;
+  return all;
 }
 
 async function apy() {
-  try {
-    const pools = await fetchAllPools();
+  const pools = await fetchAllPools();
 
-    const formattedPools = pools
-      .map((pool) => {
-        const tvlUSD = Number(pool.totalValueLockedUSD) || 0;
+  const formatted = pools
+    .map((p) => {
+      const days = p.poolDayData || [];
+      const day = days[0];
+      const tvlUsd = Number(day?.tvlUSD) || Number(p.totalValueLockedUSD);
+      if (!Number.isFinite(tvlUsd) || tvlUsd < MIN_TVL_USD) return null;
 
-        if (tvlUSD < 10000) return null;
+      // No fees data point → leave apyBase NaN so utils.keepFinite drops it
+      // (unless Merkl rewards make it finite).
+      const feesUsd = Number(day?.feesUSD);
+      const apyBase = Number.isFinite(feesUsd)
+        ? (feesUsd * 365) / tvlUsd * 100
+        : NaN;
 
-        const dayData = pool.poolDayData?.[0];
-        const volumeUSD1d = Number(dayData?.volumeUSD) || 0;
+      const fees7d = days.reduce((s, d) => s + (Number(d.feesUSD) || 0), 0);
+      const volume7d = days.reduce((s, d) => s + (Number(d.volumeUSD) || 0), 0);
+      const apyBase7d = days.length
+        ? ((fees7d / days.length) * 365) / tvlUsd * 100
+        : NaN;
 
-        const volumeUSD7d = pool.poolDayData
-          ? pool.poolDayData.reduce(
-              (sum, day) => sum + Number(day.volumeUSD || 0),
-              0
-            )
-          : 0;
+      const feePercent = Number(p.feeTier) / 10000;
+      const token0 = p.token0.id;
+      const token1 = p.token1.id;
 
-        const apyBase = calculateApyBase(volumeUSD1d, pool.feeTier, tvlUSD);
+      return {
+        pool: p.id,
+        chain: utils.formatChain(CHAIN),
+        project: PROJECT,
+        symbol: `${p.token0.symbol}-${p.token1.symbol}`,
+        tvlUsd,
+        apyBase,
+        apyBase7d,
+        underlyingTokens: [token0, token1],
+        poolMeta: `${feePercent}%`,
+        url: `https://app.hyperswap.exchange/#/add/${tokenForUrl(token0)}/${tokenForUrl(token1)}/${p.feeTier}`,
+        volumeUsd1d: Number(day?.volumeUSD) || 0,
+        volumeUsd7d: volume7d,
+      };
+    })
+    .filter(Boolean);
 
-        const apyBase7d =
-          volumeUSD7d > 0
-            ? ((volumeUSD7d * Number(pool.feeTier)) / 1e6 / tvlUSD) * 52 * 100
-            : null;
-
-        const feePercent = Number(pool.feeTier) / 10000;
-        const poolMeta = `${feePercent}%`;
-
-        return {
-          pool: pool.id.toLowerCase(),
-          chain: utils.formatChain(CHAIN),
-          project: PROJECT,
-          symbol: utils.formatSymbol(
-            `${pool.token0.symbol}-${pool.token1.symbol}`
-          ),
-          tvlUsd: tvlUSD,
-          apyBase: apyBase || 0,
-          apyBase7d: apyBase7d,
-          underlyingTokens: [
-            pool.token0.id.toLowerCase(),
-            pool.token1.id.toLowerCase(),
-          ],
-          poolMeta,
-          url: `https://app.hyperswap.exchange/#/pools/${pool.id}`,
-          volumeUsd1d: volumeUSD1d,
-          volumeUsd7d: volumeUSD7d,
-        };
-      })
-      .filter((pool) => pool !== null);
-
-    // Add Merkl reward APY (xSWAP incentive campaigns)
-    const poolsWithRewards = await addMerklRewardApy(
-      formattedPools,
-      'hyperswap'
-    );
-
-    return poolsWithRewards.filter((p) => utils.keepFinite(p));
-  } catch (error) {
-    console.error('Error in HyperSwap V3 adapter:', error);
-    throw error;
-  }
+  const withRewards = await addMerklRewardApy(formatted, 'hyperswap');
+  return withRewards.filter((p) => utils.keepFinite(p));
 }
 
 module.exports = {
+  protocolId: '5837',
   timetravel: false,
   apy,
   url: 'https://app.hyperswap.exchange',
 };
-

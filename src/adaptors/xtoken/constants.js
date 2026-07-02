@@ -1,4 +1,5 @@
 const sdk = require('@defillama/sdk');
+const { getPriceApiUrl } = require('../utils');
 const NETWORKS = {
   arbitrum: 'arbitrum',
   ethereum: 'ethereum',
@@ -40,7 +41,7 @@ const NETWORK_IDS = {
 
 const BASE_APP_URL = 'https://app.xtokenterminal.io/mining';
 
-const COINS_PRICES_URL = 'https://coins.llama.fi/prices/current';
+const COINS_PRICES_URL = getPriceApiUrl('/prices/current');
 
 module.exports = {
   NETWORKS,

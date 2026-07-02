@@ -2,9 +2,13 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.js');
-const { keepFinite } = require('../utils.js');
+const { keepFinite, getPriceApiData } = require('../utils.js');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
+// Compound v3 has one Comet per base/debt asset, with shared borrow state and
+// separate collateral configs. The Comet row carries the debt-side metrics;
+// `routing_collateral` rows identify valid collateral legs so downstream borrow
+// routers can join them by `routeGroupKey` without duplicating Comet borrow data.
 const markets = [
   {
     address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3',
@@ -184,9 +188,7 @@ const main = async (pool) => {
     `${pool.chain}:${pool.rewardToken}`,
     ...tokens.map((t) => `${pool.chain}:${t}`),
   ].join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const collateralDecimalsRes = await sdk.api.abi.multiCall({
     abi: 'erc20:decimals',
@@ -222,6 +224,7 @@ const main = async (pool) => {
     totalSupply,
     trackingIndexScale,
     decimals,
+    isWithdrawPaused,
   ] = (
     await Promise.all(
       [
@@ -233,6 +236,7 @@ const main = async (pool) => {
         'totalSupply',
         'trackingIndexScale',
         'decimals',
+        'isWithdrawPaused',
       ].map((method) =>
         sdk.api.abi.call({
           target: pool.address,
@@ -247,26 +251,6 @@ const main = async (pool) => {
     )
   ).map((o) => o.output);
 
-  // --- pool array
-
-  // 1) collateral pools (no apy fields)
-  const collateralOnlyPools = tokens.map((t, i) => ({
-    pool: `${t}-${pool.symbol}-${pool.chain}`,
-    symbol: symbols[i],
-    chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
-    project: 'compound-v3',
-    token: null,
-    tvlUsd: collateralTotalSupplyUsd[i],
-    apy: 0,
-    underlyingTokens: [t],
-    // borrow fields
-    totalSupplyUsd: collateralTotalSupplyUsd[i],
-    ltv: assetInfo[i].borrowCollateralFactor / 1e18,
-    poolMeta: `${pool.underlyingSymbol}-pool`,
-    borrowable: false,
-  }));
-
-  // 2) usdc pool
   // --- calc apy's
   const secondsPerYear = 60 * 60 * 24 * 365;
   const compPrice = prices[`${pool.chain}:${pool.rewardToken}`]?.price;
@@ -274,6 +258,15 @@ const main = async (pool) => {
 
   // supply side
   const totalSupplyUsd = (totalSupply / 10 ** decimals) * usdcPrice;
+  const availableBorrow = (
+    await sdk.api.abi.call({
+      abi: 'erc20:balanceOf',
+      target: pool.underlying,
+      params: [pool.address],
+      chain: pool.chain,
+    })
+  ).output;
+  const availableBorrowUsd = (availableBorrow / 10 ** decimals) * usdcPrice;
   const apyBase = (supplyRate / 1e18) * secondsPerYear * 100;
   const apyReward =
     (((baseTrackingSupplySpeed / trackingIndexScale) *
@@ -292,27 +285,50 @@ const main = async (pool) => {
       totalBorrowUsd) *
     100;
 
-  return [
-    ...collateralOnlyPools,
-    {
-      pool: `${pool.address}-${pool.chain}`,
-      symbol: pool.underlyingSymbol,
-      chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
-      project: 'compound-v3',
-      tvlUsd: totalSupplyUsd - totalBorrowUsd,
-      apyBase,
-      apyReward,
-      underlyingTokens: [pool.underlying],
-      rewardTokens: [pool.rewardToken],
-      // borrow fields
-      apyBaseBorrow,
-      apyRewardBorrow,
-      totalSupplyUsd,
-      totalBorrowUsd,
-      borrowable: true,
-      ltv: 0,
-    },
-  ];
+  // --- pool array
+
+  // 1) collateral pools (no supply apy fields)
+  const collateralOnlyPools = tokens.map((t, i) => ({
+    pool: `${t}-${pool.symbol}-${pool.chain}`,
+    symbol: symbols[i],
+    chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
+    project: 'compound-v3',
+    poolKind: 'routing_collateral',
+    token: null,
+    tvlUsd: collateralTotalSupplyUsd[i],
+    apy: 0,
+    underlyingTokens: [t],
+    routeGroupKey: pool.address.toLowerCase(),
+    totalSupplyUsd: collateralTotalSupplyUsd[i],
+    borrowToken: pool.underlying,
+    ltv: assetInfo[i].borrowCollateralFactor / 1e18,
+    poolMeta: `${pool.underlyingSymbol}-pool`,
+    borrowable: !isWithdrawPaused,
+  }));
+
+  const cometPool = {
+    pool: `${pool.address}-${pool.chain}`,
+    symbol: pool.underlyingSymbol,
+    chain: pool.chain.charAt(0).toUpperCase() + pool.chain.slice(1),
+    project: 'compound-v3',
+    routeGroupKey: pool.address.toLowerCase(),
+    tvlUsd: totalSupplyUsd - totalBorrowUsd,
+    apyBase,
+    apyReward,
+    underlyingTokens: [pool.underlying],
+    rewardTokens: [pool.rewardToken],
+    // borrow fields
+    apyBaseBorrow,
+    apyRewardBorrow,
+    totalSupplyUsd,
+    totalBorrowUsd,
+    availableBorrowUsd,
+    borrowToken: pool.underlying,
+    borrowable: !isWithdrawPaused,
+    ltv: 0,
+  };
+
+  return [...collateralOnlyPools, cometPool];
 };
 
 const apy = async () => {
@@ -321,6 +337,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2088',
   timetravel: false,
   apy,
   url: 'https://v3-app.compound.finance/markets',

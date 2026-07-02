@@ -1,6 +1,5 @@
 const utils = require('../utils');
 
-const fetch = require('node-fetch');
 const { TonClient } = require('@ton/ton');
 const { Address, Cell, Slice, Dictionary, beginCell } = require('@ton/core');
 const { signVerify } = require('@ton/crypto');
@@ -28,21 +27,9 @@ const assetsMAIN = {
     assetId: sha256Hash('TON'),
     token: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
   },
-  jUSDT: {
-    assetId: sha256Hash('jUSDT'),
-    token: 'EQBynBO23ywHy_CgarY9NK9FTz0yDsG82PtcbSTQgGoXwiuA',
-  },
   USDT: {
     assetId: sha256Hash('USDT'),
     token: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
-  },
-  jUSDC: {
-    assetId: sha256Hash('jUSDC'),
-    token: 'EQB-MPwrd1G6WKNkLz_VnV6WqBDd142KMQv-g1O-8QUA3728',
-  },
-  stTON: {
-    assetId: sha256Hash('stTON'),
-    token: 'EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k',
   },
   tsTON: {
     assetId: sha256Hash('tsTON'),
@@ -94,14 +81,6 @@ const assetsALTS = {
     assetId: sha256Hash('NOT'),
     token: 'EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT',
   },
-  DOGS: {
-    assetId: sha256Hash('DOGS'),
-    token: 'EQCvxJy4eG8hyHBFsZ7eePxrRsUQSFE_jpptRAYBmcG_DOGS',
-  },
-  CATI: {
-    assetId: sha256Hash('CATI'),
-    token: 'EQD-cvR0Nz6XAyRBvbhz-abTrRC6sI5tvHvvpeQraV9UAAD7',
-  },
 };
 
 const assetsSTABLE = {
@@ -116,10 +95,6 @@ const assetsSTABLE = {
   tsUSDe: {
     assetId: sha256Hash('tsUSDe'),
     token: 'EQDQ5UUyPHrLcQJlPAczd_fjxn8SLrlNQwolBznxCdSlfQwr',
-  },
-  PT_tsUSDe_01Sep2025: {
-    assetId: sha256Hash('PT_tsUSDe_01Sep2025'),
-    token: 'EQDb90Bss5FnIyq7VMmnG2UeZIzZomQsILw9Hjo1wxaF1df3',
   },
 };
 
@@ -175,12 +150,12 @@ function createAssetData() {
             builder.storeUint(src.balance, 64);
         },
         parse: (src) => {
-            const sRate = BigInt(src.loadInt(64));
-            const bRate = BigInt(src.loadInt(64));
-            const totalSupply = BigInt(src.loadInt(64));
-            const totalBorrow = BigInt(src.loadInt(64));
-            const lastAccural = BigInt(src.loadInt(32));
-            const balance = BigInt(src.loadInt(64));
+            const sRate = src.loadUintBig(64);
+            const bRate = src.loadUintBig(64);
+            const totalSupply = src.loadIntBig(64);
+            const totalBorrow = src.loadIntBig(64);
+            const lastAccural = src.loadUintBig(32);
+            const balance = src.loadUintBig(64);
 
             return {
               sRate,
@@ -234,6 +209,10 @@ function createAssetConfig() {
       const maxTotalSupply = ref.loadUintBig(64);
       const reserveFactor = ref.loadUintBig(16);
       const liquidationReserveFactor = ref.loadUintBig(16);
+      if (ref.remainingBits >= 64) ref.loadUintBig(64);
+      if (ref.remainingBits >= 64) ref.loadUintBig(64);
+      if (ref.remainingBits >= 64) ref.loadUintBig(64);
+      const borrowCap = ref.remainingBits >= 64 ? ref.loadIntBig(64) : -1n;
 
       return {
         oracle,
@@ -252,6 +231,7 @@ function createAssetConfig() {
         maxTotalSupply,
         reserveFactor,
         liquidationReserveFactor,
+        borrowCap,
       };
     },
   };
@@ -353,6 +333,7 @@ function parseMasterData(masterDataBOC, assets) {
   }
 
   return {
+    masterConfig: masterConfig,
     assetsConfig: assetsConfigDict,
     assetsData: assetsExtendedData,
     assetsReserves: assetsReserves,
@@ -577,6 +558,9 @@ async function getPoolData(
         }
 
         data = parseMasterData(result.data.toString('base64'), assets);
+        if (data.masterConfig.ifActive === 0) {
+            return [];
+        }
     } catch (error) {
         console.error('getPoolData error:', error);
         return [];
@@ -618,6 +602,19 @@ async function getPoolData(
 
         const totalSupplyUsd = (totalSupplyNum * price) / scaleFactor;
         const totalBorrowUsd = (totalBorrowNum * price) / scaleFactor;
+        const assetLiquidityNum = Math.max(
+            Math.min(totalSupplyNum - totalBorrowNum, Number(assetData.balance)),
+            0
+        );
+        const borrowCapRemaining = assetConfig.borrowCap - assetData.totalBorrow;
+        const availableBorrowNum = assetConfig.borrowCap >= 0n
+            ? Math.min(
+                assetLiquidityNum,
+                Number(calculatePresentValue(assetData.bRate, borrowCapRemaining > 0n ? borrowCapRemaining : 0n))
+            )
+            : assetLiquidityNum;
+        const availableBorrowUsd = (availableBorrowNum * price) / scaleFactor;
+        const borrowable = assetConfig.borrowCap < 0n || assetConfig.borrowCap > assetData.totalBorrow;
 
         console.log(poolName, tokenSymbol, 'totalSupplyInUsd', totalSupplyUsd);
         console.log(poolName, tokenSymbol, 'totalBorrowInUsd', totalBorrowUsd);
@@ -677,7 +674,7 @@ async function getPoolData(
       pool: `evaa-${assetId}-${poolName}-ton`.toLowerCase(),
       chain: 'Ton',
       project: 'evaa-protocol',
-      symbol: tokenSymbol,
+      symbol: tokenSymbol === 'TON' ? 'GRAM' : tokenSymbol,
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase: supplyApy * 100,
       apyReward,
@@ -688,16 +685,21 @@ async function getPoolData(
       apyRewardBorrow,
       underlyingTokens: [token],
       url: `https://app.evaa.finance/token/${tokenSymbol}?pool=${poolName}`,
+      routeGroupKey: masterAddress,
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       apyBaseBorrow: borrowApy * 100,
+      borrowToken: token,
       ltv: Number(assetConfig.collateralFactor) / 10000,
-      poolMeta: poolName
+      borrowable,
+      poolMeta: `${poolName} Pool`
     };
   });
 }
 
 module.exports = {
+  protocolId: '4198',
   timetravel: false,
   apy: getApy,
   url: 'https://evaa.finance/',

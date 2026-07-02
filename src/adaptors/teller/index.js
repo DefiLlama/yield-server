@@ -317,6 +317,7 @@
   };
 
   module.exports = {
+  protocolId: '2736',
     timetravel: false,
     apy: main,
   };

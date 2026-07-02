@@ -1,15 +1,27 @@
 const axios = require('axios')
 const sdk = require('@defillama/sdk')
 const BigNumber = require('bignumber.js')
-const { sparkSavingsAbi } = require('./abi.js')
+const {
+sparkSavingsAbi } = require('./abi.js')
+const { getPriceApiUrl,
+ } = require('../utils');
 
 const sparkBaseUrl = 'https://app.spark.fi/savings'
 
-type Chain = 'ethereum' | 'avax'
+const MAINNET_SUSDS = '0xa3931d71877c0e7a3148cb7eb4463524fec27fbd'
+
+type Chain = 'ethereum' | 'avax' | 'base' | 'arbitrum'
 interface VaultConfig {
   assetSymbol: string
   address: string
   decimals: number
+}
+
+interface BridgedSavingsConfig {
+  assetSymbol: string
+  address: string
+  decimals: number
+  underlying: string
 }
 
 const sparkSavings: Record<Chain, VaultConfig[]> = {
@@ -42,6 +54,27 @@ const sparkSavings: Record<Chain, VaultConfig[]> = {
       decimals: 6,
     },
   ],
+  base: [],
+  arbitrum: [],
+}
+
+const bridgedSavings: Partial<Record<Chain, BridgedSavingsConfig[]>> = {
+  base: [
+    {
+      assetSymbol: 'USDS',
+      address: '0x5875eee11cf8398102fdad704c9e96607675467a',
+      decimals: 18,
+      underlying: '0x820c137fa70c8691f0e44dc420a5e53c168921dc',
+    },
+  ],
+  arbitrum: [
+    {
+      assetSymbol: 'USDS',
+      address: '0xddb46999f8891663a8f2828d25298f70416d7610',
+      decimals: 18,
+      underlying: '0x6491c05a82219b8d1479057361ff1654749b876b',
+    },
+  ],
 }
 
 async function getPools() {
@@ -50,6 +83,7 @@ async function getPools() {
 
   for (const chain of chains) {
     const vaults = sparkSavings[chain]
+    if (vaults.length === 0) continue
 
     const totalSupplies = toOutput<string>(
       await sdk.api.abi.multiCall({
@@ -112,7 +146,65 @@ async function getPools() {
     )
   }
 
+  pools.push(...(await getBridgedSavingsPools()))
+
   return pools
+}
+
+async function getBridgedSavingsPools() {
+  const ssrRaw = (
+    await sdk.api.abi.call({
+      abi: sparkSavingsAbi.ssr,
+      chain: 'ethereum',
+      target: MAINNET_SUSDS,
+    })
+  ).output as string
+
+  const apyBase = rateToApy(ssrRaw)
+  const out: any[] = []
+
+  for (const [chainKey, configs] of Object.entries(bridgedSavings)) {
+    if (!configs?.length) continue
+    const chain = chainKey as Chain
+
+    const totalSupplies = toOutput<string>(
+      await sdk.api.abi.multiCall({
+        abi: sparkSavingsAbi.totalSupply,
+        chain,
+        calls: configs.map((c) => ({ target: c.address })),
+      }),
+    )
+
+    const priceKeys = configs
+      .map((c) => `${chain}:${c.address.toLowerCase()}`)
+      .join(',')
+    const priceRes = await axios.get(
+      getPriceApiUrl(`/prices/current/${priceKeys}`),
+    )
+    const prices = priceRes.data.coins
+
+    configs.forEach((cfg, i) => {
+      const priceKey = `${chain}:${cfg.address.toLowerCase()}`
+      const price = prices[priceKey]?.price
+      if (!price) return
+
+      out.push({
+        pool: `${cfg.address}-${chain}`,
+        chain,
+        apyBase,
+        url: getVaultUrl(chain, 'susds'),
+        project: 'spark-savings',
+        symbol: cfg.assetSymbol,
+        tvlUsd: new BigNumber(totalSupplies[i])
+          .div(10 ** cfg.decimals)
+          .times(price)
+          .toNumber(),
+        underlyingTokens: [cfg.underlying],
+      })
+    })
+  }
+
+  return out
 }
 
 function toOutput<T>(results: { output: { output: T }[] }): T[] {
@@ -124,7 +216,7 @@ async function fetchPrices(
   vaultConfigs: readonly VaultConfig[],
 ): Promise<Record<string, { price: number }>> {
   const priceKeys = vaultConfigs.map((config) => `${chain}:${config.address.toLowerCase()}`).join(',')
-  const response = await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  const response = await axios.get(getPriceApiUrl(`/prices/current/${priceKeys}`))
   return response.data.coins
 }
 
@@ -135,6 +227,8 @@ function getVaultUrl(chain: Chain, symbol: string): string {
 const chainToAppChain: Record<Chain, string> = {
   ethereum: 'mainnet',
   avax: 'avalanche',
+  base: 'base',
+  arbitrum: 'arbitrum',
 }
 
 const yearInSeconds = 31536000
@@ -150,5 +244,6 @@ function pow(a: any, b: number): any {
 }
 
 module.exports = {
+  protocolId: '6716',
   apy: getPools,
 }

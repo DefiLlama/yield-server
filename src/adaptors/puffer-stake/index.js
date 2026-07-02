@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { getMerklRewardsByIdentifier } = require('../merkl/merkl-by-identifier');
+const { getPriceApiUrl } = require('../utils');
 
 const PUFETH = '0xD9A442856C234a39a81a089C06451EBAa4306a72';
 const CONVERT_TO_ASSETS_ABI =
@@ -8,7 +9,7 @@ const CONVERT_TO_ASSETS_ABI =
 
 const getBlock = (timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/ethereum/${timestamp}`, {
+    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`), {
       timeout: 10_000,
     })
     .then((r) => r.data.height);
@@ -72,7 +73,7 @@ const apy = async () => {
   // Fetch pufETH price and Merkl rewards in parallel
   const priceKey = `ethereum:${PUFETH}`;
   const [priceRes, merklRewards] = await Promise.all([
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`, {
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`), {
       timeout: 10_000,
     }),
     getMerklRewardsByIdentifier(PUFETH, 'ethereum'),
@@ -92,9 +93,11 @@ const apy = async () => {
     tvlUsd,
     apyBase,
     apyBase7d,
+    ...(rateNowNum / 1e18 > 0 && { pricePerShare: rateNowNum / 1e18 }),
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],
     url: 'https://app.puffer.fi/stake',
     searchTokenOverride: PUFETH,
+    isIntrinsicSource: true,
   };
 
   if (merklRewards?.apyReward > 0) {
@@ -106,6 +109,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4088',
   apy,
   url: 'https://app.puffer.fi/stake',
 };

@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 // Liquid ETH Vault (liquidETH) - same address on Ethereum and Scroll
 const liquidETH = '0xf0bb20865277aBd641a307eCe5Ee04E79073416C';
@@ -30,7 +31,7 @@ const getBlocksByTime = async (timestamps, chain = 'ethereum') => {
   const blocks = await Promise.all(
     timestamps.map(async (t) => {
       const response = await axios.get(
-        `https://coins.llama.fi/block/${chain}/${t}`
+        getPriceApiUrl(`/block/${chain}/${t}`)
       );
       return response.data.height;
     })
@@ -222,7 +223,7 @@ const apy = async () => {
     `hyperliquid:0x0000000000000000000000000000000000000000`,
   ];
   const pricesRes = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
+    getPriceApiUrl(`/prices/current/${priceKeys.join(',')}`)
   );
 
   const liquidETHPrice =
@@ -346,6 +347,7 @@ const apy = async () => {
       tvlUsd: liquidETHTvl,
       apyBase: liquidETHApr1d > 0 ? liquidETHApr1d : liquidETHApr7d,
       apyBase7d: liquidETHApr7d,
+      ...(liquidETHRateCurrent / 1e18 > 0 && { pricePerShare: liquidETHRateCurrent / 1e18 }),
       underlyingTokens: [weETH],
       searchTokenOverride: liquidETH,
       url: 'https://app.ether.fi/liquid/eth',
@@ -358,6 +360,7 @@ const apy = async () => {
       tvlUsd: liquidUSDTvl,
       apyBase: liquidUSDApr1d > 0 ? liquidUSDApr1d : liquidUSDApr7d,
       apyBase7d: liquidUSDApr7d,
+      ...(liquidUSDRateCurrent / 1e6 > 0 && { pricePerShare: liquidUSDRateCurrent / 1e6 }),
       underlyingTokens: [USDC],
       searchTokenOverride: liquidUSD,
       url: 'https://app.ether.fi/liquid/usd',
@@ -370,6 +373,7 @@ const apy = async () => {
       tvlUsd: liquidBTCTvl,
       apyBase: liquidBTCApr1d > 0 ? liquidBTCApr1d : liquidBTCApr7d,
       apyBase7d: liquidBTCApr7d,
+      ...(liquidBTCRateCurrent / 1e8 > 0 && { pricePerShare: liquidBTCRateCurrent / 1e8 }),
       underlyingTokens: [WBTC],
       searchTokenOverride: liquidBTC,
       url: 'https://app.ether.fi/liquid/btc',
@@ -382,6 +386,7 @@ const apy = async () => {
       tvlUsd: liquidHYPETvl,
       apyBase: liquidHYPEApr1d > 0 ? liquidHYPEApr1d : liquidHYPEApr7d,
       apyBase7d: liquidHYPEApr7d > 0 ? liquidHYPEApr7d : undefined,
+      ...(Number.isFinite(liquidHYPEOracleData?.currentRate) && liquidHYPEOracleData.currentRate > 0 && { pricePerShare: liquidHYPEOracleData.currentRate }),
       underlyingTokens: [HYPE, beHYPE],
       searchTokenOverride: liquidHYPE,
       url: 'https://app.ether.fi/liquid/hype',
@@ -392,6 +397,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4429',
   timetravel: false,
   apy,
   url: 'https://app.ether.fi/liquid',
