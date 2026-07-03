@@ -21,18 +21,47 @@ const YFI = '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e';
 const STYFI = '0x42b25284E8ae427D79da78b65DFFC232aAECc016';
 const STYFIX = '0x9C42461AA8422926e3AEF7B1C6e3743597149d79';
 const YVUSDC = '0xBe53A109B494E5c9f97b9Cd39Fe969BE68BF6204';
+const STYFI_REWARD_DISTRIBUTOR = '0x95547eDe56cF74B73dd78a37f547127dffDA6113';
+const STYFI_EPOCHS_PER_YEAR = (365 * 86400) / (14 * 86400);
 
-// stYFIx wraps stYFI 1:1, so its stake is subtracted from the stYFI pool tvl
+// stYFIx wraps stYFI 1:1, so its stake is subtracted from the stYFI pool tvl.
+// Both earn the same rate: the distributor pays all stYFI holders pro-rata
+// in yvUSDC per 14-day epoch and stYFIx passes its share through.
 const getStyfiPools = async () => {
   try {
-    const [data, prices] = await Promise.all([
-      utils.getData('https://styfi.yearn.fi/api/global-data'),
-      utils.getPrices([YFI], 'ethereum'),
-    ]);
-    const yfiPrice = prices.pricesByAddress[YFI.toLowerCase()];
+    const [totalStakedRes, styfixStakedRes, epochRewardsRes, prices] =
+      await Promise.all([
+        sdk.api.abi.call({
+          target: STYFI,
+          abi: 'erc20:totalSupply',
+          chain: 'ethereum',
+        }),
+        sdk.api.abi.call({
+          target: STYFI,
+          abi: 'erc20:balanceOf',
+          params: [STYFIX],
+          chain: 'ethereum',
+        }),
+        sdk.api.abi.call({
+          target: STYFI_REWARD_DISTRIBUTOR,
+          abi: 'function epoch_rewards() view returns (uint256, uint256)',
+          chain: 'ethereum',
+        }),
+        utils.getPrices([YFI, YVUSDC], 'ethereum'),
+      ]);
 
-    const styfixStaked = Number(data.styfix.staked) / 1e18;
-    const styfiStaked = Number(data.styfi.staked) / 1e18 - styfixStaked;
+    const yfiPrice = prices.pricesByAddress[YFI.toLowerCase()];
+    const yvUsdcPrice = prices.pricesByAddress[YVUSDC.toLowerCase()];
+
+    const totalStaked = totalStakedRes.output / 1e18;
+    const styfixStaked = styfixStakedRes.output / 1e18;
+    const styfiStaked = totalStaked - styfixStaked;
+    const epochRewards = epochRewardsRes.output[1] / 1e6;
+
+    const apyReward =
+      ((epochRewards * STYFI_EPOCHS_PER_YEAR * yvUsdcPrice) /
+        (totalStaked * yfiPrice)) *
+      100;
 
     const basePool = {
       chain: 'Ethereum',
@@ -48,7 +77,7 @@ const getStyfiPools = async () => {
         pool: STYFI,
         symbol: 'stYFI',
         tvlUsd: styfiStaked * yfiPrice,
-        apyReward: Number(data.styfi.current.aprBps) / 100,
+        apyReward,
       },
       {
         ...basePool,
@@ -56,7 +85,7 @@ const getStyfiPools = async () => {
         symbol: 'stYFIx',
         poolMeta: 'delegated',
         tvlUsd: styfixStaked * yfiPrice,
-        apyReward: Number(data.styfix.current.aprBps) / 100,
+        apyReward,
       },
     ];
   } catch (e) {
