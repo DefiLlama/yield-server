@@ -17,6 +17,54 @@ const chains = {
   polygon: 137,
 };
 
+const YFI = '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e';
+const STYFI = '0x42b25284E8ae427D79da78b65DFFC232aAECc016';
+const STYFIX = '0x9C42461AA8422926e3AEF7B1C6e3743597149d79';
+const YVUSDC = '0xBe53A109B494E5c9f97b9Cd39Fe969BE68BF6204';
+
+// stYFIx wraps stYFI 1:1, so its stake is subtracted from the stYFI pool tvl
+const getStyfiPools = async () => {
+  try {
+    const [data, prices] = await Promise.all([
+      utils.getData('https://styfi.yearn.fi/api/global-data'),
+      utils.getPrices([YFI], 'ethereum'),
+    ]);
+    const yfiPrice = prices.pricesByAddress[YFI.toLowerCase()];
+
+    const styfixStaked = Number(data.styfix.staked) / 1e18;
+    const styfiStaked = Number(data.styfi.staked) / 1e18 - styfixStaked;
+
+    const basePool = {
+      chain: 'Ethereum',
+      project: 'yearn-finance',
+      rewardTokens: [YVUSDC],
+      underlyingTokens: [YFI],
+      url: 'https://styfi.yearn.fi/',
+    };
+
+    return [
+      {
+        ...basePool,
+        pool: STYFI,
+        symbol: 'stYFI',
+        tvlUsd: styfiStaked * yfiPrice,
+        apyReward: Number(data.styfi.current.aprBps) / 100,
+      },
+      {
+        ...basePool,
+        pool: STYFIX,
+        symbol: 'stYFIx',
+        poolMeta: 'delegated',
+        tvlUsd: styfixStaked * yfiPrice,
+        apyReward: Number(data.styfix.current.aprBps) / 100,
+      },
+    ];
+  } catch (e) {
+    console.error('failed to fetch stYFI pools', e.message);
+    return [];
+  }
+};
+
 // For Velodrome/Aerodrome LP vaults where the API doesn't provide underlying tokens,
 // fetch token0/token1 from the LP contract on-chain
 const getLpUnderlying = async (lpAddress, chain) => {
@@ -32,6 +80,7 @@ const getLpUnderlying = async (lpAddress, chain) => {
 };
 
 const getApy = async () => {
+  const styfiPools = getStyfiPools();
   const data = await Promise.all(
     Object.entries(chains).map(async (chain) => {
       const data = await utils.getData(
@@ -81,6 +130,7 @@ const getApy = async () => {
 
   const pools = data
     .flat()
+    .concat(await styfiPools)
     .filter((p) => utils.keepFinite(p))
     // old usdc vault
     .filter((p) => p.pool !== '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9');
