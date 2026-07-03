@@ -75,9 +75,10 @@ const gaugesQuery = gql`
 // one reward entry is emitted per gauge per weekly epoch; grab the recent
 // window and keep the latest entry per gauge
 const rewardsQuery = gql`
-  query getRewards($since: BigInt!) {
+  query getRewards($first: Int!, $skip: Int!, $since: BigInt!) {
     gaugeEpochRewards(
-      first: 1000
+      first: $first
+      skip: $skip
       orderBy: timestamp
       orderDirection: desc
       where: { timestamp_gt: $since }
@@ -118,11 +119,15 @@ async function apy() {
   const ethUsd = Number(priceData.bundle?.ethPriceUSD) || 0;
   const hybrUsd = (Number(priceData.token?.derivedETH) || 0) * ethUsd;
 
-  // latest weekly HYBR emission per gauge (entries are ordered newest first)
+  // latest weekly HYBR emission per gauge (entries are ordered newest first,
+  // and paginate() preserves that order across pages)
   const since = Math.floor(Date.now() / 1000) - 8 * 86400;
-  const rewards = (
-    await request(GAUGE_SUBGRAPH, rewardsQuery, { since: String(since) })
-  ).gaugeEpochRewards;
+  const rewards = await paginate(
+    GAUGE_SUBGRAPH,
+    rewardsQuery,
+    'gaugeEpochRewards',
+    { since: String(since) }
+  );
   const weeklyHybrByGauge = {};
   for (const r of rewards) {
     const g = r.gauge.id.toLowerCase();
