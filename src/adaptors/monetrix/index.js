@@ -111,11 +111,18 @@ const apy = async (timestamp = null) => {
   const pricePerShare = ppsNow / 1e6;
 
   // USDM mints/redeems 1:1 against USDC. Prefer a real USDM feed once it exists,
-  // and fall back to USDC (then 1) until USDM pricing is available.
-  const { pricesByAddress } = await utils.getPrices([USDM, USDC], CHAIN);
+  // and fall back to USDC (then 1) until USDM pricing is available. Backfill
+  // runs price the row at the anchor timestamp rather than at "now".
+  const priceKeys = [USDM, USDC]
+    .map((t) => `${CHAIN}:${t.toLowerCase()}`)
+    .join(',');
+  const pricePath = timestamp
+    ? `/prices/historical/${anchor.timestamp}/${priceKeys}`
+    : `/prices/current/${priceKeys}`;
+  const { coins } = await utils.getPriceApiData(pricePath);
   const usdmPrice =
-    pricesByAddress[USDM.toLowerCase()] ??
-    pricesByAddress[USDC.toLowerCase()] ??
+    coins[`${CHAIN}:${USDM.toLowerCase()}`]?.price ??
+    coins[`${CHAIN}:${USDC.toLowerCase()}`]?.price ??
     1;
 
   return [
