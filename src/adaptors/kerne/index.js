@@ -5,8 +5,8 @@
 //   1:1 against USDC through the on-chain Peg Stability Module. Yield
 //   accrues to skUSD holders through a rising share price.
 //
-// Contracts (verified, Sourcify perfect_match):
-//   skUSD : https://basescan.org/address/0xdEd74F7E06efc76455C07418b8b74Cc2bc009DB4
+// Contracts (verified, Sourcify partial match):
+//   skUSD : https://basescan.org/address/0x96F5102C15b839757f811A98CEc3725Ac21DfA14
 //   kUSD  : https://basescan.org/address/0x5C2EfdF0D8D286959b42308966bc2B97f5680AA3
 //
 // Everything is read on-chain at adapter run-time (no Kerne API dependency):
@@ -35,6 +35,12 @@
 //   and dropped the empty apyReward/rewardTokens and the poolMeta string, per
 //   maintainer review on PR #2688.
 //
+// 2026-07-03 revision: repointed skUSD to the redeployed vault at
+//   0x96F5102C15b839757f811A98CEc3725Ac21DfA14. The prior vault
+//   (0xdEd74F7E...) had a share price distorted by early test deposits and was
+//   replaced by a fresh deploy that resets price-per-share to par (1.0). Same
+//   ERC-4626 skUSD-over-kUSD design and asset(); address only. Verified on-chain.
+//
 // DefiLlama slug note: DefiLlama assigned this protocol the slug "kerne" when
 //   the TVL adapter merged (DefiLlama-Adapters#19306, 2026-05-18), so the
 //   directory and project field both follow the public slug "kerne".
@@ -43,7 +49,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const CHAIN = 'base';
-const SKUSD_ADDRESS = '0xdEd74F7E06efc76455C07418b8b74Cc2bc009DB4';
+const SKUSD_ADDRESS = '0x96F5102C15b839757f811A98CEc3725Ac21DfA14';
 const KUSD_ADDRESS = '0x5C2EfdF0D8D286959b42308966bc2B97f5680AA3';
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
