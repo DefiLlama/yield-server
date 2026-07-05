@@ -535,6 +535,11 @@ const main = async () => {
           apyBase7d,
           underlyingTokens: [vault.asset],
           poolMeta,
+          // Oracle PPS: the authoritative share price that only moves on NAV
+          // updates. Using totalAssets/totalSupply would drop on deposit settlement
+          // (supply doubles before totalAssets is revalued), causing false negative
+          // fees in the DefiLlama fee test.
+          pricePerShare: currentSharePrice > 0 ? currentSharePrice : undefined,
           url: `https://app.t3tris.finance/vault/${vault.address}`,
         });
       }
