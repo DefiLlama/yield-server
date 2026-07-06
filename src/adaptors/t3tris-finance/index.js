@@ -41,14 +41,10 @@ const CHAINS = Object.keys(CHAIN_IDS);
 
 const DAY_SECONDS = 24 * 3600;
 
-/**
- * Lookback windows (days) for APY calculation, applied relative to each vault's
- * last NAV (see getAnchoredHistoricalPps). Multiple windows smooth out the
- * realized rate; the short windows (1/3d) also let freshly-launched vaults —
- * whose history does not yet reach 7+ days before their last NAV — still report
- * an APY instead of falling back to zero.
- */
-const LOOKBACK_DAYS = [1, 3, 7, 14, 30];
+// Single lookback window (days) for the APY calculation, applied relative to
+// each vault's last NAV (see getAnchoredHistoricalPps). A fixed window keeps the
+// reported rate consistent across all vaults.
+const APY_WINDOW_DAYS = 7;
 
 const multiCall = (targets, abi, chain, block = undefined) =>
   sdk.api.abi.multiCall({
@@ -89,8 +85,9 @@ const getBlockNumber = async (timestamp, chain) => {
 };
 
 /**
- * Calculate APY from oracle PPS change over N days.
- * Oracle PPS is in WAD (1e18). APY = (current / historical - 1) / days × 365 × 100
+ * Single-window APY from oracle PPS change over `days`.
+ * Oracle PPS is in WAD (1e18). APY = (current / historical - 1) / days × 365 × 100.
+ * Returns 0 for missing data, loss periods, or implausible spikes.
  */
 const calcApy = (currentPps, historicalPps, days) => {
   if (!historicalPps || historicalPps <= 0 || !currentPps) return 0;
@@ -99,85 +96,6 @@ const calcApy = (currentPps, historicalPps, days) => {
   // Cap at reasonable bounds
   if (apy > 1000 || apy < 0) return 0;
   return apy;
-};
-
-/**
- * TVL+time-weighted linear APY, matching the app formula:
- *   APY = YEAR_SECS × Σ(TVLᵢ · rᵢ) / Σ(TVLᵢ · Δtᵢ)
- *   rᵢ   = pps_end / pps_start − 1  (simple per-share growth in interval i)
- *   TVLᵢ = (ta_start + ta_end) / 2  (average totalAssets; cancels if uniform)
- *   Δtᵢ  = elapsed seconds (positive, older→newer)
- *
- * Uses NON-OVERLAPPING intervals anchored at the vault's last NAV:
- *   [LVT−30d → LVT−14d], [LVT−14d → LVT−7d], [LVT−7d → LVT]
- * This avoids double-counting and matches how the app computes the M window.
- *
- * Falls back to a single 3d or 1d interval for vaults < 7 days old.
- * The 1d/3d windows are intentionally excluded from the main blend: a
- * freshly-updated oracle can show a multi-day accrual in one day, which
- * would spike those short windows and corrupt the weighted average.
- *
- * `historicalData` shape: { pps: [1d,3d,7d,14d,30d], ta: [1d,3d,7d,14d,30d] }
- * indexed by LOOKBACK_DAYS = [1, 3, 7, 14, 30].
- */
-const computeTvlWeightedApy = (currentPps, currentTa, historicalData) => {
-  if (!currentPps || currentPps <= 0) return { apyBase: 0, apyBase7d: 0 };
-
-  const YEAR_SECS = 365 * DAY_SECONDS;
-
-  // Sample points, oldest→newest. Indices into LOOKBACK_DAYS=[1,3,7,14,30]:
-  //   2 = 7d, 3 = 14d, 4 = 30d.
-  const candidates = [
-    { daysAgo: 30, pps: historicalData.pps[4], ta: historicalData.ta[4] },
-    { daysAgo: 14, pps: historicalData.pps[3], ta: historicalData.ta[3] },
-    { daysAgo: 7,  pps: historicalData.pps[2], ta: historicalData.ta[2] },
-    { daysAgo: 0,  pps: currentPps,            ta: currentTa            },
-  ];
-
-  // Keep only points with a valid PPS (vault history may be shorter than 30d).
-  const pts = candidates.filter((p) => p.pps > 0);
-
-  // If the oldest valid point is < 7 days ago, the vault is too young for the
-  // long blend — use the freshness fallback (3d then 1d single interval).
-  if (pts.length < 2 || pts[0].daysAgo < 7) {
-    for (const [idx, days] of [[1, 3], [0, 1]]) {
-      const pps = historicalData.pps[idx];
-      if (pps > 0 && Math.abs(pps - currentPps) > 1e-15) {
-        const apy = ((currentPps / pps - 1) / days) * 365 * 100;
-        if (apy > 0 && apy <= 1000) return { apyBase: apy, apyBase7d: apy };
-      }
-    }
-    return { apyBase: 0, apyBase7d: 0 };
-  }
-
-  // TVL+time-weighted accumulation over non-overlapping consecutive intervals.
-  let num = 0;
-  let den = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const older = pts[i - 1];
-    const newer = pts[i];
-    const dt = (older.daysAgo - newer.daysAgo) * DAY_SECONDS; // positive
-    if (dt <= 0 || older.pps <= 0 || newer.pps <= 0) continue;
-    const r = newer.pps / older.pps - 1;
-    // Use average totalAssets as the TVL weight; fall back to 1 when unknown.
-    const tvl = (older.ta + newer.ta) / 2 || 1;
-    num += tvl * r;
-    den += tvl * dt;
-  }
-
-  // apyBase7d: single-interval [LVT−7d → LVT] realized APY.
-  const pps7d = historicalData.pps[2];
-  const raw7d = pps7d > 0 ? ((currentPps / pps7d - 1) / 7) * 365 * 100 : 0;
-  const apyBase7d = raw7d > 0 && raw7d <= 1000 ? raw7d : 0;
-
-  if (den <= 0) return { apyBase: apyBase7d, apyBase7d };
-
-  const apyRaw = (YEAR_SECS * num) / den * 100;
-  // Cap: negative (loss period) → 0; unreasonably large spike → fall back to 7d.
-  const apyBase =
-    apyRaw < 0 ? 0 : apyRaw <= 1000 ? apyRaw : apyBase7d;
-
-  return { apyBase, apyBase7d };
 };
 
 /**
@@ -319,19 +237,18 @@ const getVaultsForChain = async (chain) => {
 };
 
 /**
- * Historical oracle PPS + vault totalAssets for the APY windows, anchored at
- * each vault's LAST NAV update (lastValuationTimestamp) rather than `now`.
+ * Historical oracle PPS for the single APY window, anchored at each vault's
+ * LAST NAV update (lastValuationTimestamp) rather than `now`.
  *
- * Why: the oracle PPS only moves on a NAV update and is flat in between. If we
- * anchored the lookback at `now`, then once a vault stops updating the trailing
- * window would keep absorbing flat days and the APY would steadily decay toward
- * zero. By anchoring both ends of every window at the last NAV (current PPS is
- * the value saved at that NAV; historical PPS is read N days before it), the
- * computed rate is the one realized at the last NAV and stays constant until the
- * next NAV — i.e. it is extrapolated forward to now.
+ * Why anchor at the last NAV: the oracle PPS only moves on a NAV update and is
+ * flat in between. Anchoring both ends of the window at the last NAV (current
+ * PPS is the value saved at that NAV; historical PPS is read APY_WINDOW_DAYS
+ * before it) means the computed rate is the one realized at that NAV and stays
+ * constant until the next NAV, instead of decaying toward zero as flat days
+ * accumulate.
  *
- * Returns { vaultAddr: { pps: [...], ta: [...] } } indexed by LOOKBACK_DAYS.
- * `ta` (totalAssets) is used as the TVL weight in computeTvlWeightedApy.
+ * Returns { vaultAddr: historicalPps } — the PPS APY_WINDOW_DAYS before the
+ * anchor.
  */
 const getAnchoredHistoricalPps = async (vaults, chain) => {
   const withOracle = vaults.filter((v) => v.oracle);
@@ -339,20 +256,16 @@ const getAnchoredHistoricalPps = async (vaults, chain) => {
 
   const nowSec = Math.floor(Date.now() / 1000);
 
-  // One (vault, window) task per lookback, anchored at the vault's last NAV.
-  const tasks = [];
-  for (const v of withOracle) {
+  // One task per vault, anchored APY_WINDOW_DAYS before the vault's last NAV.
+  const tasks = withOracle.map((v) => {
     const anchor =
       v.lastValuationTimestamp > 0 ? v.lastValuationTimestamp : nowSec;
-    LOOKBACK_DAYS.forEach((d, wIndex) => {
-      tasks.push({
-        vaultAddr: v.address,
-        oracle: v.oracle,
-        wIndex,
-        ts: anchor - DAY_SECONDS * d,
-      });
-    });
-  }
+    return {
+      vaultAddr: v.address,
+      oracle: v.oracle,
+      ts: anchor - DAY_SECONDS * APY_WINDOW_DAYS,
+    };
+  });
 
   // Resolve unique timestamps to blocks once.
   const uniqueTs = [...new Set(tasks.map((t) => t.ts))];
@@ -372,47 +285,26 @@ const getAnchoredHistoricalPps = async (vaults, chain) => {
   }
 
   const result = {};
-  withOracle.forEach((v) => {
-    result[v.address] = {
-      pps: new Array(LOOKBACK_DAYS.length).fill(0),
-      ta: new Array(LOOKBACK_DAYS.length).fill(0),
-    };
-  });
 
   await Promise.all(
     Object.entries(byBlock).map(async ([block, items]) => {
       try {
-        // Fetch oracle PPS and vault totalAssets at this historical block.
-        const [ppsRes, taRes] = await Promise.all([
-          sdk.api.abi.multiCall({
-            calls: items.map((it) => ({ target: it.oracle })),
-            abi: ABI.getLastSavedPricePerShare,
-            chain,
-            block: Number(block),
-            permitFailure: true,
-          }),
-          sdk.api.abi.multiCall({
-            calls: items.map((it) => ({ target: it.vaultAddr })),
-            abi: ABI.totalAssets,
-            chain,
-            block: Number(block),
-            permitFailure: true,
-          }),
-        ]);
+        // Fetch oracle PPS at this historical block.
+        const ppsRes = await sdk.api.abi.multiCall({
+          calls: items.map((it) => ({ target: it.oracle })),
+          abi: ABI.getLastSavedPricePerShare,
+          chain,
+          block: Number(block),
+          permitFailure: true,
+        });
         items.forEach((it, i) => {
           const ppsO = ppsRes.output[i];
           if (ppsO?.success && ppsO.output !== '0') {
-            result[it.vaultAddr].pps[it.wIndex] = toDecimal(ppsO.output, 18);
-          }
-          const taO = taRes.output[i];
-          if (taO?.success && taO.output !== '0') {
-            result[it.vaultAddr].ta[it.wIndex] = Number(
-              BigInt(taO.output.toString()),
-            );
+            result[it.vaultAddr] = toDecimal(ppsO.output, 18);
           }
         });
       } catch (e) {
-        // Leave these windows at 0; computeTvlWeightedApy ignores empty windows.
+        // Leave missing; calcApy treats a missing historical PPS as 0 APY.
       }
     }),
   );
@@ -499,18 +391,14 @@ const main = async () => {
             ? ratio1e18(vault.totalAssets, vault.totalSupply)
             : 0);
 
-        // Historical PPS + totalAssets for this vault, anchored at its last NAV.
-        const vaultHistoricalData = anchoredHist[vault.address] || {
-          pps: [],
-          ta: [],
-        };
+        // Historical oracle PPS for the single window, anchored at last NAV.
+        const historicalPps = anchoredHist[vault.address] || 0;
 
-        // TVL+time-weighted linear APY over non-overlapping intervals.
-        // Matches the app formula: YEAR × Σ(TVLᵢ·rᵢ) / Σ(TVLᵢ·Δtᵢ).
-        const { apyBase, apyBase7d } = computeTvlWeightedApy(
+        // Single-window APY (APY_WINDOW_DAYS), consistent across all vaults.
+        const apyBase = calcApy(
           currentSharePrice,
-          Number(vault.totalAssets),
-          vaultHistoricalData,
+          historicalPps,
+          APY_WINDOW_DAYS,
         );
 
         // Build fee metadata string
@@ -529,10 +417,10 @@ const main = async () => {
           pool: `${vault.address}-${chain}`.toLowerCase(),
           chain: utils.formatChain(chain),
           project: PROJECT_NAME,
-          symbol: utils.formatSymbol(vault.symbol),
+          symbol: vault.symbol,
           tvlUsd,
           apyBase,
-          apyBase7d,
+          apyBase7d: apyBase,
           underlyingTokens: [vault.asset],
           poolMeta,
           // Oracle PPS: the authoritative share price that only moves on NAV
@@ -555,6 +443,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '8068',
   timetravel: false,
   apy: main,
   url: 'https://t3tris.finance/',
