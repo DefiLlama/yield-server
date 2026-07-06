@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+const { merklGet } = require('../merkl/merkl-client');
 const poolAbi = require('./poolAbi');
 const { aaveStakedTokenDataProviderAbi } = require('./abi');
 
@@ -20,6 +21,10 @@ const UMBRELLA_STAKE_TOKENS = [
   '0xaAFD07D53A7365D3e9fb6F3a3B09EC19676B73Ce',
   '0x4f827A63755855cDf3e8f3bcD20265C833f15033',
 ];
+const CELO_AAVE_MERKL_APR_CORRECTION_POOLS = new Set([
+  '0xdee98402a302e4d707fb9bf2bac66faeec31e8df-celo',
+  '0xf385280f36e009c157697d25e0b802efabfd789c-celo',
+]);
 
 const umbrellaStakeDataProviderAbi =
   'function getStakeData() view returns (tuple(address tokenAddress,string,string,uint256 price,uint256 totalAssets,uint256,address underlyingTokenAddress,string underlyingTokenName,string underlyingTokenSymbol,uint8 underlyingTokenDecimals,uint256,uint256,bool underlyingIsStataToken,tuple(address asset,string assetName,string assetSymbol,address aToken,string aTokenName,string aTokenSymbol) stataTokenData,tuple(address rewardAddress,string,string,uint256,uint8,uint256,uint256,uint256,uint256,uint256 apy)[] rewards)[])';
@@ -430,6 +435,52 @@ const umbrella = async (aavePools) => {
   });
 };
 
+const correctCeloAaveMerklRewards = async (pools) => {
+  const shouldCorrect = (pool) =>
+    CELO_AAVE_MERKL_APR_CORRECTION_POOLS.has(pool.pool) &&
+    pool.apyReward > 100 &&
+    Number(pool.totalSupplyUsd) > 0;
+
+  if (!pools.some(shouldCorrect)) return pools;
+  try {
+    const dailyRewardsByPool = Object.fromEntries(
+      (
+        await merklGet('/v4/opportunities', {
+          params: {
+            mainProtocolId: 'aave',
+            chainId: 42220,
+            status: 'LIVE',
+            items: 100,
+            page: 0,
+          },
+        })
+      )
+        .flatMap((merklPool) =>
+          (merklPool.tokens || []).map((token) => [
+            `${token.address?.toLowerCase()}-celo`,
+            Number(merklPool.dailyRewards),
+          ])
+        )
+        .filter(([pool]) => CELO_AAVE_MERKL_APR_CORRECTION_POOLS.has(pool))
+    );
+
+    return pools.map((pool) => {
+      const dailyRewards = dailyRewardsByPool[pool.pool];
+      if (!dailyRewards || !shouldCorrect(pool)) {
+        return pool;
+      }
+
+      return {
+        ...pool,
+        apyReward: (dailyRewards * 365 * 100) / pool.totalSupplyUsd,
+      };
+    });
+  } catch (err) {
+    console.log(`failed to correct Celo Aave Merkl rewards: ${err}`);
+    return pools;
+  }
+};
+
 const apy = async () => {
   const pools = await Promise.allSettled(
     Object.keys(protocolDataProviders)
@@ -452,7 +503,13 @@ const apy = async () => {
     .concat([sghoPool, stkghoPool, ...umbrellaPools])
     .filter((p) => utils.keepFinite(p));
 
-  return addMerklRewardApy(result, 'aave', (p) => p.pool.split('-')[0]);
+  const withMerklRewards = await addMerklRewardApy(
+    result,
+    'aave',
+    (p) => p.pool.split('-')[0]
+  );
+
+  return correctCeloAaveMerklRewards(withMerklRewards);
 };
 
 module.exports = {
