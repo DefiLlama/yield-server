@@ -3,7 +3,7 @@ const BigNumber = require('bignumber.js');
 const axios = require('axios');
 
 const chainId = 'neutron';
-const restEndpoint = 'https://rest-lb.neutron.org';
+const restEndpoint = 'https://neutron-api.polkachu.com';
 
 const vaults = [
   // ATOM vault
