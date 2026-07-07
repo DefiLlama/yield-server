@@ -30,8 +30,7 @@ const poolsFunction = async () => {
           pool: `${tokenConfig.address.toLowerCase()}-${chain.toLowerCase()}`,
           chain: utils.formatChain(chain),
           project: 'midas-rwa',
-          symbol:
-            tokenConfig.denomination || tokenConfig.symbolDenomination || 'USDC',
+          symbol: tokenConfig.denomination || 'USDC',
           poolMeta: token,
           tvlUsd,
           apyBase: apy,

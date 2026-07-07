@@ -137,7 +137,7 @@ const contractAddresses = {
     mevBTC: {
       address: getAddress('0xb64C014307622eB15046C66fF71D04258F5963DC'),
       dataFeed: getAddress('0x56814399caaEDCEE4F58D2e55DA058A81DDE744f'),
-      symbolDenomination: 'BTC',
+      denomination: 'BTC',
       url: 'https://midas.app/mevbtc',
     },
   },
@@ -342,7 +342,7 @@ const contractAddresses = {
     mRe7ETH: {
       address: getAddress('0xE7Ba07519dFA06e60059563F484d6090dedF21B3'),
       dataFeed: getAddress('0x46129d0863667b1159C55F0B43b898bc3352130a'),
-      symbolDenomination: 'ETH',
+      denomination: 'ETH',
       url: 'https://midas.app/mre7eth',
     },
   },
