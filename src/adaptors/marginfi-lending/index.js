@@ -34,6 +34,10 @@ const U32_MAX = 4294967295;
 // BankCache rates are u32-scaled APRs where u32::MAX represents 1000%
 const CACHE_RATE_SCALE = 10;
 const HOURS_PER_YEAR = 365.25 * 24;
+// Highest offset read is cacheBorrowingRate (u32)
+const MIN_BANK_DATA_SIZE = OFFSET.cacheBorrowingRate + 4;
+const RPC_TIMEOUT_MS = 30000;
+const RPC_RETRIES = 3;
 
 // I80F48 fixed point: 16 bytes little-endian, two's complement, 48 fraction bits
 const readI80F48 = (buf, offset) => {
@@ -82,8 +86,13 @@ const computeRates = (bank, utilization) => {
   return { lendingApr, borrowingApr };
 };
 
-const decodeBank = (data) => {
+const decodeBank = (data, bankAddress) => {
   const buf = Buffer.from(data, 'base64');
+  if (buf.length < MIN_BANK_DATA_SIZE) {
+    throw new Error(
+      `Bank ${bankAddress}: account data too short (${buf.length} < ${MIN_BANK_DATA_SIZE} bytes)`
+    );
+  }
   return {
     mint: buf.subarray(OFFSET.mint, OFFSET.mint + 32),
     mintDecimals: buf.readUInt8(OFFSET.mintDecimals),
@@ -108,20 +117,38 @@ const decodeBank = (data) => {
   };
 };
 
+// Public RPC throttles; retry transient failures with backoff
+const rpcRequest = async (body) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const response = await axios.post(RPC_URL, body, {
+        timeout: RPC_TIMEOUT_MS,
+      });
+      if (response.data.error) {
+        throw new Error(`RPC error: ${response.data.error.message}`);
+      }
+      return response.data.result;
+    } catch (err) {
+      const status = err.response?.status;
+      const transient =
+        status === 429 || status >= 500 || err.code === 'ECONNABORTED';
+      if (!transient || attempt >= RPC_RETRIES) throw err;
+      await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+    }
+  }
+};
+
 const getBankAccounts = async (addresses) => {
   const accounts = [];
   for (let i = 0; i < addresses.length; i += 100) {
     const batch = addresses.slice(i, i + 100);
-    const response = await axios.post(RPC_URL, {
+    const result = await rpcRequest({
       jsonrpc: '2.0',
       id: 1,
       method: 'getMultipleAccounts',
       params: [batch, { encoding: 'base64' }],
     });
-    if (response.data.error) {
-      throw new Error(`RPC error: ${response.data.error.message}`);
-    }
-    accounts.push(...response.data.result.value);
+    accounts.push(...result.value);
   }
   return accounts;
 };
@@ -136,8 +163,15 @@ const main = async () => {
   const banks = bankMetadata.flatMap((meta, i) => {
     const account = accounts[i];
     if (!account?.data?.[0]) return [];
-    const bank = decodeBank(account.data[0]);
-    return bank.operationalState === OPERATIONAL ? [{ meta, bank }] : [];
+    try {
+      const bank = decodeBank(account.data[0], meta.bankAddress);
+      return bank.operationalState === OPERATIONAL ? [{ meta, bank }] : [];
+    } catch (err) {
+      // Skip undecodable accounts (e.g. stale metadata entries) rather
+      // than failing the whole run
+      console.error(`marginfi-lending: ${err.message}`);
+      return [];
+    }
   });
 
   // coins.llama.fi keys are case-sensitive for Solana mints
@@ -150,8 +184,10 @@ const main = async () => {
     Object.assign(prices, coins);
   }
 
-  const pools = banks.map(({ meta, bank }) => {
+  const pools = banks.flatMap(({ meta, bank }) => {
     const price = prices[`solana:${meta.tokenAddress}`]?.price;
+    // No price -> no meaningful TVL; skip instead of emitting $0 pools
+    if (price == null) return [];
     const scale = 10 ** bank.mintDecimals;
 
     const totalAssets = (bank.totalAssetShares * bank.assetShareValue) / scale;
@@ -167,8 +203,8 @@ const main = async () => {
       ({ lendingApr, borrowingApr } = computeRates(bank, utilization));
     }
 
-    const totalSupplyUsd = totalAssets * (price ?? 0);
-    const totalBorrowUsd = totalBorrows * (price ?? 0);
+    const totalSupplyUsd = totalAssets * price;
+    const totalBorrowUsd = totalBorrows * price;
 
     return {
       pool: meta.bankAddress,
