@@ -487,6 +487,12 @@ const susdsAPY = async () => {
       USDS: '0x6491c05a82219b8d1479057361ff1654749b876b',
       url: 'https://app.sky.money/?network=arbitrumone&widget=savings',
     },
+    {
+      chain: 'base',
+      sUSDS: '0x5875eEE11Cf8398102FdAd704C9E96607675467a',
+      USDS: '0x820C137fa70C8691f0e44Dc420a5e53c168921Dc',
+      url: 'https://app.sky.money/?network=base&widget=savings',
+    },
   ];
 
   const priceKeys = configs
@@ -557,6 +563,19 @@ const farmsAPY = async () => {
       poolMeta: 'SKY Staking Engine',
       url: 'https://app.sky.money/?network=ethereum&widget=stake',
     },
+    {
+      // USDS -> SPK farm; the sparklend adapter lists this contract under
+      // the bare-address pool id, so this row uses the `${address}-${chain}`
+      // id form (same convention spark-savings uses next to this adapter's
+      // sUSDS pools)
+      address: '0x173e314C7635B45322cd8Cb14f44b312e079F3af',
+      pool: '0x173e314c7635b45322cd8cb14f44b312e079f3af-ethereum',
+      stakeSymbol: 'USDS',
+      stakeToken: USDS,
+      rewardToken: '0xc20059e0317DE91738d13af027DfC4a50781b066',
+      poolMeta: 'SPK Farming Pool',
+      url: 'https://app.sky.money/?network=ethereum&widget=rewards&reward=0x173e314C7635B45322cd8Cb14f44b312e079F3af',
+    },
   ];
 
   const priceKeys = [
@@ -598,7 +617,7 @@ const farmsAPY = async () => {
           : 0;
 
       return {
-        pool: farm.address,
+        pool: farm.pool ?? farm.address,
         chain: 'ethereum',
         project: 'sky-lending',
         symbol: farm.stakeSymbol,
