@@ -35,7 +35,7 @@ const ONE = '1000000000000000000'; // 1e18 shares
 const DAY = 86400;
 
 // Rewards vest over an 8 hour window => 3 distributions/day.
-const REWARDS_EVENT = 'event RewardsReceived(uint256 amount)';
+const REWARDS_EVENT = 'event RewardsReceived(uint256 indexed amount)';
 const DISTRIBUTIONS_PER_YEAR = 3 * 365;
 const SHARE_PRICE_LOOKBACK_DAYS = 7;
 // strUSD launched with the protocol (2026-06-23); never query before this.
@@ -48,6 +48,12 @@ const call = async (target, abi, params, block) =>
 
 const blockForTs = async (ts) =>
   (await sdk.api.util.lookupBlock(ts, { chain: CHAIN })).block;
+
+const sanitizeApy = (value) => {
+  if (value === null || value === undefined) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(number, 0) : null;
+};
 
 // ERC-4626 share-price growth over a trailing window, annualized.
 // The lookback start is clamped to LAUNCH_TS so convertToAssets is never queried at a
@@ -62,7 +68,9 @@ const sharePriceApy = async (nowBlock, nowTs, days) => {
     call(STRUSD, PPS_ABI, [ONE], pastBlock),
   ]);
   const ratio = Number(ppsNow) / Number(ppsPast);
-  return isFinite(ratio) && ratio > 0 ? (ratio ** (365 / elapsedDays) - 1) * 100 : 0;
+  return Number.isFinite(ratio) && ratio > 0
+    ? (ratio ** (365 / elapsedDays) - 1) * 100
+    : null;
 };
 
 const apy = async () => {
@@ -97,7 +105,7 @@ const apy = async () => {
       apyBase = utils.aprToApy(aprBase, 52); // weekly compounding
     }
   } catch (e) {
-    apyBase = 0; // no readable reward stream yet -> 0 during pre-deposit
+    apyBase = null;
   }
 
   // apyBase7d: share-price growth cross-check.
@@ -105,7 +113,7 @@ const apy = async () => {
   try {
     apyBase7d = await sharePriceApy(nowBlock, nowTs, SHARE_PRICE_LOOKBACK_DAYS);
   } catch (e) {
-    apyBase7d = 0;
+    apyBase7d = null;
   }
 
   return [
@@ -115,8 +123,8 @@ const apy = async () => {
       project: 'tori-finance',
       symbol: 'strUSD',
       tvlUsd,
-      apyBase: Math.max(Number(apyBase) || 0, 0),
-      apyBase7d: Math.max(Number(apyBase7d) || 0, 0),
+      apyBase: sanitizeApy(apyBase),
+      apyBase7d: sanitizeApy(apyBase7d),
       pricePerShare,
       underlyingTokens: [TRUSD],
       poolMeta: '7 days unstaking',
