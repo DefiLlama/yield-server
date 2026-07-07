@@ -534,12 +534,6 @@ const farmsAPY = async () => {
   const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
   const farms = [
     {
-      // USDS -> SKY farm
-      address: '0x0650CAF159C5A49f711e8169D4336ECB9b950275',
-      rewardToken: '0x56072C95FAA701256059aa122697B133aDEd9279',
-      rewardSymbol: 'SKY',
-    },
-    {
       // USDS -> GROVE farm
       address: '0x4E41488C19cD35EB4de3083Fc3e204854c75c86a',
       rewardToken: '0xb30FE1CF884b48A22A50D22A9282004f2c5E9406',
