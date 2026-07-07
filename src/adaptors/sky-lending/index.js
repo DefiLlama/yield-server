@@ -551,7 +551,8 @@ const farmsAPY = async () => {
     .map((t) => `ethereum:${t}`)
     .join(',');
   const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
-  const priceUSDS = prices[`ethereum:${USDS}`].price;
+  const priceUSDS = prices[`ethereum:${USDS}`]?.price;
+  if (!priceUSDS) return [];
 
   return Promise.all(
     farms.map(async (farm) => {
