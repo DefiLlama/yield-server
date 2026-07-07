@@ -22,11 +22,22 @@ const ONE_SHARE = '1000000000000';
 const CONVERT_TO_ASSETS_ABI =
   'function convertToAssets(uint256 shares) external view returns (uint256)';
 
-const apy = async () => {
-  const latest = await sdk.api.util.getLatestBlock(CHAIN);
+const apy = async (timestamp = null) => {
+  // Anchor at the requested historical timestamp (timetravel/backfill) or at
+  // the chain head for live runs. All reads below are pinned to this anchor.
+  let anchor;
+  if (timestamp) {
+    // no pool data before real capital entered the vault
+    if (timestamp <= YIELD_START_TIMESTAMP) return [];
+    const at = await sdk.api.util.lookupBlock(timestamp, { chain: CHAIN });
+    anchor = { number: at.block, timestamp: at.timestamp };
+  } else {
+    const latest = await sdk.api.util.getLatestBlock(CHAIN);
+    anchor = { number: latest.number, timestamp: latest.timestamp };
+  }
   // trailing 7-day window, clamped to when yield started during the first week
   const cutoffTimestamp = Math.max(
-    latest.timestamp - WINDOW_SECONDS,
+    anchor.timestamp - WINDOW_SECONDS,
     YIELD_START_TIMESTAMP
   );
   // past = 7-day trailing cutoff; inception = the day yield first accrued
@@ -47,14 +58,14 @@ const apy = async () => {
         target: SUSDM,
         chain: CHAIN,
         abi: 'uint256:totalAssets',
-        block: latest.number,
+        block: anchor.number,
       }),
       sdk.api.abi.call({
         target: SUSDM,
         chain: CHAIN,
         abi: CONVERT_TO_ASSETS_ABI,
         params: [ONE_SHARE],
-        block: latest.number,
+        block: anchor.number,
       }),
       sdk.api.abi.call({
         target: SUSDM,
@@ -77,7 +88,7 @@ const apy = async () => {
 
   const ppsNow = Number(ppsNowRes.output);
   const ppsPast = Number(ppsPastRes.output);
-  const elapsed = Math.max(latest.timestamp - cutoffTimestamp, 86400);
+  const elapsed = Math.max(anchor.timestamp - cutoffTimestamp, 86400);
   const apyBase =
     ppsPast > 0
       ? (Math.pow(ppsNow / ppsPast, SECONDS_PER_YEAR / elapsed) - 1) * 100
@@ -86,7 +97,7 @@ const apy = async () => {
   // since-inception annualized return (from when yield first accrued)
   const ppsInception = Number(ppsInceptionRes.output);
   const elapsedInception = Math.max(
-    latest.timestamp - YIELD_START_TIMESTAMP,
+    anchor.timestamp - YIELD_START_TIMESTAMP,
     86400
   );
   const apyBaseInception =
@@ -100,11 +111,18 @@ const apy = async () => {
   const pricePerShare = ppsNow / 1e6;
 
   // USDM mints/redeems 1:1 against USDC. Prefer a real USDM feed once it exists,
-  // and fall back to USDC (then 1) until USDM pricing is available.
-  const { pricesByAddress } = await utils.getPrices([USDM, USDC], CHAIN);
+  // and fall back to USDC (then 1) until USDM pricing is available. Backfill
+  // runs price the row at the anchor timestamp rather than at "now".
+  const priceKeys = [USDM, USDC]
+    .map((t) => `${CHAIN}:${t.toLowerCase()}`)
+    .join(',');
+  const pricePath = timestamp
+    ? `/prices/historical/${anchor.timestamp}/${priceKeys}`
+    : `/prices/current/${priceKeys}`;
+  const { coins } = await utils.getPriceApiData(pricePath);
   const usdmPrice =
-    pricesByAddress[USDM.toLowerCase()] ??
-    pricesByAddress[USDC.toLowerCase()] ??
+    coins[`${CHAIN}:${USDM.toLowerCase()}`]?.price ??
+    coins[`${CHAIN}:${USDC.toLowerCase()}`]?.price ??
     1;
 
   return [
@@ -112,7 +130,8 @@ const apy = async () => {
       pool: `${SUSDM.toLowerCase()}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
       project: 'monetrix',
-      symbol: 'USDM',
+      // the pool is the sUSDM staking vault (deposit USDM, receive sUSDM)
+      symbol: 'sUSDM',
       tvlUsd: tvlUnderlying * usdmPrice,
       apyBase,
       apyBaseInception,
@@ -126,7 +145,7 @@ const apy = async () => {
 
 module.exports = {
   protocolId: '8019',
-  timetravel: false,
+  timetravel: true,
   apy,
   url: 'https://www.monetrix.xyz/',
 };
