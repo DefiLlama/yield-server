@@ -1,235 +1,186 @@
-const utils = require('../utils');
 const sdk = require('@defillama/sdk');
-const { gql, GraphQLClient } = require('graphql-request');
-const BigNumber = require('bignumber.js');
-const { differenceInDays } = require('date-fns');
 
-const erc4626TotalAssetsAbi = {
-  inputs: [],
-  name: 'totalAssets',
-  outputs: [
-    {
-      internalType: 'uint256',
-      name: '',
-      type: 'uint256',
-    },
+const utils = require('../utils');
+
+// D2 vaults are epoch-based ERC4626: deposits are custodied to a trader for
+// the epoch and returned with PnL at settlement, which is when the share
+// price moves. APY is therefore measured as the trailing share price change
+// over the longest available lookback window (up to a year), annualized.
+//
+// vault list mirrors the DefiLlama-Adapters d2finance tvl adapter
+const config = {
+  ethereum: ['0x07Dff4087b43c4A759f4Fc69511c26d51929dAF4'],
+  base: [
+    '0x6c05A7d2c24B48fC3C615D294fEc2eB068548897',
+    '0x2406aacbdF8463176DeB285AdAa81768415B6c7E',
   ],
-  stateMutability: 'view',
-  type: 'function',
+  arbitrum: [
+    '0x27D22Eb71f00495Eccc89Bb02c2B68E6988C6A42',
+    '0x183424d5ae5ec9fd486634bc566d0f75ad9c9109',
+    '0x5b49d7fae00de64779ddcd6b067c8eb046bd9a0b',
+    '0x291344FBaaC4fE14632061E4c336Fe3B94c52320',
+    '0x0F76De33a3679a6065D14780618b54584a3907D4',
+    '0xD1D64dAeED7504Ef3Eb056aa2D973bD064843A84',
+    '0xB0730AA7d6e880F901B5d71A971096dB56895a0f',
+    '0x5f44A7DD0a016A5Ec9682df36899A781442CAa43',
+    '0x0215EdEecdABE3DfC5EC8D59337eC9b26d359088',
+    '0x36b1939ADf539a4AC94b57DBAd32FaEcd5bcF4d0',
+    '0x34F0FdD80A51dfd8bA42343c20F89217280d760E',
+    '0x57f467C9c4639B066F5A4D676Cd8Ed7D87C1791b',
+    '0x7348925D3C63e4E61e9F5308eEec0f06EaA3bB7b',
+    '0xCFBBea43Fd99126E4c0eF53e2344609D513f72b3',
+    '0x195a9e0f29f96d4ab2139ee1272380a4aa352890',
+    '0x75288264FDFEA8ce68e6D852696aB1cE2f3E5004',
+    '0xaB2743a3A2e06d457368E901F5f927F271fa1374',
+    '0x91aCd32dA9beA6DA3751dc12Ee0fBe47169349C1',
+    '0xc027EC28F76d92D4124fCbffCF6b25137a84968C',
+    '0xaC75f0c46723432a2303f2a7c7769535A179Ed56',
+    '0x907A9f69061736AD82811CccD6ADD9dC4A2352A9',
+    '0x1176c3760Af6a1dbAa5BBd0Cc6cdA8A2Ed6B785E',
+    '0x0178b56FeA3d7B5B9F9e0cDAd486522de948730F',
+  ],
+  berachain: [
+    '0xbE75c8A7E58C7901D2e128dc8d3b6DE2481F1F79',
+    '0x2b8d0420996a2753ef21c25c94eae9fc0c0aed1e',
+    '0x36b933554782b108bb9962ac00c498acbceb706d',
+    '0xAcE42F7E3F4672607897bf1951468031f0214359',
+    '0xf650ba4303ce164e1f6b215d4cbb5e212d307056',
+    '0xcd18006cc69c6d5fa4fd4eaf99910b58464fa3ae',
+    '0xBf075980792f8cc89DFb74b553acf6750a7E941b',
+    '0xC4fEE8c68293a63241b64e5A2EF07fcf89005dD3',
+  ],
+  hyperliquid: [
+    '0xf44f49E6577B3934f981C6f0629d15154d2606E6',
+    '0x7410E69958a8ECE2A51C231C8528513d4d668C7a',
+    '0xade27c7dec9211973278876f3819aedc28cd50ca',
+    '0x6bf9345b5d6b27b5cbf2e463dc5e0b2afcedc21c',
+    '0x3ebb11ba6a5b61c04d1a703ea10728d519945440',
+    '0x195eb4d088f222c982282b5dd495e76dba4bc7d1',
+    '0x8ef30c5ce9a460bfae82f1f039f7c5e5427d7018',
+  ],
 };
 
-const poolAddresses = [
-  {
-    address: '0x27D22Eb71f00495Eccc89Bb02c2B68E6988C6A42',
-    symbol: 'ETH++',
-    underlyingAsset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-  },
-  {
-    address: '0xD1D64dAeED7504Ef3Eb056aa2D973bD064843A84',
-    symbol: 'd2USDC',
-    underlyingAsset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-  },
-  {
-    address: '0xaB2743a3A2e06d457368E901F5f927F271fa1374',
-    symbol: 'GMX++',
-    underlyingAsset: '0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a',
-  },
-  {
-    address: '0x0F76De33a3679a6065D14780618b54584a3907D4',
-    symbol: 'dgnETHv2',
-    underlyingAsset: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-  },
-  {
-    address: '0xB0730AA7d6e880F901B5d71A971096dB56895a0f',
-    symbol: 'iARB',
-    underlyingAsset: '0x912CE59144191C1204E64559FE8253a0e49E6548',
-  },
-  {
-    address: '0x291344FBaaC4fE14632061E4c336Fe3B94c52320',
-    symbol: 'ARB++',
-    underlyingAsset: '0x912CE59144191C1204E64559FE8253a0e49E6548',
-  },
-  {
-    address: '0x5f44A7DD0a016A5Ec9682df36899A781442CAa43',
-    symbol: 'dgnARB',
-    underlyingAsset: '0x912CE59144191C1204E64559FE8253a0e49E6548',
-  },
-  {
-    address: '0x36b1939ADf539a4AC94b57DBAd32FaEcd5bcF4d0',
-    symbol: 'PlsDAOPlusv2',
-    underlyingAsset: '0x912CE59144191C1204E64559FE8253a0e49E6548',
-  },
-  {
-    address: '0x34F0FdD80A51dfd8bA42343c20F89217280d760E',
-    symbol: 'Dewhalesv2',
-    underlyingAsset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-  },
-  {
-    address: '0x195A9E0f29F96d4ab2139ee1272380A4aa352890',
-    symbol: 'd2ETH',
-    underlyingAsset: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-  },
-];
+// epochs run for roughly a month, so shorter windows would mostly measure
+// the flat period between settlements; older windows are preferred and the
+// shorter ones only kick in for vaults deployed more recently
+const LOOKBACK_DAYS = [365, 180, 90, 30];
 
-const formatSecondsToDay = (seconds) => {
-  const days = differenceInDays(new Date(seconds * 1000), new Date(0));
-  return days;
+const abis = {
+  totalAssets: {
+    inputs: [],
+    name: 'totalAssets',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  asset: {
+    inputs: [],
+    name: 'asset',
+    outputs: [{ type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  convertToAssets: {
+    inputs: [{ type: 'uint256' }],
+    name: 'convertToAssets',
+    outputs: [{ type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 };
 
-const fetchVaultData = async (address) => {
-  const client = new GraphQLClient('https://d2.finance/subgraphs/name/d2');
-  const req = gql`
-    query getVaultData($address: String!) {
-      epochStarteds(
-        where: { contract_contains_nocase: $address }
-        orderBy: blockTimestamp
-        orderDirection: desc
-      ) {
-        epoch
-        epochEnd
-        epochStart
-        fundingStart
-      }
-      fundsReturneds(
-        where: { contract_contains_nocase: $address }
-        orderBy: blockTimestamp
-        orderDirection: desc
-      ) {
-        amount
-        epoch
-        blockTimestamp
-      }
-      fundsCustodieds(
-        where: { contract_contains_nocase: $address }
-        orderBy: blockTimestamp
-        orderDirection: desc
-      ) {
-        amount
-        epoch
-        blockTimestamp
-      }
-    }
-  `;
-  const response = await client.request(req, { address });
+const chainPools = async (chain, vaults) => {
+  const calls = vaults.map((vault) => ({ target: vault }));
+  const [totalAssets, assets, symbols, decimals] = await Promise.all([
+    sdk.api.abi.multiCall({ abi: abis.totalAssets, calls, chain, permitFailure: true }),
+    sdk.api.abi.multiCall({ abi: abis.asset, calls, chain, permitFailure: true }),
+    sdk.api.abi.multiCall({ abi: 'erc20:symbol', calls, chain, permitFailure: true }),
+    sdk.api.abi.multiCall({ abi: 'erc20:decimals', calls, chain, permitFailure: true }),
+  ]);
 
-  return response;
-};
-
-const getPoolApy = async (pools) => {
-  const poolPromises = pools.map(async (pool) => {
-    const { epochStarteds, fundsReturneds, fundsCustodieds } =
-      await fetchVaultData(pool.address);
-    const epochAPYs = epochStarteds.map((epoch) => {
-      const epochStart = Number(epoch.epochStart);
-      const epochEnd = Number(epoch.epochEnd);
-      const fundCustody = fundsCustodieds.find((fund) => {
-        const blockTimestamp = Number(fund.blockTimestamp);
-        return blockTimestamp > epochStart && blockTimestamp < epochEnd;
-      });
-      if (!fundCustody) {
-        return 0;
-      }
-      const fundReturn = fundsReturneds.find(
-        (fund) => Number(fund.epoch) === Number(fundCustody.epoch)
-      );
-      if (!fundReturn) {
-        return 0;
-      }
-      const duration = formatSecondsToDay(epochEnd - epochStart);
-      const APY = BigNumber(fundReturn.amount)
-        .minus(fundCustody.amount)
-        .div(fundCustody.amount)
-        .times(365)
-        .div(duration);
-
-      return APY.isPositive() ? APY.toNumber() : 0;
-    });
-
-    const totalApy = epochAPYs.reduce((sum, epochAPY) => sum + epochAPY, 0);
-    return {
-      ...pool,
-      apy:
-        (totalApy * 100) /
-        (fundsReturneds.length === 0 ? 1 : fundsReturneds.length),
-    };
-  });
-  return Promise.all(poolPromises);
-};
-
-const getPoolTvl = async (pools, prices) => {
-  const { output: outputBalances } = await sdk.api.abi.multiCall({
-    abi: erc4626TotalAssetsAbi,
-    calls: pools.map((pool) => ({
-      target: pool.address,
-    })),
-    chain: 'arbitrum',
-  });
-  const balances = outputBalances.map((output) => output.output);
-  return pools.map((pool, index) => {
-    const priceData = prices.find(
-      (price) =>
-        price.address.toLowerCase() === pool.underlyingAsset.toLowerCase()
-    );
-    return {
-      ...pool,
-      tvlUsd: BigNumber(balances[index])
-        .div(BigNumber(10).pow(priceData.decimals))
-        .times(priceData.price)
-        .toNumber(),
-    };
-  });
-};
-
-const getUnderlyingAssetData = async () => {
-  const underlyingAssetAddresses = [
-    ...new Set(poolAddresses.map((pool) => pool.underlyingAsset)),
-  ];
-  const { pricesByAddress: prices } = await utils.getPrices(
-    underlyingAssetAddresses,
-    'arbitrum'
+  const now = Math.floor(Date.now() / 1000);
+  const blocks = await utils.getBlocksByTime(
+    LOOKBACK_DAYS.map((days) => now - days * 86400),
+    chain
   );
-  const { output: decimalsOutput } = await sdk.api.abi.multiCall({
+
+  const oneShareCalls = vaults.map((vault, i) => ({
+    target: vault,
+    params: [(10n ** BigInt(decimals.output[i].output ?? 18)).toString()],
+  }));
+  const [ppsNow, ...ppsHistorical] = await Promise.all([
+    sdk.api.abi.multiCall({
+      abi: abis.convertToAssets,
+      calls: oneShareCalls,
+      chain,
+      permitFailure: true,
+    }),
+    ...blocks.map((block) =>
+      sdk.api.abi.multiCall({
+        abi: abis.convertToAssets,
+        calls: oneShareCalls,
+        chain,
+        block,
+        permitFailure: true,
+      })
+    ),
+  ]);
+
+  const assetAddresses = assets.output.map((o) => o.output);
+  const { pricesByAddress } = await utils.getPrices(
+    [...new Set(assetAddresses.filter(Boolean))],
+    chain
+  );
+  const assetDecimals = await sdk.api.abi.multiCall({
     abi: 'erc20:decimals',
-    calls: underlyingAssetAddresses.map((address) => ({
-      target: address,
-    })),
-    chain: 'arbitrum',
+    calls: assetAddresses.map((target) => ({ target })),
+    chain,
+    permitFailure: true,
   });
-  const decimals = decimalsOutput.map((output) => output.output);
 
-  const underlyingAsset = underlyingAssetAddresses.map(
-    (assetAddress, index) => {
-      return {
-        address: assetAddress,
-        price: prices[assetAddress.toLowerCase()],
-        decimals: decimals[index],
-      };
+  return vaults.map((vault, i) => {
+    const asset = assetAddresses[i];
+    const price = pricesByAddress[asset?.toLowerCase()];
+    if (!asset || !price) return null;
+
+    const tvlUsd =
+      (Number(totalAssets.output[i].output) /
+        10 ** Number(assetDecimals.output[i].output ?? 18)) *
+      price;
+
+    // oldest window in which the vault already existed
+    let apyBase = 0;
+    const priceNow = Number(ppsNow.output[i].output);
+    for (const [w, days] of LOOKBACK_DAYS.map((d, j) => [j, d])) {
+      const priceThen = Number(ppsHistorical[w].output[i]?.output);
+      if (priceThen > 0 && priceNow > 0) {
+        apyBase = (priceNow / priceThen - 1) * (365 / days) * 100;
+        break;
+      }
     }
-  );
-  return underlyingAsset;
+
+    return {
+      pool: `${vault}-${chain}`.toLowerCase(),
+      chain: utils.formatChain(chain),
+      project: 'd2-finance',
+      symbol: symbols.output[i].output ?? '',
+      tvlUsd,
+      apyBase,
+      poolMeta:
+        "Strategy's lock duration is aligned with market opportunities, verifable onchain.",
+      underlyingTokens: [asset],
+    };
+  });
 };
 
 const poolsFunction = async () => {
-  const underlyingAssetPrices = await getUnderlyingAssetData();
-  const poolsWithBalances = await getPoolTvl(
-    poolAddresses,
-    underlyingAssetPrices
-  );
-  const poolsWithApy = await getPoolApy(poolsWithBalances);
-  const result = poolsWithApy.map(({ address, symbol, tvlUsd, apy, underlyingAsset }) => {
-    return {
-      pool: `${address}-arbitrum`.toLowerCase(),
-      chain: 'Arbitrum',
-      project: 'd2-finance',
-      symbol,
-      tvlUsd,
-      apy,
-      poolMeta:
-        "Strategy's lock duration is aligned with market opportunities, verifable onchain.",
-      underlyingTokens: [underlyingAsset],
-    };
-  });
-  return result;
+  const pools = (
+    await Promise.all(
+      Object.entries(config).map(([chain, vaults]) => chainPools(chain, vaults))
+    )
+  ).flat();
+
+  return pools.filter(Boolean).filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {

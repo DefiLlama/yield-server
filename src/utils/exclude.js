@@ -445,7 +445,6 @@ const excludedProtocols = [
   { id: '4463', slug: 'blazeswap' },
   { id: '2169', slug: 'babydogeswap' },
   { id: '398', slug: 'apeswap-amm' },
-  { id: '4846', slug: 'd2-finance' },
   { id: '2261', slug: 'arbor-finance' },
   { id: '4244', slug: 'staking-rewards-sreth' },
   { id: '1296', slug: 'zipswap' },
