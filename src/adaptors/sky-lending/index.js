@@ -4,6 +4,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const abiSUSDS = require('./abiSUSDS.json');
+const abiFarm = require('./abiFarm.json');
 const { getPriceApiData } = require('../utils');
 
 const HOUR = 60 * 60;
@@ -528,8 +529,72 @@ const susdsAPY = async () => {
   return pools.filter(Boolean);
 };
 
+// USDS staking farms (Synthetix-style StakingRewards): stake USDS, earn a reward token.
+const farmsAPY = async () => {
+  const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
+  const farms = [
+    {
+      // USDS -> GROVE farm
+      address: '0x4E41488C19cD35EB4de3083Fc3e204854c75c86a',
+      rewardToken: '0xb30FE1CF884b48A22A50D22A9282004f2c5E9406',
+      rewardSymbol: 'GROVE',
+    },
+  ];
+
+  const priceKeys = [USDS, ...farms.map((f) => f.rewardToken)]
+    .map((t) => `ethereum:${t}`)
+    .join(',');
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
+  const priceUSDS = prices[`ethereum:${USDS}`]?.price;
+  if (!priceUSDS) return [];
+
+  return Promise.all(
+    farms.map(async (farm) => {
+      const [totalSupplyRes, rewardRateRes, periodFinishRes] =
+        await Promise.all([
+          sdk.api.abi.call({
+            target: farm.address,
+            abi: 'erc20:totalSupply',
+          }),
+          sdk.api.abi.call({
+            target: farm.address,
+            abi: abiFarm.find((m) => m.name === 'rewardRate'),
+          }),
+          sdk.api.abi.call({
+            target: farm.address,
+            abi: abiFarm.find((m) => m.name === 'periodFinish'),
+          }),
+        ]);
+
+      const tvlUsd = (totalSupplyRes.output / 1e18) * priceUSDS;
+      const rewardRate = rewardRateRes.output / 1e18;
+      const isActive = Date.now() / 1000 < Number(periodFinishRes.output);
+      const priceReward = prices[`ethereum:${farm.rewardToken}`]?.price;
+      const secPerDay = 86400;
+      const apyReward =
+        isActive && priceReward
+          ? ((rewardRate * secPerDay * 365 * priceReward) / tvlUsd) * 100
+          : 0;
+
+      return {
+        pool: farm.address,
+        chain: 'ethereum',
+        project: 'sky-lending',
+        symbol: 'USDS',
+        token: farm.address,
+        poolMeta: `${farm.rewardSymbol} Farming Pool`,
+        tvlUsd,
+        apyReward,
+        underlyingTokens: [USDS],
+        rewardTokens: [farm.rewardToken],
+        url: `https://app.sky.money/?network=ethereum&widget=rewards&reward=${farm.address}`,
+      };
+    })
+  );
+};
+
 const apy = async () => {
-  const pools = await Promise.all([main(), susdsAPY()]);
+  const pools = await Promise.all([main(), susdsAPY(), farmsAPY()]);
   return pools.flat();
 };
 
