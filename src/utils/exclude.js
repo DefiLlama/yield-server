@@ -491,7 +491,6 @@ const excludedProtocols = [
   { id: '2251', slug: 'stride' },
   { id: '4446', slug: 'synthetix-v3' },
   { id: '2417', slug: 'thena-v1' },
-  { id: '831', slug: 'vvs-standard' },
   { id: '2743', slug: 'yama-finance' },
   { id: '686', slug: 'yel-finance' },
   { id: '5588', slug: 'yieldfi' },
