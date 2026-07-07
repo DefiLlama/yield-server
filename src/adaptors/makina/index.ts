@@ -19,9 +19,9 @@
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
-import { Pool } from '../../types/Pool';
-import { MakinaStrategiesResponse } from './types';
 
+type Pool = import('../../types/Pool').Pool;
+type MakinaStrategiesResponse = import('./types').MakinaStrategiesResponse;
 type Strategy = MakinaStrategiesResponse['data']['strategies'][number];
 
 // Raw uint256 read returned by the SDK multicall (decimal string), or null when
