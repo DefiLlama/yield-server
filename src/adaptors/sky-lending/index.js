@@ -593,7 +593,7 @@ const farmsAPY = async () => {
       const priceReward = prices[`ethereum:${farm.rewardToken}`]?.price;
       const secPerDay = 86400;
       const apyReward =
-        isActive && priceReward
+        isActive && priceReward && tvlUsd > 0
           ? ((rewardRate * secPerDay * 365 * priceReward) / tvlUsd) * 100
           : 0;
 
