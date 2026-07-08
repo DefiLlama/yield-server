@@ -25,6 +25,7 @@ module.exports = {
   // DB
   DATABASE_URL: process.env.DATABASE_URL,
   OSMOSIS_API_KEY: process.env.OSMOSIS_API_KEY,
+  SAUCERSWAP_API_KEY: process.env.SAUCERSWAP_API_KEY,
   DUNE_API_KEY: process.env.DUNE_API_KEY,
   HYPERLIQUID_RPC: process.env.HYPERLIQUID_RPC,
   PLASMA_RPC: process.env.PLASMA_RPC,

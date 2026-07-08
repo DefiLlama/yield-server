@@ -76,6 +76,7 @@ functions:
       VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
       TRADERJOE: ${file(./env.js):TRADERJOE}
       OSMOSIS_API_KEY: ${file(./env.js):OSMOSIS_API_KEY}
+      SAUCERSWAP_API_KEY: ${file(./env.js):SAUCERSWAP_API_KEY}
       DUNE_API_KEY: ${file(./env.js):DUNE_API_KEY}
       HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
       PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
