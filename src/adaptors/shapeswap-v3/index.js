@@ -58,7 +58,7 @@ const apy = async (timestamp = null) => {
     .map((p) => {
       const tvlUsd = Number(p.totalValueLockedUSD);
       const volumeUsdAll = Number(p.volumeUSD);
-      const volumeUsd1d = Math.max(volumeUsdAll - (priorVolumeById[p.id] ?? volumeUsdAll), 0);
+      const volumeUsd1d = Math.max(volumeUsdAll - (priorVolumeById[p.id] ?? 0), 0);
       const feeRate = Number(p.feeTier) / 1e6;
       const fees1d = volumeUsd1d * feeRate;
       const apyBase = tvlUsd > 0 ? (fees1d * 365 * 100) / tvlUsd : 0;
@@ -67,7 +67,7 @@ const apy = async (timestamp = null) => {
         pool: `${p.id}-${CHAIN}`.toLowerCase(),
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
-        symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
+        symbol: `${p.token0.symbol}-${p.token1.symbol}`,
         tvlUsd,
         apyBase,
         underlyingTokens: [p.token0.id, p.token1.id],
@@ -80,6 +80,7 @@ const apy = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '7763',
   timetravel: false,
   apy,
   url: 'https://shapeswap.xyz/',
