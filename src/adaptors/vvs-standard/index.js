@@ -96,8 +96,8 @@ const main = async () => {
     const aprInfo = aprByLp[farm.lpAddress.toLowerCase()];
     const staked =
       farm.version === 'V2'
-        ? wrapperStakes.output[i].output?.amount
-        : craftsmanBalances.output[i].output;
+        ? wrapperStakes.output?.[i]?.output?.amount
+        : craftsmanBalances.output?.[i]?.output;
     if (!pair || !aprInfo || !staked) return null;
 
     const tvlUsd =
