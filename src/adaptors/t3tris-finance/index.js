@@ -401,17 +401,13 @@ const main = async () => {
           APY_WINDOW_DAYS,
         );
 
-        // Build fee metadata string
-        const feeParts = [];
-        if (vault.perfFeePct > 0)
-          feeParts.push(`Perf: ${vault.perfFeePct.toFixed(1)}%`);
-        if (vault.mgmtFeePct > 0)
-          feeParts.push(`Mgmt: ${vault.mgmtFeePct.toFixed(1)}%`);
-        if (vault.entryFeePct > 0)
-          feeParts.push(`Entry: ${vault.entryFeePct.toFixed(2)}%`);
-        if (vault.exitFeePct > 0)
-          feeParts.push(`Exit: ${vault.exitFeePct.toFixed(2)}%`);
-        const poolMeta = feeParts.length > 0 ? feeParts.join(' | ') : undefined;
+        // Fee metadata: performance fee, plus management fee when non-zero.
+        const poolMeta =
+          vault.mgmtFeePct > 0
+            ? `perf ${vault.perfFeePct.toFixed(1)}%, mgmt ${vault.mgmtFeePct.toFixed(
+                1,
+              )}%`
+            : `perf ${vault.perfFeePct.toFixed(1)}%`;
 
         pools.push({
           pool: `${vault.address}-${chain}`.toLowerCase(),
@@ -428,7 +424,7 @@ const main = async () => {
           // (supply doubles before totalAssets is revalued), causing false negative
           // fees in the DefiLlama fee test.
           pricePerShare: currentSharePrice > 0 ? currentSharePrice : undefined,
-          url: `https://app.t3tris.finance/vault/${vault.address}`,
+          url: `https://app.t3tris.finance/vaults/${CHAIN_IDS[chain]}/${vault.address}`,
         });
       }
     } catch (error) {
