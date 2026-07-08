@@ -17,6 +17,7 @@ const API_BASE = 'https://dorkfi-api.nautilus.sh';
 const NETWORK  = { algorand: 'algorand-mainnet', voi: 'voi-mainnet' };
 const DL_CHAIN = { algorand: 'Algorand', voi: 'Voi Network' };
 const PROJECT  = 'dorkfi';
+const REQUEST_TIMEOUT_MS = 30_000;
 
 // ── Known market → token symbol mapping ──────────────────────────────────────
 // Voi Pool A (47139778) and Pool B (47139781)
@@ -81,17 +82,31 @@ const MARKET_SYMBOLS = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function fetchMarketData(chain) {
-  const { data } = await axios.get(`${API_BASE}/market-data/${NETWORK[chain]}`);
-  if (!data.success) throw new Error(`DorkFi API error: ${chain}`);
-  return data.data;
+  try {
+    const { data } = await axios.get(`${API_BASE}/market-data/${NETWORK[chain]}`, {
+      timeout: REQUEST_TIMEOUT_MS,
+    });
+    if (!data.success) return [];
+    return data.data || [];
+  } catch (error) {
+    console.warn(`DorkFi market data unavailable for ${chain}: ${error.message}`);
+    return [];
+  }
 }
 
 async function fetchAnalyticsTVL(chain) {
-  const { data } = await axios.get(`${API_BASE}/analytics/tvl/${NETWORK[chain]}`);
-  if (!data.success) return {};
-  const map = {};
-  for (const m of data.data.markets || []) map[`${m.appId}:${m.marketId}`] = m.tvl;
-  return map;
+  try {
+    const { data } = await axios.get(`${API_BASE}/analytics/tvl/${NETWORK[chain]}`, {
+      timeout: REQUEST_TIMEOUT_MS,
+    });
+    if (!data.success) return {};
+    const map = {};
+    for (const m of data.data.markets || []) map[`${m.appId}:${m.marketId}`] = m.tvl;
+    return map;
+  } catch (error) {
+    console.warn(`DorkFi TVL data unavailable for ${chain}: ${error.message}`);
+    return {};
+  }
 }
 
 function dedup(markets) {
@@ -130,6 +145,10 @@ function computeRates(market) {
   };
 }
 
+function getUnderlyingTokens(market) {
+  return [String(market.marketId)];
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 const apy = async () => {
@@ -142,9 +161,13 @@ const apy = async () => {
     ]);
 
     for (const market of dedup(markets)) {
-      if (Number(market.totalScaledDeposits || 0) === 0) continue;
-
       const key    = `${market.appId}:${market.marketId}`;
+      const hasTvl = Object.prototype.hasOwnProperty.call(tvlMap, key);
+      if (!hasTvl) {
+        console.warn(`DorkFi TVL missing for ${chain} market ${key}`);
+        continue;
+      }
+
       const tvlUsd = tvlMap[key] || 0;
       if (tvlUsd < 1) continue;
 
@@ -159,7 +182,7 @@ const apy = async () => {
         tvlUsd,
         apyBase:       supplyApy,
         apyBaseBorrow: borrowApy,
-        underlyingTokens: [],
+        underlyingTokens: getUnderlyingTokens(market),
         poolMeta:      `Pool ${market.appId}`,
         url:           'https://dork.fi',
       });
