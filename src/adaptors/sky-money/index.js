@@ -64,11 +64,17 @@ const VAULT_QUERY = `
 `;
 
 const fetchVaultState = async (address) => {
-  const res = await axios.post(MORPHO_GRAPH_URL, {
-    query: VAULT_QUERY,
-    variables: { address, chainId: 1 },
-  });
-  return res.data.data.vaultV2ByAddress;
+  try {
+    const res = await axios.post(
+      MORPHO_GRAPH_URL,
+      { query: VAULT_QUERY, variables: { address, chainId: 1 } },
+      { timeout: 10000 }
+    );
+    return res.data.data.vaultV2ByAddress;
+  } catch (err) {
+    // one failing vault lookup drops that row only, not the whole adapter
+    return null;
+  }
 };
 
 const apy = async () => {
@@ -97,7 +103,12 @@ const apy = async () => {
       if (!price) return null;
 
       const state = await fetchVaultState(vault.address);
-      if (!state || state.netApyDay == null) return null;
+      if (!state || state.netApyDay == null || state.baseApyDay == null)
+        return null;
+
+      const dec = Number(decimals[i]);
+      const assets = Number(totalAssets[i]);
+      if (!Number.isFinite(dec) || !Number.isFinite(assets)) return null;
 
       const rewardApr =
         state.rewards?.reduce(
@@ -108,8 +119,7 @@ const apy = async () => {
         .filter((r) => r.supplyApr > 0)
         .map((r) => r.asset.address);
 
-      const tvlUsd =
-        (totalAssets[i] / Math.pow(10, decimals[i])) * price;
+      const tvlUsd = (assets / Math.pow(10, dec)) * price;
 
       return {
         pool: `${vault.address.toLowerCase()}-ethereum`,
@@ -119,7 +129,7 @@ const apy = async () => {
         token: vault.address,
         poolMeta: vault.poolMeta,
         tvlUsd,
-        apyBase: (state.baseApyDay ?? 0) * 100,
+        apyBase: state.baseApyDay * 100,
         apyReward: rewardApr > 0 ? rewardApr * 100 : null,
         rewardTokens: rewardTokens.length ? rewardTokens : null,
         underlyingTokens: [vault.asset],
