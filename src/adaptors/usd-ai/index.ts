@@ -9,6 +9,10 @@ const PYUSD_ADDRESS = '0x46850aD61C2B7d64d08c9C754F45254596696984';
 const PYUSD_DECIMALS = 6;
 const SECONDS_PER_YEAR = 365 * 24 * 3600;
 
+// baseYieldAdminFeeRate and loanRouterAdminFeeRate are both 1000 bps, set as
+// internal immutables in the StakedUSDai constructor (no on-chain getter)
+const ADMIN_FEE_RATE = 0.1;
+
 // BaseYieldAccrual struct is stored at BASE_YIELD_ACCRUAL_STORAGE_LOCATION:
 //   slot +0: accrued (uint256)
 //   slot +1: timestamp (uint64)
@@ -247,9 +251,10 @@ const apy = async (timestamp: number) => {
       .filter((p) => p.tvlUsd > 0)
       .reduce((sum, p) => sum + (p.tvlUsd * p.apyBase) / 100, 0);
     const totalInterestPerYear = fixedInterestPerYear + loanInterestPerYear;
+    const netInterestPerYear = totalInterestPerYear * (1 - ADMIN_FEE_RATE);
 
-    // APY to sUSDai holders = all interest earned / on-chain redemption value
-    const apyBase = Math.round((totalInterestPerYear / redemptionValueUsd) * 100 * 100) / 100;
+    // APY to sUSDai holders = interest earned net of admin fees / on-chain redemption value
+    const apyBase = Math.round((netInterestPerYear / redemptionValueUsd) * 100 * 100) / 100;
 
     return [
       {
