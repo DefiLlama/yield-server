@@ -163,7 +163,11 @@ const fetchLatestAPY = async (tokenSymbol) => {
     }
 
     // First entry is the most recent, apy is already in percent
-    const latestAPY = apyHistory[0].apy;
+    const latestAPY = Number(apyHistory[0].apy);
+    if (!Number.isFinite(latestAPY)) {
+      console.error(`Invalid APY value for ${tokenSymbol}:`, apyHistory[0].apy);
+      return 0;
+    }
     return parseFloat(latestAPY.toFixed(2));
   } catch (error) {
     console.error(`Error fetching APY for ${tokenSymbol}:`, error);
