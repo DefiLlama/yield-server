@@ -179,6 +179,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'rsk') return 'RSK';
   if (chain && chain.toLowerCase() === '0g') return '0G';
   if (chain && chain.toLowerCase() === 'tac') return 'TAC';
+  if (chain && chain.toLowerCase() === 'robinhood') return 'Robinhood Chain';
   if (
     chain &&
     (chain.toLowerCase() === 'hyperevm' ||
