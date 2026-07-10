@@ -91,7 +91,7 @@ async function main() {
     {
       pool: pool,
       chain: 'avax',
-      project: 'stable-jack-v1',
+      project: 'stablejack-v1',
       symbol: 'aUSD',
       tvlUsd: rPoolTVL,
       apyBase: rPoolAPR,
