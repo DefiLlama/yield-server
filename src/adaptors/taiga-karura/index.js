@@ -47,6 +47,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '1899',
   timetravel: false,
   apy: getPools,
   url: 'https://app.taigaprotocol.io/',

@@ -1,7 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { ethers } = require('ethers');
-const fetch = require('node-fetch');
 
 const liquidity_endpoint = sdk.graph.modifyEndpoint('BgVpYLQVGwb2RRPcW66aLBtmv48w9NwGxhypBMRNDi34');
 const pricing_endpoint = sdk.graph.modifyEndpoint('39DkzkpLtF3xJTWgpZwnSKPqqnHbErYhHTVh7RCZ6SMN');
@@ -62,7 +61,7 @@ const poolsFunction = async () => {
     pool: '0xb2C57D651dB0FcCc96cABda11191DF25E05B88b6',
     chain: utils.formatChain('Ethereum'),
     project: 'zeroliquid',
-    symbol: utils.formatSymbol('zETH-WETH'),
+    symbol: 'zETH-WETH',
     tvlUsd:
       (data_pricing.zethPrice.drivedUSD * data_liquidity.amountZETH) / 1e18 +
       (data_pricing.wethPrice.drivedUSD * data_liquidity.amountETH) / 1e18,
@@ -79,6 +78,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3597',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.zeroliquid.xyz/earn',

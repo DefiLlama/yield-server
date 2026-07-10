@@ -40,9 +40,7 @@ const formatPool = async (bucket, config) => {
     .map((t) => `${chain.toLowerCase()}:${t}`)
     .join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const assetPrice = prices[`${chain.toLowerCase()}:${asset?.tokenAddress}`];
   const totalSupplyUsd =
@@ -165,6 +163,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3664',
   timetravel: false,
   apy: getApy,
 };

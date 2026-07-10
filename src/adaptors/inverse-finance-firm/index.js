@@ -1,14 +1,8 @@
-const ethers = require('ethers');
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 const abi = require('./abi');
-const path = require('path');
 const ERC4626abi = require('./ERC4626.json');
-
-require('dotenv').config({
-  path: path.resolve(__dirname, '../../../config.env'),
-});
 
 const firmStart = 16159015;
 const DBR = '0xAD038Eb671c44b853887A7E32528FaB35dC5D710';
@@ -20,10 +14,12 @@ const TOKENS_VIEWER = '0x826bBeB1DBd9aA36CD44538CC45Dcf9E93BDA574';
 const FIRM_VIEWER = '0x545C963eB523199969cf0298395EeAdcE514b691';
 const ONE_DAY_MS = 86400000;
 const WEEKS_PER_YEAR = 365 / 7;
-
-const provider = new ethers.providers.JsonRpcProvider(
-  process.env.ALCHEMY_CONNECTION_ETHEREUM
-);
+const CHAIN = 'ethereum';
+const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000';
+const EVENTS = {
+  AddMarket: 'event AddMarket(address indexed market)',
+  CreateEscrow: 'event CreateEscrow(address indexed user, address escrow)',
+};
 
 const getWeekIndexUtc = (ts) => {
   const d = ts ? new Date(ts) : new Date();
@@ -34,11 +30,17 @@ const getWeekIndexUtc = (ts) => {
 const aprToApy = (apr, compoundingsPerYear) =>
   !compoundingsPerYear ? apr : (Math.pow(1 + (apr / 100) / compoundingsPerYear, compoundingsPerYear) - 1) * 100;
 
+const sortEventLogs = (logs) =>
+  logs.sort((a, b) => {
+    if (a.blockNumber !== b.blockNumber) return a.blockNumber - b.blockNumber;
+    const aIndex = a.logIndex ?? a.index ?? a.log_index ?? 0;
+    const bIndex = b.logIndex ?? b.index ?? b.log_index ?? 0;
+    return aIndex - bIndex;
+  });
+
 const l1TokenPrices = async (l1TokenAddrs) => {
   const l1TokenQuery = l1TokenAddrs.map((addr) => `ethereum:${addr}`).join();
-  const data = await utils.getData(
-    `https://coins.llama.fi/prices/current/${l1TokenQuery}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${l1TokenQuery}`);
 
   return Object.fromEntries(
     l1TokenAddrs.map((addr) => {
@@ -53,24 +55,35 @@ const l1TokenPrices = async (l1TokenAddrs) => {
   );
 };
 
-const getFirmMarkets = async (dbrContract) => {
-  const logs = await dbrContract.queryFilter(dbrContract.filters.AddMarket());
-  return logs.map((l) => l.args.market);
+const getFirmMarkets = async (toBlock) => {
+  const logs = await sdk.getEventLogs({
+    target: DBR,
+    eventAbi: EVENTS.AddMarket,
+    fromBlock: 1,
+    toBlock,
+    chain: CHAIN,
+  });
+  return sortEventLogs(logs).map((l) => l.args.market ?? l.args[0]);
 };
 
-const getFirmEscrowsWithMarket = async (markets, provider) => {
+const getFirmEscrowsWithMarket = async (markets, toBlock) => {
   const escrowCreations = await Promise.all(
-    markets.map((m) => {
-      const market = new ethers.Contract(m, abi.market, provider);
-      return market.queryFilter(market.filters.CreateEscrow(), firmStart);
-    })
+    markets.map((m) =>
+      sdk.getEventLogs({
+        target: m,
+        eventAbi: EVENTS.CreateEscrow,
+        fromBlock: firmStart,
+        toBlock,
+        chain: CHAIN,
+      })
+    )
   );
 
   const escrowsWithMarkets = escrowCreations
     .map((marketEscrows, marketIndex) => {
       const market = markets[marketIndex];
       return marketEscrows.map((escrowCreationEvent) => {
-        return { escrow: escrowCreationEvent.args[1], market };
+        return { escrow: escrowCreationEvent.args.escrow ?? escrowCreationEvent.args[1], market };
       });
     })
     .flat();
@@ -82,14 +95,14 @@ const getFirmEscrowsWithMarket = async (markets, provider) => {
 const main = async () => {
   const balances = {};
 
-  const dbrContract = new ethers.Contract(DBR, abi.dbr, provider);
-  const markets = await getFirmMarkets(dbrContract);
+  const currentBlock = (await sdk.api.util.getLatestBlock(CHAIN)).number;
+  const markets = await getFirmMarkets(currentBlock);
 
-  const escrowsWithMarkets = await getFirmEscrowsWithMarket(markets, provider);
+  const escrowsWithMarkets = await getFirmEscrowsWithMarket(markets, currentBlock);
 
   const allBalances = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: escrowsWithMarkets.map((em) => ({
         target: em.escrow,
         params: [],
@@ -100,7 +113,7 @@ const main = async () => {
 
   const allUnderlying = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: m,
         params: [],
@@ -115,7 +128,7 @@ const main = async () => {
 
   const allDebt = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: m,
         params: [],
@@ -126,7 +139,7 @@ const main = async () => {
 
   const allSymbols = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: underlyings.map((m) => ({
         target: m,
         params: [],
@@ -137,7 +150,7 @@ const main = async () => {
 
   const allDecimals = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: underlyings.map((m) => ({
         target: m,
         params: [],
@@ -148,7 +161,7 @@ const main = async () => {
 
   const allPrices = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: FIRM_VIEWER,
         params: [m],
@@ -160,7 +173,7 @@ const main = async () => {
 
   const allCfs = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: m,
         params: [],
@@ -171,7 +184,7 @@ const main = async () => {
 
   const allBorrowPaused = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: m,
         params: [],
@@ -182,7 +195,7 @@ const main = async () => {
 
   const allLiquidity = (
     await sdk.api.abi.multiCall({
-      chain: 'ethereum',
+      chain: CHAIN,
       calls: markets.map((m) => ({
         target: DOLA,
         params: [m],
@@ -190,6 +203,41 @@ const main = async () => {
       abi: 'erc20:balanceOf',
     })
   ).output;
+
+  const allBorrowControllers = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: markets.map((m) => ({
+        target: m,
+        params: [],
+      })),
+      abi: 'function borrowController() view returns (address)',
+    })
+  ).output;
+
+  const borrowControllerCalls = allBorrowControllers
+    .map((c, marketIndex) => ({
+      target: c.output,
+      params: [markets[marketIndex]],
+      marketIndex,
+    }))
+    .filter((c) => c.target !== ADDRESS_ZERO);
+
+  const allBorrowLimits = (
+    await sdk.api.abi.multiCall({
+      chain: CHAIN,
+      calls: borrowControllerCalls,
+      abi: 'function availableBorrowLimit(address) view returns (uint256)',
+      permitFailure: true,
+    })
+  ).output;
+
+  const borrowLimits = {};
+  allBorrowLimits.map((b, i) => {
+    if (b.success !== false) {
+      borrowLimits[borrowControllerCalls[i].marketIndex] = Number(b.output) / 1e18;
+    }
+  });
 
   allBalances.map((b, i) => {
     const market = escrowsWithMarkets[i].market;
@@ -214,14 +262,16 @@ const main = async () => {
     const totalBorrowUsd = Number(allDebt[marketIndex].output) / 1e18;
     const debtCeilingUsd =
       (Number(allLiquidity[marketIndex].output) / 1e18) * prices[DOLA].price;
+    const availableBorrowUsd = Math.min(debtCeilingUsd, (borrowLimits[marketIndex] ?? Infinity) * prices[DOLA].price);
     return {
       pool: `firm-${m}`,
       chain: 'Ethereum',
       project: 'inverse-finance-firm',
       mintedCoin: 'DOLA',
+      borrowToken: DOLA,
       symbol,
       tvlUsd: totalSupplyUsd,
-      apyBase: 0,
+      apy: 0,
       underlyingTokens: [underlying],
       poolMeta: 'Fixed Borrow Rate',
       url: 'https://inverse.finance/firm',
@@ -229,6 +279,7 @@ const main = async () => {
       debtCeilingUsd: debtCeilingUsd + totalBorrowUsd,
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       borrowable: !allBorrowPaused[marketIndex].output,
       ltv: Number(allCfs[marketIndex].output) / 1e4,
     };
@@ -240,7 +291,7 @@ const main = async () => {
     await Promise.all([
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: SDOLA_ADDRESS,
@@ -252,7 +303,7 @@ const main = async () => {
       ),
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: SDOLA_ADDRESS,
@@ -271,15 +322,13 @@ const main = async () => {
 
   // add sDOLA
   pools.push({
-    pool: `sDOLA`,
+    pool: SDOLA_ADDRESS,
     chain: 'Ethereum',
     project: 'inverse-finance-firm',
-    mintedCoin: 'sDOLA',
     symbol: 'sDOLA',
     tvlUsd: sDolaTotalAssets * prices[DOLA].price,
     apyBase: aprToApy(sDOLAapr, WEEKS_PER_YEAR),
     underlyingTokens: [DOLA],
-    poolMeta: 'Yield-Bearing stable',
     url: 'https://inverse.finance/sDOLA',
   });
 
@@ -288,7 +337,7 @@ const main = async () => {
     await Promise.all([
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: SINV_ADDRESS,
@@ -300,7 +349,7 @@ const main = async () => {
       ),
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: SINV_ADDRESS,
@@ -312,7 +361,7 @@ const main = async () => {
       ),
       sdk.api.abi.multiCall(
         {
-          chain: 'ethereum',
+          chain: CHAIN,
           calls: [
             {
               target: TOKENS_VIEWER,
@@ -332,10 +381,9 @@ const main = async () => {
 
   // add sINV
   pools.push({
-    pool: `sINV`,
+    pool: SINV_ADDRESS,
     chain: 'Ethereum',
     project: 'inverse-finance-firm',
-    mintedCoin: 'sINV',
     symbol: 'sINV',
     tvlUsd: sInvTotalAssets * prices[INV].price,
     apyBase: aprToApy(sINVapr, WEEKS_PER_YEAR),
@@ -347,6 +395,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2433',
   timetravel: false,
   apy: main,
 };

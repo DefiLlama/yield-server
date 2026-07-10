@@ -37,9 +37,7 @@ const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
 const getTokenPrice = async (tokenAddress) => {
   try {
     const priceKey = `ethereum:${tokenAddress}`;
-    const { data } = await axios.get(
-      `https://coins.llama.fi/prices/current/${priceKey}`
-    );
+    const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
     return data.coins[priceKey].price;
   } catch (error) {
     console.error(`Error fetching price for ${tokenAddress}:`, error);
@@ -171,6 +169,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5655',
   apy,
   url: 'https://www.resolv.xyz/',
 };

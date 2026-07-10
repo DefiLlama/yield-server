@@ -30,6 +30,8 @@ const chains = {
 const DYNAMIC_FEE_FLAG = 0x800000;
 const PAGE_SIZE = 1000;
 const TVL_MIN = 50000;
+const SUSPECT_TVL_USD = 1e8;
+const MIN_VOLUME_TO_TVL_RATIO = 1e-5;
 
 const queryWithSkip = (skip) => gql`
   {
@@ -72,26 +74,38 @@ const fetchAllPools = async (url, block) => {
 
 const isDynamicFeePool = (feeTier) => Number(feeTier) === DYNAMIC_FEE_FLAG;
 
+const hasInvalidTokenTvl = (pool) =>
+  Number(pool.totalValueLockedToken0) < 0 ||
+  Number(pool.totalValueLockedToken1) < 0;
+
+const hasSuspiciousTvlVolume = (pool) =>
+  pool.tvlUsd > SUSPECT_TVL_USD &&
+  Number(pool.volumeUsd1d || 0) / pool.tvlUsd < MIN_VOLUME_TO_TVL_RATIO;
+
 const topLvl = async (chainString, url, timestamp) => {
   try {
     const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
       url,
     ]);
 
-    let dataNow = await fetchAllPools(url, block);
-
-    let dataPrior = await fetchAllPools(url, blockPrior);
+    let [dataNow, dataPrior] = await Promise.all([
+      fetchAllPools(url, block),
+      fetchAllPools(url, blockPrior),
+    ]);
 
     dataNow = dataNow.map((p) => ({
       ...p,
       reserve0: p.totalValueLockedToken0,
       reserve1: p.totalValueLockedToken1,
     }));
+    dataNow = dataNow.filter((p) => !hasInvalidTokenTvl(p));
 
     dataNow = await utils.tvl(dataNow, chainString);
 
+    const dataPriorByPool = new Map(dataPrior.map((p) => [p.id, p]));
+
     dataNow = dataNow.map((pool) => {
-      const poolPrior = dataPrior.find((p) => p.id === pool.id);
+      const poolPrior = dataPriorByPool.get(pool.id);
       const isDynamic = isDynamicFeePool(pool.feeTier);
 
       const volumeUSD1d =
@@ -149,16 +163,17 @@ const topLvl = async (chainString, url, timestamp) => {
 };
 
 const main = async (timestamp = null) => {
-  const data = [];
-  for (const [chain, url] of Object.entries(chains)) {
-    data.push(await topLvl(chain, url, timestamp));
-  }
+  const data = await Promise.all(
+    Object.entries(chains).map(([chain, url]) => topLvl(chain, url, timestamp))
+  );
+
   return data
     .flat()
     .filter((p) => utils.keepFinite(p))
-    .filter((p) => !(p.tvlUsd > 1e7 && p.volumeUsd1d < 10));
+    .filter((p) => !hasSuspiciousTvlVolume(p));
 };
 
 module.exports = {
+  protocolId: '5690',
   apy: main,
 };

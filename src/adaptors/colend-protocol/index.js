@@ -16,6 +16,10 @@ const poolDataProviders = [
 
 const subscriptionDataIncentiveProvider = '0xa839c32CF4bA69f8c0eb06fA6BFc57C40B3f3f83';
 const subscriptionPool = '0x971A4AD43a98a0d17833aB8c9FeC25b93a38B9A3';
+const marketNameByDataProvider = {
+  '0x567af83d912c85c7a66d093e41d92676fa9076e3': 'proto_core_mainnet',
+  '0x8e43df2503c69b090d385e36032814c73b746e3d': 'proto_lstbtc_mainnet',
+};
 const fetchMarketData = async (target) => {
   const [reserveTokens, aTokens] = await Promise.all([
     sdk.api.abi.call({
@@ -97,7 +101,7 @@ const fetchMarketData = async (target) => {
     return { apyReward: totalRewardAPY, rewardTokens };
   };
 
-  const [poolsReserveData, poolsReservesConfigurationData, totalSupplyData, balanceData, decimalsData] = await Promise.all([
+  const [poolsReserveData, poolsReservesConfigurationData, poolsReserveCaps, balanceData, decimalsData] = await Promise.all([
     sdk.api.abi.multiCall({
       calls: reserveTokens.map((p) => ({ target, params: p.tokenAddress })),
       abi: poolAbi.find((m) => m.name === 'getReserveData'),
@@ -109,9 +113,9 @@ const fetchMarketData = async (target) => {
       chain,
     }),
     sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({ target, params: p.tokenAddress })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
       chain,
-      abi: aTokenAbi.find(({ name }) => name === 'totalSupply'),
-      calls: aTokens.map((t) => ({ target: t.tokenAddress })),
     }),
     sdk.api.abi.multiCall({
       chain,
@@ -139,17 +143,31 @@ const fetchMarketData = async (target) => {
   }
 
   const priceKeys = reserveTokens.map((t) => `${chain}:${t.tokenAddress}`).join(',');
-  const pricesEthereum = (await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)).data.coins;
+  const pricesEthereum = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return Promise.all(reserveTokens.map(async (pool, i) => {
+    const frozen = poolsReservesConfigurationData.output[i].output.isFrozen;
+    if (frozen) return null;
+
     const p = poolsReserveData.output[i].output;
     const price = pricesEthereum[`${chain}:${pool.tokenAddress}`]?.price;
-
-    const supply = totalSupplyData.output[i].output;
-    const totalSupplyUsd = (supply / 10 ** decimalsData.output[i].output) * price;
+    const decimals = Number(decimalsData.output[i].output);
+    const toTokenAmount = (amount) => Number(amount) / 10 ** decimals;
 
     const currentSupply = balanceData.output[i].output;
-    const tvlUsd = (currentSupply / 10 ** decimalsData.output[i].output) * price;
+    const tvlUsd = toTokenAmount(currentSupply) * price;
+
+    const totalBorrow =
+      BigInt(p.totalStableDebt) + BigInt(p.totalVariableDebt);
+    const totalBorrowUsd = toTokenAmount(totalBorrow) * price;
+    const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+    const borrowCapUsd = Number(poolsReserveCaps.output[i].output.borrowCap) * price;
+    const availableBorrowUsd = Number(poolsReserveCaps.output[i].output.borrowCap)
+      ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+      : tvlUsd;
+    const marketName = marketNameByDataProvider[target.toLowerCase()];
+    const url = `https://app.colend.xyz/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=${marketName}`;
+
     // Find matching incentive data for this reserve
     const matchingIncentive = aggregatedReserveIncentiveData.find(
       (inc) =>
@@ -160,7 +178,7 @@ const fetchMarketData = async (target) => {
     const supplyRewards = matchingIncentive
       ? await calculateRewardAPY(
         matchingIncentive,
-        decimalsData.output[i].output,
+        decimals,
         price
       )
       : { apyReward: 0, rewardTokens: [] };
@@ -176,12 +194,15 @@ const fetchMarketData = async (target) => {
       rewardTokens: supplyRewards.rewardTokens,
       underlyingTokens: [pool.tokenAddress],
       totalSupplyUsd,
-      totalBorrowUsd: totalSupplyUsd - tvlUsd,
+      totalBorrowUsd,
+      availableBorrowUsd,
       apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+      borrowToken: pool.tokenAddress,
       ltv: poolsReservesConfigurationData.output[i].output.ltv / 10000,
+      url,
       borrowable: poolsReservesConfigurationData.output[i].output.borrowingEnabled,
     };
-  }));
+  })).then((pools) => pools.filter(Boolean));
 };
 
 const apy = async () => {
@@ -197,6 +218,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4518',
   timetravel: false,
   apy,
   url: 'https://app.colend.xyz/markets/',

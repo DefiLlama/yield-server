@@ -91,6 +91,7 @@ const getData = async () => {
 };
 
 module.exports = {
+  protocolId: '2319',
   timetravel: false,
   apy: getData,
   url: 'https://gmdprotocol.com/',

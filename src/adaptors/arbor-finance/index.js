@@ -30,7 +30,7 @@ const graphQuery = () => gql`
 
 const graphUrl = sdk.graph.modifyEndpoint('9MKTb9g59rBG1CNUTrriA6tDdSR8neruGJCP6FjD7SSo');
 
-const defiUrl = 'https://coins.llama.fi/prices/current/';
+const defiUrl = utils.getPriceApiUrl('/prices/current/');
 
 const poolsFunction = async () => {
   const { bonds } = await request(graphUrl, graphQuery(), {});
@@ -63,7 +63,7 @@ const poolsFunction = async () => {
       pool: `${bond.id}-ethereum`.toLowerCase(),
       chain: utils.formatChain('ethereum'),
       project: 'arbor-finance',
-      symbol: utils.formatSymbol(bond.paymentToken.symbol),
+      symbol: bond.paymentToken.symbol,
       tvlUsd: tvl,
       apy: ((1 / bondPrice) ** (1 / yearsUntilMaturity) - 1) * 100,
       poolMeta: bond.symbol,
@@ -75,6 +75,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2261',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.arbor.finance/offerings',

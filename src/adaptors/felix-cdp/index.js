@@ -21,6 +21,8 @@ const ABIS = {
   symbol: 'string:symbol',
   decimals: 'uint8:decimals',
   MCR: 'uint256:MCR',
+  CCR: 'uint256:CCR',
+  hasBeenShutDown: 'bool:hasBeenShutDown',
   getNewApproxAvgInterestRateFromTroveChange: {
     inputs: [
       {
@@ -129,13 +131,15 @@ const apy = async () => {
     ])
   ).map((r) => r.output.map((o) => o.output));
 
-  const [defaultColl, spDeposits, symbols, decimals, mcrs] = (
+  const [defaultColl, spDeposits, symbols, decimals, mcrs, ccrs, shutdowns] = (
     await Promise.all([
       multiCall(ABIS.getCollBalance, defaultPools),
       multiCall(ABIS.getTotalfeUSDDeposits, stabilityPools),
       multiCall(ABIS.symbol, collTokens),
       multiCall(ABIS.decimals, collTokens),
       multiCall(ABIS.MCR, borrowerOperations),
+      multiCall(ABIS.CCR, borrowerOperations),
+      multiCall(ABIS.hasBeenShutDown, borrowerOperations),
     ])
   ).map((r) => r.output.map((o) => o.output));
 
@@ -163,6 +167,11 @@ const apy = async () => {
 
     const borrowApy = Number(avgInterestRates[i]) / 1e16;
     const ltv = mcrs[i] ? 1 / (Number(mcrs[i]) / 1e18) : undefined;
+    const ccr = Number(ccrs[i]) / 1e18;
+    const isShutDown = shutdowns[i];
+    const availableBorrowUsd = isShutDown
+      ? 0
+      : Math.max(totalCollUsd / ccr - totalDebtUsd, 0);
 
     const spSupply = Number(spDeposits[i]) / 1e18;
     const spSupplyUsd = spSupply * feUsdPrice;
@@ -179,8 +188,11 @@ const apy = async () => {
       apyBaseBorrow: borrowApy,
       totalSupplyUsd: totalCollUsd,
       totalBorrowUsd: totalDebtUsd,
+      availableBorrowUsd,
       ltv,
       mintedCoin: 'feUSD',
+      borrowToken: FE_USD,
+      borrowable: !isShutDown,
       underlyingTokens: [collToken],
       token: null,
     });
@@ -205,6 +217,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6015',
   timetravel: false,
   apy,
   url: 'https://www.usefelix.xyz/earn',

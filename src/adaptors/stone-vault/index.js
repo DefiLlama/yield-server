@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
+const { getPriceApiData } = require('../utils');
 
 const STONE_VAULT = '0xc5c6cB88598203f3652E531dbb1128Ff52F38621';
 const CHAIN = 'ethereum';
@@ -13,9 +14,7 @@ const SCRVUSD = '0x0655977FEb2f289A4aB78af67BAB0d17aAb84367';
 const DAY = 24 * 3600;
 
 async function getBlock(timestamp) {
-  const { data } = await axios.get(
-    `https://coins.llama.fi/block/${CHAIN}/${timestamp}`
-  );
+  const data = await getPriceApiData(`/block/${CHAIN}/${timestamp}`);
   return data.height;
 }
 
@@ -71,9 +70,7 @@ async function apy() {
     (t) => `${CHAIN}:${t}`
   );
 
-  const { data: priceData } = await axios.get(
-    `https://coins.llama.fi/prices/current/${tokens.join(',')}`
-  );
+  const priceData = await getPriceApiData(`/prices/current/${tokens.join(',')}`);
 
   // Get token balances held by the vault
   const balances = await Promise.all(
@@ -114,6 +111,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7413',
   timetravel: false,
   apy,
   url: 'https://stva.io',

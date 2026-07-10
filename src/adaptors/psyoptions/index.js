@@ -52,6 +52,7 @@ async function getVaultsData() {
 }
 
 module.exports = {
+  protocolId: '1172',
   timetravel: false,
   apy: getVaultsData,
   url: 'https://psyfi.io/vaults',

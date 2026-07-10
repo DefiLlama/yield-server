@@ -47,7 +47,7 @@ const main = async () => {
         symbol:
           poolMeta === undefined
             ? 'CRCT'
-            : utils.formatSymbol(poolMeta?.assets.join('-')),
+            : poolMeta?.assets.join('-'),
         tvlUsd: poolData[pool],
         apy: isActive ? apy[pool] * 100 : 0,
         poolMeta:
@@ -61,6 +61,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3500',
   timetravel: false,
   apy: main,
   url: 'https://circuit.farm/',

@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { getTotalSupply, getSanctumLstApy } = require('../utils');
+const { getTotalSupply, getSanctumLstApy, getPriceApiUrl } = require('../utils');
 
 const JUPSOL_ADDRESS = 'jupSoLaHXQiZZTSfEWMTRRgpnyFm8f6sZdosWBjx93v';
 const SOL = 'So11111111111111111111111111111111111111112';
@@ -8,7 +8,7 @@ const priceKey = `solana:${JUPSOL_ADDRESS}`;
 const apy = async () => {
   const [apyBase, priceResponse, totalSupply] = await Promise.all([
     getSanctumLstApy(JUPSOL_ADDRESS),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
     getTotalSupply(JUPSOL_ADDRESS),
   ]);
 
@@ -33,4 +33,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://station.jup.ag/guides/jupsol/jupsol' };
+module.exports = { protocolId: '4996', apy, url: 'https://station.jup.ag/guides/jupsol/jupsol' };

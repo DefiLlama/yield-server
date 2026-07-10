@@ -27,9 +27,7 @@ async function apy() {
       ])
     )
   );
-  let { coins } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys.join(',').toLowerCase()}`
-  );
+  let { coins } = await utils.getPriceApiData(`/prices/current/${priceKeys.join(',').toLowerCase()}`);
 
   let poolTvlInfoMap = {};
   for (const poolTvl of poolTvlInfos) {
@@ -89,6 +87,7 @@ let abiJSON = {
 };
 
 module.exports = {
+  protocolId: '5255',
   timetravel: false,
   apy,
   url: 'https://bagful.io',

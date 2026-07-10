@@ -159,11 +159,9 @@ const getBaseTokensPrice = async () => {
     cake: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82',
   };
   const prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${Object.values(priceKeys).map(
+    await utils.getPriceApiData(`/prices/current/${Object.values(priceKeys).map(
         (t) => `bsc:${t}`
-      )}`
-    )
+      )}`)
   ).coins;
 
   const cakePrice = prices[`bsc:${priceKeys.cake}`].price;
@@ -350,6 +348,7 @@ async function main(timestamp = null) {
 }
 
 module.exports = {
+  protocolId: '194',
   timetravel: false,
   apy: main,
   url: 'https://pancakeswap.finance/farms',

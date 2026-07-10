@@ -8,7 +8,7 @@ const IBaseLendingPoolABI = require('./abi/IBaseLendingPool.json');
 const poolListEndpoint = 'https://graph.stellaxyz.io/api/rest/lending-pools';
 const rewardRateEndpoint =
   'https://blocks.alphainnovationslab.io/lm-lender/reward_rates';
-const priceEndpoint = 'https://coins.llama.fi/prices/current/';
+const priceEndpoint = utils.getPriceApiUrl('/prices/current/');
 
 const rewardVaultAddress = '0xa67CF61b0b9BC39c6df04095A118e53BFb9303c7';
 const alphaTokenAddressARB = '0xc9cbf102c73fb77ec14f8b4c8bd88e050a6b2646';

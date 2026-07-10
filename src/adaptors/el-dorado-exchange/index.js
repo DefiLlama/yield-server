@@ -1,5 +1,3 @@
-const helperUtils = require("../../helper/utils");
-
 const { ethers } = require('ethers');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
@@ -197,8 +195,8 @@ const getPools = async () => {
 
 
     const feeAmount_bsc = (
-        await helperUtils.fetchURL("https://data.ede.finance/api/ede/dalyFee")
-    ).data.elp1;
+        await utils.getData("https://data.ede.finance/api/ede/dalyFee")
+    ).elp1;
     console.log("feeAmount_bsc::", feeAmount_bsc);
 
 
@@ -242,6 +240,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2356',
     timetravel: false,
     apy: getPools,
     url: 'https://app.ede.finance/#/Earn',

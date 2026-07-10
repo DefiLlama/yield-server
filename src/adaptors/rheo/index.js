@@ -86,5 +86,6 @@ async function apy() /*: Promise<Pool[]>*/ {
 }
 
 module.exports = {
+  protocolId: '4904',
   apy,
 };

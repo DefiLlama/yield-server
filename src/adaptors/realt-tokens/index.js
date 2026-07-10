@@ -70,9 +70,7 @@ async function apy() {
   const priceKeys = reserveTokens
     .map((t) => `${CHAIN}:${t.tokenAddress}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return reserveTokens
     .map((pool, i) => {
@@ -109,6 +107,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '753',
   timetravel: false,
   apy,
   url: 'https://rmm.realtoken.network/markets/',

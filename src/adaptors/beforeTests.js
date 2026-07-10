@@ -7,6 +7,11 @@ try {
   require('dotenv').config({ path: envPath });
 } catch (e) {}
 
+// Some adapter dependencies install SIGINT listeners that swallow Ctrl+C.
+process.prependOnceListener('SIGINT', () => {
+  process.exit(130);
+});
+
 // support requiring TS adapters directly (eg: index.ts)
 try {
   const tsConfigPath = path.resolve(__dirname, '../../tsconfig.json');
@@ -55,6 +60,7 @@ module.exports = async function () {
   const module = require(resolvedAdapterPath);
 
   global.adapter = adapter;
+  global.protocolId = module.protocolId;
   global.apy = (await module.apy(timestamp)).sort(
     (a, b) => b.tvlUsd - a.tvlUsd
   );
@@ -68,13 +74,13 @@ module.exports = async function () {
   );
 
   if (!isFast) {
+    const protocols = (await axios.get('https://api.llama.fi/protocols')).data;
     global.protocolsSlug = [
-      ...new Set(
-        (await axios.get('https://api.llama.fi/protocols')).data.map(
-          (protocol) => protocol.slug
-        )
-      ),
+      ...new Set(protocols.map((protocol) => protocol.slug)),
     ];
+    global.protocolsBySlug = new Map(
+      protocols.map((protocol) => [protocol.slug, protocol])
+    );
 
     global.uniquePoolIdentifiersDB = new Map(
       (await axios.get('https://yields.llama.fi/distinctID')).data

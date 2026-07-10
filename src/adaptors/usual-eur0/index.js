@@ -13,7 +13,7 @@ const CONFIG = {
   EUR0_SYMBOL: 'EUR0',
   URLS: {
     REWARD_APR_RATE: 'https://app.usual.money/api/tokens/yields',
-    LLAMA_PRICE: 'https://coins.llama.fi/prices/current/',
+    LLAMA_PRICE: utils.getPriceApiUrl('/prices/current/'),
   },
   SCALAR: 1e18,
   WEEKS_PER_YEAR: 52,
@@ -88,6 +88,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7465',
   apy,
   url: 'https://app.usual.money/swap?action=stake',
 };

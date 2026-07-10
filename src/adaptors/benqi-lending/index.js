@@ -1,6 +1,5 @@
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
-const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
@@ -28,13 +27,9 @@ const REWARD_TYPES = {
 const SECONDS_PER_DAY = 86400;
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -109,6 +104,30 @@ const getApy = async () => {
     })
   ).output.map(({ output }) => output);
 
+  const borrowCaps = (
+    await sdk.api.abi.multiCall({
+      chain: 'avax',
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowCaps'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
+  const isBorrowPaused = (
+    await sdk.api.abi.multiCall({
+      chain: 'avax',
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowGuardianPaused'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
   const qiRewards = await getRewards(REWARD_TYPES.QI, allMarkets);
   const avaxRewards = await getRewards(REWARD_TYPES.AVAX, allMarkets);
 
@@ -176,6 +195,15 @@ const getApy = async () => {
     const totalBorrowUsd =
       (Number(totalBorrows[i]) / 10 ** decimals) * prices[token.toLowerCase()];
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Math.min(
+        Number(marketsCash[i]),
+        Number(borrowCaps[i]) > 0
+          ? Math.max(Number(borrowCaps[i]) - Number(totalBorrows[i]), 0)
+          : Number(marketsCash[i])
+      ) /
+        10 ** decimals) *
+      prices[token.toLowerCase()];
 
     const apyBase = calculateApy(supplyRatePerTimestamp[i]);
     const apyBaseBorrow = calculateApy(borrowRatePerTimestamp[i]);
@@ -227,7 +255,10 @@ const getApy = async () => {
       ].filter(Boolean),
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
+      borrowable: isBorrowPaused[i] === false,
       apyBaseBorrow,
+      borrowToken: token,
       apyRewardBorrow: Number.isFinite(apyRewardBorrow) ? apyRewardBorrow : 0,
       ltv: marketsInfo[i].collateralFactorMantissa / 10 ** 18,
       url: `https://app.benqi.fi/lending/core/${symbol.toLowerCase()}`,
@@ -238,6 +269,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '467',
   timetravel: false,
   apy: getApy,
   url: 'https://app.benqi.fi/lending',

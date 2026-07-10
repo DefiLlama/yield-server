@@ -1,6 +1,5 @@
 const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
-const fetch = require('node-fetch');
 
 const bunniLensAbi = require('./bunniLens.json');
 const v3PoolAbi = require('./v3PoolAbi.json');
@@ -97,8 +96,10 @@ const getBunniVaultsForPool = async (poolAddress) => {
   };
 
   try {
-    const result = await getBunniVaults(poolAddress);
-    const newResult = await getNewBunniVaults(poolAddress);
+    const [result, newResult] = await Promise.all([
+      getBunniVaults(poolAddress),
+      getNewBunniVaults(poolAddress),
+    ]);
 
     return [
       ...result.output.keys.map((vault, i) => ({
@@ -150,16 +151,18 @@ const getPricePerFullShare = async (bunniVault) => {
 
 const getProtocolFee = async () => {
   try {
-    const protocolFee = await sdk.api.abi.call({
-      abi: bunniHubAbi.find((m) => m.name === 'protocolFee'),
-      target: bunniHub,
-      chain: 'base',
-    });
-    const newPprotocolFee = await sdk.api.abi.call({
-      abi: bunniHubAbi.find((m) => m.name === 'protocolFee'),
-      target: newBunniHub,
-      chain: 'base',
-    });
+    const [protocolFee, newPprotocolFee] = await Promise.all([
+      sdk.api.abi.call({
+        abi: bunniHubAbi.find((m) => m.name === 'protocolFee'),
+        target: bunniHub,
+        chain: 'base',
+      }),
+      sdk.api.abi.call({
+        abi: bunniHubAbi.find((m) => m.name === 'protocolFee'),
+        target: newBunniHub,
+        chain: 'base',
+      }),
+    ]);
     return { protocolFee: protocolFee.output / 1e18, newProtocolFee: newPprotocolFee.output / 1e18 };
   } catch (err) {
     console.log('Error fetching protocol fee:', err);

@@ -1,5 +1,6 @@
 exports.networks = {
   1: 'ethereum',
+  100: 'gnosis',
   137: 'polygon',
   10: 'optimism',
   42161: 'arbitrum',
@@ -25,5 +26,6 @@ exports.networks = {
 // Helpers that index Merkl opportunities by chain should index under
 // every alias so callers can match using whichever name they prefer.
 exports.chainAliases = {
+  gnosis: ['gnosis', 'xdai'],
   hyperevm: ['hyperevm', 'hyperliquid'],
 };

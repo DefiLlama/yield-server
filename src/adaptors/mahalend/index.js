@@ -12,13 +12,9 @@ const chainUrlParam = {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesBySymbol = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -211,6 +207,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2360',
   timetravel: false,
   apy: apy,
 };

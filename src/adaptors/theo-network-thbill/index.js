@@ -17,7 +17,7 @@ const CANONICAL_TOKEN = config.ethereum;
 
 const getBlock = (timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/ethereum/${timestamp}`)
+    .get(utils.getPriceApiUrl(`/block/ethereum/${timestamp}`))
     .then((r) => r.data.height);
 
 const getExchangeRate = (block) =>
@@ -100,6 +100,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6702',
   timetravel: false,
   apy,
   url: 'https://app.theo.xyz',

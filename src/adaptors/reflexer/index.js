@@ -133,6 +133,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '265',
   timetravel: false,
   apy: main,
   url: 'https://reflexer.finance/',

@@ -31,9 +31,7 @@ const main = (chain) => async (): Promise<Array<object>> => {
     target: usvViewAddress,
   });
 
-  const usdcPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/ethereum:${asset}`)
-  ).data.coins;
+  const usdcPrice = (await utils.getPriceApiData(`/prices/current/ethereum:${asset}`)).coins;
 
   return [
     {
@@ -52,6 +50,7 @@ const main = (chain) => async (): Promise<Array<object>> => {
 };
 
 module.exports = {
+  protocolId: '1806',
   timetravel: true,
   apy: main('ethereum'),
   url,

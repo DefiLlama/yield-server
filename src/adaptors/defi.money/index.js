@@ -77,7 +77,7 @@ const fetchSmoneyAPI = async () => {
     pool: `${SMONEY_CONTRACT}-${chain}`,
     chain: utils.formatChain(chain),
     project: 'defi.money',
-    symbol: utils.formatSymbol('sMONEY'),
+    symbol: 'sMONEY',
     tvlUsd,
     apyBase: apy,
     underlyingTokens: [MONEY_CONTRACT],
@@ -89,6 +89,7 @@ const fetchSmoneyAPI = async () => {
 };
 
 module.exports = {
+  protocolId: '5003',
   timetravel: false,
   apy: fetchSmoneyAPI,
   url: 'https://app.defi.money/earn/optimism',

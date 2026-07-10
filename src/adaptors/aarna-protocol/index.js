@@ -38,4 +38,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { timetravel: false, apy };
+module.exports = { protocolId: '5773', timetravel: false, apy };

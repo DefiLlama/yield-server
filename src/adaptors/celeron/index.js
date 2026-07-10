@@ -41,9 +41,7 @@ async function apy() {
     })
     .join(',');
 
-  let { coins } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceFlag}`
-  );
+  let { coins } = await utils.getPriceApiData(`/prices/current/${priceFlag}`);
 
   let data = pools.map((pool) => {
     let poolTvl = poolTvlMapping
@@ -82,6 +80,7 @@ let abi = {
 };
 
 module.exports = {
+  protocolId: '5470',
   apy,
   url: 'https://celeron.xyz/',
 };

@@ -95,7 +95,7 @@ const poolsFunction = async () => {
         pool: `${chain}:${vault}`,
         chain: noAPIUtils.formatChain(chain),
         project: 'phase',
-        symbol: noAPIUtils.formatSymbol(symbol),
+        symbol: symbol,
         tvlUsd: tvl,
         apyBase: apy,
         underlyingTokens: [asset],
@@ -109,6 +109,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3679',
   timetravel: true,
   apy: poolsFunction,
   url: 'https://app.phase.cash/vaults?p=explore',

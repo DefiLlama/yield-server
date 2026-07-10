@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 const { Cell, Slice, Dictionary, beginCell } = require('@ton/core');
 const { signVerify } = require('@ton/crypto');
 

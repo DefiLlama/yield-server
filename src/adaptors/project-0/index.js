@@ -1,89 +1,74 @@
 const axios = require('axios');
 const utils = require('../utils');
 
-const BASE_URL = 'https://base-api-public.mrgn.app';
-const API_ENDPOINT = `${BASE_URL}/v1/bank/metrics`;
-
-// API key provided by Project 0 team for DefiLlama
-// This will be set by the DefiLlama team
-const API_KEY = process.env.PROJECT_0_API_KEY;
+// P0 public API (p0-monitor). Override the host via P0_PUBLIC_API_BASE if needed.
+const BASE_URL = process.env.P0_PUBLIC_API_BASE || 'https://api.0.xyz';
+const METRICS_ENDPOINT = `${BASE_URL}/v0/bankMetrics`;
 
 const getApy = async () => {
-
-  if (!API_KEY) {
-    console.error('project-0 adapter: PROJECT_0_API_KEY is required');
-    return [];
-  }
-
-  // Get current time in ISO 8601 format
-  const startTime = new Date().toISOString();
-  const endTime = '9999-12-31T23:59:59.999Z';
-  const groupAddress = '4qp6Fx6tnZkY5Wropq9wUYgtFxXKwE6viZxFHg3rdAG8';
-  const venue = 'P0';
-
   let response;
   try {
-    response = await axios.get(API_ENDPOINT, {
-      headers: {
-        'X-API-KEY': API_KEY,
-        'Content-Type': 'application/json',
-      },
-      params: {
-        start_time: startTime,
-        end_time: endTime,
-        group_address: groupAddress,
-        venue: venue,
-      },
-    });
+    response = await axios.get(METRICS_ENDPOINT, { timeout: 30000 });
   } catch (e) {
-    console.error('project-0 adapter: failed to fetch bank metrics from API', e);
-    // Fail soft with empty list so the rest of the pipeline keeps working
+    console.error('project-0 adapter: failed to fetch /v0/bankMetrics', e);
     return [];
   }
 
-  // The API returns { success: true, data: [...], metadata: {...} }
-  if (!response.data || !response.data.success || !Array.isArray(response.data.data)) {
-    console.warn('project-0 adapter: unexpected API response shape', response.data);
+  if (!response.data || !Array.isArray(response.data.banks)) {
+    console.warn('project-0 adapter: unexpected /v0/bankMetrics shape', response.data);
     return [];
   }
 
-  const banks = response.data.data;
+  const pools = response.data.banks
+    // Skip empty banks: no supplied liquidity, and their supply APY is undefined.
+    .filter((bank) => bank.priced && (Number(bank.totalDepositsUsd) || 0) > 0)
+    .map((bank) => {
+      const mint = bank.mint;
+      const totalSupplyUsd = Number(bank.totalDepositsUsd) || 0;
+      const totalBorrowUsd = Number(bank.totalBorrowsUsd) || 0;
+      // Pool TVL = liquidity not lent out (DefiLlama lending convention).
+      // Use the API value only when it's a finite number; otherwise compute it.
+      const availableLiquidityUsd =
+        bank.availableLiquidityUsd == null ? null : Number(bank.availableLiquidityUsd);
+      const liquidityUsd = Number.isFinite(availableLiquidityUsd)
+        ? Math.max(availableLiquidityUsd, 0)
+        : Math.max(totalSupplyUsd - totalBorrowUsd, 0);
 
-  const bankApys = banks.map((bank) => {
-    // Use _current suffix fields for current USD valuations
-    const bankAddress = bank.bank_address;
-    const symbol = bank.symbol || 'UNKNOWN';
-    const mint = bank.mint;
-    const tvlUsd = Number(bank.tvl_usd_current) || 0;
-    const totalDepositsUsd = Number(bank.total_deposits_usd_current) || 0;
-    const totalBorrowsUsd = Number(bank.total_borrows_usd_current) || 0;
-    
-    // deposit_rate and borrow_rate are in decimal form (e.g., 0.05 for 5%)
-    // Convert to percentage by multiplying by 100
-    const depositRate = Number(bank.deposit_rate) || 0;
-    const borrowRate = Number(bank.borrow_rate) || 0;
-    const apyBase = depositRate * 100;
-    const apyBaseBorrow = borrowRate * 100;
+      const borrowLimitUsd =
+        bank.borrowLimitUsd == null ? null : Number(bank.borrowLimitUsd);
+      // Uncapped banks (borrowLimitUsd null = on-chain limit 0) can be borrowed
+      // up to available liquidity, so that's the reported capacity.
+      const availableBorrowUsd = Number.isFinite(borrowLimitUsd)
+        ? Math.max(Math.min(liquidityUsd, borrowLimitUsd - totalBorrowUsd), 0)
+        : liquidityUsd;
 
-    return {
-      pool: `project-0-${bankAddress}`,
-      chain: 'Solana',
-      project: 'project-0',
-      symbol: utils.formatSymbol(symbol),
-      underlyingTokens: mint ? [mint] : undefined,
-      tvlUsd: tvlUsd,
-      url: mint ? `https://app.0.xyz/markets/${mint}` : 'https://app.0.xyz/',
-      apyBase: apyBase,
-      totalSupplyUsd: totalDepositsUsd,
-      totalBorrowUsd: totalBorrowsUsd,
-      apyBaseBorrow: apyBaseBorrow,
-    };
-  });
+      // depositApy / borrowApy are decimal fractions; DefiLlama wants percent.
+      const apyBase = (Number(bank.depositApy) || 0) * 100;
+      const apyBaseBorrow = (Number(bank.borrowApy) || 0) * 100;
 
-  return utils.removeDuplicates(bankApys);
+      return {
+        pool: `project-0-${bank.bank}`,
+        chain: 'Solana',
+        project: 'project-0',
+        symbol: bank.symbol || 'UNKNOWN',
+        underlyingTokens: mint ? [mint] : undefined,
+        tvlUsd: liquidityUsd,
+        url: mint ? `https://app.0.xyz/markets/${mint}` : 'https://app.0.xyz/',
+        apyBase,
+        apyBaseBorrow,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        availableBorrowUsd,
+        ...(mint && { borrowToken: mint }),
+        borrowable: availableBorrowUsd > 0,
+      };
+    });
+
+  return utils.removeDuplicates(pools);
 };
 
 module.exports = {
+  protocolId: '7184',
   apy: getApy,
   url: 'https://app.0.xyz/',
 };

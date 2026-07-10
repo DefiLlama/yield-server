@@ -19,6 +19,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1914',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://www.scalara.xyz/indices/pony',

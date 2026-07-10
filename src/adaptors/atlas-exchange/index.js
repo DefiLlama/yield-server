@@ -59,9 +59,7 @@ const topLvl = async (chainString, url, timestamp) => {
     data = data.map((p) => utils.apy(p, dataPrior, []));
 
     return data.map((p) => {
-      const symbol = utils.formatSymbol(
-        `${p.token0.symbol}-${p.token1.symbol}`
-      );
+      const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
@@ -91,6 +89,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '5924',
   apy: main,
   timetravel: false,
   url: 'https://atlasexchange.xyz/pools',

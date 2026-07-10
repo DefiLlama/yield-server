@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { get } = require('lodash');
 const sdk = require('@defillama/sdk');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 // Helper for chain ids
 const CHAIN_CONFIG = {
@@ -82,7 +83,7 @@ const getPrices = async (chain, addresses) => {
 
   const priceKeys = addresses.map((address) => `${chain}:${address}`).join(',');
   const response = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKeys.toLowerCase()}`
+    getPriceApiUrl(`/prices/current/${priceKeys.toLowerCase()}`)
   );
 
   const prices = response.data.coins || {};
@@ -124,8 +125,8 @@ const getVaultData = async (vaultConfig) => {
   // Get block numbers for historical data
   const chain = CHAIN_CONFIG[vaultConfig.chainId].chain;
   const [block1dayAgo, block7dayAgo] = await Promise.all([
-    axios.get(`https://coins.llama.fi/block/${chain}/${timestamp1dayAgo}`),
-    axios.get(`https://coins.llama.fi/block/${chain}/${timestamp7dayAgo}`)
+    axios.get(getPriceApiUrl(`/block/${chain}/${timestamp1dayAgo}`)),
+    axios.get(getPriceApiUrl(`/block/${chain}/${timestamp7dayAgo}`))
   ]);
 
   // Get exchange rates from accountant
@@ -163,9 +164,7 @@ const getVaultData = async (vaultConfig) => {
 
   // Get underlying token price
   const priceKey = `${chain}:${vaultConfig.underlyingToken}`;
-  const underlyingPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const underlyingPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   if (!underlyingPrice) {
     console.log(`Underlying token price not found, skipping ${vaultConfig.symbol} vault`);
@@ -325,6 +324,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '475',
   timetravel: false,
   apy: main,
   url: 'https://yieldyak.com/',

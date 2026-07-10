@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { getTotalSupply, getSanctumLstApy } = require('../utils');
+const { getTotalSupply, getSanctumLstApy, getPriceApiUrl } = require('../utils');
 
 const DZSOL_MINT = 'Gekfj7SL2fVpTDxJZmeC46cTYxinjB6gkAnb6EGT6mnn';
 const priceKey = `solana:${DZSOL_MINT}`;
@@ -8,7 +8,7 @@ const SOL = 'So11111111111111111111111111111111111111112';
 const apy = async () => {
   const [totalSupply, priceRes, apyBase] = await Promise.all([
     getTotalSupply(DZSOL_MINT),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
     getSanctumLstApy(DZSOL_MINT),
   ]);
 
@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6976',
   timetravel: false,
   apy,
   url: 'https://doublezero.xyz/staking',

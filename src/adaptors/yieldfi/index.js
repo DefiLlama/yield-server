@@ -234,7 +234,7 @@ const createPool = (tokenAddress, symbol, chain, tvl, apy) => {
     pool: `${tokenAddress}-${chain}`,
     chain: chain,
     project: 'yieldfi',
-    symbol: utils.formatSymbol(symbol),
+    symbol: symbol,
     tvlUsd: tvl,
     apyBase: apy,
     url: `${BASE_URL}/vaults/${vaultSlug}`,
@@ -329,6 +329,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '5588',
   timetravel: false,
   apy: poolsFunction,
   url: BASE_URL + '/',

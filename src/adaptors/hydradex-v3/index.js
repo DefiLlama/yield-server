@@ -4,8 +4,6 @@ const axios = require('axios');
 
 const utils = require('../utils');
 const { EstimatedFees } = require('../uniswap-v3/estimateFee.ts');
-const { checkStablecoin } = require('../../handlers/triggerEnrichment');
-const { boundaries } = require('../../utils/exclude');
 
 const WHYDRA = '0x6d9115a21863ce31b44cd231e4c4ccc87566222f';
 const ignoreIncentives = [
@@ -144,15 +142,16 @@ const topLvl = async (
 
     // to reduce the nb of subgraph calls for tick range, we apply the lb db filter in here
     dataNow = dataNow.filter(
-      (p) => p.totalValueLockedUSD >= boundaries.tvlUsdDB.lb
+      (p) => p.totalValueLockedUSD >= utils.MIN_TVL_USD
     );
     // add the symbol for the stablecoin (we need to distinguish btw stable and non stable pools
     // so we apply the correct tick range)
     dataNow = dataNow.map((p) => {
-      const symbol = utils.formatSymbol(
-        `${p.token0.symbol}-${p.token1.symbol}`
+      const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
+      const stablecoin = utils.checkStablecoin(
+        { ...p, symbol: utils.formatSymbol(symbol) },
+        stablecoins
       );
-      const stablecoin = checkStablecoin({ ...p, symbol }, stablecoins);
       return {
         ...p,
         symbol,
@@ -278,7 +277,7 @@ const topLvl = async (
         pool: p.id,
         chain: utils.formatChain(chainString),
         project: 'hydradex-v3',
-        poolMeta: `${poolMeta}, stablePool=${p.stablecoin}`,
+        poolMeta,
         symbol: p.symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
@@ -317,6 +316,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2910',
   timetravel: false,
   apy: main,
 };

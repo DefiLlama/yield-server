@@ -29,7 +29,7 @@ const buildObject = (entry, tokenString, chainString, serviceName) => {
     pool: tokenAddresses[serviceName],
     chain: utils.formatChain(chainString),
     project: 'ankr',
-    symbol: utils.formatSymbol(tokenString),
+    symbol: tokenString,
     tvlUsd: Number(entry.totalStakedUsd),
     apyBase: Number(entry.apy),
     url: `https://www.ankr.com/staking/stake/${serviceToUrl[serviceName]}`,
@@ -74,6 +74,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '278',
   timetravel: false,
   apy: main,
 };

@@ -67,6 +67,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '6500',
   timetravel: false,
   apy: main,
   url: 'https://app.parallel.best/earn',

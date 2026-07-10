@@ -996,8 +996,7 @@ const CAMPAIGN_ID_MAP = {
   MBASIS: '0xd5cca8591d67180b9031f521d1858161918102f4d0c7cabd45907c65105bb16c',
 };
 
-const MERKLE_BASE_URL =
-  'https://api.merkl.xyz/v4/campaigns/?chainId=CHAIN_ID&campaignId=CAMPAIGN_ID&withOpportunity=true';
+const MERKL_CAMPAIGNS_PATH = '/v4/campaigns';
 
 const APPLE_REWARD_TOKEN = '0x6E9C1F88a960fE63387eb4b71BC525a9313d8461';
 
@@ -1010,7 +1009,7 @@ module.exports = {
   UI_POOL_DATA_PROVIDER,
   PROVIDER_ADDRESS,
   CHAIN_ID,
-  MERKLE_BASE_URL,
+  MERKL_CAMPAIGNS_PATH,
   CAMPAIGN_ID_MAP,
   APPLE_REWARD_TOKEN,
 };

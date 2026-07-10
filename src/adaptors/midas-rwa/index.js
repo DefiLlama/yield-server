@@ -30,7 +30,8 @@ const poolsFunction = async () => {
           pool: `${tokenConfig.address.toLowerCase()}-${chain.toLowerCase()}`,
           chain: utils.formatChain(chain),
           project: 'midas-rwa',
-          symbol: token,
+          symbol: tokenConfig.denomination || 'USDC',
+          poolMeta: token,
           tvlUsd,
           apyBase: apy,
           url: tokenConfig.url,
@@ -49,6 +50,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '4873',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://midas.app/',

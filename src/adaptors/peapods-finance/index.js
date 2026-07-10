@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 // ========== MULTICALL BATCH SIZE ==========
 const MULTICALL_BATCH_SIZE = 100; // Maximum number of calls per multicall batch
@@ -200,7 +201,7 @@ async function getAssetPrices(uniqueAssets, chainConfig) {
   const pricesArray = assetAddrs.map(
     (addr) => `${chainName}:${addr.toLowerCase()}`
   );
-  const url = `https://coins.llama.fi/prices/current/${pricesArray.join(',')}`;
+  const url = getPriceApiUrl(`/prices/current/${pricesArray.join(',')}`);
   let prices = {};
   try {
     const { data } = await axios.get(url);
@@ -371,6 +372,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '4063',
   timetravel: false,
   apy: main,
 };

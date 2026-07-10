@@ -88,6 +88,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1726',
   timetravel: false,
   apy: getApy,
   url: 'https://meshswap.fi/exchange/pool',

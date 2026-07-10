@@ -1,5 +1,4 @@
 const utils = require('../utils');
-const fetch = require('node-fetch');
 
 const API_URL: string =
   'https://api-chain-eth.unicrypt.network/api/v1/farms/search';
@@ -71,6 +70,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1765',
   timetravel: false,
   apy: getApy,
   url: 'https://app.unicrypt.network/chain/mainnet/farms',

@@ -117,6 +117,7 @@ const getApy = async (param) => {
 };
 
 module.exports = {
+  protocolId: '1736',
   apy: getApy,
   url: 'https://muuu.finance/app/stake',
 };

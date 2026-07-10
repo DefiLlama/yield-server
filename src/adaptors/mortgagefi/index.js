@@ -2,6 +2,7 @@
 
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
+const { getPriceApiUrl } = require('../utils');
 
 
 //Calculate APR function uses the last 45 days of rewards to calculate yield
@@ -56,7 +57,7 @@ const apy = async () => {
     let usdcWethVault = PoolHolder[0];
     let usdcCbBtcVault = PoolHolder[1];
     let usdtWbtcVault = PoolHolder[2];
-    const allPrices = await axios.get(`https://coins.llama.fi/prices/current/base:${usdcWethVault.collateralAddress},base:${usdcWethVault.stableAddress},base:${usdcCbBtcVault.collateralAddress},base:${usdcCbBtcVault.stableAddress},arbitrum:${usdtWbtcVault.collateralAddress},arbitrum:${usdtWbtcVault.stableAddress}`);
+    const allPrices = await axios.get(getPriceApiUrl(`/prices/current/base:${usdcWethVault.collateralAddress},base:${usdcWethVault.stableAddress},base:${usdcCbBtcVault.collateralAddress},base:${usdcCbBtcVault.stableAddress},arbitrum:${usdtWbtcVault.collateralAddress},arbitrum:${usdtWbtcVault.stableAddress}`));
 
     baseCalls.push({
         target: usdcCbBtcVault.poolAddress,
@@ -160,6 +161,7 @@ const apy = async () => {
 }
 
 module.exports = {
+  protocolId: '5395',
     timetravel: false,
     apy: apy,
     url: 'https://mortgagefi.app/markets',

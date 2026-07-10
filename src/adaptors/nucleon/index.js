@@ -64,9 +64,7 @@ const getPrices = async (addresses) => {
     .map((address) => `conflux:${address}`)
     .join(',')
     .toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${coins}`)).coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -432,6 +430,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2572',
   timetravel: false,
   apy: getApy,
   url: 'https://www.nucleon.space/',

@@ -2,6 +2,7 @@ const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 const { convertToAssets, totalAssets } = require('./queries');
 const { getProvider } = require('@defillama/sdk/build/general');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 const provider = getProvider('ethereum');
 
 // ****
@@ -9,16 +10,14 @@ const provider = getProvider('ethereum');
 // ****
 const getBlockNumberFromTimestamp = async (timestamp) => {
   const response = await axios.get(
-    `https://coins.llama.fi/block/ethereum/${timestamp}`
+    getPriceApiUrl(`/block/ethereum/${timestamp}`)
   );
   return response.data.height;
 };
 
 const getTokenPrice = async (tokenAddress) => {
   const priceKey = `ethereum:${tokenAddress}`;
-  const tokenPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const tokenPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
   return tokenPrice;
 };
 
@@ -152,6 +151,7 @@ const vaultApys = async () => {
 };
 
 module.exports = {
+  protocolId: '1924',
   timetravel: false,
   apy: vaultApys,
   url: 'https://app.pods.finance',

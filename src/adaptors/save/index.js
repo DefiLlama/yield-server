@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 
 const utils = require('../utils');
 
@@ -72,6 +71,13 @@ const main = async () => {
       (liquidity.marketPrice / 10 ** 18);
 
     const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+    const borrowLimitUsd =
+      (Number(reserveData.reserve.config.borrowLimit) /
+        10 ** liquidity.mintDecimals) *
+      (liquidity.marketPrice / 10 ** 18);
+    const availableBorrowUsd = borrowLimitUsd
+      ? Math.max(Math.min(tvlUsd, borrowLimitUsd - totalBorrowUsd), 0)
+      : 0;
 
     return {
       pool: reserveConfig.address,
@@ -79,6 +85,7 @@ const main = async () => {
       project: 'save',
       symbol: `${reserveConfig.liquidityToken.symbol}`,
       poolMeta: secondaryString,
+      routeGroupKey: reserveData.reserve.lendingMarket,
       tvlUsd,
       apyBase,
       apyReward,
@@ -86,15 +93,19 @@ const main = async () => {
       underlyingTokens: [reserveData.reserve.liquidity.mintPubkey],
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       apyBaseBorrow,
+      borrowToken: reserveData.reserve.liquidity.mintPubkey,
       apyRewardBorrow: apyRewardBorrow > 0 ? apyRewardBorrow : null,
       ltv: reserveData.reserve.config.loanToValueRatio / 100,
+      borrowable: borrowLimitUsd > 0,
     };
   });
 };
 
 module.exports = {
+  protocolId: '458',
   timetravel: false,
   apy: main,
-  url: 'https://solend.fi/pools',
+  url: 'https://save.finance/',
 };

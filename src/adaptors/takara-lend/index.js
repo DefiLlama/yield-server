@@ -3,17 +3,103 @@ const utils = require('../utils');
 const abis = require('./takara-lend.json');
 const ethers = require('ethers');
 
-const markets_state = '0x4fFD2B969f883679c008838329d249E295aafC3C';
+const unitroller = '0x71034bf5eC0FAd7aEE81a213403c8892F3d8CAeE';
+const oracle = '0xD6a275072dceC8a319c0C7178951A0CF9DCC0447';
+const rewards = '0x28BF6D71b6Dc837F56F5afbF1F4A46AaC0B1f31E';
+const partnerRewards = '0xD41dF247d0772207Af828Ffe732BA3c8212d6eb3';
 const chain = utils.formatChain('Sei');
+const sdkChain = 'sei';
 const project = 'takara-lend';
 
-function multiplyWithPrecision(a, aDecimals, b, bDecimals, resultDecimals = 18) {
-  const scaleA = 10n ** BigInt(aDecimals);
-  const scaleB = 10n ** BigInt(bDecimals);
-  const scaleResult = 10n ** BigInt(resultDecimals);
+const secondsPerYear = 86400n * 365n;
 
-  return (a * b * scaleResult) / (scaleA * scaleB);
-}
+const comptrollerAbi = [
+  {
+    name: 'getAllMarkets',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address[]' }],
+  },
+  {
+    name: 'markets',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ type: 'address' }],
+    outputs: [
+      { name: 'isListed', type: 'bool' },
+      { name: 'collateralFactorMantissa', type: 'uint256' },
+    ],
+  },
+];
+
+const tTokenAbi = [
+  {
+    name: 'underlying',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    name: 'getCash',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    name: 'totalBorrows',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    name: 'supplyRatePerBlock',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    name: 'borrowRatePerBlock',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+];
+
+const erc20Abi = [
+  {
+    name: 'symbol',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'string' }],
+  },
+  {
+    name: 'decimals',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint8' }],
+  },
+];
+
+const oracleAbi = {
+  name: 'getUnderlyingPrice',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [{ type: 'address' }],
+  outputs: [{ type: 'uint256' }],
+};
+
+const rewardsConfigAbi = {
+  ...abis.find((m) => m.name === 'getRewardsAllMarketConfigs'),
+  name: 'getAllMarketConfigs',
+};
 
 function calculateApy(ratePerSecond, compoundingsPerYear) {
   ratePerSecond = BigInt(ratePerSecond);
@@ -45,157 +131,222 @@ function calculateApy(ratePerSecond, compoundingsPerYear) {
 }
 
 function yearly(emissionPerSec) {
-  return emissionPerSec * 86400n * 365n;   // BigInt
+  return emissionPerSec * secondsPerYear;
 }
 
-function calcSubsidyPct(configs, supplyUsdFixed18, supplyTokenDec, oracleMap) {
-  const bySymbol = new Map();         
-    configs
+function toBigInt(value) {
+  return BigInt(value.toString());
+}
+
+function toUsdFixed18(amount, price) {
+  return (toBigInt(amount) * toBigInt(price)) / 10n ** 18n;
+}
+
+function formatUsd(usdFixed18) {
+  return Number(ethers.utils.formatUnits(usdFixed18, 18));
+}
+
+function calcSubsidyPct(configs, supplyUsdFixed18, oracleMap) {
+  const bySymbol = new Map();
+  if (supplyUsdFixed18 === 0n) return [];
+
+  configs
     .filter((n) => BigInt(n.endTime) > BigInt(Math.floor(Date.now() / 1000)))
     .map((cfg) => {
       const oracle = oracleMap.get(cfg.emissionToken.toLowerCase());
       if (!oracle || cfg.supplyEmissionsPerSec === '0') return;
 
-      const yearlyAmt   = yearly(BigInt(cfg.supplyEmissionsPerSec));  
-
-      const yearlyUsd18 = multiplyWithPrecision(yearlyAmt, Number(oracle.decimals), BigInt(oracle.price), 18, 18n);
+      const yearlyAmt = yearly(BigInt(cfg.supplyEmissionsPerSec));
+      const yearlyUsd18 = toUsdFixed18(yearlyAmt, oracle.price);
 
       const pct18 = (yearlyUsd18 * 100n * 10n ** 18n) / supplyUsdFixed18;
 
-      const prev = bySymbol.get(oracle.symbol) || 0n;
-      bySymbol.set(oracle.symbol, prev + pct18);
+      const prev = bySymbol.get(oracle.symbol) || {
+        value: 0n,
+        token: oracle.token,
+      };
+      bySymbol.set(oracle.symbol, { ...prev, value: prev.value + pct18 });
     });
 
-    return Array.from(bySymbol.entries()).map(([name, pct18]) => ({
-      name,
-      value: Number(ethers.utils.formatEther(pct18, 18)),  
-    }));
+  return Array.from(bySymbol.entries()).map(([name, subsidy]) => ({
+    name,
+    token: subsidy.token,
+    value: Number(ethers.utils.formatUnits(subsidy.value, 18)),
+  }));
 }
 
-const apy = async () => {
-  const {output:allMarketsMetadata} = (
-    await sdk.api.abi.call({
-      target: markets_state,
-      abi: abis.find((m) => m.name === 'getActiveMarketsInfo'),
-      chain: 'sei',
+const multiCallMarkets = async (markets, method, abi, target) =>
+  (
+    await sdk.api.abi.multiCall({
+      chain: sdkChain,
+      target,
+      calls: markets.map((market) => ({ target: market })),
+      abi: abi.find(({ name }) => name === method),
+      permitFailure: true,
     })
+  ).output.map(({ output }) => output);
+
+const apy = async () => {
+  const { output: allMarketsRes } = await sdk.api.abi.call({
+    target: unitroller,
+    abi: comptrollerAbi.find((m) => m.name === 'getAllMarkets'),
+    chain: sdkChain,
+  });
+  const rTokens = Object.values(allMarketsRes);
+
+  const [
+    marketsInfo,
+    underlyingTokens,
+    marketsCash,
+    totalBorrows,
+    supplyRatePerBlock,
+    borrowRatePerBlock,
+    underlyingPrices,
+  ] = await Promise.all([
+    sdk.api.abi.multiCall({
+      chain: sdkChain,
+      calls: rTokens.map((market) => ({
+        target: unitroller,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'markets'),
+      permitFailure: true,
+    }),
+    multiCallMarkets(rTokens, 'underlying', tTokenAbi),
+    multiCallMarkets(rTokens, 'getCash', tTokenAbi),
+    multiCallMarkets(rTokens, 'totalBorrows', tTokenAbi),
+    multiCallMarkets(rTokens, 'supplyRatePerBlock', tTokenAbi),
+    multiCallMarkets(rTokens, 'borrowRatePerBlock', tTokenAbi),
+    sdk.api.abi.multiCall({
+      chain: sdkChain,
+      calls: rTokens.map((market) => ({
+        target: oracle,
+        params: [market],
+      })),
+      abi: oracleAbi,
+      permitFailure: true,
+    }),
+  ]);
+
+  const underlyingSymbols = await multiCallMarkets(
+    underlyingTokens,
+    'symbol',
+    erc20Abi
   );
+
+  const underlyingDecimals = await multiCallMarkets(
+    underlyingTokens,
+    'decimals',
+    erc20Abi
+  );
+
   const oracleMap = new Map();
-  const rTokens = allMarketsMetadata.map((m)=> {
-    oracleMap.set(m.underlying.toLowerCase(), {
-      price:     BigInt(m.price),           // 18 位
-      decimals:  Number(m.decimals),
-      symbol:    m.underlyingSymbol,
+  underlyingTokens.forEach((underlying, i) => {
+    if (!underlying || !underlyingPrices.output[i].output) return;
+
+    oracleMap.set(underlying.toLowerCase(), {
+      token: underlying,
+      price: toBigInt(underlyingPrices.output[i].output),
+      decimals: Number(underlyingDecimals[i]),
+      symbol: underlyingSymbols[i],
     });
-    return m.token;
   });
 
   const { output: partnerRaw } = await sdk.api.abi.multiCall({
-    chain: 'sei',
-    abi: abis.find(m => m.name === 'getPartnerRewardsAllMarketConfigs'),
-    target: markets_state,
-    calls: rTokens.map(t => ({ params: [t] })),
+    chain: sdkChain,
+    abi: rewardsConfigAbi,
+    target: partnerRewards,
+    calls: rTokens.map((t) => ({ params: [t] })),
+    permitFailure: true,
   });
 
   const { output: rewardsRaw } = await sdk.api.abi.multiCall({
-    chain: 'sei',
-    abi: abis.find(m => m.name === 'getRewardsAllMarketConfigs'),
-    target: markets_state,
-    calls: rTokens.map(t => ({ params: [t] })),
+    chain: sdkChain,
+    abi: rewardsConfigAbi,
+    target: rewards,
+    calls: rTokens.map((t) => ({ params: [t] })),
+    permitFailure: true,
   });
 
+  const pools = rTokens
+    .map((token, i) => {
+      if (!underlyingTokens[i] || !underlyingPrices.output[i].output)
+        return null;
 
-  const pools = allMarketsMetadata.map((marketInfo, i) => {
-    const pool = `${marketInfo.token}-${chain}`.toLowerCase();
-    const underlyingSymbol = marketInfo.underlyingSymbol;
+      const pool = `${token}-${chain}`.toLowerCase();
+      const underlyingSymbol = underlyingSymbols[i];
+      const underlying = underlyingTokens[i];
+      const price = toBigInt(underlyingPrices.output[i].output);
+      const cashUsdFixed = toUsdFixed18(marketsCash[i], price);
+      const totalBorrowUsdFixed = toUsdFixed18(totalBorrows[i], price);
+      const totalSupplyUsdFixed = cashUsdFixed + totalBorrowUsdFixed;
 
-    const poolMeta = `Takara Lend ${underlyingSymbol} Market`;
-    const tvlUsd = Number(ethers.utils.formatEther(marketInfo.tvl));
-    const ltv = Number(ethers.utils.formatEther(marketInfo.ltv));
-    const totalSupplyUsd = Number(
-      ethers.utils.formatEther(marketInfo.totalSupply)
-    );
-    const totalBorrowUsd = Number(
-      ethers.utils.formatEther(marketInfo.totalBorrows)
-    );
-    const borrowRatePerBlock = marketInfo.borrowRatePerBlock;
-    const supplyRatePerBlock = marketInfo.supplyRatePerBlock;
-    const timestampsPerYear = marketInfo.timestampsPerYear;
+      const tvlUsd = formatUsd(cashUsdFixed);
+      const ltv = Number(
+        ethers.utils.formatUnits(
+          marketsInfo.output[i].output.collateralFactorMantissa,
+          18
+        )
+      );
+      const totalBorrowUsd = formatUsd(totalBorrowUsdFixed);
+      const totalSupplyUsd = formatUsd(totalSupplyUsdFixed);
 
-    const apyBase = calculateApy(supplyRatePerBlock, timestampsPerYear);
-    const apyBaseBorrow = calculateApy(borrowRatePerBlock, timestampsPerYear);
+      const apyBase = calculateApy(supplyRatePerBlock[i], secondsPerYear);
+      const apyBaseBorrow = calculateApy(borrowRatePerBlock[i], secondsPerYear);
 
-    const url = `https://app.takaralend.com/market/${underlyingSymbol}`;
+      const url = `https://app.takaralend.com/market/${underlyingSymbol}`;
 
+      const rewards = rewardsRaw[i].output || [];
+      const partnerRewards = partnerRaw[i].output || [];
 
-    const underlyingTot = multiplyWithPrecision(
-      BigInt(marketInfo.orginTotalSupply),           
-      Number(marketInfo.decimals),             
-      BigInt(marketInfo.exchangeRateStored),    
-      18,
-      Number(marketInfo.decimals)     
-    );
-    
-    const supplyUsdFixed = multiplyWithPrecision(
-      underlyingTot,
-      Number(marketInfo.decimals),
-      BigInt(marketInfo.price),                 
-      18,
-      18                         
-    );
-    const rewards = rewardsRaw[i].output ||[];
-    const partnerRewards = partnerRaw[i].output||[];
+      let apyReward = 0;
+      let rewardTokens = [];
 
-    let apyReward = 0;
-    const SubsidyList = [];
-    const rewardTokens = [];
-
-    if(underlyingTot !== 0n || supplyUsdFixed !== 0n) {
-        const rewardList  = calcSubsidyPct(
+      if (totalSupplyUsdFixed !== 0n) {
+        const rewardList = calcSubsidyPct(
           rewards,
-          supplyUsdFixed,
-          Number(marketInfo.decimals),
-          oracleMap,
+          totalSupplyUsdFixed,
+          oracleMap
         );
         const partnerList = calcSubsidyPct(
           partnerRewards,
-          supplyUsdFixed,
-          Number(marketInfo.decimals),
-          oracleMap,
+          totalSupplyUsdFixed,
+          oracleMap
         );
-        const allSubsidy  = [...partnerList, ...rewardList];
-        apyReward = Number(allSubsidy.reduce((acc, item) => acc + item.value, 0).toFixed(2));
-        const tokens = [...new Set([ ...partnerList, ...rewardList ].map(o => o.name))];
-        allMarketsMetadata.forEach(item=>{
-          if(tokens.includes(item.underlyingSymbol)){
-            rewardTokens.push(item.underlying)
-          }
-        })
-    }
+        const allSubsidy = [...partnerList, ...rewardList];
+        apyReward = Number(
+          allSubsidy.reduce((acc, item) => acc + item.value, 0).toFixed(2)
+        );
+        rewardTokens = [...new Set(allSubsidy.map((o) => o.token))];
+      }
 
-    return {
-      pool,
-      chain,
-      project,
-      poolMeta,
-      ltv,
-      tvlUsd,
-      totalSupplyUsd,
-      totalBorrowUsd,
-      apyBase,
-      apyBaseBorrow,
-      apyReward: apyReward,
-      rewardTokens: rewardTokens,
-      symbol: underlyingSymbol,
-      underlyingTokens: [marketInfo.underlying],    
-      url,
-    };
-  });
+      return {
+        pool,
+        chain,
+        project,
+        ltv,
+        tvlUsd,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        availableBorrowUsd: tvlUsd,
+        apyBase,
+        apyBaseBorrow,
+        borrowToken: underlying,
+        borrowable: true,
+        apyReward: apyReward,
+        rewardTokens: rewardTokens,
+        symbol: underlyingSymbol,
+        underlyingTokens: [underlying],
+        url,
+      };
+    })
+    .filter(Boolean);
 
   return pools;
 };
 
 module.exports = {
+  protocolId: '5783',
   timetravel: false,
   apy: apy,
   url: 'https://app.takaralend.com',

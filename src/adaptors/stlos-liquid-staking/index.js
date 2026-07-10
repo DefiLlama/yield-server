@@ -17,9 +17,7 @@ async function poolsFunction(timestamp, block, chainBlocks) {
     ).output / 1e18;
 
   const priceKey = 'coingecko:telos';
-  const telosPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const telosPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const apyPercentage = (await axios.get('https://api.telos.net/v1/apy/evm'))
     .data;
@@ -29,7 +27,7 @@ async function poolsFunction(timestamp, block, chainBlocks) {
       pool: sTLOS,
       chain: utils.formatChain('telos'),
       project: 'stlos-liquid-staking',
-      symbol: utils.formatSymbol('sTLOS'),
+      symbol: 'sTLOS',
       tvlUsd: pooledTLOS * telosPrice,
       apyBase: apyPercentage,
       underlyingTokens: [WTLOS],
@@ -40,6 +38,7 @@ async function poolsFunction(timestamp, block, chainBlocks) {
 }
 
 module.exports = {
+  protocolId: '2212',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://www.teloscan.io/staking',

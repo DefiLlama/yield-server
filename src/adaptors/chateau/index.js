@@ -25,8 +25,8 @@ async function getPoolData(chain, chainConfig) {
 
     // Get blocks for current and 24h ago
     const [blockNowRes, blockYesterdayRes] = await Promise.all([
-      utils.getData(`https://coins.llama.fi/block/${chain}/${timestamp}`),
-      utils.getData(`https://coins.llama.fi/block/${chain}/${timestampYesterday}`),
+      utils.getPriceApiData(`/block/${chain}/${timestamp}`),
+      utils.getPriceApiData(`/block/${chain}/${timestampYesterday}`),
     ]);
 
     const blockNow = blockNowRes.height;
@@ -90,6 +90,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7150',
   timetravel: false,
   apy,
   url: 'https://app.chateau.capital',

@@ -13,6 +13,15 @@ const BASE_STARGATE_LP_STRATEGY = require('./abis/BaseStargateLPStrategy.json');
 const FEE_COLLECTABLE_STRATEGY = require('./abis/FeeCollectable.json');
 
 const MIM_COINGECKO_ID = 'magic-internet-money';
+const MIM_TOKEN_BY_CHAIN = {
+  arbitrum: '0xfea7a6a0b346362bf88a9e4a88416b77a57d6c2a',
+  avax: '0x130966628846bfd36ff31a822705796e8cb8c18d',
+  bsc: '0xfe19f0b51438fd612f6fd59c1dbb3ea319f433ba',
+  ethereum: '0x99d8a9c45b2eca8864373a26d1459e3dff1e17f3',
+  fantom: '0x82f0b8b456c1a451378467398982d4834b6829c1',
+  optimism: '0xb153fb3d196a8eb25522705560ac152eeec57901',
+  kava: '0x471ee749ba270eb4c1165b5ad95e614947f6fceb',
+};
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const POOLS = {
@@ -664,7 +673,7 @@ const marketInfoToPool = (chain, marketInfo, collateral, pricesObj) => {
   const pool = {
     pool: `${marketInfo.address}-${chain}`,
     chain: utils.formatChain(chain),
-    symbol: marketInfo.symbol ?? utils.formatSymbol(collateral.symbol),
+    symbol: marketInfo.symbol ?? collateral.symbol,
     tvlUsd: totalSupplyUsd,
     apyBaseBorrow,
     totalSupplyUsd,
@@ -672,6 +681,7 @@ const marketInfoToPool = (chain, marketInfo, collateral, pricesObj) => {
     ltv,
     debtCeilingUsd,
     mintedCoin: 'MIM',
+    borrowToken: MIM_TOKEN_BY_CHAIN[chain],
     underlyingTokens: [collateral.address],
   };
 

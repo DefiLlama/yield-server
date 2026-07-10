@@ -23,6 +23,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2297',
   timetravel: false,
   apy: main,
   url: 'https://frfi.io/pools',

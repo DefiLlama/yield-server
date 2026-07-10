@@ -1,7 +1,6 @@
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const sdk = require('@defillama/sdk');
-const { request, gql, batchRequests } = require('graphql-request');
 const { MRD_ABI, VIEWS_ABI } = require('./abi');
 const axios = require('axios');
 
@@ -16,13 +15,9 @@ const DAYS_PER_YEAR = 365;
 const NOW = new Date().getTime() / 1000;
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -72,36 +67,99 @@ const multicallViews = async (network) => {
   ).output.map(({ output }) => output);
 };
 
-const API_URL = 'https://ponder.moonwell.fi/';
-
-const query = gql`
+const CHAINS = [
+  { network: 'base', chainId: 8453 },
   {
-    markets(limit: 1000) {
-      items {
-        id
-        address
-        chainId
-        collateralFactor
-        interestRateModelAddress
-        priceFeedAddress
-        reserveFactor
-        underlyingTokenAddress
+    network: 'moonbeam',
+    chainId: 1284,
+    nativeSymbol: 'GLMR',
+    nativeMTokens: ['0x091608f4e4a15335145be0a279483c0f8e4c7955'],
+  },
+  { network: 'optimism', chainId: 10 },
+];
+
+const fetchMarketsAndTokens = async () => {
+  const markets = [];
+  const tokens = [];
+  for (const { network, chainId, nativeSymbol, nativeMTokens } of CHAINS) {
+    const viewsRes = await multicallViews(network);
+    if (!viewsRes || !viewsRes[0]) continue;
+    const mTokens = viewsRes[0]
+      .filter((p) => p.isListed)
+      .map((p) => p.market);
+
+    const underlyingRes = await sdk.api.abi.multiCall({
+      chain: network,
+      calls: mTokens.map((t) => ({ target: t })),
+      abi: 'address:underlying',
+      permitFailure: true,
+    });
+
+    const knownNative = new Set((nativeMTokens || []).map((a) => a.toLowerCase()));
+    const validUnderlyings = new Set();
+    mTokens.forEach((mToken, i) => {
+      const o = underlyingRes.output[i];
+      const mTokenLc = mToken.toLowerCase();
+      if (o.success && o.output) {
+        const underlying = o.output.toLowerCase();
+        markets.push({
+          address: mTokenLc,
+          chainId,
+          underlyingTokenAddress: underlying,
+        });
+        validUnderlyings.add(underlying);
+      } else if (knownNative.has(mTokenLc)) {
+        markets.push({
+          address: mTokenLc,
+          chainId,
+          underlyingTokenAddress: '0x0000000000000000000000000000000000000000',
+        });
       }
-    }
-    tokens(limit: 1000) {
-      items {
-        id
-        address
-        chainId
-        symbol
-        decimals
+    });
+
+    const underlyingList = Array.from(validUnderlyings);
+    const [decimalsRes, symbolRes] = await Promise.all([
+      sdk.api.abi.multiCall({
+        chain: network,
+        calls: underlyingList.map((t) => ({ target: t })),
+        abi: 'erc20:decimals',
+        permitFailure: true,
+      }),
+      sdk.api.abi.multiCall({
+        chain: network,
+        calls: underlyingList.map((t) => ({ target: t })),
+        abi: 'erc20:symbol',
+        permitFailure: true,
+      }),
+    ]);
+
+    underlyingList.forEach((addr, i) => {
+      const dOk = decimalsRes.output[i].success;
+      const sOk = symbolRes.output[i].success;
+      if (dOk && sOk) {
+        tokens.push({
+          address: addr,
+          chainId,
+          decimals: Number(decimalsRes.output[i].output),
+          symbol: symbolRes.output[i].output,
+        });
       }
+    });
+
+    if (nativeSymbol) {
+      tokens.push({
+        address: '0x0000000000000000000000000000000000000000',
+        chainId,
+        decimals: 18,
+        symbol: nativeSymbol,
+      });
     }
   }
-`;
+  return { markets: { items: markets }, tokens: { items: tokens } };
+};
 
 const getApy = async () => {
-  const ponder_markets_res = await request(API_URL, query);
+  const ponder_markets_res = await fetchMarketsAndTokens();
 
   const ponder_markets = ponder_markets_res.markets.items;
   const ponder_tokens = ponder_markets_res.tokens.items;
@@ -117,10 +175,13 @@ const getApy = async () => {
       .map((pool) => {
         const {
           market,
+          borrowCap,
+          borrowPaused,
           collateralFactor,
           underlyingPrice,
           totalSupply,
           totalBorrows,
+          cash,
           exchangeRate,
           borrowRate,
           supplyRate,
@@ -163,6 +224,15 @@ const getApy = async () => {
           underlyingPriceScaled;
         const totalBorrowUsd =
           Number(totalBorrowsScaled) * underlyingPriceScaled;
+        const availableBorrowUsd =
+          (Math.min(
+            Number(cash),
+            Number(borrowCap) > 0
+              ? Math.max(Number(borrowCap) - Number(totalBorrows), 0)
+              : Number(cash)
+          ) /
+            Math.pow(10, token_info.decimals)) *
+          underlyingPriceScaled;
 
         const supplyRateScaled = Number(supplyRate) / Math.pow(10, 18);
         const borrowRateScaled = Number(borrowRate) / Math.pow(10, 18);
@@ -173,6 +243,12 @@ const getApy = async () => {
           ((supplyRateScaled * SECONDS_PER_DAY + 1) ** DAYS_PER_YEAR - 1) * 100;
         const borrowApy =
           ((borrowRateScaled * SECONDS_PER_DAY + 1) ** DAYS_PER_YEAR - 1) * 100;
+        const underlyingTokenAddress =
+          market_info.underlyingTokenAddress.toLowerCase();
+        const underlyingToken =
+          underlyingTokenAddress === '0x0000000000000000000000000000000000000000'
+            ? '0xAcc15dC74880C9944775448304B263D191c6077F'.toLowerCase()
+            : underlyingTokenAddress;
 
         return {
           pool: `${market.toLowerCase()}-moonbeam`,
@@ -182,12 +258,7 @@ const getApy = async () => {
           tvlUsd: totalSupplyUsd - totalBorrowUsd,
           apyBase: supplyApy,
           apyReward: 0,
-          underlyingTokens: [
-            market_info.underlyingTokenAddress.toLowerCase() ===
-            '0x0000000000000000000000000000000000000000'
-              ? '0xAcc15dC74880C9944775448304B263D191c6077F'.toLowerCase()
-              : market_info.underlyingTokenAddress.toLowerCase(),
-          ],
+          underlyingTokens: [underlyingToken],
           rewardTokens: [
             '0x511ab53f793683763e5a8829738301368a2411e3',
             '0xacc15dc74880c9944775448304b263d191c6077f',
@@ -195,9 +266,12 @@ const getApy = async () => {
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
+          availableBorrowUsd,
           apyBaseBorrow: borrowApy,
+          borrowToken: underlyingToken,
           apyRewardBorrow: 0,
           ltv: collateralFactorScaled,
+          borrowable: !borrowPaused,
           incentives: [], //helper
         };
       })
@@ -320,10 +394,13 @@ const getApy = async () => {
       .map((pool) => {
         const {
           market,
+          borrowCap,
+          borrowPaused,
           collateralFactor,
           underlyingPrice,
           totalSupply,
           totalBorrows,
+          cash,
           exchangeRate,
           borrowRate,
           supplyRate,
@@ -366,6 +443,15 @@ const getApy = async () => {
           underlyingPriceScaled;
         const totalBorrowUsd =
           Number(totalBorrowsScaled) * underlyingPriceScaled;
+        const availableBorrowUsd =
+          (Math.min(
+            Number(cash),
+            Number(borrowCap) > 0
+              ? Math.max(Number(borrowCap) - Number(totalBorrows), 0)
+              : Number(cash)
+          ) /
+            Math.pow(10, token_info.decimals)) *
+          underlyingPriceScaled;
 
         const supplyRateScaled = Number(supplyRate) / Math.pow(10, 18);
         const borrowRateScaled = Number(borrowRate) / Math.pow(10, 18);
@@ -390,9 +476,12 @@ const getApy = async () => {
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
+          availableBorrowUsd,
           apyBaseBorrow: borrowApy,
+          borrowToken: token_info.address,
           apyRewardBorrow: 0,
           ltv: Number(collateralFactorScaled),
+          borrowable: !borrowPaused,
           incentives: [], //helper
         };
       })
@@ -535,10 +624,13 @@ const getApy = async () => {
       .map((pool) => {
         const {
           market,
+          borrowCap,
+          borrowPaused,
           collateralFactor,
           underlyingPrice,
           totalSupply,
           totalBorrows,
+          cash,
           exchangeRate,
           borrowRate,
           supplyRate,
@@ -581,6 +673,15 @@ const getApy = async () => {
           underlyingPriceScaled;
         const totalBorrowUsd =
           Number(totalBorrowsScaled) * underlyingPriceScaled;
+        const availableBorrowUsd =
+          (Math.min(
+            Number(cash),
+            Number(borrowCap) > 0
+              ? Math.max(Number(borrowCap) - Number(totalBorrows), 0)
+              : Number(cash)
+          ) /
+            Math.pow(10, token_info.decimals)) *
+          underlyingPriceScaled;
 
         const supplyRateScaled = Number(supplyRate) / Math.pow(10, 18);
         const borrowRateScaled = Number(borrowRate) / Math.pow(10, 18);
@@ -605,7 +706,10 @@ const getApy = async () => {
           // borrow fields
           totalSupplyUsd,
           totalBorrowUsd,
+          availableBorrowUsd,
+          borrowable: !borrowPaused,
           apyBaseBorrow: borrowApy,
+          borrowToken: token_info.address,
           apyRewardBorrow: 0,
           ltv: Number(collateralFactorScaled),
           incentives: [], //helper
@@ -738,6 +842,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1853',
   timetravel: false,
   apy: getApy,
   url: 'https://moonwell.fi/markets',

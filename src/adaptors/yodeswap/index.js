@@ -79,15 +79,11 @@ const getPairInfo = async (pairs) => {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .map((address) => `bsc:${mapTokenDogeChaintoBSC[address]}`)
 
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -209,9 +205,7 @@ const getApy = async () => {
   const tokens1 = underlyingToken1.output.map((res) => res.output);
   const tokensPrices = await getPrices([...tokens0, ...tokens1]);
   const yodeId = 'coingecko:yodeswap';
-  const yodePrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${yodeId}`)
-  ).data.coins[yodeId].price;
+  const yodePrice = (await utils.getPriceApiData(`/prices/current/${yodeId}`)).coins[yodeId].price;
   tokensPrices[YODE_TOKEN.toLowerCase()] = yodePrice;
   const pairsInfo = await getPairInfo(lpTokens);
   const lpChunks = chunk(lpTokens, 10);
@@ -313,6 +307,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1980',
   timetravel: false,
   apy: getApy,
   url: 'https://yodeswap.dog',

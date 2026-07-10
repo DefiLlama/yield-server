@@ -10,7 +10,7 @@ const collectPools = async () => {
         pool: pool.id,
         chain: utils.formatChain('polygon'),
         project: 'penrose',
-        symbol: utils.formatSymbol(name[1]),
+        symbol: name[1],
         poolMeta: name[0],
         tvlUsd: Number(pool.totalTvlUsd),
         apy: utils.aprToApy(Number(pool.totalApr)),
@@ -20,6 +20,7 @@ const collectPools = async () => {
 };
 
 module.exports = {
+  protocolId: '1809',
   timetravel: false,
   apy: collectPools,
   url: 'https://app.penrose.money/dashboard/earn/stake',

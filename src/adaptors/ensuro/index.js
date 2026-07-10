@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const ethers = require('ethers');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const addressBook = {
   polygon: {
@@ -42,9 +43,7 @@ const abiGetCurrentScale =
 
 const getApy = async (chain) => {
   const timestamp1dayAgo = Math.floor(Date.now() / 1000) - 86400;
-  const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/${chain}/${timestamp1dayAgo}`)
-  ).data.height;
+  const block1dayAgo = (await getPriceApiData(`/block/${chain}/${timestamp1dayAgo}`)).height;
 
   return await Promise.all(
     addressBook[chain].eTokens.map(async (etk) => {
@@ -93,6 +92,7 @@ const getApyAllChains = async () => {
 };
 
 module.exports = {
+  protocolId: '2867',
   timetravel: false,
   apy: getApyAllChains,
 };

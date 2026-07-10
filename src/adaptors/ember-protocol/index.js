@@ -89,9 +89,7 @@ const buildEvmPools = async (vaults, chainKey) => {
   }));
 
   const ts7dAgo = Math.floor(Date.now() / 1000) - WEEK_SECONDS;
-  const { data: blockResp } = await axios.get(
-    `https://coins.llama.fi/block/${chainKey}/${ts7dAgo}`
-  );
+  const blockResp = await utils.getPriceApiData(`/block/${chainKey}/${ts7dAgo}`);
   const block7dAgo = blockResp.height;
 
   const [totalAssetsRes, shareNowRes, sharePastRes] = await Promise.all([
@@ -175,9 +173,7 @@ const buildEvmPools = async (vaults, chainKey) => {
 const fetchSuiPrices = async (addresses) => {
   if (addresses.length === 0) return {};
   const keys = addresses.map((a) => `sui:${a}`).join(',');
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${keys}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${keys}`);
   const coins = data?.coins || {};
   const out = {};
   for (const [key, value] of Object.entries(coins)) {
@@ -245,6 +241,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6741',
   timetravel: false,
   apy,
   url: BASE_URL,

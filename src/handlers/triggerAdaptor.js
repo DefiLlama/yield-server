@@ -1,10 +1,9 @@
-const crypto = require('crypto');
-
 const axios = require('axios');
 
 const utils = require('../adaptors/utils');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
+const { derivePoolId } = require('../utils/poolId');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
 const { upsertAdapterStats } = require('../queries/adapterStats');
@@ -14,6 +13,8 @@ const {
   buildInsertConfigQuery,
   getDistinctProjects,
 } = require('../queries/config');
+
+const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
 
 module.exports.handler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
@@ -85,12 +86,19 @@ const main = async (body) => {
   const protocolConfig = (
     await axios.get('https://api.llama.fi/config/yields?a=1')
   ).data.protocols;
-  const isLendingProject = protocolConfig[body.adaptor]?.category === 'Lending';
-  const tvlLowerBound = isLendingProject ? 0 : exclude.boundaries.tvlUsdDB.lb;
+  const isLendingProject = ZERO_TVL_CATEGORIES.includes(
+    protocolConfig[body.adaptor]?.category
+  );
 
   // ---------- prepare prior insert
   // remove potential null/undefined objects in array
   data = data.filter((p) => p);
+
+  // Skip routing-only rows in the legacy DB.
+  if (['euler-v2', 'aave-v4', 'exactly'].includes(body.adaptor)) {
+    data = data.filter((p) => p.poolKind !== 'routing_collateral');
+    data = data.filter((p) => p.poolKind !== 'routing_reserve');
+  }
 
   // cast dtypes
   // even though we have tests for datatypes, will need to guard against sudden changes
@@ -111,14 +119,19 @@ const main = async (body) => {
     apyRewardBorrowFake: strToNum(p.apyRewardBorrowFake),
     apyBaseInception: strToNum(p.apyBaseInception),
     pricePerShare: strToNum(p.pricePerShare),
+    availableBorrowUsd: strToNum(p.availableBorrowUsd),
   }));
 
+  const getTvlForLowerBound = (p) =>
+    isLendingProject && p.tvlUsd >= 0 && Number.isFinite(p.totalSupplyUsd)
+      ? Math.max(p.tvlUsd, p.totalSupplyUsd)
+      : p.tvlUsd;
+
   // Filter tvl to be within DB boundaries.
-  // Lending projects keep the lower bound at 0 so low-liquidity pools still update,
-  // while negative available-liquidity values are dropped.
   data = data.filter(
     (p) =>
-      p.tvlUsd >= tvlLowerBound && p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
+      getTvlForLowerBound(p) >= exclude.boundaries.tvlUsdDB.lb &&
+      p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
   );
 
   // nullify NaN, undefined or Infinity apy values
@@ -157,7 +170,7 @@ const main = async (body) => {
     apy: p.apy < 0 ? 0 : p.apy,
     apyBase:
       protocolConfig[body.adaptor]?.category === 'Options' ||
-      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv'].includes(
+      ['mellow-protocol', 'sommelier', 'abracadabra', 'resolv', 'gami-labs'].includes(
         body.adaptor
       )
         ? p.apyBase
@@ -212,130 +225,6 @@ const main = async (body) => {
   }));
   console.log(data.length);
 
-  // ---- add IL (only for dexes + pools with underlyingTokens array)
-  // need the protocol response to check if adapter.body === 'Dexes' category
-
-  // required conditions to calculate IL field
-  const isUniV3Fork = data.filter((i) =>
-    i.poolMeta?.includes('stablePool=')
-  ).length;
-
-  if (
-    data[0]?.underlyingTokens?.length &&
-    protocolConfig[body.adaptor]?.category === 'Dexes' &&
-    !['balancer-v2', 'curve-dex', 'clipper', 'astroport', 'cetus-amm'].includes(
-      body.adaptor
-    ) &&
-    !['elrond', 'near', 'hedera', 'carbon'].includes(
-      data[0].chain.toLowerCase()
-    )
-  ) {
-    // extract all unique underlyingTokens
-    const uniqueToken = [
-      ...new Set(
-        data
-          .map((p) => p.underlyingTokens?.map((t) => `${p.chain}:${t}`))
-          .flat()
-      ),
-    ].filter(Boolean);
-
-    // prices now
-    const priceUrl = 'https://coins.llama.fi/prices';
-    const prices = (
-      await utils.getData(priceUrl, {
-        coins: uniqueToken,
-      })
-    ).coins;
-
-    const timestamp7daysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
-    // price endpoint seems to break with too many tokens, splitting it to max 150 per request
-    const maxSize = 100;
-    const pages = Math.ceil(uniqueToken.length / maxSize);
-    let prices7d_ = [];
-    let x = '';
-    for (const p of [...Array(pages).keys()]) {
-      x = uniqueToken.slice(p * maxSize, maxSize * (p + 1)).join(',');
-      prices7d_ = [
-        ...prices7d_,
-        (
-          await axios.get(
-            `https://coins.llama.fi/prices/historical/${timestamp7daysAgo}/${x}`
-          )
-        ).data.coins,
-      ];
-    }
-    // flatten
-    let prices7d = {};
-    for (const p of prices7d_.flat()) {
-      prices7d = { ...prices7d, ...p };
-    }
-    prices7d = Object.fromEntries(
-      Object.entries(prices7d).map(([k, v]) => [k.toLowerCase(), v])
-    );
-
-    // calc IL
-    data = data.map((p) => {
-      if (p?.underlyingTokens === null || p?.underlyingTokens === undefined)
-        return { ...p };
-      // extract prices
-      const token0 = `${p.chain}:${p.underlyingTokens[0]}`.toLowerCase();
-      const token1 = `${p.chain}:${p.underlyingTokens[1]}`.toLowerCase();
-
-      // now
-      const price0 = prices[token0]?.price;
-      const price1 = prices[token1]?.price;
-
-      // 7 days ago
-      const price0_7d = prices7d[token0]?.price;
-      const price1_7d = prices7d[token1]?.price;
-
-      // relative price changes
-      const pctChangeX = (price0 - price0_7d) / price0_7d;
-      const pctChangeY = (price1 - price1_7d) / price1_7d;
-
-      // return in case of missing/weird prices
-      if (!Number.isFinite(pctChangeX) || !Number.isFinite(pctChangeY))
-        return { ...p };
-
-      // d paramter (P1 / P0)
-      const d = (1 + pctChangeX) / (1 + pctChangeY);
-
-      // IL(d)
-      let il7d = ((2 * Math.sqrt(d)) / (1 + d) - 1) * 100;
-
-      // for uni v3
-      if (isUniV3Fork) {
-        const P = price1 / price0;
-
-        // for stablecoin pools, we assume a +/- 0.1% range around current price
-        // for non-stablecoin pools -> +/- 30%
-        const pct = 0.3;
-        const pctStablePool = 0.001;
-        const delta = p.poolMeta.includes('stablePool=true')
-          ? pctStablePool
-          : pct;
-
-        const [p_lb, p_ub] = [P * (1 - delta), P * (1 + delta)];
-
-        // https://medium.com/auditless/impermanent-loss-in-uniswap-v3-6c7161d3b445
-        // ilv3 = ilv2 * factor
-        const factor =
-          1 / (1 - (Math.sqrt(p_lb / P) + d * Math.sqrt(P / p_ub)) / (1 + d));
-
-        // scale IL by factor
-        il7d *= factor;
-        // if the factor is too large, it may result in IL values >100% which don't make sense
-        // -> clip to max -100% IL
-        il7d = il7d < 0 ? Math.max(il7d, -100) : il7d;
-      }
-
-      return {
-        ...p,
-        il7d,
-      };
-    });
-  }
-
   // for PK, FK, read data from config table
   const config = await getConfigProject(body.adaptor);
   const mapping = {};
@@ -348,8 +237,9 @@ const main = async (body) => {
   const precision = 5;
   const timestamp = new Date(Date.now());
   data = data.map((p) => {
-    // if pool not in mapping -> its a new pool -> create a new uuid, else keep existing one
-    const id = mapping[p.pool] ?? crypto.randomUUID();
+    // if pool not in mapping -> its a new pool -> mint the deterministic uuid
+    // (uuidv5 of the pool key, same derivation as yield-server-v2), else keep existing one
+    const id = mapping[p.pool] ?? derivePoolId(p.pool);
     return {
       ...p,
       config_id: id, // config PK field
@@ -386,13 +276,12 @@ const main = async (body) => {
         p.debtCeilingUsd === undefined || p.debtCeilingUsd === null
           ? null
           : Math.round(p.debtCeilingUsd),
-      mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
-      poolMeta:
-        p.poolMeta === undefined
+      availableBorrowUsd:
+        p.availableBorrowUsd === undefined || p.availableBorrowUsd === null
           ? null
-          : p.poolMeta?.includes('stablePool=')
-          ? p.poolMeta?.split(',')[0]
-          : p.poolMeta,
+          : Math.round(p.availableBorrowUsd),
+      mintedCoin: p.mintedCoin ? utils.formatSymbol(p.mintedCoin) : null,
+      poolMeta: p.poolMeta === undefined ? null : p.poolMeta,
       il7d: p.il7d ? +p.il7d.toFixed(precision) : null,
       apyBase7d:
         p.apyBase7d !== null ? +p.apyBase7d.toFixed(precision) : p.apyBase7d,

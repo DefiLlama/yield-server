@@ -51,6 +51,7 @@ const getPoolsData = async () => {
 };
 
 module.exports = {
+  protocolId: '3311',
   timetravel: false,
   apy: getPoolsData,
   url: 'https://app.retro.finance/liquidity',

@@ -19,5 +19,6 @@ export interface Pool {
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
+  borrowToken?: string; // underlying token address/string the borrower receives
   ltv?: number; // btw [0, 1]
 }

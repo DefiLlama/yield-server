@@ -85,6 +85,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '131',
   apy,
   url: 'https://app.barnbridge.com/smart-yield/pools/',
   timetravel: false,

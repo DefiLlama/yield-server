@@ -9,6 +9,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3148',
   timetravel: false,
   apy: apy,
   url: 'https://app.stellaxyz.io',

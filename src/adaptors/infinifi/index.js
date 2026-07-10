@@ -39,7 +39,7 @@ async function computeStakedTokenAPY() {
     pool: `${siUSDAddress}-ethereum`.toLowerCase(),
     chain: utils.formatChain('ethereum'),
     project: 'infinifi',
-    symbol: utils.formatSymbol('siUSD'),
+    symbol: 'siUSD',
     tvlUsd: parseFloat(ethers.utils.formatUnits(erc4626Infos.tvl, 18)),
     apyBase: erc4626Infos.apyBase,
     pricePerShare: erc4626Infos.pricePerShare,
@@ -118,7 +118,7 @@ async function computeLockedTokensAPY() {
       pool: `${tokenAddress}-ethereum`.toLowerCase(),
       chain: utils.formatChain('ethereum'),
       project: 'infinifi',
-      symbol: utils.formatSymbol(`liUSD-${bucket}w`),
+      symbol: `liUSD-${bucket}w`,
       tvlUsd: totalSupplyNowNormalized,
       apyBase: apy,
       poolMeta: `Locked iUSD - ${bucket} week${bucket > 1 ? 's' : ''}`,
@@ -133,6 +133,7 @@ async function computeLockedTokensAPY() {
 
 
 module.exports = {
+  protocolId: '6245',
   timetravel: true,
   apy: poolsFunction,
   url: 'https://infinifi.xyz/',

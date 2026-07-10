@@ -55,9 +55,7 @@ const getAvailableLiquidity = async (
 
 const getTokenPriceInfo = async (network, tokenAddresses) => {
   const tokenDataPromises = tokenAddresses.map((address) =>
-    utils.getData(
-      `https://coins.llama.fi/prices/current/${network.toLowerCase()}:${address.toLowerCase()}`
-    )
+    utils.getPriceApiData(`/prices/current/${network.toLowerCase()}:${address.toLowerCase()}`)
   );
   const tokenDataArray = await Promise.all(tokenDataPromises);
   const tokenData = tokenDataArray.map((tokenInfo) => tokenInfo.coins);
@@ -188,6 +186,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2219',
   timetravel: false,
   apy: getPools,
   url: 'https://v1.vendor.finance',

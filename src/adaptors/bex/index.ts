@@ -25,10 +25,7 @@ async function getPoolData() {
         : null,
       apyReward: Number(pool.rewardVault?.dynamicData.apr) * 100,
       rewardTokens: [BGT_ADDRESS],
-      underlyingTokens: [
-        pool.address,
-        ...pool.displayTokens.map((token) => token.address),
-      ],
+      underlyingTokens: pool.displayTokens.map((token) => token.address),
       url: `${BEX_URL}/pools/${pool.id}/details/`,
       poolMeta: pool.symbol.split('-').pop() || '',
     };
@@ -94,6 +91,7 @@ async function getPools() {
 }
 
 module.exports = {
+  protocolId: '5742',
   timetravel: false,
   apy: getPoolData,
   url: 'https://hub.berachain.com/pools/',

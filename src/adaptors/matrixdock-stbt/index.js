@@ -27,7 +27,7 @@ const totalSharesAbi = {
 const getBlockNumberDaysBefore = async (chain, days) => {
   const timestamp = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
   const response = await axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
+    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
   );
   return response.data.height;
 };
@@ -106,7 +106,7 @@ const getPoolsForChain = async (chain) => {
 
       const priceKey = `${chain}:${token.address}`;
       const priceResponse = await axios.get(
-        `https://coins.llama.fi/prices/current/${priceKey}`
+        utils.getPriceApiUrl(`/prices/current/${priceKey}`)
       );
       const currentPrice = priceResponse.data.coins[priceKey]?.price || 1;
 
@@ -145,7 +145,7 @@ const getPoolsForChain = async (chain) => {
         pool: `${token.address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: 'matrixdock-stbt',
-        symbol: utils.formatSymbol(token.symbol),
+        symbol: token.symbol,
         tvlUsd,
         apyBase: Number(apyBase.toFixed(2)),
         apyBase7d: Number(apyBase7d.toFixed(2)),
@@ -171,6 +171,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2807',
   timetravel: false,
   apy,
   url: 'https://www.matrixdock.com/',

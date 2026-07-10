@@ -41,7 +41,7 @@ const getLiteUsdPool = async () => {
       pool: address,
       chain: utils.formatChain('ethereum'),
       project: 'fluid-lite',
-      symbol: utils.formatSymbol(underlyingAsset.symbol),
+      symbol: underlyingAsset.symbol,
       tvlUsd,
       apy: Number(rate) / 100,
       underlyingTokens: [normalizeNativeAddress(asset)],
@@ -65,6 +65,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4742',
   timetravel: false,
   apy: getApy,
   url: 'https://fluid.io/lite/1',

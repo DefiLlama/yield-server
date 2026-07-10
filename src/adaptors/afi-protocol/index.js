@@ -15,7 +15,7 @@ const POOL = {
 
 const getBlock = async (chain, timestamp) => {
   const res = await axios.get(
-    `https://coins.llama.fi/block/${chain}/${timestamp}`
+    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
   );
   return res.data.height;
 };
@@ -83,6 +83,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7391',
   timetravel: false,
   apy,
   url: 'https://afiprotocol.xyz/',

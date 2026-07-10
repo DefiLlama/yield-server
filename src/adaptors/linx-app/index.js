@@ -232,11 +232,12 @@ const makePool = async (market, tokens, prices) => {
     pool: `${market.id}-${config.chain}`,
     chain: utils.formatChain(config.chain),
     project: 'linx-app',
-    symbol: utils.formatSymbol(symbol),
+    symbol: symbol,
     tvlUsd,
     underlyingTokens: [marketParams.loanToken],
     apyBase: Number(supplyApy) / 10 ** 16,
     apyBaseBorrow: Number(getBorrowAPY(borrowRate)) / 10 ** 16,
+    borrowToken: marketParams.loanToken,
     totalSupplyUsd,
     totalBorrowUsd,
     ltv: Number(marketParams.loanToValue) / 10 ** 18,
@@ -259,6 +260,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7387',
   timetravel: false,
   apy,
   url: 'https://app.linxlabs.org/earn',

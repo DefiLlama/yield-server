@@ -5,7 +5,6 @@ const { request, gql } = require('graphql-request');
 
 const { gammaFarmAbi, lpTokenABI, gammaReservoirAbi } = require('./abis');
 const utils = require('../utils');
-const { fetchURL } = require('../../helper/utils');
 
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';
 const API_URL = sdk.graph.modifyEndpoint(
@@ -99,9 +98,7 @@ const getBaseTokensPrice = async () => {
   const priceKeys = ['green-planet', 'ethereum', 'binancecoin']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const gammaPrice = prices['coingecko:green-planet'].price;
   const ethPrice = prices['coingecko:ethereum'].price;
@@ -113,7 +110,7 @@ const getBaseTokensPrice = async () => {
 const main = async () => {
   const { gammaPrice, ethPrice, bnbPrice } = await getBaseTokensPrice();
   const gammaFarmInst = new web3.eth.Contract(gammaFarmAbi, GAMMA_FARM_ADDRESS);
-  const { data: lpAprs } = await fetchURL(LP_APRS);
+  const lpAprs = await utils.getData(LP_APRS);
   const aprsObj = {};
   for (const key of Object.keys(lpAprs)) {
     if (
@@ -214,6 +211,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2158',
   timetravel: false,
   apy: main,
   url: 'https://app.planet.finance/pools',

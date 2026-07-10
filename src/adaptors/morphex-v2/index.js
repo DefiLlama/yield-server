@@ -93,7 +93,7 @@ async function getPoolMPX(
     pool: pInflationTrackerAddress,
     chain: utils.formatChain(pChain),
     project,
-    symbol: utils.formatSymbol('MPX'),
+    symbol: 'MPX',
     tvlUsd: tvlMpx,
     apyBase: apyFee,
     apyReward: apyInflation,
@@ -127,8 +127,8 @@ async function getPoolMLP(
     project,
     symbol:
       pChain === 'fantom'
-        ? utils.formatSymbol('MLP (FTM-BTC-ETH-USDC-USDT-DAI)')
-        : utils.formatSymbol('MLP (BNB-BTC-ETH-XRP-ADA-USDT-USDC)'),
+        ? 'MLP (FTM-BTC-ETH-USDC-USDT-DAI)'
+        : 'MLP (BNB-BTC-ETH-XRP-ADA-USDT-USDC)',
     tvlUsd: parseFloat(pTvl),
     apyBase: apyFee,
     apyReward: apyInflation,
@@ -152,9 +152,7 @@ const getPools = async () => {
   const priceKeys = ['fantom', 'binancecoin', 'mpx']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const priceData = {
     mpx: prices['coingecko:mpx'],
@@ -274,6 +272,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2662',
   timetravel: false,
   apy: getPools,
   url: 'https://www.morphex.trade/earn',

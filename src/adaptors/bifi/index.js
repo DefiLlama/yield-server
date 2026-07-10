@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const url = 'https://biholder-view.thebifrost.io/chains/bfc/bifi';
+const url = 'https://crosschain.bifi.finance/api/biholder/chains/bfc/bifi';
 
 const apy = async () => {
   const [markets, handlers] = await Promise.all(
@@ -24,6 +24,7 @@ const apy = async () => {
       tvlUsd,
       apyBase: Number(p.deposit_apy),
       apyBaseBorrow: Number(p.borrow_apy),
+      borrowToken: handler.tokenAddress,
       totalSupplyUsd,
       totalBorrowUsd,
       underlyingTokens: [handler.tokenAddress],
@@ -32,6 +33,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '253',
   apy,
   url: 'https://crosschain.bifi.finance/',
 };

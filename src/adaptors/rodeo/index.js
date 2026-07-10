@@ -175,6 +175,7 @@ function exportFormatter(
 }
 
 module.exports = {
+  protocolId: '2841',
     timetravel: false,
     apy: getApy,
 };

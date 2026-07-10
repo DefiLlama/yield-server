@@ -86,11 +86,9 @@ function _map(array) {
 
 async function _getPrices(chain, tokens) {
   const [{ coins: prices1 }, prices2] = await Promise.all([
-    utils.getData(
-      `https://coins.llama.fi/prices/current/${tokens
+    utils.getPriceApiData(`/prices/current/${tokens
         .map((t) => `${chain}:${t}`)
-        .join(',')}`
-    ),
+        .join(',')}`),
 
     // DefiLlama missed some prices (e.g. VET, 0x6fdcdfef7c496407ccb0cec90f9c5aaa1cc8d888),
     // so we're using our API as fallback prices

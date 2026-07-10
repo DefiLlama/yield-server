@@ -194,7 +194,7 @@ const apy = async () => {
 
   const priceKeys = ASSETS.map((a) => `${CHAIN}:${a}`).join(',');
   const priceResp = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
+    utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
   );
   const prices = {};
   for (const asset of ASSETS) {
@@ -284,7 +284,7 @@ const apy = async () => {
 
   const surfPriceKey = `${CHAIN}:${SURF_TOKEN}`;
   const surfPriceResp = await axios.get(
-    `https://coins.llama.fi/prices/current/${surfPriceKey}?searchWidth=24h`
+    utils.getPriceApiUrl(`/prices/current/${surfPriceKey}?searchWidth=24h`)
   );
   const surfPrice = surfPriceResp.data?.coins?.[surfPriceKey]?.price || 0;
   const stakingTvl = (Number(totalStaked) / 1e18) * surfPrice;
@@ -313,6 +313,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6765',
   timetravel: false,
   apy,
   url: 'https://surfliquid.com',

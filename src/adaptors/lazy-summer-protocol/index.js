@@ -43,7 +43,7 @@ const multiCall = (targets, abi, chain, block = undefined) =>
 const getBlockNumber = async (timestamp, chain) => {
   try {
     const response = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
+      utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
     );
     return response.data.height;
   } catch (e) {
@@ -233,7 +233,7 @@ const main = async () => {
           pool: `${vault.address}-${chain}`.toLowerCase(),
           chain: utils.formatChain(chain),
           project: PROJECT_NAME,
-          symbol: utils.formatSymbol(baseSymbol),
+          symbol: baseSymbol,
           tvlUsd,
           apyBase,
           apyBase7d,
@@ -261,6 +261,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5796',
   timetravel: false,
   apy: main,
   url: 'https://summer.fi/earn',

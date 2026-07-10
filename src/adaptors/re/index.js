@@ -31,9 +31,7 @@ const vaults = [
 ];
 
 const getBlock = async (timestamp) => {
-  const { data } = await axios.get(
-    `https://coins.llama.fi/block/${CHAIN}/${timestamp}`
-  );
+  const data = await utils.getPriceApiData(`/block/${CHAIN}/${timestamp}`);
   return data.height;
 };
 
@@ -83,7 +81,7 @@ const main = async () => {
       pool: `${vault.token}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: PROJECT_NAME,
-      symbol: utils.formatSymbol(vault.symbol),
+      symbol: vault.symbol,
       tvlUsd,
       apyBase,
       underlyingTokens: vault.underlyingTokens,
@@ -95,6 +93,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7182',
   timetravel: false,
   apy: main,
   url: 'https://app.re.xyz',

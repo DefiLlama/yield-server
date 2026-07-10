@@ -27,13 +27,9 @@ const oraclePriceABI = {
 };
 
 const getPrices = async (addresses) => {
-  const _prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const _prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const plendOraclePrice = (
     await sdk.api.abi.call({
@@ -247,6 +243,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3484',
   timetravel: false,
   apy: apy,
 };

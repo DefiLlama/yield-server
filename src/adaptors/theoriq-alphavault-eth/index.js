@@ -127,6 +127,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7475',
   timetravel: false,
   apy,
   url: 'https://infinity.theoriq.ai/vault',

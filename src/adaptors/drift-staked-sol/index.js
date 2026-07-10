@@ -9,7 +9,7 @@ const priceKey = `solana:${DSOL_ADDRESS}`;
 const apy = async () => {
   const [totalSupply, priceResponse, apyBase] = await Promise.all([
     getTotalSupply(DSOL_ADDRESS),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+    axios.get(utils.getPriceApiUrl(`/prices/current/${priceKey}`)),
     getSanctumLstApy(DSOL_ADDRESS),
   ]);
 
@@ -32,4 +32,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://app.drift.trade/earn/dsol-liquid-staking' };
+module.exports = { protocolId: '5046', apy, url: 'https://app.drift.trade/earn/dsol-liquid-staking' };

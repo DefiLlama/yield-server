@@ -14,7 +14,7 @@ const getApy = async () => {
     pool: CRT_POOL,
     chain: 'Solana',
     project: 'carrot-liquidity',
-    symbol: utils.formatSymbol('USDC-USDT-PYUSD'),
+    symbol: 'USDC-USDT-PYUSD',
     underlyingTokens: metricsData.assets.map(asset => asset.mint),
     tvlUsd: Number(metricsData.tvl),
     apyBase: Number(performanceData.navAPY[0].apy),
@@ -24,6 +24,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '5333',
     apy: getApy,
     url: 'https://use.deficarrot.com/',
 };

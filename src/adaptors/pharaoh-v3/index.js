@@ -14,7 +14,6 @@ const poolsQuery = gql`
       skip: $skip
       orderBy: totalValueLockedUSD
       orderDirection: desc
-      where: { gauge_not: null }
     ) {
       id
       token0 {
@@ -65,7 +64,7 @@ async function apy() {
 
     let pharaohPools = [];
     try {
-      const pharaohApiData = await axios.get('https://pharaoh-new-api-production.up.railway.app/all-pools');
+      const pharaohApiData = await axios.get('https://gateway.kingdomsubgraph.com/avalanche/api/all-pools');
       if (pharaohApiData.data && Array.isArray(pharaohApiData.data.pools)) {
         pharaohPools = pharaohApiData.data.pools;
       }
@@ -145,6 +144,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6854',
   timetravel: false,
   apy: apy,
 };

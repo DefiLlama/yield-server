@@ -2,6 +2,7 @@ const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
+const { getPriceApiData } = require('../utils');
 const {
   utils: { formatEther },
 } = require('ethers');
@@ -68,14 +69,10 @@ const getApy = async (pool) => {
 };
 
 const getPricesByAddresses = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await getPriceApiData(`/prices/current/${addresses
         .map((address) => `${chain}:${address}`)
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   return Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -213,6 +210,7 @@ async function getPoolData() {
 }
 
 module.exports = {
+  protocolId: '2646',
   timetravel: false,
   apy: getPoolData,
   url: 'https://roci.fi/app/markets',

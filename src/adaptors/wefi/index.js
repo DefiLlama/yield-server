@@ -62,13 +62,9 @@ const markets = [
 ];
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -141,6 +137,12 @@ const main = async (pool) => {
     pool
   );
   const isPaused = await getRewards(allMarkets, 'mintGuardianPaused', pool);
+  const borrowCaps = await getRewards(allMarkets, 'borrowCaps', pool);
+  const isBorrowPaused = await getRewards(
+    allMarkets,
+    'borrowGuardianPaused',
+    pool
+  );
   const supplyRewards = await multiCallMarkets(
     allMarkets,
     SUPPLY_RATE,
@@ -215,6 +217,15 @@ const main = async (pool) => {
       price;
     const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+    const availableBorrowUsd =
+      (Math.min(
+        Number(marketsCash[i]),
+        Number(borrowCaps[i]) > 0
+          ? Math.max(Number(borrowCaps[i]) - Number(totalBorrows[i]), 0)
+          : Number(marketsCash[i])
+      ) /
+        10 ** decimals) *
+      price;
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18, pool);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18, pool);
 
@@ -256,6 +267,8 @@ const main = async (pool) => {
         ...poolReturned,
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
+        borrowable: isBorrowPaused[i] === false,
         apyBaseBorrow,
         apyRewardBorrow: pool.chain === 'polygon' ? 0 : apyRewardBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
@@ -273,6 +286,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2666',
   timetravel: false,
   apy,
   url: 'https://www.beta.app.wefi.xyz/',

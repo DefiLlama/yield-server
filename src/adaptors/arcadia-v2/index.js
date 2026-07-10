@@ -67,9 +67,7 @@ const getCollfactors = async () => {
 };
 
 const getApy = async () => {
-  const coinPrices = await utils.getData(
-    'https://coins.llama.fi/prices/current/base:0x4200000000000000000000000000000000000006,base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,base:0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'
-  );
+  const coinPrices = await utils.getPriceApiData('/prices/current/base:0x4200000000000000000000000000000000000006,base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,base:0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf');
 
   const wethPrice =
     coinPrices['coins']['base:0x4200000000000000000000000000000000000006']
@@ -196,6 +194,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4455',
   timetravel: false,
   apy: getApy,
   url: 'https://arcadia.finance/earn',

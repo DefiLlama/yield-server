@@ -158,14 +158,10 @@ const getApy = async () => {
       }
       keys = [...new Set(keys.flat())];
 
-      const prices = (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${keys
+      const prices = (await utils.getPriceApiData(`/prices/current/${keys
             .flat()
             .join(',')
-            .toLowerCase()}`
-        )
-      ).data.coins;
+            .toLowerCase()}`)).coins;
 
       const pools = Object.entries(vaultData).map(([chain, { vaults }]) => {
         const vaultsAprs = aprs[chain];

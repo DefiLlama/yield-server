@@ -59,7 +59,7 @@ const getAllPairVolumeDays = async (timestamp_gte) => {
 };
 
 const getWcoreUsdtPrice = async () => {
-  const response = await axios.get(`https://coins.llama.fi/prices/current/core:${NATIVE_TOKEN_ADDRESS}`);
+  const response = await axios.get(utils.getPriceApiUrl(`/prices/current/core:${NATIVE_TOKEN_ADDRESS}`));
   return response.data.coins[`core:${NATIVE_TOKEN_ADDRESS}`]?.price || 0;
 };
 
@@ -138,6 +138,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '4347',
   timetravel: false,
   apy: main,
 };

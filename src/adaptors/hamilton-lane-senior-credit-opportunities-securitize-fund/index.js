@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const project = 'hamilton-lane-senior-credit-opportunities-securitize-fund';
 
@@ -26,7 +27,7 @@ const evmPools = [
 
 const getBlock = (timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/ethereum/${timestamp}`)
+    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`))
     .then((r) => r.data.height);
 
 const getOraclePrice = (block) =>
@@ -109,6 +110,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6712',
   timetravel: false,
   apy,
   url: 'https://securitize.io/primary-market/hl-scope',

@@ -190,6 +190,7 @@ const apy = async() => {
 };
 
 module.exports = {
+  protocolId: '5145',
     timetravel: false,
     apy: apy
 };

@@ -146,9 +146,7 @@ const topLvl = async (chainString, timestamp, url) => {
     ).output / 1e18;
 
   const priceKey = `metis:${TORCH}`;
-  const torchPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const torchPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   const torchPerYearUsd = torchPerSec * 86400 * 365 * torchPrice;
 
@@ -208,7 +206,7 @@ const topLvl = async (chainString, timestamp, url) => {
     // rewards are 20% in liquid torch and 80% in non-transferable xtorch (which can be used to boost though)
     // gonna report 20% torch only
 
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
     return {
       pool: p.id,
       chain: utils.formatChain(chainString),
@@ -234,6 +232,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '4372',
   timetravel: true,
   apy: main,
   url: 'https://app.hercules.exchange/liquidity',

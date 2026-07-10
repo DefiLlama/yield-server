@@ -3,6 +3,7 @@ const axios = require('axios');
 const abi = require('./abi.js');
 const PermissionlessNodeRegistryAbi = require('./ PermissionlessNodeRegistryAbi.json');
 const abiPolygon = require('./abiPolygon');
+const { getPriceApiData } = require('../utils');
 
 const token = '0xa35b1b31ce002fbf2058d22f30f95d405200a15b';
 const stakingContract = '0xcf5EA1b38380f6aF39068375516Daf40Ed70D299';
@@ -26,9 +27,7 @@ const getApy = async () => {
 
   const now = Math.floor(Date.now() / 1000);
   const timestamp7dayAgo = now - 86400 * 7;
-  const block7dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
-  ).data.height;
+  const block7dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp7dayAgo}`)).height;
 
   const exchangeRates = await Promise.all([
     sdk.api.abi.call({
@@ -50,9 +49,7 @@ const getApy = async () => {
     100;
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   // maticx contract on ethereum
   const stakeManagerContract = '0xf03A7Eb46d01d9EcAA104558C732Cf82f6B6B645';
@@ -80,9 +77,7 @@ const getApy = async () => {
     100;
 
   const priceKeyPolygon = `ethereum:${stakeManagerContract}`;
-  const maticxPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeyPolygon}`)
-  ).data.coins[priceKeyPolygon]?.price;
+  const maticxPrice = (await getPriceApiData(`/prices/current/${priceKeyPolygon}`)).coins[priceKeyPolygon]?.price;
 
   const tvlPolygon =
     (
@@ -124,6 +119,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1044',
   timetravel: false,
   apy: getApy,
   url: 'https://www.staderlabs.com/eth/stake/',

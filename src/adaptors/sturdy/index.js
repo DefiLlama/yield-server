@@ -8,7 +8,7 @@ const poolsFunction = async () => {
     pool: item.address,
     chain: utils.formatChain('fantom'),
     project: 'sturdy',
-    symbol: utils.formatSymbol(item.tokens),
+    symbol: item.tokens,
     tvlUsd: item.tvl,
     apyBase: item.base * 100,
     // borrow fields
@@ -25,7 +25,7 @@ const poolsFunction = async () => {
     pool: item.address,
     chain: utils.formatChain('ethereum'),
     project: 'sturdy',
-    symbol: utils.formatSymbol(item.tokens),
+    symbol: item.tokens,
     tvlUsd: item.tvl,
     apyBase: item.base * 100,
     apyReward: item.reward * 100,

@@ -148,8 +148,7 @@ async function getTokenPrices() {
     .map((i) => `avax:${i}`)
     .join(',');
 
-  return (await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`))
-    .data.coins;
+  return (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 }
 
 async function getTrancheTokenAprs() {
@@ -167,6 +166,7 @@ async function getTrancheTokenAprs() {
 }
 
 module.exports = {
+  protocolId: '3165',
   timetravel: false,
   apy: getTrancheTokenAprs,
   url: 'https://app.struct.fi',

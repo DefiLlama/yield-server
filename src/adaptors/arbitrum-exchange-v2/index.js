@@ -103,14 +103,10 @@ const topLvl = async (
     ).output / 1e18;
 
   const arxPriceKey = `arbitrum:${ARX}`;
-  const arxPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${arxPriceKey}`)
-  ).data.coins[arxPriceKey]?.price;
+  const arxPrice = (await utils.getPriceApiData(`/prices/current/${arxPriceKey}`)).coins[arxPriceKey]?.price;
 
   const wethPriceKey = `ethereum:${WETH}`;
-  const wethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)
-  ).data.coins[wethPriceKey]?.price;
+  const wethPrice = (await utils.getPriceApiData(`/prices/current/${wethPriceKey}`)).coins[wethPriceKey]?.price;
 
   const arxPerYearUsd = arxPerSec * 86400 * 365 * arxPrice;
   const wethPerYearUsd = wethPerSec * 86400 * 365 * wethPrice;
@@ -150,7 +146,7 @@ const topLvl = async (
   dataNow = dataNow.map((el) => utils.apy(el, dataPrior, dataPrior7d, version));
 
   return dataNow.map((p) => {
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
@@ -209,6 +205,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2685',
   timetravel: false,
   apy: main,
 };

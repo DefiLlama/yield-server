@@ -97,9 +97,7 @@ const main = async () => {
     });
 
     const priceKeys = assetAddresses.map((a) => `${chain}:${a}`).join(',');
-    const pricesRes = await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKeys}`
-    );
+    const pricesRes = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
     const prices = {};
     for (const [key, value] of Object.entries(pricesRes.coins || {})) {
@@ -155,7 +153,7 @@ const main = async () => {
         pool: `superform-${vault.address}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
         project: PROJECT_NAME,
-        symbol: utils.formatSymbol(symbol),
+        symbol: symbol,
         tvlUsd,
         apyBase,
         // SuperVault shares are 18-dec; assets in own decimals.
@@ -178,6 +176,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '4448',
   timetravel: false,
   apy: main,
   url: 'https://app.superform.xyz/earn',

@@ -1,5 +1,7 @@
 const utils = require('../utils');
 
+const RUNE = 'coingecko:thorchain';
+
 const chainMapping = {
   ETH: 'ethereum',
   BTC: 'bitcoin',
@@ -55,11 +57,13 @@ const buildPool = (entry, runePrice) => {
     pool: entry.asset,
     chain: chain !== undefined ? utils.formatChain(chain) : null,
     project: 'thorchain-dex',
-    symbol: utils.formatSymbol(symbol),
+    symbol: symbol,
     tvlUsd: balanceAsset + balanceRune,
     apy: Number(entry.poolAPY) * 100,
     // Resolve underlying: native assets use coingecko, EVM tokens extract address
-    underlyingTokens: [resolveUnderlying(entry.asset, chain)],
+    underlyingTokens: [
+      ...new Set([resolveUnderlying(entry.asset, chain), RUNE]),
+    ],
   };
 
   return newObj;
@@ -82,6 +86,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '412',
   timetravel: false,
   apy: main,
   url: 'https://app.thorswap.finance/liquidity',

@@ -1,6 +1,5 @@
 const utils = require('../utils');
 const axios = require('axios');
-const fetch = require('node-fetch');
 
 const ENDPOINT = 'https://mero.finance/api/apys';
 
@@ -56,8 +55,7 @@ const getMeroApys = async (): Promise<Apy[]> => {
 
 const getEthPriceUsd = async (): Promise<number> => {
   const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
-  return (await axios.get(`https://coins.llama.fi/prices/current/${key}`))
-    .data.coins[key].price;
+  return (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key].price;
 };
 
 const getPools = async (): Promise<MeroPool[]> => {
@@ -84,6 +82,7 @@ const getPools = async (): Promise<MeroPool[]> => {
 };
 
 module.exports = {
+  protocolId: '1927',
   timetravel: false,
   apy: getPools,
 };

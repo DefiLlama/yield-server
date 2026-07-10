@@ -1,15 +1,14 @@
 const axios = require('axios');
 const utils = require('../utils');
 const USDX_ID = 'usdx';
+const EXCLUDED_COLLATERAL_TYPES = new Set([
+  'hbtc-a', // legacy market returned by the Kava CDP API, no longer shown in the Mint UI
+]);
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -65,18 +64,27 @@ const main = async () => {
 
   const coins = dispoisted.map((e) => `coingecko:${e.id}`);
   const prices = await getPrices([...coins, `coingecko:${USDX_ID}`]);
+  const usdxPrice = prices[USDX_ID.toLowerCase()]
 
   return parameters
     .filter((e) => e.id)
+    .filter((e) => !EXCLUDED_COLLATERAL_TYPES.has(e.type))
     .map((pool) => {
       const parameter = parameters.find((e) => e.type === pool.type);
       const collateral = dispoisted.find((e) => e.type === pool.type);
       const _borrowed = borrowed.find((e) => e.type === pool.type);
-      const totalSupplyUsd = collateral.amount * prices[pool.id.toLowerCase()];
-      const totalBorrowUsd = _borrowed.amount * prices[USDX_ID.toLowerCase()];
+      const collateralAmount = collateral?.amount || 0;
+      const borrowedAmount = _borrowed?.amount || 0;
+      const collateralPrice = prices[pool.id.toLowerCase()] || 0;
+      const totalSupplyUsd = collateralAmount * collateralPrice;
+      const totalBorrowUsd = borrowedAmount * usdxPrice;
       const ltv = 1 / Number(parameter.liquidation_ratio);
       const debtCeilingUsd =
-        Number(parameter.debt_limit / 10 ** 6) * prices[USDX_ID.toLowerCase()];
+        Number(parameter.debt_limit / 10 ** 6) * usdxPrice;
+      const availableBorrowUsd = Math.max(
+        Math.min(totalSupplyUsd * ltv, debtCeilingUsd) - totalBorrowUsd,
+        0
+      );
       return {
         pool: `${pool.id}-${pool.symbol}-${pool.type}`,
         chain: utils.formatChain('kava'),
@@ -84,17 +92,19 @@ const main = async () => {
         symbol: pool.symbol,
         tvlUsd: totalSupplyUsd,
         apy: 0,
-        poolMeta: pool.type,
         apyBaseBorrow:
           pool.type === 'busd-b'
             ? 50
             : (Number(parameter.stability_fee) ** 31536000 - 1) * 100,
         totalSupplyUsd: totalSupplyUsd,
         totalBorrowUsd: totalBorrowUsd,
+        availableBorrowUsd,
         ltv: ltv,
         debtCeilingUsd: debtCeilingUsd,
         underlyingTokens: [pool.denom].filter(Boolean),
         mintedCoin: 'USDX',
+        borrowToken: USDX_ID,
+        borrowable: availableBorrowUsd > 0,
       };
     });
 };
@@ -111,6 +121,9 @@ function convertSymbol(symbol) {
       return { id: 'kava-lend', decimals: 6, symbol: 'HARD' };
     case 'hbtc':
       return { id: 'bitcoin', decimals: 8, symbol: 'WBTC' };
+    case 'erc20/tether/usdt':
+    case 'usdt':
+      return { id: 'tether', decimals: 6, symbol: 'USDT' };
     case 'swp':
       return { id: 'kava-swap', decimals: 6, symbol: 'SWP' };
     case 'ukava':
@@ -127,6 +140,7 @@ function convertSymbol(symbol) {
 }
 
 module.exports = {
+  protocolId: '135',
   timetravel: false,
   apy: main,
   url: 'https://www.kava.io/',

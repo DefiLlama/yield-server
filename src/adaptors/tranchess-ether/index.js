@@ -39,9 +39,7 @@ const topLvl = async (chainString, token, address) => {
     ((totalUnderlying / equivalentTotalQ - 1) / daysDiff) * 365 * 100;
 
   const eth_token_data = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${ethFundUnderlying}`
-    )
+    await utils.getPriceApiData(`/prices/current/${ethFundUnderlying}`)
   ).coins[ethFundUnderlying];
 
   const tvlUsd =
@@ -52,7 +50,7 @@ const topLvl = async (chainString, token, address) => {
     pool: `${address}-${chainString}`.toLowerCase(),
     chain: utils.formatChain(chainString),
     project: 'tranchess-ether',
-    symbol: utils.formatSymbol(token),
+    symbol: token,
     tvlUsd: tvlUsd,
     apyBase,
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],
@@ -68,6 +66,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3048',
   timetravel: false,
   apy: main,
   url: 'https://tranchess.com/liquid-staking',

@@ -142,6 +142,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '5708',
   timetravel: false,
   apy: main,
   url: "https://www.enclabs.finance",

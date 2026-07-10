@@ -9,20 +9,23 @@ const CONSTANTS = {
     arbitrum: 42161,
     base: 8453,
     polygon: 137,
+    plasma: 9745,
   },
-  SUPPORTED_CHAINS: ['ethereum', 'arbitrum', 'base', 'polygon'],
+  SUPPORTED_CHAINS: ['ethereum', 'arbitrum', 'base', 'polygon', 'plasma'],
   RESOLVERS: {
     LENDING: {
       ethereum: '0xC215485C572365AE87f908ad35233EC2572A3BEC',
       arbitrum: '0xdF4d3272FfAE8036d9a2E1626Df2Db5863b4b302',
       base: '0x3aF6FBEc4a2FE517F56E402C65e3f4c3e18C1D86',
       polygon: '0x8e72291D5e6f4AAB552cc827fB857a931Fc5CAC1',
+      plasma: '0xfbb7005c49520a4E54746487f0b28F4E4594b293',
     },
     VAULT: {
       ethereum: '0x814c8C7ceb1411B364c2940c4b9380e739e06686',
       arbitrum: '0xD7D455d387d7840F56C65Bb08aD639DE9244E463',
       base: '0x79B3102173EB84E6BCa182C7440AfCa5A41aBcF8',
-      polygon: '0x9edb8D8b6db9A869c3bd913E44fa416Ca7490aCA',
+      polygon: '0xA5C3E16523eeeDDcC34706b0E6bE88b4c6EA95cC',
+      plasma: '0x5471195328cB443c85097A7A7fF0A74eaB3Cb497',
     },
   },
   FLUID_TOKEN: {
@@ -35,17 +38,53 @@ const CONSTANTS = {
 // Import ABIs
 const abiLendingResolver = require('./abiLendingResolver');
 const abiVaultResolver = require('./abiVaultResolver');
+const getVaultsEntireDataAbi = abiVaultResolver.find(
+  (m) => m.name === 'getVaultsEntireData'
+);
+const getAllVaultsAddressesAbi = {
+  inputs: [],
+  name: 'getAllVaultsAddresses',
+  outputs: [{ internalType: 'address[]', name: 'vaults_', type: 'address[]' }],
+  stateMutability: 'view',
+  type: 'function',
+};
+const getVaultsEntireDataByAddressAbi = JSON.parse(
+  JSON.stringify(getVaultsEntireDataAbi)
+);
+getVaultsEntireDataByAddressAbi.inputs = [
+  { internalType: 'address[]', name: 'vaults_', type: 'address[]' },
+];
+// Polygon's current resolver uses the address[] overload and includes these fields.
+getVaultsEntireDataByAddressAbi.outputs[0].components[9].components.push(
+  { internalType: 'uint256', name: 'decayEndTimestamp', type: 'uint256' },
+  { internalType: 'uint256', name: 'decayAmount', type: 'uint256' }
+);
+const readFromStorageAbi = {
+  inputs: [{ internalType: 'bytes32', name: 'slot_', type: 'bytes32' }],
+  name: 'readFromStorage',
+  outputs: [{ internalType: 'uint256', name: 'result_', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function',
+};
+const USER_BORROW_IS_PAUSED = 1n << 255n;
 
 // Lending Functions
 const getLendingApy = async (chain) => {
   try {
-    const fTokensEntireData = (
+    let fTokensEntireData = (
       await sdk.api.abi.call({
         target: CONSTANTS.RESOLVERS.LENDING[chain],
         abi: abiLendingResolver.find((m) => m.name === 'getFTokensEntireData'),
         chain,
       })
     ).output;
+
+    const merkleRewardsTokens = (await axios.get(`https://api.fluid.instadapp.io/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/tokens`)).data.data;
+    fTokensEntireData = fTokensEntireData.filter((token) =>
+      merkleRewardsTokens.some(
+        (t) => t.address.toLowerCase() === token.tokenAddress.toLowerCase()
+      )
+    );
 
     const underlying = fTokensEntireData.map((d) => d.asset);
 
@@ -63,11 +102,7 @@ const getLendingApy = async (chain) => {
     ]);
 
     const priceKeys = underlying.map((i) => `${chain}:${i}`).join(',');
-    const prices = (
-      await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-    ).data.coins;
-
-    const merkleRewardsTokens = (await axios.get(`https://api.fluid.instadapp.io/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/tokens`)).data.data;
+    const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
     return fTokensEntireData
       .map((token, i) => {
@@ -114,10 +149,25 @@ const getLendingApy = async (chain) => {
 // Vault Functions
 const getVaultApy = async (chain) => {
   try {
+    const vaults =
+      chain === 'polygon'
+        ? (
+            await sdk.api.abi.call({
+              target: CONSTANTS.RESOLVERS.VAULT[chain],
+              abi: getAllVaultsAddressesAbi,
+              chain,
+            })
+          ).output
+        : undefined;
+
     let vaultsEntireData = (
       await sdk.api.abi.call({
         target: CONSTANTS.RESOLVERS.VAULT[chain],
-        abi: abiVaultResolver.find((m) => m.name === 'getVaultsEntireData'),
+        abi:
+          chain === 'polygon'
+            ? getVaultsEntireDataByAddressAbi
+            : getVaultsEntireDataAbi,
+        ...(vaults && { params: [vaults] }),
         chain,
       })
     ).output;
@@ -131,12 +181,17 @@ const getVaultApy = async (chain) => {
       (vault) => vault[1] === false && vault[2] === false
     );
 
+    const userBorrowData = await sdk.api.abi.multiCall({
+      calls: filteredVaults.map((vault) => ({
+        target: vault[3][7],
+        params: [vault[3][15]],
+      })),
+      abi: readFromStorageAbi,
+      chain,
+    });
+
     const vaultDetails = {
       pools: filteredVaults.map((vault) => vault[0]),
-      underlyingTokens: filteredVaults.map((vault) => [
-        normalizeAddress(vault[3][8][0]),
-        normalizeAddress(vault[3][9][0]),
-      ]),
       rewardsRates: filteredVaults.map((vault) => Math.max(0, vault[5][12])),
       rewardsRatesBorrow: filteredVaults.map((vault) =>
         Math.max(0, vault[5][13])
@@ -147,6 +202,10 @@ const getVaultApy = async (chain) => {
       ),
       suppliedTokens: filteredVaults.map((vault) => vault[8][5]),
       borrowedTokens: filteredVaults.map((vault) => vault[8][4]),
+      borrowableTokens: filteredVaults.map((vault) => vault[7][5]),
+      borrowPaused: userBorrowData.output.map(
+        ({ output }) => (BigInt(output) & USER_BORROW_IS_PAUSED) !== 0n
+      ),
       supplyTokens: filteredVaults.map((vault) =>
         normalizeAddress(vault[3][8][0])
       ),
@@ -163,7 +222,13 @@ const getVaultApy = async (chain) => {
       filteredVaults,
       vaultDetails,
       tokenData
-    ).filter((pool) => utils.keepFinite(pool));
+    ).filter(
+      (pool) =>
+        utils.keepFinite(pool) &&
+        Number.isFinite(pool.totalSupplyUsd) &&
+        Number.isFinite(pool.totalBorrowUsd) &&
+        Number.isFinite(pool.availableBorrowUsd)
+    );
   } catch (error) {
     console.error(`Error fetching vault APY for ${chain}:`, error);
     return [];
@@ -182,37 +247,37 @@ const fetchTokenData = async (chain, vaultDetails) => {
   const priceKeys = vaultDetails.supplyTokens
     .map((token) => `${chain}:${token}`)
     .join(',');
-  const borrowPriceKeys = vaultDetails.underlyingTokens
-    .map((tokens) => `${chain}:${tokens[1]}`)
+  const borrowPriceKeys = vaultDetails.borrowTokens
+    .map((token) => `${chain}:${token}`)
     .join(',');
 
   const [prices, borrowPrices] = await Promise.all([
     axios
-      .get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+      .get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`))
       .then((r) => r.data.coins),
     axios
-      .get(`https://coins.llama.fi/prices/current/${borrowPriceKeys}`)
+      .get(utils.getPriceApiUrl(`/prices/current/${borrowPriceKeys}`))
       .then((r) => r.data.coins),
   ]);
 
   return {
-    symbol: vaultDetails.underlyingTokens.map(
-      (tokens) =>
-        `${prices[`${chain}:${tokens[0]}`].symbol}/${
-          borrowPrices[`${chain}:${tokens[1]}`].symbol
+    symbol: vaultDetails.supplyTokens.map(
+      (token, index) =>
+        `${prices[`${chain}:${token}`]?.symbol}/${
+          borrowPrices[`${chain}:${vaultDetails.borrowTokens[index]}`]?.symbol
         }`
     ),
     decimals: vaultDetails.supplyTokens.map(
-      (token) => prices[`${chain}:${token}`].decimals
+      (token) => prices[`${chain}:${token}`]?.decimals
     ),
     borrowTokenDecimals: vaultDetails.borrowTokens.map(
-      (token) => borrowPrices[`${chain}:${token}`].decimals
+      (token) => borrowPrices[`${chain}:${token}`]?.decimals
     ),
     prices: vaultDetails.supplyTokens.map(
-      (token) => prices[`${chain}:${token}`].price
+      (token) => prices[`${chain}:${token}`]?.price
     ),
     borrowTokenPrices: vaultDetails.borrowTokens.map(
-      (token) => borrowPrices[`${chain}:${token}`].price
+      (token) => borrowPrices[`${chain}:${token}`]?.price
     ),
   };
 };
@@ -233,6 +298,14 @@ const calculateVaultPoolData = (
       (borrowedToken * tokenData.borrowTokenPrices[index]) /
       10 ** tokenData.borrowTokenDecimals[index]
   );
+  // Fluid vaults borrow from the shared Liquidity layer, so this is not
+  // capped by vault TVL alone; the resolver value already includes borrow
+  // limits, max utilization, and available debt-token balance.
+  const availableBorrowUsd = vaultDetails.borrowableTokens.map(
+    (borrowableToken, index) =>
+      (borrowableToken * tokenData.borrowTokenPrices[index]) /
+      10 ** tokenData.borrowTokenDecimals[index]
+  );
 
   const fluidToken = CONSTANTS.FLUID_TOKEN[chain];
 
@@ -251,8 +324,9 @@ const calculateVaultPoolData = (
       tvlUsd: totalSupplyUsd[index],
       totalSupplyUsd: totalSupplyUsd[index],
       totalBorrowUsd: totalBorrowUsd[index],
+      availableBorrowUsd: availableBorrowUsd[index],
       symbol: supplySymbol,
-      underlyingTokens: vaultDetails.underlyingTokens[index],
+      underlyingTokens: [vaultDetails.supplyTokens[index]],
       chain,
       apyBase: Number((vaultDetails.supplyRates[index] / 1e2).toFixed(2)),
       apyBaseBorrow: Number(
@@ -265,6 +339,9 @@ const calculateVaultPoolData = (
       }),
       ltv: vaultDetails.ltv[index] / 1e4,
       mintedCoin: borrowSymbol,
+      borrowToken: vaultDetails.borrowTokens[index],
+      borrowable:
+        !vaultDetails.borrowPaused[index],
       url: `https://fluid.io/vaults/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${vault.VaultId}`,
     };
   });
@@ -281,6 +358,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4167',
   apy,
 };
 // test: npm run test --adapter=fluid-lending

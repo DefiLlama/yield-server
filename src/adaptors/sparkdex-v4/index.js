@@ -151,6 +151,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7360',
   timetravel: false,
   apy,
   url: POOL_V4_URL,

@@ -5,6 +5,7 @@ const axios = require('axios')
 const sdk = require('@defillama/sdk')
 const utils = require('../utils')
 const poolAbi = require('./poolAbi')
+const { merklGet } = require('../merkl/merkl-client')
 
 // ---------- chain maps ----------
 const protocolDataProviders = {
@@ -86,7 +87,7 @@ let merklCache = null
 async function fetchMerkl() {
   if (merklCache) return merklCache
   try {
-    const { data } = await axios.get('https://api.merkl.xyz/v4/opportunities', {
+    const data = await merklGet('/v4/opportunities', {
       params: { mainProtocolId: 'ploutos' },
       timeout: 15000,
     })
@@ -248,7 +249,7 @@ async function getApy(market) {
   })).output.map(o => o.output)
 
   const priceKeys = reserves.map(t => `${priceChain}:${t.tokenAddress}`).join(',')
-  const prices = (await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)).data?.coins || {}
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`))?.coins || {}
 
   // Merkl map
   const merklMap = await buildMerklIndex()
@@ -349,6 +350,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6792',
   timetravel: false,
   apy,
 }

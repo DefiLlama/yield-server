@@ -34,7 +34,7 @@ const sdk = (() => {
 })();
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
-const { formatChain, formatSymbol } = utils;
+const { formatChain } = utils;
 
 const CONFIG = {
   monad: {
@@ -124,9 +124,7 @@ const getErc20TotalSupply = async (target, chain) =>
 
 const getTokenPrice = async (tokenAddress, chain) => {
   const priceKey = `${chain}:${tokenAddress.toLowerCase()}`;
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
   return data.coins?.[priceKey]?.price ?? 0;
 };
 
@@ -370,7 +368,7 @@ const getMuBondPool = async (
       pool: `${muBond}-${chain}`.toLowerCase(),
       chain: formatChain(chain),
       project: 'mu-digital',
-      symbol: formatSymbol(symbolRes),
+      symbol: symbolRes,
       tvlUsd,
       apyBase,
       ...(priceFromFeed && !priceFromFeed.isZero() && {
@@ -493,7 +491,7 @@ const getVaultData = async (
       pool: `${vault}-${chain}`.toLowerCase(),
       chain: formatChain(chain),
       project: 'mu-digital',
-      symbol: formatSymbol(vaultSymbolRes),
+      symbol: vaultSymbolRes,
       tvlUsd,
       apyBase: erc4626Info?.apyBase ?? 0,
       ...(Number.isFinite(erc4626Info?.pricePerShare) && erc4626Info.pricePerShare > 0 && { pricePerShare: erc4626Info.pricePerShare }),
@@ -548,6 +546,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '7055',
   timetravel: false,
   apy,
   url: 'https://mudigital.net/',

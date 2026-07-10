@@ -85,7 +85,7 @@ async function apy() {
         pool: p.id,
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
-        symbol: utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`),
+        symbol: `${p.token0.symbol}-${p.token1.symbol}`,
         tvlUsd,
         apyBase,
         apyBase7d,
@@ -103,6 +103,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5837',
   timetravel: false,
   apy,
   url: 'https://app.hyperswap.exchange',

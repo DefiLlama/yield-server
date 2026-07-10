@@ -239,6 +239,7 @@ type Pool = {
 }
 
 module.exports = {
+  protocolId: '627',
   timetravel: false,
   apy,
 };

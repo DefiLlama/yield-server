@@ -1,8 +1,9 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const {liquidityMiningV2Abi} = require('./abiV2');
+const { getPriceApiUrl } = require('../utils');
 
-const COIN_PRICES_URL = 'https://coins.llama.fi/prices/current';
+const COIN_PRICES_URL = getPriceApiUrl('/prices/current');
 
 const CHAIN_CONFIG = {
   ethereum: {
@@ -156,6 +157,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2147',
   timetravel: false,
   apy: apy
 };

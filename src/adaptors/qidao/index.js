@@ -6,6 +6,13 @@ const utils = require('../utils');
 const { vaults, ChainId, FRONTEND } = require('./vaults');
 
 const MAI_ID = 'mimatic';
+const MAI_TOKEN_BY_CHAIN = {
+  ethereum: '0x8D6CeBD76f18E1558D4DB88138e2DeFB3909fAD6',
+  fantom: '0xfb98b335551a418cd0737375a2ea0ded62ea213b',
+  bsc: '0x3F56e0c36d275367b8C502090EDF38289b3dEa0d',
+  polygon: '0xa3fa99a148fa48d14ed51d610c367C61876997F1',
+  metis: '0xdFA46478F9e5EA86d57387849598dbFB2e964b02',
+};
 const url = 'https://api.mai.finance/v2/vaultIncentives';
 const qidao = '0xD694620D4621124F341951a2bae4C794baFD1723';
 
@@ -212,6 +219,7 @@ const main = async () => {
         totalBorrowUsd: totalBorrowUsd.toNumber(),
         debtCeilingUsd: totalBorrowUsd.plus(debtCeilingUsd).toNumber(),
         mintedCoin: 'MAI',
+        borrowToken: MAI_TOKEN_BY_CHAIN[_chain],
         ltv: (1 / ltv[index]) * 100,
         underlyingTokens: [e.token.address],
       };
@@ -222,6 +230,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '449',
   timetravel: true,
   apy: main,
   url: 'https://app.mai.finance/',

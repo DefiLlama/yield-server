@@ -13,7 +13,7 @@ const CRV = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const CVX = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
 const CNC = '0x9aE380F0272E2162340a5bB646c354271c0F5cFC';
 
-const PRICE_API = 'https://coins.llama.fi/prices/current';
+const PRICE_API = utils.getPriceApiUrl('/prices/current');
 const CURVE_APY_API = 'https://www.convexfinance.com/api/curve-apys';
 const CURVE_POOL_API = 'https://api.curve.finance/api/getPools/ethereum/main';
 
@@ -216,6 +216,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2616',
   timetravel: false,
   apy,
   url: 'https://conic.finance/',

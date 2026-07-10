@@ -13,6 +13,18 @@ const MOVEMENT_RPC = 'https://mainnet.movementnetwork.xyz/v1';
 // Sanity cap on APY percentages to catch misclassification.
 const MAX_APY = 1000;
 
+const isActiveReserve = (reserve) =>
+  reserve.is_active !== false &&
+  reserve.is_frozen !== true &&
+  reserve.is_paused !== true;
+
+const isFrozenOrDeprecated = (marketInfo) =>
+  !marketInfo.isListed ||
+  (BigInt(marketInfo.supplyCap) === 1n && BigInt(marketInfo.borrowCap) === 1n) ||
+  (BigInt(marketInfo.supplyCap) === 0n &&
+    BigInt(marketInfo.borrowCap) === 0n &&
+    BigInt(marketInfo.collateralFactor) === 0n);
+
 const CHAINS = {
   move: {
     pool: '0xf257d40859456809be19dfee7f4c55c4d033680096aeeb4228b7a15749ab68ea',
@@ -54,6 +66,7 @@ const apy = async (chain) => {
     ]);
 
     const [reserves] = reservesData;
+    const activeReserves = reserves.filter(isActiveReserve);
 
     // Build incentive lookup by underlying asset
     const incentiveByAsset = {};
@@ -66,7 +79,9 @@ const apy = async (chain) => {
 
     // Get reward token prices
     const rewardTokenAddresses = new Set();
-    for (const inc of Object.values(incentiveByAsset)) {
+    for (const reserve of activeReserves) {
+      const inc = incentiveByAsset[reserve.underlying_asset];
+      if (!inc) continue;
       for (const side of ['a_incentive_data', 'v_incentive_data']) {
         for (const reward of inc[side]?.rewards_token_information || []) {
           if (reward.reward_token_address && Number(reward.emission_per_second) > 0) {
@@ -82,9 +97,7 @@ const apy = async (chain) => {
       const priceKeys = [...rewardTokenAddresses]
         .map((a) => (a === '0xa' ? 'coingecko:movement' : `${chain}:${a}`))
         .join(',');
-      rewardPrices = (
-        await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-      ).data.coins;
+      rewardPrices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
     }
 
     const getRewardPrice = (addr) => {
@@ -92,7 +105,7 @@ const apy = async (chain) => {
       return rewardPrices[`${chain}:${addr}`]?.price;
     };
 
-    return reserves.map((r) => {
+    return activeReserves.map((r) => {
       const assetPriceUsd = r.price_in_market_reference_currency / (10 ** 18);
       const assetDecimals = r.decimals;
       const availableLiquidity = r.available_liquidity / (10 ** assetDecimals);
@@ -145,13 +158,16 @@ const apy = async (chain) => {
         tvlUsd: liquidityUsd,
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd: liquidityUsd,
         apyBase: r.liquidity_rate / (10 ** 27) * 100,
         apyBaseBorrow: r.variable_borrow_rate / (10 ** 27) * 100,
+        borrowToken: r.underlying_asset,
         apyReward,
         apyRewardBorrow,
         underlyingTokens: [r.underlying_asset],
         rewardTokens,
         ltv: r.base_lt_vas_collateral / (10 ** 5),
+        borrowable: r.borrowing_enabled !== false,
       };
     });
   } else {
@@ -175,16 +191,6 @@ const apy = async (chain) => {
         calls: allMarkets.map((m) => ({
           target: CORE,
           params: [m],
-        })),
-      })
-    ).output.map((o) => o.output);
-
-    const totalSupply = (
-      await sdk.api.abi.multiCall({
-        chain,
-        abi: abiLToken.find((n) => n.name === 'totalSupply'),
-        calls: allMarkets.map((m) => ({
-          target: m,
         })),
       })
     ).output.map((o) => o.output);
@@ -315,9 +321,7 @@ const apy = async (chain) => {
     ).output.map((o) => o.output);
 
     const priceKeys = underlying.map((t) => `${chain}:${t}`).join(',');
-    const prices = (
-      await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-    ).data.coins;
+    const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
     // Try to get LAB price from PriceCalculator, but handle failures gracefully
     let priceLAB = null;
@@ -338,13 +342,29 @@ const apy = async (chain) => {
       }
     }
 
-    return allMarkets.map((p, i) => {
+    const activeMarkets = allMarkets
+      .map((p, i) => ({ p, i }))
+      .filter(({ i }) => !isFrozenOrDeprecated(marketInfoOf[i]));
+
+    return activeMarkets.map(({ p, i }) => {
       const price = prices[`${chain}:${underlying[i]}`]?.price;
       const decimal = decimals[i] ?? 18;
 
-      const totalSupplyUsd = (totalSupply[i] / 10 ** decimal) * price;
+      const totalSupplyUsd =
+        ((Number(cash[i]) + Number(totalBorrow[i]) - Number(totalReserve[i])) /
+          10 ** decimal) *
+        price;
       const totalBorrowUsd = (totalBorrow[i] / 10 ** decimal) * price;
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+      const availableBorrowUsd =
+        (Math.min(
+          Number(cash[i]),
+          Number(marketInfoOf[i].borrowCap) > 0
+            ? Math.max(Number(marketInfoOf[i].borrowCap) - Number(totalBorrow[i]), 0)
+            : Number(cash[i])
+        ) /
+          10 ** decimal) *
+        price;
 
       // LayerBank has V1 and V2 rate models coexisting across markets:
       // - V1: baseRatePerYear < 1e18 (1e18 = 100%), per-second rates need * 100
@@ -402,8 +422,11 @@ const apy = async (chain) => {
         tvlUsd,
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
+        borrowable: marketInfoOf[i].isListed,
         apyBase,
         apyBaseBorrow,
+        borrowToken: underlyingTokens[0],
         apyReward,
         apyRewardBorrow,
         underlyingTokens,
@@ -422,6 +445,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3250',
   apy: main,
   url: 'https://app.layerbank.finance',
 };

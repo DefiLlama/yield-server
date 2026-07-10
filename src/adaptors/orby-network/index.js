@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
+const { getPriceApiData } = require('../utils');
 const TROVE_MANAGER_ADDRESS = '0x7A47cF15a1fCbAd09c66077d1D021430eed7AC65';
 const USC_ADDRESS = '0xD42E078ceA2bE8D03cd9dFEcC1f0d28915Edea78';
 const SUBGRAPH_URL = 'https://graph.cronoslabs.com/subgraphs/name/orby/orby';
@@ -93,9 +94,7 @@ const main = async () => {
   ).output;
 
   const key = `cronos:${USC_ADDRESS}`.toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${key}`)).coins;
 
   const conversionRate = (await axios.post(URL, req)).data.result
     .conversion_rate;
@@ -127,6 +126,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '4154',
   timetravel: false,
   apy: main,
   url: 'https://orby.network/',

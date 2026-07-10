@@ -19,9 +19,7 @@ const getApr = async () => {
   });
 
   const prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
-    )
+    await utils.getPriceApiData(`/prices/current/${priceKeys.join(',')}`)
   ).coins;
 
   return vaults
@@ -33,7 +31,7 @@ const getApr = async () => {
         pool: `${vault.address}-ton`.toLowerCase(),
         chain: 'Ton',
         project: 'storm-trade',
-        symbol: vault.config.asset.name,
+        symbol: vault.config.asset.name === 'TON' ? 'GRAM' : vault.config.asset.name,
         tvlUsd:
           ((Number(vault.freeBalance) + Number(vault.lockedBalance)) / 1e9) *
           price,
@@ -50,6 +48,7 @@ const getApr = async () => {
 };
 
 module.exports = {
+  protocolId: '3883',
   timetravel: false,
   apy: getApr,
   url: 'https://storm.tg/',

@@ -79,6 +79,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1083',
   timetravel: false,
   apy: getApy,
   url: 'https://iq.braindao.org/dashboard/stake',

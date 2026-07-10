@@ -393,6 +393,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2226',
   timetravel: false,
   apy,
 };

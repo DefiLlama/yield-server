@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 
 const BigNumber = require('bignumber.js');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const abi = {
   balanceOf: 'erc20:balanceOf',
@@ -37,14 +38,14 @@ const apy = async () => {
 
 async function getPrices(addresses) {
   const coins = getCoinsURI(addresses);
-  const url = `https://coins.llama.fi/prices/current/${coins}`;
+  const url = getPriceApiUrl(`/prices/current/${coins}`);
   return await fetchPrices(url);
 }
 
 async function getPricesDaysBefore(addresses, days) {
   const coins = getCoinsURI(addresses);
   const timestamp = getTimestampDaysBefore(days);
-  const url = `https://coins.llama.fi/prices/historical/${timestamp}/${coins}`;
+  const url = getPriceApiUrl(`/prices/historical/${timestamp}/${coins}`);
   return await fetchPrices(url);
 }
 
@@ -75,7 +76,7 @@ function getTimestampDaysBefore(days) {
 
 async function getBlockNumber(timestamp) {
   const response = await axios.get(
-    `https://coins.llama.fi/block/sonic/${timestamp}`
+    getPriceApiUrl(`/block/sonic/${timestamp}`)
   );
   return response.data.height;
 }
@@ -174,6 +175,7 @@ const totalSupply = async (token, block = 'latest') => {
 };
 
 module.exports = {
+  protocolId: '6300',
   timetravel: true,
   apy,
   url: 'https://rezerve.money',

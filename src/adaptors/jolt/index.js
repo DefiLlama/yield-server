@@ -137,9 +137,7 @@ const getApy = async () => {
         .map((t) => `${chain}:${t}`)
         .concat(`${chain}:${JOLT}`);
 
-      const prices = (
-        await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-      ).data.coins;
+      const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
       const joltPrice = await getUniswapV3Price(
         addresses.uniswapLp,
@@ -235,5 +233,6 @@ async function getUniswapV3Price(uniswapLp, chain, ethPrice) {
 }
 
 module.exports = {
+  protocolId: '6311',
   apy: getApy,
 };

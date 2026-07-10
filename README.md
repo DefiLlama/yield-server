@@ -23,6 +23,7 @@ Our goal is to display minimum attainable yield values for all listed projects:
 - If rewards are slashed when exiting a pool early, then set the apy value to that lower bound.
 - Omit any yield which requires an additional token aside from the LP token (eg veCRV to boost reward yields)
 - Omit any locked rewards
+- `apyReward` must not include pre-TGE points, non-transferable tokens, or other non-tradable incentives. Only include reward APY for incentives paid in tokens that are already tradable.
 - Fee based APY values should be calculated over a 24h window
 
 ### Adaptors
@@ -51,7 +52,10 @@ interface Pool {
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
   totalBorrowUsd?: number;
+  availableBorrowUsd?: number; // current available borrow liquidity in USD, accounting for caps and constraints; do not zero solely because borrowable is false
+  borrowToken?: string; // underlying token address/string the borrower receives; not a debt receipt token
   ltv?: number; // btw [0, 1]
+  borrowable?: boolean; // whether a new borrow can be opened right now for this asset
 }
 ```
 
@@ -124,11 +128,14 @@ That page has stricter filters than other pages, only pools with >1M TVL and on 
 
 ```js
 module.exports = {
+  protocolId: '294', // id from https://api.llama.fi/protocols for this adapter's exact slug
   timetravel: false,
   apy: apy, // Main function, returns pools
   url: 'https://example.com/pools', // Link to page with pools (Only required if you do not provide url's for each pool)
 };
 ```
+
+`protocolId` is required and must match the protocol `id` from `https://api.llama.fi/protocols`, using the adapter folder name as the protocol `slug`. Store it as a string. The adapter test fails if the folder name has no exact protocol slug match, if `protocolId` is missing, or if it does not equal the matched protocol's `id`.
 
 An example of the most basic adaptor is the following for Anchor on terra:
 
@@ -147,7 +154,7 @@ const poolsFunction = async () => {
     pool: 'terra1hzh9vpxhsk8253se0vv5jj6etdvxu3nv8z07zu',
     chain: utils.formatChain('terra'),
     project: 'anchor',
-    symbol: utils.formatSymbol('UST'),
+    symbol: 'UST',
     tvlUsd: Number(dataTvl.total_ust_deposits) / 1e6,
     apy: apyData.deposit_apy * 100,
   };
@@ -156,6 +163,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '294',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.anchorprotocol.com/#/earn',

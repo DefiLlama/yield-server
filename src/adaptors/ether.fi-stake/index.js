@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const weETH = '0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee';
 const eETH = '0x35fA164735182de50811E8e2E824cFb9B6118ac2'
@@ -34,13 +35,9 @@ const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
-  const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
-  ).data.height;
+  const block1dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp1dayAgo}`)).height;
 
-  const block7dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
-  ).data.height;
+  const block7dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp7dayAgo}`)).height;
 
   const abi = 'function getRate() external view returns (uint256)';
 
@@ -91,10 +88,10 @@ const apy = async () => {
   const priceKeyWBTC = `ethereum:${WBTC}`;
 
   const [eigenPriceRes, eethPriceRes, weethPriceRes, wbtcPriceRes, lombardApyRes] = await Promise.all([
-    axios.get(`https://coins.llama.fi/prices/current/ethereum:${eigen}`),
-    axios.get(`https://coins.llama.fi/prices/current/ethereum:${eETH}`),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKeyWBTC}`),
+    axios.get(getPriceApiUrl(`/prices/current/ethereum:${eigen}`)),
+    axios.get(getPriceApiUrl(`/prices/current/ethereum:${eETH}`)),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKeyWBTC}`)),
     axios.get(LOMBARD_APY_API),
   ]);
 
@@ -184,7 +181,7 @@ const getBridgedWeethPools = async ({ apyBase, apyBase7d, apyReward, pricePerSha
 
   const priceKeys = entries.map(([chain, addr]) => `${chain}:${addr}`).join(',');
   const priceRes = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
+    getPriceApiUrl(`/prices/current/${priceKeys}`)
   );
   const prices = priceRes.data.coins;
 
@@ -216,6 +213,7 @@ const getBridgedWeethPools = async ({ apyBase, apyBase7d, apyReward, pricePerSha
 };
 
 module.exports = {
+  protocolId: '2626',
   apy,
   url: 'https://app.ether.fi/',
 };

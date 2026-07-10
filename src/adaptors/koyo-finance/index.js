@@ -33,7 +33,7 @@ const buildPool = (entry, chainString) => {
     pool: entry.address,
     chain: utils.formatChain(chainString),
     project: 'koyo-finance',
-    symbol: utils.formatSymbol(entry.assets),
+    symbol: entry.assets,
     tvlUsd: entry.tvl,
     apy,
   };
@@ -54,6 +54,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1766',
   timetravel: false,
   apy: main,
   url: 'https://koyo.finance/kyo/farms',

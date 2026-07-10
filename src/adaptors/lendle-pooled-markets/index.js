@@ -85,9 +85,7 @@ const getApy = async () => {
       ).output.map((o) => o.output);
 
       const pricesArray = reservesList.map((t) => `${sdkChain}:${t}`);
-      const prices = (
-        await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-      ).data.coins;
+      const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
       const _poolsApr = (await axios.get(poolsApr)).data;
 
@@ -130,7 +128,9 @@ const getApy = async () => {
             // borrow fields
             totalSupplyUsd,
             totalBorrowUsd,
+            availableBorrowUsd: tvlUsd,
             apyBaseBorrow,
+            borrowToken: t,
             ltv,
             borrowable,
             poolMeta: frozen ? 'frozen' : null,
@@ -144,5 +144,6 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3300',
   apy: getApy,
 };

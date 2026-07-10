@@ -38,6 +38,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '126',
   timetravel: false,
   apy: getApy,
   url: 'https://loopring.io/#/markets',

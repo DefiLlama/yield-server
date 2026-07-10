@@ -63,6 +63,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '220',
   timetravel: false,
   apy: main,
   url: 'https://app.vesper.finance/',

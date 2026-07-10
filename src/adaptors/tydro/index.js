@@ -46,6 +46,17 @@ const getApy = async () => {
     })
   ).output.map((o) => o.output);
 
+  const poolsReserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: PROTOCOL_DATA_PROVIDER,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupply = (
     await sdk.api.abi.multiCall({
       chain,
@@ -80,9 +91,7 @@ const getApy = async () => {
   const priceKeys = reserveTokens
     .map((t) => `${chain}:${t.tokenAddress}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return reserveTokens
     .map((pool, i) => {
@@ -91,15 +100,23 @@ const getApy = async () => {
 
       const p = poolsReserveData[i];
       const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
+      const decimals = Number(underlyingDecimals[i]);
 
       const supply = totalSupply[i];
-      const totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const totalSupplyUsd = (supply / 10 ** decimals) * price;
 
       const currentSupply = underlyingBalances[i];
-      const tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
+      const tvlUsd = (currentSupply / 10 ** decimals) * price;
 
-      let totalBorrowUsd = totalSupplyUsd - tvlUsd;
-      totalBorrowUsd = totalBorrowUsd < 0 ? 0 : totalBorrowUsd;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** decimals) *
+        price;
+      const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const hasBorrowCap = Number(poolsReserveCaps[i].borrowCap) > 0;
+      const availableBorrowUsd = hasBorrowCap
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
 
       return {
         pool: `${aTokens[i].tokenAddress}-${chain}`.toLowerCase(),
@@ -111,7 +128,9 @@ const getApy = async () => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        borrowToken: pool.tokenAddress,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url: `https://app.tydro.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_ink_v3`,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
@@ -126,6 +145,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6875',
   timetravel: false,
   apy,
   url: 'https://app.tydro.com/',

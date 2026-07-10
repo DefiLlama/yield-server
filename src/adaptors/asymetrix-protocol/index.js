@@ -137,7 +137,7 @@ async function getApyData() {
     pool: stakePrizePoolContract.options.address,
     chain: utils.formatChain('ethereum'),
     project: 'asymetrix-protocol',
-    symbol: utils.formatSymbol('stETH'),
+    symbol: 'stETH',
     tvlUsd: await utils.getData('https://api.llama.fi/tvl/asymetrix-protocol'),
     apyReward: await getApy(),
     rewardTokens: [asxContract.options.address], // [ASX]
@@ -149,6 +149,7 @@ async function getApyData() {
 }
 
 module.exports = {
+  protocolId: '2885',
   timetravel: false,
   apy: getApyData,
 };

@@ -2,7 +2,32 @@ const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const { chunk } = require('lodash');
 const sdk = require('@defillama/sdk');
+const {
+  Contract,
+  validateAndParseAddress,
+  number: starknetNumber,
+  hash: starknetHash,
+} = require('starknet');
 const { default: BigNumber } = require('bignumber.js');
+const { checkStablecoin } = require('./checkStablecoin');
+
+exports.MIN_TVL_USD = 1_000;
+
+const getPriceApiUrl = (path) => {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  const key = process.env.DL_API_KEY;
+
+  return key
+    ? `https://pro-api.llama.fi/${key}/coins${p}`
+    : `https://coins.llama.fi${p}`;
+};
+
+exports.getPriceApiUrl = getPriceApiUrl;
+
+const getPriceApiData = async (path) =>
+  (await axios.get(getPriceApiUrl(path))).data;
+
+exports.getPriceApiData = getPriceApiData;
 
 exports.formatAddress = (address) => {
   return String(address).toLowerCase();
@@ -14,6 +39,109 @@ exports.padStarknetAddress = (addr) => {
   if (hex.length >= 64) return addr;
   return '0x' + hex.padStart(64, '0');
 };
+
+let pendingStarknetCall = Promise.resolve();
+
+const getStarknetRpc = () => {
+  if (!process.env.STARKNET_RPC) throw new Error('STARKNET_RPC is required');
+  return process.env.STARKNET_RPC;
+};
+
+const rateLimitedStarknetCall = (fn) => (...args) => {
+  const promise = pendingStarknetCall.then(() => fn(...args));
+  pendingStarknetCall = promise.catch(() => {});
+  return promise;
+};
+
+const chunkArray = (arr, chunkSize = 100) => {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    chunks.push(arr.slice(i, i + chunkSize));
+  }
+  return chunks;
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getStarknetCallBody = ({ abi, target, params = [], allAbi = [] }, id = 0) => {
+  if ((params || params === 0) && !Array.isArray(params)) params = [params];
+
+  const contract = new Contract([abi, ...allAbi], target, null);
+  const requestData = contract.populate(abi.name, params);
+  requestData.entry_point_selector = starknetHash.getSelectorFromName(requestData.entrypoint);
+  requestData.contract_address = requestData.contractAddress;
+  delete requestData.contractAddress;
+  delete requestData.entrypoint;
+  requestData.calldata = requestData.calldata.map((i) => starknetNumber.toHex(starknetNumber.toBN(i)));
+
+  return {
+    jsonrpc: '2.0',
+    id,
+    method: 'starknet_call',
+    params: [requestData, 'latest'],
+  };
+};
+
+const parseStarknetOutput = (result, abi, allAbi) => {
+  const contract = new Contract([abi, ...allAbi], null, null);
+  let response = contract.parseResponse(abi.name, result);
+
+  if (abi.outputs.length !== 1) return response;
+
+  response = response[0];
+  if (abi.outputs[0].type === 'Uint256') return response;
+
+  switch (abi.customType) {
+    case 'address':
+      return validateAndParseAddress(response);
+    case 'Uint256':
+      return response;
+    default:
+      return response;
+  }
+};
+
+const starknetCall = async ({ abi, target, params = [], allAbi = [] } = {}) => {
+  const {
+    data: { result },
+  } = await axios.post(getStarknetRpc(), getStarknetCallBody({ abi, target, params, allAbi }));
+
+  return parseStarknetOutput(result, abi, allAbi);
+};
+
+const starknetMultiCall = async ({ abi: rootAbi, target: rootTarget, calls = [], allAbi = [] }) => {
+  if (!calls.length) return [];
+
+  calls = calls.map((callArgs) => {
+    if (typeof callArgs !== 'object') {
+      if (!rootTarget) return { target: callArgs, abi: rootAbi, allAbi };
+      return { target: rootTarget, params: callArgs, abi: rootAbi, allAbi };
+    }
+
+    const { target, params, abi } = callArgs;
+    return { target: target || rootTarget, params, abi: abi || rootAbi };
+  });
+
+  const callBodies = calls.map(getStarknetCallBody);
+  const allData = [];
+  for (const chunk of chunkArray(callBodies, 25)) {
+    await sleep(2000);
+    const { data } = await axios.post(getStarknetRpc(), chunk);
+    allData.push(...data);
+  }
+
+  const response = [];
+  allData.forEach(({ result, id }) => {
+    const abi = calls[id].abi ?? rootAbi;
+    response[id] = parseStarknetOutput(result, abi, allAbi);
+  });
+  return response;
+};
+
+exports.call = rateLimitedStarknetCall(starknetCall);
+exports.multiCall = rateLimitedStarknetCall(starknetMultiCall);
+exports.parseAddress = validateAndParseAddress;
+exports.number = starknetNumber;
 
 exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
@@ -89,14 +217,23 @@ exports.formatSymbol = (symbol) => {
     .toUpperCase();
 };
 
+exports.checkStablecoin = checkStablecoin;
+
 exports.getData = async (url, query = null, headers = {}) => {
   let res;
   if (query !== null) {
     res = await axios.post(url, query, { headers });
   } else {
-    res = await axios.get(url);
+    res = await axios.get(url, { headers });
   }
   return res.data;
+};
+
+exports.getEgressData = async (egressPath, directUrl) => {
+  if (!process.env.EGRESS_BASE_URL) return exports.getData(directUrl);
+  return exports.getData(`${process.env.EGRESS_BASE_URL}${egressPath}`, null, {
+    'x-egress-token': process.env.EGRESS_TOKEN,
+  });
 };
 
 // Retry helper for flaky endpoints. Only retries transient failures
@@ -117,14 +254,14 @@ exports.withRetry = async (fn, { retries = 3, delayMs = 500 } = {}) => {
 // retrive block based on unixTimestamp array
 const getBlocksByTime = async (timestamps, chainString) => {
   const chain = chainString === 'avalanche' ? 'avax' : chainString;
-  const blocks = [];
-  for (const timestamp of timestamps) {
-    const response = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
-    );
-    blocks.push(response.data.height);
-  }
-  return blocks;
+  return Promise.all(
+    timestamps.map(async (timestamp) => {
+      const response = await axios.get(
+      getPriceApiUrl(`/block/${chain}/${timestamp}`)
+      );
+      return response.data.height;
+    })
+  );
 };
 
 exports.getBlocksByTime = getBlocksByTime;
@@ -160,7 +297,8 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('exchange-v3-zksync/version/latest') ||
     url.includes('balancer-base-v2/version/latest') ||
     url.includes('horizondex') ||
-    url.includes('swopfi-units')
+    url.includes('swopfi-units') ||
+    url.includes('swap.w3us.site')
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(
@@ -246,17 +384,20 @@ exports.tvl = async (dataNow, networkString) => {
   // price endpoint seems to break with too many tokens, splitting it to max 50 per request
   const fetchTokenPrices = async (tokenIds) => {
     const idList = tokenIds.join(',').replaceAll('/', '');
-    const { data } = await axios.get(
-      `https://coins.llama.fi/prices/current/${idList}`
-    );
+    const data = await getPriceApiData(`/prices/current/${idList}`);
     return data.coins;
   };
 
-  const prices = {};
+  const priceChunks = [];
   for (let index = 0; index < idsSet.length; index += 50) {
-    const chunk = idsSet.slice(index, index + 50);
-    const chunkPrices = await fetchTokenPrices(chunk);
-    Object.assign(prices, chunkPrices);
+    priceChunks.push(idsSet.slice(index, index + 50));
+  }
+  const CONCURRENCY = 5;
+  const prices = {};
+  for (let index = 0; index < priceChunks.length; index += CONCURRENCY) {
+    const batch = priceChunks.slice(index, index + CONCURRENCY);
+    const batchResults = await Promise.all(batch.map(fetchTokenPrices));
+    Object.assign(prices, ...batchResults);
   }
 
   // calc tvl
@@ -376,12 +517,10 @@ exports.getPrices = async (addresses, chain) => {
     ? addresses.map((address) => `${chain}:${address}`)
     : addresses;
   const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${priceKeys
-        .join(',')
-        .toLowerCase()}`
+    await getPriceApiData(
+      `/prices/current/${priceKeys.join(',').toLowerCase()}`
     )
-  ).data.coins;
+  ).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -522,7 +661,7 @@ exports.getERC4626Info = async (
   const [blockNow, blockYesterday] = await Promise.all(
     [timestamp, timestamp - DAY].map((time) =>
       axios
-        .get(`https://coins.llama.fi/block/${chain}/${time}`)
+        .get(getPriceApiUrl(`/block/${chain}/${time}`))
         .then((r) => r.data.height)
     )
   );
@@ -746,7 +885,7 @@ exports.calcSolanaLstApyFromPriceRatio = async (currentExchangeRate, lstMint, da
 
   try {
     const historicalRes = await axios.get(
-      `https://coins.llama.fi/prices/historical/${timestamp}/${lstKey},${solKey}`
+      getPriceApiUrl(`/prices/historical/${timestamp}/${lstKey},${solKey}`)
     );
 
     const lstPrice = historicalRes.data.coins[lstKey]?.price;

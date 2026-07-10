@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const apy = async () => {
   const [apyData, supplyData] = await Promise.all(
@@ -9,9 +10,7 @@ const apy = async () => {
   );
 
   const id = 'fuel-network';
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/coingecko:${id}`)
-  ).data.coins[`coingecko:${id}`].price;
+  const price = (await getPriceApiData(`/prices/current/coingecko:${id}`)).coins[`coingecko:${id}`].price;
 
   return [
     {
@@ -28,5 +27,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6011',
   apy,
 };

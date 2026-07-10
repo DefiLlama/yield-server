@@ -1,9 +1,9 @@
-const { fetchURL } = require('../../helper/utils');
+const { getData } = require('../utils');
 
 const API_URL = 'https://api.reservoir.fi/v1/pairs';
 
 const getApy = async () => {
-    const { data: pairs } = await fetchURL(API_URL);
+    const pairs = await getData(API_URL);
 
     return pairs.map((pair) => {
         const symbols = pair.token0.symbol + '-' + pair.token1.symbol
@@ -25,6 +25,7 @@ const getApy = async () => {
 }
 
 module.exports = {
+  protocolId: '3553',
     timetravel: false,
     apy: getApy,
     url: 'https://app.reservoir.fi/analytics',

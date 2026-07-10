@@ -43,9 +43,7 @@ const queryPrior = gql`
 const buildPool = (entry, chainString) => {
   const apyFee = Number(entry.apy1d);
   const apyJoe = isNaN(entry.apyJoe) ? null : entry.apyJoe;
-  const symbol = utils.formatSymbol(
-    `${entry.token0.symbol}-${entry.token1.symbol}`
-  );
+  const symbol = `${entry.token0.symbol}-${entry.token1.symbol}`;
   const newObj = {
     pool: entry.id,
     chain: utils.formatChain(chainString),
@@ -136,9 +134,7 @@ const topLvl = async (chainString, timestamp, url) => {
 
   // get joe price
   const key = 'avax:0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd';
-  const joeUsd = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins;
+  const joeUsd = (await utils.getPriceApiData(`/prices/current/${key}`)).coins;
 
   const dataLM = {};
   for (const p of poolInfo) {
@@ -171,6 +167,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '468',
   timetravel: false,
   apy: main,
   url: 'https://traderjoexyz.com/pool',

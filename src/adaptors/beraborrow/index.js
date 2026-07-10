@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const abi = require('./abi');
 const BigNumber = require('bignumber.js');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const BB_SNECT = '0x1d22592F66Fc92e0a64eE9300eAeca548cd466c5';
 const NECT = '0x1ce0a25d13ce4d52071ae7e02cf1f6606f4c79d3';
@@ -31,14 +32,14 @@ const apy = async () => {
 
 async function getPrices(addresses) {
   const coins = getCoinsURI(addresses);
-  const url = `https://coins.llama.fi/prices/current/${coins}`;
+  const url = getPriceApiUrl(`/prices/current/${coins}`);
   return await fetchPrices(url);
 }
 
 async function getPricesDaysBefore(addresses, days) {
   const coins = getCoinsURI(addresses);
   const timestamp = getTimestampDaysBefore(days);
-  const url = `https://coins.llama.fi/prices/historical/${timestamp}/${coins}`;
+  const url = getPriceApiUrl(`/prices/historical/${timestamp}/${coins}`);
   return await fetchPrices(url);
 }
 
@@ -69,7 +70,7 @@ function getTimestampDaysBefore(days) {
 
 async function getBlockNumber(timestamp) {
   const response = await axios.get(
-    `https://coins.llama.fi/block/berachain/${timestamp}`
+    getPriceApiUrl(`/block/berachain/${timestamp}`)
   );
   return response.data.height;
 }
@@ -160,6 +161,7 @@ const totalSupply = async (token, block = 'latest') => {
 };
 
 module.exports = {
+  protocolId: '5746',
   timetravel: true,
   apy,
   url: 'https://beraborrow.com',

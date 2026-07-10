@@ -206,7 +206,7 @@ function formatPool(p) {
     pool: p.pair_address,
     chain: utils.formatChain('polygon'),
     project: 'pearlfi',
-    symbol: utils.formatSymbol(p.symbol.split('-')[1]),
+    symbol: p.symbol.split('-')[1],
     tvlUsd: p.pairTvlUsd,
     apyReward,
     rewardTokens: p.apr ? [PEARL_ADDRESS] : [],

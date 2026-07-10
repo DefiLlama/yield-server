@@ -21,9 +21,7 @@ const savings = async () => {
 
   // get asset price in usd
   const key = 'ethereum:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
-  const usdcInUSDEth = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins[key].price;
+  const usdcInUSDEth = (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key].price;
 
   let tvl = new BigNumber(
     (
@@ -51,7 +49,7 @@ const savings = async () => {
     pool: savingsPool,
     chain: utils.formatChain(chain),
     project: projectName,
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     tvlUsd: parseInt(tvl.toFixed(0)),
     apy: parseFloat(apy.toFixed(2)),
     underlyingTokens: [USDCinEthereum],
@@ -63,9 +61,7 @@ const savingsPlus = async () => {
 
   // get asset price in usd
   const key = `polygon:${USDCinPolygon}`.toLowerCase();
-  const usdcInUSDPolygon = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins[key].price;
+  const usdcInUSDPolygon = (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key].price;
 
   let tvl = new BigNumber(
     (
@@ -105,7 +101,7 @@ const savingsPlus = async () => {
     pool: savingsPlusPolygonPool,
     chain: utils.formatChain(chain),
     project: projectName,
-    symbol: utils.formatSymbol('USDC'),
+    symbol: 'USDC',
     tvlUsd: parseInt(tvl.toFixed(0)),
     apy: parseFloat(apy.toFixed(2)),
     underlyingTokens: [USDCinPolygon],
@@ -118,6 +114,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1288',
   timetravel: false,
   apy: main,
   url: 'https://app.viamover.com/',

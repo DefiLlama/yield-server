@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 // Liquid ETH Vault (liquidETH) - same address on Ethereum and Scroll
 const liquidETH = '0xf0bb20865277aBd641a307eCe5Ee04E79073416C';
@@ -30,7 +31,7 @@ const getBlocksByTime = async (timestamps, chain = 'ethereum') => {
   const blocks = await Promise.all(
     timestamps.map(async (t) => {
       const response = await axios.get(
-        `https://coins.llama.fi/block/${chain}/${t}`
+        getPriceApiUrl(`/block/${chain}/${t}`)
       );
       return response.data.height;
     })
@@ -222,7 +223,7 @@ const apy = async () => {
     `hyperliquid:0x0000000000000000000000000000000000000000`,
   ];
   const pricesRes = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
+    getPriceApiUrl(`/prices/current/${priceKeys.join(',')}`)
   );
 
   const liquidETHPrice =
@@ -396,6 +397,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4429',
   timetravel: false,
   apy,
   url: 'https://app.ether.fi/liquid',

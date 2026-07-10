@@ -132,9 +132,7 @@ const getApy = async () => {
       ).output.map((o) => o.output);
 
       const pricesArray = reservesList.map((t) => `${sdkChain}:${t}`);
-      const prices = (
-        await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-      ).data.coins;
+      const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
       return reservesList.map((t, i) => {
         const config = reserveConfigurationData[i];
@@ -189,5 +187,6 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4250',
   apy: getApy,
 };

@@ -125,9 +125,7 @@ const apy = async () => {
   const pricesArray = [rewardToken, ...reservesList]
     .map((t) => `${chain}:${t}`)
     .concat(['coingecko:wrapped-memory']);
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
   const secondsPerYear = 60 * 60 * 24 * 365;
   const rewardPerYear =
@@ -174,7 +172,7 @@ const apy = async () => {
 
       return {
         pool: reserveData[i].aTokenAddress,
-        symbol: utils.formatSymbol(symbols[i]),
+        symbol: symbols[i],
         project: 'uwu-lend',
         chain: 'Ethereum',
         tvlUsd,
@@ -186,7 +184,9 @@ const apy = async () => {
         // borrow fields
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd: tvlUsd,
         apyBaseBorrow,
+        borrowToken: t,
         apyRewardBorrow,
         ltv,
       };
@@ -195,6 +195,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2111',
   timetravel: false,
   apy,
 };

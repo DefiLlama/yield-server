@@ -6,9 +6,7 @@ const STETH_ADDRESS = '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84';
 const ARM_WETH_STETH_ADDRESS = '0x85b78aca6deae198fbf201c82daf6ca21942acc6';
 
 const apy = async () => {
-  const priceData = await utils.getData(
-    'https://coins.llama.fi/prices/current/coingecko:ethereum?searchWidth=4h'
-  );
+  const priceData = await utils.getPriceApiData('/prices/current/coingecko:ethereum?searchWidth=4h');
   const ethPrice = priceData.coins['coingecko:ethereum'].price;
 
   const apyData = await utils.getData(
@@ -56,6 +54,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5280',
   timetravel: false,
   apy,
   url: 'https://originprotocol.com',

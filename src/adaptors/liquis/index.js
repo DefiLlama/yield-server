@@ -132,9 +132,7 @@ const liqLitPool = async (chain, olitprice, liqprice) => {
   const keys = [weth, bal, lit[chain]]
     .map((token) => `${chain}:${token}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${keys}`)).coins;
   const balPrice = prices[`${chain}:${bal}`]?.price;
   const wethPrice = prices[`${chain}:${weth}`]?.price;
 
@@ -462,9 +460,7 @@ const topLvl = async (chainString, url, timestamp) => {
 
     // fetch token prices
     const keys = tokens.map((token) => `${chainString}:${token}`).join(',');
-    const prices = (
-      await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
-    ).data.coins;
+    const prices = (await utils.getPriceApiData(`/prices/current/${keys}`)).coins;
 
     // calculate the price of oLIT
     let optionPrice = 0;
@@ -690,6 +686,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '3498',
   timetravel: false,
   apy: main,
   url: `https://www.liquis.app/stake`,

@@ -100,6 +100,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1700',
   apy,
   timetravel: false,
   url: 'https://app.wombat.exchange/pool',

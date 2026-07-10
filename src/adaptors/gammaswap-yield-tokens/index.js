@@ -456,7 +456,7 @@ const apy = async () => {
             pool: `${vaultRow.id}-${chainKey}`,
             chain: utils.formatChain(chainKey),
             project: "gammaswap-yield-tokens",
-            symbol: utils.formatSymbol(tokenSymbol),
+            symbol: tokenSymbol,
             tvlUsd: (() => {
               try {
                 // Calculate TVL as NAV * assetTokenPriceUSD
@@ -488,6 +488,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6569',
   timetravel: false,
   apy: apy,
   url: "https://app.gammaswap.com/yield-tokens",

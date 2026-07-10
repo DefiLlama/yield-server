@@ -49,9 +49,7 @@ const eth_apy = async () => {
     target: ETH_VAULT_ADDRESS,
   });
   const key = 'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
-  const ethPriceUSD = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins[key].price;
+  const ethPriceUSD = (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key].price;
 
   return {
     pool: `${ETH_VAULT_ADDRESS}-ethereum`,
@@ -70,6 +68,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2265',
   apy,
   url: 'https://bankofchain.io',
   timetravel: false,

@@ -63,6 +63,7 @@ const acquireData = async () => {
 };
 
 module.exports = {
+  protocolId: '1296',
   timetravel: false,
   apy: acquireData,
   url: 'https://zipswap.fi/#/farm',

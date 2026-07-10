@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const abi = require('./abi');
+const { getPriceApiData } = require('../utils');
 
 const archController = '0xfEB516d9D946dD487A9346F6fee11f40C6945eE4';
 const chain = 'ethereum';
@@ -72,10 +73,8 @@ const apy = async () => {
     })
   ).output.map((i) => i.output);
 
-  const priceApiKeys = asset.map((i) => `${chain}:${i}`);
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceApiKeys}`)
-  ).data.coins;
+  const priceApiKeys = [...new Set(asset.map((i) => `${chain}:${i}`))];
+  const prices = (await getPriceApiData(`/prices/current/${priceApiKeys.join(',')}`)).coins;
 
   const pools = [];
   for (let i = 0; i < markets.length; i++) {
@@ -96,7 +95,7 @@ const apy = async () => {
         (totalDebts[i] / 10 ** decimals[i]) *
         prices[`${chain}:${asset[i]}`]?.price,
       totalBorrowUsd:
-        ((totalDebts[i] - totalAssets[i]) / 10 ** decimals[i]) *
+        (Math.max(totalDebts[i] - totalAssets[i], 0) / 10 ** decimals[i]) *
         prices[`${chain}:${asset[i]}`]?.price,
       underlyingTokens: [asset[i]],
       poolMeta: name[i],
@@ -108,5 +107,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3871',
   apy,
 };

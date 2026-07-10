@@ -26,7 +26,7 @@ const rewardsAPR = {};
 const createPool = (pair, chainString) => {
   const { id, token0, token1, totalValueLockedUSD: tvlUsd } = pair;
 
-  const symbol = utils.formatSymbol(`${token0.symbol}-${token1.symbol}`);
+  const symbol = `${token0.symbol}-${token1.symbol}`;
 
   const apyReward = rewardsAPR[id.toLowerCase()];
 
@@ -192,6 +192,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '292',
   timetravel: true,
   apy: main,
   url: 'https://swapr.eth.link/#/pools?chainId=1',

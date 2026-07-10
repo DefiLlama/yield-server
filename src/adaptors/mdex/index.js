@@ -65,6 +65,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '334',
   apy,
   timetravel: false,
   url: 'https://mdex.com/#/boardroom',

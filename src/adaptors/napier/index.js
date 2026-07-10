@@ -86,7 +86,7 @@ async function apy() {
         pool: tokenId(market.tokens.poolToken.address, chainId),
         chain: utils.formatChain(chain.name),
         project: 'napier',
-        symbol: utils.formatSymbol(market.tokens.targetToken.symbol),
+        symbol: market.tokens.targetToken.symbol,
         tvlUsd: Number(market.metrics.poolTvlInUsdFmt),
         apyBase: Number(market.metrics.poolApy) - Number(market.metrics.poolTargetRewardsApy || 0),
         apyReward: Number(market.metrics.poolTargetRewardsApy || 0),
@@ -107,7 +107,7 @@ async function apy() {
         pool: tokenId(market.tokens.principalToken.address, chainId),
         chain: utils.formatChain(chain.name),
         project: 'napier',
-        symbol: utils.formatSymbol(market.tokens.targetToken.symbol),
+        symbol: market.tokens.targetToken.symbol,
         tvlUsd: Number(market.metrics.ptTvlInUsdFmt),
         apyBase: Number(market.metrics.impliedApy),
         apyReward: Number(rewardApy),
@@ -129,6 +129,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '4834',
   timetravel: false,
   apy,
 };

@@ -106,9 +106,7 @@ const topLvl = async (chainString, url, timestamp) => {
 
       const apyReward = farm?.endTime > Date.now() / 1000 ? +farm?.apr : 0;
 
-      const symbol = utils.formatSymbol(
-        `${p.token0.symbol}-${p.token1.symbol}`
-      );
+      const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
       return {
         pool: p.id,
         chain: utils.formatChain(chainString),
@@ -151,6 +149,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2615',
   apy: main,
   timetravel: false,
   url: 'https://kyberswap.com/pools',

@@ -77,14 +77,10 @@ const toISODate = (timestamp) =>
   new Date(timestamp * 1000).toISOString().substr(0, 10);
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .map((address) => `ethereum:${address}`)
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -277,6 +273,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2100',
   timetravel: false,
   apy: main,
   url: 'https://app.sense.finance',

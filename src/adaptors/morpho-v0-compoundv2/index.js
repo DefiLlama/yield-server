@@ -186,7 +186,7 @@ const apy = async () => {
       pool: `morpho-compound-${marketFromGraph.token.address}`,
       chain: 'ethereum',
       project: 'morpho-v0-compoundv2',
-      symbol: utils.formatSymbol(marketFromGraph.token.symbol),
+      symbol: marketFromGraph.token.symbol,
       apyBase,
       apyReward: conditionBase ? compAPY * 100 : null,
       rewardTokens: conditionBase ? [compToken] : null,

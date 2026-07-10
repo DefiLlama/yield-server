@@ -252,9 +252,7 @@ const main = async () => {
 
   // get wbtc and weth price which we use for reward APR in case totalSupply field = 0
   const coins = Object.values(assetTypeMapping).join(',').toLowerCase();
-  const underlyingPrices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).data.coins;
+  const underlyingPrices = (await utils.getPriceApiData(`/prices/current/${coins}`)).coins;
 
   // const celoApy = (
   //   await utils.getData('https://api.curve.fiance/api/getFactoryAPYs-celo')
@@ -469,6 +467,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3',
   timetravel: false,
   apy: main,
 };

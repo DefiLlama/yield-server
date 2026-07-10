@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const WRAPPED_ORIGIN_SONIC = '0x9F0dF7799f6FDAd409300080cfF680f5A23df4b1';
 const ORIGIN_SONIC = '0xb1e25689d55734fd3fffc939c4c3eb52dff8a794';
@@ -12,22 +13,14 @@ const apy = async () => {
     const tvl = (await sdk.api.erc20.totalSupply({ target: ORIGIN_SONIC, chain: 'sonic' })).output / 1e18;
 
     const priceKey = `sonic:${SONIC}`;
-    const sonicPrice = (
-        await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-    ).data.coins[priceKey]?.price;
+    const sonicPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
     const timestampNow = Math.floor(Date.now() / 1000);
     const timestampYesterday = timestampNow - 86400;
 
-    const blockNow = (
-        await axios.get(`https://coins.llama.fi/block/sonic/${timestampNow}`)
-    ).data.height;
+    const blockNow = (await getPriceApiData(`/block/sonic/${timestampNow}`)).height;
 
-    const blockYesterday = (
-        await axios.get(
-            `https://coins.llama.fi/block/sonic/${timestampYesterday}`
-        )
-    ).data.height;
+    const blockYesterday = (await getPriceApiData(`/block/sonic/${timestampYesterday}`)).height;
 
     const exchangeRateYesterday = await sdk.api.abi.call({
         target: WRAPPED_ORIGIN_SONIC,
@@ -63,4 +56,4 @@ const apy = async () => {
     ];
 };
 
-module.exports = { apy, url: 'https://www.originprotocol.com/os' };
+module.exports = { protocolId: '5688', apy, url: 'https://www.originprotocol.com/os' };

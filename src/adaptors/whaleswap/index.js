@@ -5,7 +5,6 @@ const { request, gql } = require('graphql-request');
 
 const { podMasterABI, lpTokenABI } = require('./abis');
 const utils = require('../utils');
-const { fetchURL } = require('../../helper/utils');
 
 const RPC_URL = 'https://bsc-dataseed1.binance.org/';
 const API_URL = sdk.graph.modifyEndpoint(
@@ -48,10 +47,7 @@ const getPairInfo = (pair) => {
 };
 
 const getApy = async (chainId, pid) => {
-  const apyResult = await fetchURL(
-    `${BACKEND_URL}/${chainId}/whaleswap/apr/${pid}`
-  );
-  return apyResult.data;
+  return utils.getData(`${BACKEND_URL}/${chainId}/whaleswap/apr/${pid}`);
 };
 
 const calculateReservesUSD = (
@@ -86,9 +82,7 @@ const getBaseTokensPrice = async () => {
   const tokens = ['binancecoin', 'ethereum']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${tokens}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${tokens}`);
 
   const podPriceResult = await request(API_URL, priceQuery, {
     id: '0xdded222297b3d08dafdac8f65eeb799b2674c78f',
@@ -183,6 +177,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1884',
   timetravel: false,
   apy: main,
   url: 'https://whaleswap.finance/farm?chain=bsc_mainnet',

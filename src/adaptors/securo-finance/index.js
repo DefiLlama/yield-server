@@ -111,6 +111,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1936',
   timetravel: false,
   apy: getApy,
   url: 'https://app.securo.finance/',

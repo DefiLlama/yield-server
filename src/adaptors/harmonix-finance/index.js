@@ -22,7 +22,7 @@ const totalValueLockedABI = {
 const chains = {
   ethereum: 'ethereum',
   arbitrum_one: 'arbitrum',
-  hyperevm: 'hyperevm',
+  hyperevm: 'hyperliquid',
   base: 'base',
 };
 
@@ -52,9 +52,10 @@ const assets = {
     eth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     rseth: '0xA1290d69c65A6Fe4DF752f95823fae25cB99e5A7',
   },
-  hyperevm: {
+  hyperliquid: {
     hype: '0x5555555555555555555555555555555555555555',
     khype: '0xfD739d4e423301CE9385c1fb8850539D657C296D',
+    usdc: '0xb88339CB7199b77E23DB6E890353E22632Ba630f',
   },
   base: {
     usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -73,7 +74,7 @@ const getApy = async () => {
       const chainId = chains[v.network_chain];
       let tvlUsd = 0
 
-      if (chainId === 'hyperevm') {
+      if (chainId === 'hyperliquid') {
         const provider = new ethers.providers.JsonRpcProvider("https://rpc.hyperliquid.xyz/evm");
 
         const contractAddress = "0xe9d69CdD6Fe41e7B621B4A688C5D1a68cB5c8ADc";
@@ -98,7 +99,7 @@ const getApy = async () => {
         // Convert TVL to USDC if vault_currency is not USDC
         if (v.vault_currency !== 'USDC') {
           const tokenKey = `${chainId}:${assets[chainId][v.vault_currency.toLowerCase()]}`
-          const priceData = await axios.get(`https://coins.llama.fi/prices/current/${tokenKey}`);
+          const priceData = await axios.get(utils.getPriceApiUrl(`/prices/current/${tokenKey}`));
           const tokenPrice = priceData.data.coins[`${tokenKey}`]?.price;
           if (tokenPrice) {
             if (v.vault_currency === 'ETH') {
@@ -121,7 +122,7 @@ const getApy = async () => {
         pool: v.contract_address, // unique identifier for the pool
         chain: chainId || null, // map chain name to chain ID
         project: 'harmonix-finance', // project slug
-        symbol: utils.formatSymbol(v.vault_currency), // format the symbol
+        symbol: v.vault_currency,
         tvlUsd, // total value locked in USD
         apyBase: v.apy, // APY from the vault
         apyReward: 0, // hardcoded for now
@@ -140,6 +141,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4856',
   timetravel: false,
   apy: getApy,
   url: 'https://app.harmonix.fi/vaults/', // Link to page with pools

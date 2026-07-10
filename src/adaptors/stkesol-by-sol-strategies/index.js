@@ -3,6 +3,7 @@ const {
   getStakePoolInfo,
   calcSolanaLstApy,
   solanaLstPricePerShare,
+  getPriceApiUrl,
 } = require('../utils');
 
 const STKESOL_MINT = 'stke7uu3fXHsGqKVVjKnkmj65LRPVrqr4bLG2SJg7rh';
@@ -14,7 +15,7 @@ const solKey = `solana:${SOL}`;
 const apy = async () => {
   const [stakePool, priceRes] = await Promise.all([
     getStakePoolInfo(STAKE_POOL),
-    axios.get(`https://coins.llama.fi/prices/current/${solKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${solKey}`)),
   ]);
 
   const solPrice = priceRes.data.coins[solKey]?.price;
@@ -46,6 +47,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7301',
   timetravel: false,
   apy,
   url: 'https://app.solstrategies.io',

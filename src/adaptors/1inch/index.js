@@ -63,7 +63,7 @@ const main = async () => {
   // 3. Get 1INCH price
   const priceKey = `${CHAIN}:${CONTRACTS.INCH_TOKEN}`;
   const prices = (
-    await utils.getData(`https://coins.llama.fi/prices/current/${priceKey}`)
+    await utils.getPriceApiData(`/prices/current/${priceKey}`)
   ).coins;
   const inchPrice = prices[priceKey]?.price;
 
@@ -160,6 +160,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '189',
   timetravel: false,
   apy: main,
   url: 'https://app.1inch.io/#/1/earn/delegate',

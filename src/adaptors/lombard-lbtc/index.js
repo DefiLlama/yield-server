@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const token = '0x8236a87084f8B84306f72007F36F2618A5634494';
 const WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
@@ -11,7 +12,7 @@ const apy = async () => {
     axios.get(
       'https://ledger-mainnet.lombard-fi.com:1317/lombard-finance/ledger/btcstaking/staking_vault_base_balance'
     ),
-    axios.get(`https://coins.llama.fi/prices/current/ethereum:${token}`),
+    axios.get(getPriceApiUrl(`/prices/current/ethereum:${token}`)),
   ]);
 
   return [
@@ -31,6 +32,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5097',
   apy,
   url: 'https://www.lombard.finance/app/stake/',
 };

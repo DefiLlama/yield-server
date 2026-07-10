@@ -34,6 +34,7 @@ async function getSingleYieldVaultAPY() {
 }
 
 module.exports = {
+  protocolId: '3298',
     timetravel: false,
     apy: getSingleYieldVaultAPY,
 };

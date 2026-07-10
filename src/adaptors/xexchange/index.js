@@ -32,6 +32,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '854',
   apy,
   timetravel: false,
   url: 'https://maiar.exchange/farms',

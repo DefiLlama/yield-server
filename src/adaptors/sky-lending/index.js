@@ -4,6 +4,8 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 
 const abiSUSDS = require('./abiSUSDS.json');
+const abiFarm = require('./abiFarm.json');
+const { getPriceApiData } = require('../utils');
 
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
@@ -187,6 +189,24 @@ const MCD_VAT = {
       stateMutability: 'view',
       type: 'function',
     },
+    Line: {
+      constant: true,
+      inputs: [],
+      name: 'Line',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    debt: {
+      constant: true,
+      inputs: [],
+      name: 'debt',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
   },
 };
 
@@ -277,13 +297,9 @@ function onlyUnique(value, index, self) {
 }
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
@@ -341,6 +357,24 @@ const main = async () => {
       requery: true,
     })
   ).output.map((x) => x.output);
+  const [globalDebtCeiling, globalDebt] = await Promise.all(
+    ['Line', 'debt'].map(
+      async (name) =>
+        new BigNumber(
+          (
+            await sdk.api.abi.call({
+              target: MCD_VAT.address,
+              abi: MCD_VAT.abis[name],
+              chain: 'ethereum',
+            })
+          ).output
+        ).div(1e45)
+    )
+  );
+  const globalAvailableBorrowUsd = BigNumber.maximum(
+    globalDebtCeiling.minus(globalDebt),
+    0
+  );
   const spots = (
     await sdk.api.abi.multiCall({
       calls: ilkIds.map((ilkId) => ({
@@ -381,6 +415,10 @@ const main = async () => {
       const debtScalingFactor = new BigNumber(ilks[index].rate).div(1e27);
       const totalBorrowUsd = debtScalingFactor.multipliedBy(art);
       const debtCeilingUsd = new BigNumber(ilks[index].line).div(1e45);
+      const availableBorrowUsd = BigNumber.minimum(
+        BigNumber.maximum(debtCeilingUsd.minus(totalBorrowUsd), 0),
+        globalAvailableBorrowUsd
+      );
       const tvlUsd = new BigNumber(tokenBalances[index])
         .dividedBy(new BigNumber(10).pow(decimals[index]))
         .multipliedBy(prices[gems[index].toLowerCase()])
@@ -402,8 +440,11 @@ const main = async () => {
         apyBaseBorrow: stabilityFee.toNumber() * 100,
         totalSupplyUsd: tvlUsd,
         totalBorrowUsd: totalBorrowUsd.toNumber(),
+        availableBorrowUsd: availableBorrowUsd.toNumber(),
         debtCeilingUsd: debtCeilingUsd.toNumber(),
         mintedCoin: 'DAI',
+        borrowToken: DAI,
+        borrowable: debtCeilingUsd.gt(0),
         ltv: 1 / Number(liquidationRatio.toNumber()),
         underlyingTokens: [gems[index]],
       };
@@ -449,9 +490,7 @@ const susdsAPY = async () => {
   const priceKeys = configs
     .map(({ chain, sUSDS }) => `${chain}:${sUSDS}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const pools = await Promise.all(
     configs.map(async ({ chain, sUSDS, USDS }) => {
@@ -490,12 +529,77 @@ const susdsAPY = async () => {
   return pools.filter(Boolean);
 };
 
+// USDS staking farms (Synthetix-style StakingRewards): stake USDS, earn a reward token.
+const farmsAPY = async () => {
+  const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
+  const farms = [
+    {
+      // USDS -> GROVE farm
+      address: '0x4E41488C19cD35EB4de3083Fc3e204854c75c86a',
+      rewardToken: '0xb30FE1CF884b48A22A50D22A9282004f2c5E9406',
+      rewardSymbol: 'GROVE',
+    },
+  ];
+
+  const priceKeys = [USDS, ...farms.map((f) => f.rewardToken)]
+    .map((t) => `ethereum:${t}`)
+    .join(',');
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
+  const priceUSDS = prices[`ethereum:${USDS}`]?.price;
+  if (!priceUSDS) return [];
+
+  return Promise.all(
+    farms.map(async (farm) => {
+      const [totalSupplyRes, rewardRateRes, periodFinishRes] =
+        await Promise.all([
+          sdk.api.abi.call({
+            target: farm.address,
+            abi: 'erc20:totalSupply',
+          }),
+          sdk.api.abi.call({
+            target: farm.address,
+            abi: abiFarm.find((m) => m.name === 'rewardRate'),
+          }),
+          sdk.api.abi.call({
+            target: farm.address,
+            abi: abiFarm.find((m) => m.name === 'periodFinish'),
+          }),
+        ]);
+
+      const tvlUsd = (totalSupplyRes.output / 1e18) * priceUSDS;
+      const rewardRate = rewardRateRes.output / 1e18;
+      const isActive = Date.now() / 1000 < Number(periodFinishRes.output);
+      const priceReward = prices[`ethereum:${farm.rewardToken}`]?.price;
+      const secPerDay = 86400;
+      const apyReward =
+        isActive && priceReward
+          ? ((rewardRate * secPerDay * 365 * priceReward) / tvlUsd) * 100
+          : 0;
+
+      return {
+        pool: farm.address,
+        chain: 'ethereum',
+        project: 'sky-lending',
+        symbol: 'USDS',
+        token: farm.address,
+        poolMeta: `${farm.rewardSymbol} Farming Pool`,
+        tvlUsd,
+        apyReward,
+        underlyingTokens: [USDS],
+        rewardTokens: [farm.rewardToken],
+        url: `https://app.sky.money/?network=ethereum&widget=rewards&reward=${farm.address}`,
+      };
+    })
+  );
+};
+
 const apy = async () => {
-  const pools = await Promise.all([main(), susdsAPY()]);
+  const pools = await Promise.all([main(), susdsAPY(), farmsAPY()]);
   return pools.flat();
 };
 
 module.exports = {
+  protocolId: '118',
   apy,
   url: 'https://sky.money/',
 };

@@ -14,7 +14,6 @@ const poolsQuery = gql`
       skip: $skip
       orderBy: totalValueLockedUSD
       orderDirection: desc
-      where: { gauge_not: null }
     ) {
       id
       token0 {
@@ -145,6 +144,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6502',
   timetravel: false,
   apy: apy,
 };

@@ -1,7 +1,10 @@
 const axios = require('axios')
 const sdk = require('@defillama/sdk')
 const BigNumber = require('bignumber.js')
-const { sparkSavingsAbi } = require('./abi.js')
+const {
+sparkSavingsAbi } = require('./abi.js')
+const { getPriceApiUrl,
+ } = require('../utils');
 
 const sparkBaseUrl = 'https://app.spark.fi/savings'
 
@@ -176,7 +179,7 @@ async function getBridgedSavingsPools() {
       .map((c) => `${chain}:${c.address.toLowerCase()}`)
       .join(',')
     const priceRes = await axios.get(
-      `https://coins.llama.fi/prices/current/${priceKeys}`,
+      getPriceApiUrl(`/prices/current/${priceKeys}`),
     )
     const prices = priceRes.data.coins
 
@@ -213,7 +216,7 @@ async function fetchPrices(
   vaultConfigs: readonly VaultConfig[],
 ): Promise<Record<string, { price: number }>> {
   const priceKeys = vaultConfigs.map((config) => `${chain}:${config.address.toLowerCase()}`).join(',')
-  const response = await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
+  const response = await axios.get(getPriceApiUrl(`/prices/current/${priceKeys}`))
   return response.data.coins
 }
 
@@ -241,5 +244,6 @@ function pow(a: any, b: number): any {
 }
 
 module.exports = {
+  protocolId: '6716',
   apy: getPools,
 }

@@ -74,9 +74,7 @@ const EXCEPTIONS = {
         STAKING_ADDRESS,
       }) => {
         const prices = (
-          await utils.getData(
-            `https://coins.llama.fi/prices/current/${chainString}:${SUSDN_TOKEN_ADDRESS}`
-          )
+          await utils.getPriceApiData(`/prices/current/${chainString}:${SUSDN_TOKEN_ADDRESS}`)
         ).coins;
         const susdnPrice =
           prices[`${chainString}:${SUSDN_TOKEN_ADDRESS}`]?.price || 0;
@@ -384,9 +382,7 @@ const topTvl = async (
   );
 
   const prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${chainString}:${SDEX_TOKEN_ADDRESS}`
-    )
+    await utils.getPriceApiData(`/prices/current/${chainString}:${SDEX_TOKEN_ADDRESS}`)
   ).coins;
   const sdexPrice = prices[`${chainString}:${SDEX_TOKEN_ADDRESS}`]?.price || 0;
   const farmsWithRewards = await getFarmsWithRewards(
@@ -395,7 +391,7 @@ const topTvl = async (
     FARMING_RANGE_ADDRESS
   );
   dataNow = dataNow.map((p) => {
-    const symbol = utils.formatSymbol(`${p.token0.symbol}-${p.token1.symbol}`);
+    const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
     const underlyingTokens = [p.token0.id, p.token1.id];
     const token0 = underlyingTokens === undefined ? '' : underlyingTokens[0];
     const token1 = underlyingTokens === undefined ? '' : underlyingTokens[1];
@@ -520,6 +516,7 @@ const getsUSDeApy = async (sUSDNPrice) => {
 };
 
 module.exports = {
+  protocolId: '2695',
   timetravel: false,
   apy: main,
   url: BASE_URL,

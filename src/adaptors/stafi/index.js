@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const token = '0x9559aaa82d9649c7a7b220e7c461d2e74c9a3593';
 
@@ -11,9 +12,7 @@ const getApy = async () => {
     await axios.get('https://drop-api.stafi.io/reth/v1/poolData')
   ).data;
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   return [
     {
@@ -31,6 +30,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '276',
   timetravel: false,
   apy: getApy,
   url: 'https://bifrost.app/vstaking',

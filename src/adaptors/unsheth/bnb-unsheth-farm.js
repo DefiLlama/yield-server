@@ -1,12 +1,21 @@
 const axios = require('axios');
-const ethers = require('ethers');
+const sdk = require('@defillama/sdk');
 const contract_addresses = require('./contract_addresses');
 const cbETHAdaptor = require('../coinbase-wrapped-staked-eth');
 const darknetABI = require('./DarknetABI');
 const lsdVaultABI = require('./LSDVaultABI');
 const farmABI = require('./FarmABI');
 const utils = require('../utils');
-const { seconds_per_year, denomination, tokensToCheck, BINANCE_RPC_URL } = require('./constants');
+const { seconds_per_year, denomination, tokensToCheck } = require('./constants');
+
+const ETHEREUM_CHAIN = 'ethereum';
+const BSC_CHAIN = 'bsc';
+const GET_ALL_REWARD_RATES_ABI = farmABI.find(
+  (item) => item.type === 'function' && item.name === 'getAllRewardRates'
+);
+const CHECK_PRICE_ABI = darknetABI.find(
+  (item) => item.type === 'function' && item.name === 'checkPrice'
+);
 
 const getPoolInfo = async () => {
   try {
@@ -36,17 +45,21 @@ const getPoolInfo = async () => {
 
 async function getUSDRewardPerYear(){
 
-  let provider = new ethers.providers.JsonRpcProvider(BINANCE_RPC_URL);
-  let farmContract = new ethers.Contract(contract_addresses["BNBunshETH-farm"], farmABI, provider);
-  let baseRewardsPerSecond = (await farmContract.getAllRewardRates())[0];
+  let baseRewardsPerSecond = (
+    await sdk.api.abi.call({
+      target: contract_addresses["BNBunshETH-farm"],
+      abi: GET_ALL_REWARD_RATES_ABI,
+      chain: BSC_CHAIN,
+    })
+  ).output[0];
 
   let rewardsPerSecond = (parseFloat(baseRewardsPerSecond)/denomination)
 
   let rewardsPerYear = rewardsPerSecond * seconds_per_year;
 
   let priceKey = `coingecko:unsheth`;
-  let USHPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
-  
+  let USHPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
+
 
   let USDRewardPerYear = USHPrice * parseFloat(rewardsPerYear);
 
@@ -55,7 +68,7 @@ async function getUSDRewardPerYear(){
 
 async function getTVLUSD(){
   const priceKey = `ethereum:${contract_addresses.WETH}`;
-  const ethPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
+  const ethPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   let darknetRates = await getDarknetRates();
 
@@ -89,10 +102,10 @@ async function getLSDPrices() {
   };
 
   let prices = {
-    sfrxETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.sfrxETH}`)).data.coins[`coingecko:${coingeckoIds.sfrxETH}`]?.price,
-    rETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.rETH}`)).data.coins[`coingecko:${coingeckoIds.rETH}`]?.price,
-    wstETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.wstETH}`)).data.coins[`coingecko:${coingeckoIds.wstETH}`]?.price,
-    cbETH: (await axios.get(`https://coins.llama.fi/prices/current/coingecko:${coingeckoIds.cbETH}`)).data.coins[`coingecko:${coingeckoIds.cbETH}`]?.price,
+    sfrxETH: (await utils.getPriceApiData(`/prices/current/coingecko:${coingeckoIds.sfrxETH}`)).coins[`coingecko:${coingeckoIds.sfrxETH}`]?.price,
+    rETH: (await utils.getPriceApiData(`/prices/current/coingecko:${coingeckoIds.rETH}`)).coins[`coingecko:${coingeckoIds.rETH}`]?.price,
+    wstETH: (await utils.getPriceApiData(`/prices/current/coingecko:${coingeckoIds.wstETH}`)).coins[`coingecko:${coingeckoIds.wstETH}`]?.price,
+    cbETH: (await utils.getPriceApiData(`/prices/current/coingecko:${coingeckoIds.cbETH}`)).coins[`coingecko:${coingeckoIds.cbETH}`]?.price,
   }
 
   return prices
@@ -101,19 +114,20 @@ async function getLSDPrices() {
 async function getPercentageOfUnshethInFarm(){
 
 
-  let provider = new ethers.providers.JsonRpcProvider(BINANCE_RPC_URL);
-  let eth_provider = new ethers.providers.JsonRpcProvider(process.env.ALCHEMY_CONNECTION_ETHEREUM);
-
-  const erc20Abi = [
-    "function balanceOf(address account) view returns (uint256)",
-    "function totalSupply() view returns (uint256)"
-  ];
-
-  let BNBunshETHContract = new ethers.Contract(contract_addresses.BNBunshETH, erc20Abi, provider);
-  let BNBunshETHFarmBalance = await BNBunshETHContract.balanceOf(contract_addresses['BNBunshETH-farm']);
-  
-  let unshETHContract = new ethers.Contract(contract_addresses.unshETH, erc20Abi, eth_provider);
-  let unshETHTotalSupply = await unshETHContract.totalSupply();
+  const [{ output: BNBunshETHFarmBalance }, { output: unshETHTotalSupply }] =
+    await Promise.all([
+      sdk.api.abi.call({
+        target: contract_addresses.BNBunshETH,
+        abi: 'erc20:balanceOf',
+        params: [contract_addresses['BNBunshETH-farm']],
+        chain: BSC_CHAIN,
+      }),
+      sdk.api.abi.call({
+        target: contract_addresses.unshETH,
+        abi: 'erc20:totalSupply',
+        chain: ETHEREUM_CHAIN,
+      }),
+    ]);
 
   let percentageOfUnshETHInFarm = parseFloat(BNBunshETHFarmBalance)/parseFloat(unshETHTotalSupply);
 
@@ -160,30 +174,33 @@ async function getWeightedApr(){
 }
 
 async function getDarknetRates() {
-  const provider = new ethers.providers.JsonRpcProvider(process.env.ALCHEMY_CONNECTION_ETHEREUM);
-  let darknet = new ethers.Contract(contract_addresses.darknet, darknetABI, provider);
-  let darknetRates = {
-    sfrxETH: await darknet.checkPrice(...[contract_addresses.sfrxETH]),
-    cbETH: await darknet.checkPrice(...[contract_addresses.cbETH]),
-    rETH: await darknet.checkPrice(...[contract_addresses.rETH]),
-    wstETH: await darknet.checkPrice(...[contract_addresses.wstETH])
-  }
+  const { output } = await sdk.api.abi.multiCall({
+    target: contract_addresses.darknet,
+    abi: CHECK_PRICE_ABI,
+    calls: tokensToCheck.map((tokenKey) => ({
+      params: [contract_addresses[tokenKey]],
+    })),
+    chain: ETHEREUM_CHAIN,
+  });
+  let darknetRates = Object.fromEntries(
+    tokensToCheck.map((tokenKey, index) => [tokenKey, output[index].output])
+  );
 
   return darknetRates;
 }
 
 async function getLSDVaultTokenBalances() {
-  const provider = new ethers.providers.JsonRpcProvider(process.env.ALCHEMY_CONNECTION_ETHEREUM);
-  const balances = {};
-  const erc20Abi = [
-    "function balanceOf(address account) view returns (uint256)"
-  ];
-
-  for (const tokenKey of tokensToCheck) {
-    const tokenAddress = contract_addresses[tokenKey];
-    const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, provider);
-    balances[tokenKey]  = await tokenContract.balanceOf(contract_addresses.LSDVault);
-  }
+  const { output } = await sdk.api.abi.multiCall({
+    abi: 'erc20:balanceOf',
+    calls: tokensToCheck.map((tokenKey) => ({
+      target: contract_addresses[tokenKey],
+      params: [contract_addresses.LSDVault],
+    })),
+    chain: ETHEREUM_CHAIN,
+  });
+  const balances = Object.fromEntries(
+    tokensToCheck.map((tokenKey, index) => [tokenKey, output[index].output])
+  );
 
   return balances;
 }
@@ -191,4 +208,3 @@ async function getLSDVaultTokenBalances() {
 module.exports = {
   getPoolInfo
 };
-

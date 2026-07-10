@@ -20,7 +20,7 @@ const getEarnPools = (lendingTokens) =>
       pool: `${token.address}-solana`.toLowerCase(),
       chain: utils.formatChain('solana'),
       project: 'jupiter-lend',
-      symbol: utils.formatSymbol(token.asset.symbol),
+      symbol: token.asset.symbol,
       tvlUsd,
       apyBase,
       apyReward: apyReward > 0 ? apyReward : null,
@@ -52,6 +52,9 @@ const getVaultPools = (vaults) =>
 
     const totalSupplyUsd = totalSupply * Number(supplyToken.price);
     const totalBorrowUsd = totalBorrow * Number(borrowToken.price);
+    const availableBorrowUsd =
+      (Number(vault.borrowable) / 10 ** borrowToken.decimals) *
+      Number(borrowToken.price);
 
     const apyBase = calcVaultSupplyApy(vault);
     const apyReward = calcVaultRewardApy(vault, 'supply');
@@ -69,7 +72,7 @@ const getVaultPools = (vaults) =>
       pool: `${vault.address}-solana`.toLowerCase(),
       chain: utils.formatChain('solana'),
       project: 'jupiter-lend',
-      symbol: utils.formatSymbol(supplyToken.symbol),
+      symbol: supplyToken.symbol,
       tvlUsd: totalSupplyUsd - totalBorrowUsd,
       apyBase,
       apyReward: apyReward > 0 ? apyReward : null,
@@ -83,7 +86,10 @@ const getVaultPools = (vaults) =>
       underlyingTokens: [supplyToken.address],
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
       ltv: Number(vault.collateralFactor) / 1e3,
+      borrowable: Number(vault.borrowable) > 0,
+      borrowToken: borrowToken.address,
       poolMeta: `${supplyToken.symbol}/${borrowToken.symbol}`,
       url: 'https://jup.ag/lend',
     };
@@ -108,6 +114,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '6600',
   timetravel: false,
   apy: getApy,
   url: 'https://jup.ag/lend',

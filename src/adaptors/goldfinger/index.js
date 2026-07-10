@@ -23,9 +23,7 @@ async function getHistoricalPrice(address, chain, daysAgo) {
   const key = `${chain}:${address}`;
 
   try {
-    const data = await utils.getData(
-      `https://coins.llama.fi/prices/historical/${timestamp}/${key}`
-    );
+    const data = await utils.getPriceApiData(`/prices/historical/${timestamp}/${key}`);
     return {
       price: data.coins[key]?.price || 0,
       timestamp: data.coins[key]?.timestamp || timestamp,
@@ -43,9 +41,7 @@ async function getCurrentPrice(address, chain) {
   const key = `${chain}:${address}`;
 
   try {
-    const data = await utils.getData(
-      `https://coins.llama.fi/prices/current/${key}`
-    );
+    const data = await utils.getPriceApiData(`/prices/current/${key}`);
     return {
       price: data.coins[key]?.price || 0,
       timestamp: Math.floor(Date.now() / 1000),
@@ -136,6 +132,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7078',
   timetravel: false,
   apy: main,
   url: 'https://goldfinger.finance/en',

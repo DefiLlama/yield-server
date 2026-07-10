@@ -39,7 +39,7 @@ const apy = async () => {
       pool: `${farm.lpAddress}-${farm.id}`,
       chain: utils.formatChain('aurora'),
       project: 'trisolaris',
-      symbol: utils.formatSymbol(name),
+      symbol: name,
       tvlUsd: farm.totalStakedInUSD,
       apyReward: farm.apr + extraApr,
       underlyingTokens: isStablePool
@@ -56,6 +56,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '784',
   timetravel: false,
   apy: apy,
   url: 'https://www.trisolaris.io/#/farm',

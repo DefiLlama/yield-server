@@ -79,9 +79,7 @@ const apy = async () => {
   const decimals = decimalsRes.output.map((o) => o.output);
 
   const keys = tokenAddrs.map((addr) => `ethereum:${addr}`).join();
-  const tokenPrices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
-  ).data.coins;
+  const tokenPrices = (await utils.getPriceApiData(`/prices/current/${keys}`)).coins;
 
   const liquidityPools = await queryLiquidityPools(tokenAddrs);
 
@@ -119,10 +117,10 @@ const apy = async () => {
     );
 
     return {
-      pool: underlying, // should be changed to lp token
+      pool: token[1].lpAddress,
       chain: 'Ethereum',
       project: 'across',
-      symbol: utils.formatSymbol(token[0]),
+      symbol: token[0],
       tvlUsd,
       underlyingTokens: [underlying],
       apyBase: Number(liquidityPools[underlying].estimatedApy) * 100,
@@ -133,6 +131,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1207',
   timetravel: false,
   apy,
   url: 'https://across.to/pool',

@@ -62,7 +62,7 @@ const aggregators = async () => {
       pool: address,
       chain: chainName,
       project: 'sturdy-v2',
-      symbol: utils.formatSymbol(assetSymbol),
+      symbol: assetSymbol,
       tvlUsd: tvl.toNumber(),
       apyBase,
       apyReward,
@@ -75,6 +75,7 @@ const aggregators = async () => {
 };
 
 module.exports = {
+  protocolId: '4132',
   timetravel: false,
   apy: aggregators,
   url: 'https://v2.sturdy.finance/aggregators',

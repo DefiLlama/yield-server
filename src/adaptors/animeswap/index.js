@@ -6,7 +6,7 @@ const DEPLOYER_ADDRESS = '0x16fe2df00ea7dde4a63409201f7f4e536bde7bb7335526a35d05
 const STAKING_ADDRESS = '0x8615f5671592532631e56c76ca09d332fae1cd03d463bc379eec1007973966ef';
 const POOL_ADDRESS = '0x796900ebe1a1a54ff9e932f19c548f5c1af5c6e7d34965857ac2f7b1d1ab2cbf';
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
+const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
 const DECIMALS = 1e8;
 
 const aptosCoinName = 'coingecko:aptos';
@@ -150,7 +150,7 @@ async function main() {
       pool: `${STAKING_ADDRESS}-StakeANI-aptos`,
       chain: utils.formatChain('Aptos'),
       project: 'animeswap',
-      symbol: utils.formatSymbol('ANI'),
+      symbol: 'ANI',
       tvlUsd: tvlUsdStakeAni,
       apyReward: aprANIReward,
       rewardTokens: [aniCoinName],
@@ -161,7 +161,7 @@ async function main() {
       pool: `${STAKING_ADDRESS}-APT-ANI-aptos`,
       chain: utils.formatChain('Aptos'),
       project: 'animeswap',
-      symbol: utils.formatSymbol('APT-ANI'),
+      symbol: 'APT-ANI',
       tvlUsd: tvlUsdLPCoin,
       apyBase: apyLPCoinBase,
       apyReward: aprLPCoinReward,
@@ -172,7 +172,7 @@ async function main() {
       pool: `${STAKING_ADDRESS}-APT-zUSDC-aptos`,
       chain: utils.formatChain('Aptos'),
       project: 'animeswap',
-      symbol: utils.formatSymbol('APT-zUSDC'),
+      symbol: 'APT-zUSDC',
       tvlUsd: tvlAPTzUDSCUsdLPCoin,
       apyBase: apyLPCoinAPTzUDSCBase,
       apyReward: aprLPCoinAPTzUDSCReward,
@@ -183,6 +183,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '2218',
   timetravel: false,
   apy: main,
   url: 'https://app.animeswap.org/#/pool?chain=aptos',

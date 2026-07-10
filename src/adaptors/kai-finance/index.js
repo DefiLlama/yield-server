@@ -54,7 +54,7 @@ const VAULTS = [
 
 async function getCoinInfos(coinTypes) {
   const usdcType = '0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC'
-  const response = await fetch(`https://coins.llama.fi/prices/current/${coinTypes.map(c=>`sui:${c}`).join(',')}`)
+  const response = await fetch(utils.getPriceApiUrl(`/prices/current/${coinTypes.map(c=>`sui:${c}`).join(',')}`))
 
   const json = await response.json();
   return coinTypes.map(coinType => json.coins[`sui:${coinType}`]);
@@ -123,6 +123,7 @@ async function getApyData() {
 };
 
 module.exports = {
+  protocolId: '3740',
   timetravel: false,
   apy: getApyData,
   url: 'https://kai.finance',

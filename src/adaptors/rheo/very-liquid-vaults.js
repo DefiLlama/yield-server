@@ -157,7 +157,7 @@ async function apy() /*: Promise<Pool[]>*/ {
       const prices = await Promise.all(
         vaults.map(async (vault, i) => {
           const res = await axios.get(
-            `https://coins.llama.fi/prices/current/${chain}:${assets[i]}`
+            utils.getPriceApiUrl(`/prices/current/${chain}:${assets[i]}`)
           );
           return res.data.coins[`${chain}:${assets[i]}`].price;
         })

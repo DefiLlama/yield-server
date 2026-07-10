@@ -36,9 +36,7 @@ const queryPrior = gql`
 `;
 
 const buildPool = (entry, chainString) => {
-  const symbol = utils.formatSymbol(
-    `${entry.token0.symbol}-${entry.token1.symbol}`
-  );
+  const symbol = `${entry.token0.symbol}-${entry.token1.symbol}`;
 
   const newObj = {
     pool: entry.id,
@@ -108,6 +106,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '306',
   timetravel: true,
   apy: main,
   url: 'https://quickswap.exchange/#/pool',

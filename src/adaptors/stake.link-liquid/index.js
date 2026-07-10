@@ -1,5 +1,6 @@
 const { ethers } = require('ethers');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const getData = async (url, query = null) => {
   let res;
@@ -92,9 +93,7 @@ const pools = [
 
 const fetchPrice = async (tokenId) => {
   const priceKey = `coingecko:${tokenId}`;
-  const data = await getData(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
+  const data = await getPriceApiData(`/prices/current/${priceKey}`);
   return data.coins[priceKey].price;
 };
 
@@ -153,6 +152,7 @@ const fetchPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2378',
   timetravel: false,
   apy: fetchPools,
   url: 'https://stake.link/',

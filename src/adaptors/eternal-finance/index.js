@@ -4,7 +4,7 @@ const utils = require('../utils');
 const MODULE_ADDRESS = '0x25a64579760a4c64be0d692327786a6375ec80740152851490cfd0b53604cf95';
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
 const RESOURCE_URL = `${NODE_URL}/accounts/${MODULE_ADDRESS}/resources`;
-const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
+const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
 const VAULT_MODULE_ADDRESS = `${MODULE_ADDRESS}::vault::Vaults`;
 const VAULT_CONFIG_MODULE_ADDRESS = `${MODULE_ADDRESS}::vault_config::VaultConfigStore`;
 const METADATA_MODULE_ADDRESS = `${MODULE_ADDRESS}::bank::MetaData`;
@@ -105,7 +105,7 @@ async function main() {
             pool: `${lendingToken}-aptos`.toLowerCase(),
             chain: utils.formatChain('aptos'),
             project: 'eternal-finance',
-            symbol: utils.formatSymbol(tokenPrice.symbol),
+            symbol: tokenPrice.symbol,
             tvlUsd: new BigNumber(vaultInfo.balance).multipliedBy(priceConversionFactor).toNumber(),
             apyBase: lendingApy,
             underlyingTokens: [lendingToken],
@@ -120,6 +120,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '2499',
     timetravel: false,
     apy: main,
     url: 'https://app.eternalfinance.io/lend',

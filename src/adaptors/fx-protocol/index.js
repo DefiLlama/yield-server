@@ -144,7 +144,7 @@ const getGaugePoolData = async () => {
         pool: `${gauge}-f(x)`,
         chain: utils.formatChain('ethereum'),
         project: 'fx-protocol',
-        symbol: utils.formatSymbol(name),
+        symbol: name,
         ...(lpAddress && { token: lpAddress }),
         tvlUsd: parseInt(tvl, 10),
         apy: parseFloat(apy),
@@ -164,6 +164,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3344',
   timetravel: false,
   apy: main,
   url: 'https://fx.aladdin.club/rebalance-pool/',

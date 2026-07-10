@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 
 // copy pasta from defillama-server
 module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {

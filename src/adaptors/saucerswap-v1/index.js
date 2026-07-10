@@ -163,7 +163,7 @@ const main = async () => {
         // poolMeta: `${poolName}`,
         chain: chain,
         project: protocolSlug,
-        symbol: utils.formatSymbol(poolSymbol),
+        symbol: poolSymbol,
         tvlUsd: farmingStakedTvlUsd.toNumber(),
         apyBase: lpAwardApr.toNumber(),
         apyReward: baseFarmApr.toNumber(),
@@ -176,6 +176,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1979',
   timetravel: false,
   apy: main,
   url: 'https://www.saucerswap.finance/farm',
