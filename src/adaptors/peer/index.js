@@ -91,11 +91,13 @@ const CURRENCY_FEEDS = {
   EUR: {
     feed: '0xc91D87E81faB8f93699ECf7Ee9B44D11e1D53F0F',
     decimals: 8,
+    heartbeat: 60 * 60,
     invert: true,
   },
   GBP: {
     feed: '0xCceA6576904C118037695eB71195a5425E69Fa15',
     decimals: 8,
+    heartbeat: 24 * 60 * 60,
     invert: true,
   },
 };
@@ -427,11 +429,18 @@ async function fetchMarketRates(block) {
     if (entry?.success === false || !entry?.output) continue;
 
     const answer = tupleField(entry.output, 'answer', 1);
+    const updatedAt = tupleField(entry.output, 'updatedAt', 3);
+    const updatedAtTimestamp =
+      updatedAt === undefined ? null : asBigNumber(updatedAt);
     const answeredInRound = tupleField(entry.output, 'answeredInRound', 4);
     const roundId = tupleField(entry.output, 'roundId', 0);
+    const staleBefore = Math.floor(Date.now() / 1000) - config.heartbeat;
     if (
       answer === undefined ||
       asBigNumber(answer).lte(0) ||
+      updatedAtTimestamp === null ||
+      updatedAtTimestamp.isZero() ||
+      updatedAtTimestamp.lt(staleBefore) ||
       asBigNumber(answeredInRound).lt(asBigNumber(roundId))
     ) {
       continue;
