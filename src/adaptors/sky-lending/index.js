@@ -479,11 +479,13 @@ const susdsAPY = async () => {
       chain: 'ethereum',
       sUSDS: ETH_SUSDS,
       USDS: '0xdC035D45d973E3EC169d2276DDab16f1e407384F',
+      url: 'https://app.sky.money/?network=ethereum&widget=savings',
     },
     {
       chain: 'arbitrum',
       sUSDS: '0xddb46999f8891663a8f2828d25298f70416d7610',
       USDS: '0x6491c05a82219b8d1479057361ff1654749b876b',
+      url: 'https://app.sky.money/?network=arbitrumone&widget=savings',
     },
   ];
 
@@ -493,7 +495,7 @@ const susdsAPY = async () => {
   const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const pools = await Promise.all(
-    configs.map(async ({ chain, sUSDS, USDS }) => {
+    configs.map(async ({ chain, sUSDS, USDS, url }) => {
       const totalSupply =
         (
           await sdk.api.abi.call({
@@ -516,6 +518,7 @@ const susdsAPY = async () => {
         tvlUsd: totalSupply * price,
         apyBase,
         underlyingTokens: [USDS],
+        url,
       };
 
       if (chain === 'ethereum') {
@@ -529,27 +532,45 @@ const susdsAPY = async () => {
   return pools.filter(Boolean);
 };
 
-// USDS staking farms (Synthetix-style StakingRewards): stake USDS, earn a reward token.
+// Staking farms (Synthetix-style StakingRewards).
 const farmsAPY = async () => {
   const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
+  const SKY = '0x56072C95FAA701256059aa122697B133aDEd9279';
   const farms = [
     {
       // USDS -> GROVE farm
       address: '0x4E41488C19cD35EB4de3083Fc3e204854c75c86a',
+      stakeSymbol: 'USDS',
+      // token used to price the staked balance
+      stakeToken: USDS,
       rewardToken: '0xb30FE1CF884b48A22A50D22A9282004f2c5E9406',
-      rewardSymbol: 'GROVE',
+      poolMeta: 'GROVE Farming Pool',
+      url: 'https://app.sky.money/?network=ethereum&widget=rewards&reward=0x4E41488C19cD35EB4de3083Fc3e204854c75c86a',
+    },
+    {
+      // SKY staking engine -> SKY rewards; the staked token is lsSKY, the
+      // engine's 1:1 wrapper around SKY, so the balance is priced via SKY
+      address: '0xB44c2Fb4181D7cb06BdFf34a46FdFE4A259b40Fc',
+      stakeSymbol: 'SKY',
+      stakeToken: SKY,
+      rewardToken: SKY,
+      poolMeta: 'SKY Staking Engine',
+      url: 'https://app.sky.money/?network=ethereum&widget=stake',
     },
   ];
 
-  const priceKeys = [USDS, ...farms.map((f) => f.rewardToken)]
+  const priceKeys = [
+    ...new Set(farms.flatMap((f) => [f.stakeToken, f.rewardToken])),
+  ]
     .map((t) => `ethereum:${t}`)
     .join(',');
   const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
-  const priceUSDS = prices[`ethereum:${USDS}`]?.price;
-  if (!priceUSDS) return [];
 
-  return Promise.all(
+  const pools = await Promise.all(
     farms.map(async (farm) => {
+      const priceStake = prices[`ethereum:${farm.stakeToken}`]?.price;
+      if (!priceStake) return null;
+
       const [totalSupplyRes, rewardRateRes, periodFinishRes] =
         await Promise.all([
           sdk.api.abi.call({
@@ -566,13 +587,13 @@ const farmsAPY = async () => {
           }),
         ]);
 
-      const tvlUsd = (totalSupplyRes.output / 1e18) * priceUSDS;
+      const tvlUsd = (totalSupplyRes.output / 1e18) * priceStake;
       const rewardRate = rewardRateRes.output / 1e18;
       const isActive = Date.now() / 1000 < Number(periodFinishRes.output);
       const priceReward = prices[`ethereum:${farm.rewardToken}`]?.price;
       const secPerDay = 86400;
       const apyReward =
-        isActive && priceReward
+        isActive && priceReward && tvlUsd > 0
           ? ((rewardRate * secPerDay * 365 * priceReward) / tvlUsd) * 100
           : 0;
 
@@ -580,17 +601,19 @@ const farmsAPY = async () => {
         pool: farm.address,
         chain: 'ethereum',
         project: 'sky-lending',
-        symbol: 'USDS',
+        symbol: farm.stakeSymbol,
         token: farm.address,
-        poolMeta: `${farm.rewardSymbol} Farming Pool`,
+        poolMeta: farm.poolMeta,
         tvlUsd,
         apyReward,
-        underlyingTokens: [USDS],
+        underlyingTokens: [farm.stakeToken],
         rewardTokens: [farm.rewardToken],
-        url: `https://app.sky.money/?network=ethereum&widget=rewards&reward=${farm.address}`,
+        url: farm.url,
       };
     })
   );
+
+  return pools.filter(Boolean);
 };
 
 const apy = async () => {
