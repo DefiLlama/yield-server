@@ -401,13 +401,17 @@ const main = async () => {
           APY_WINDOW_DAYS,
         );
 
-        // Fee metadata: performance fee, plus management fee when non-zero.
-        const poolMeta =
-          vault.mgmtFeePct > 0
-            ? `perf ${vault.perfFeePct.toFixed(1)}%, mgmt ${vault.mgmtFeePct.toFixed(
-                1,
-              )}%`
-            : `perf ${vault.perfFeePct.toFixed(1)}%`;
+        // Fee metadata: always show the performance fee, then append the
+        // management, entry, and exit fees whenever they are non-zero (kept
+        // conditional so vaults that don't charge them aren't cluttered with 0%).
+        const feeParts = [`perf ${vault.perfFeePct.toFixed(1)}%`];
+        if (vault.mgmtFeePct > 0)
+          feeParts.push(`mgmt ${vault.mgmtFeePct.toFixed(1)}%`);
+        if (vault.entryFeePct > 0)
+          feeParts.push(`entry ${vault.entryFeePct.toFixed(1)}%`);
+        if (vault.exitFeePct > 0)
+          feeParts.push(`exit ${vault.exitFeePct.toFixed(1)}%`);
+        const poolMeta = feeParts.join(', ');
 
         pools.push({
           pool: `${vault.address}-${chain}`.toLowerCase(),
