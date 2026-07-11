@@ -9,6 +9,7 @@ const API_BASE = 'https://persephone.superform.xyz/v1';
 const CHAIN_MAPPING = {
   '1': 'ethereum',
   '8453': 'base',
+  '14': 'flare',
 };
 
 const main = async () => {
