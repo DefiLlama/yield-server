@@ -2,12 +2,6 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 
-// D2 vaults are epoch-based ERC4626: deposits are custodied to a trader for
-// the epoch and returned with PnL at settlement, which is when the share
-// price moves. APY is therefore measured as the trailing share price change
-// over the longest available lookback window (up to a year), annualized.
-//
-// vault list mirrors the DefiLlama-Adapters d2finance tvl adapter
 const config = {
   ethereum: ['0x07Dff4087b43c4A759f4Fc69511c26d51929dAF4'],
   base: [
@@ -60,10 +54,7 @@ const config = {
   ],
 };
 
-// epochs run for roughly a month, so shorter windows would mostly measure
-// the flat period between settlements; older windows are preferred and the
-// shorter ones only kick in for vaults deployed more recently
-const LOOKBACK_DAYS = [365, 180, 90, 30];
+const LOOKBACK_DAYS = 30;
 
 const abis = {
   totalAssets: {
@@ -99,8 +90,8 @@ const chainPools = async (chain, vaults) => {
   ]);
 
   const now = Math.floor(Date.now() / 1000);
-  const blocks = await utils.getBlocksByTime(
-    LOOKBACK_DAYS.map((days) => now - days * 86400),
+  const [blockThen] = await utils.getBlocksByTime(
+    [now - LOOKBACK_DAYS * 86400],
     chain
   );
 
@@ -108,22 +99,20 @@ const chainPools = async (chain, vaults) => {
     target: vault,
     params: [(10n ** BigInt(decimals.output[i].output ?? 18)).toString()],
   }));
-  const [ppsNow, ...ppsHistorical] = await Promise.all([
+  const [ppsNow, ppsThen] = await Promise.all([
     sdk.api.abi.multiCall({
       abi: abis.convertToAssets,
       calls: oneShareCalls,
       chain,
       permitFailure: true,
     }),
-    ...blocks.map((block) =>
-      sdk.api.abi.multiCall({
-        abi: abis.convertToAssets,
-        calls: oneShareCalls,
-        chain,
-        block,
-        permitFailure: true,
-      })
-    ),
+    sdk.api.abi.multiCall({
+      abi: abis.convertToAssets,
+      calls: oneShareCalls,
+      chain,
+      block: blockThen,
+      permitFailure: true,
+    }),
   ]);
 
   const assetAddresses = assets.output.map((o) => o.output);
@@ -143,21 +132,18 @@ const chainPools = async (chain, vaults) => {
     const price = pricesByAddress[asset?.toLowerCase()];
     if (!asset || !price) return null;
 
+    const assetDecimal = Number(assetDecimals.output[i].output ?? 18);
     const tvlUsd =
-      (Number(totalAssets.output[i].output) /
-        10 ** Number(assetDecimals.output[i].output ?? 18)) *
-      price;
+      (Number(totalAssets.output[i].output) / 10 ** assetDecimal) * price;
 
-    // oldest window in which the vault already existed
-    let apyBase = 0;
-    const priceNow = Number(ppsNow.output[i].output);
-    for (const [w, days] of LOOKBACK_DAYS.map((d, j) => [j, d])) {
-      const priceThen = Number(ppsHistorical[w].output[i]?.output);
-      if (priceThen > 0 && priceNow > 0) {
-        apyBase = (priceNow / priceThen - 1) * (365 / days) * 100;
-        break;
-      }
-    }
+    const rawNow = Number(ppsNow.output[i].output);
+    const rawThen = Number(ppsThen.output[i]?.output);
+    const pricePerShare = rawNow / 10 ** assetDecimal;
+
+    const apyBase =
+      rawThen > 0 && rawNow > 0
+        ? (rawNow / rawThen - 1) * (365 / LOOKBACK_DAYS) * 100
+        : 0;
 
     return {
       pool: `${vault}-${chain}`.toLowerCase(),
@@ -166,9 +152,8 @@ const chainPools = async (chain, vaults) => {
       symbol: symbols.output[i].output ?? '',
       tvlUsd,
       apyBase,
-      poolMeta:
-        "Strategy's lock duration is aligned with market opportunities, verifable onchain.",
       underlyingTokens: [asset],
+      pricePerShare,
     };
   });
 };
