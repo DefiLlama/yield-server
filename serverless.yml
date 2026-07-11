@@ -136,15 +136,6 @@ functions:
       # 30min prior midnight
       - schedule: cron(30 23 * * ? *)
 
-  # --- save poolsEnriched as CSV
-  triggerCsv:
-    handler: src/handlers/triggerCsv.handler
-    description: Lambda which saves poolsEnriched as csv to s3 bucket
-    timeout: 300
-    events:
-      # every hour at 25 past
-      - schedule: cron(25 * * * ? *)
-
   # --- trigger monitor
   triggerMonitor:
     handler: src/handlers/triggerMonitor.handler

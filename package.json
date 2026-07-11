@@ -26,7 +26,6 @@
     "aws-sdk": "^2.1389.0",
     "axios": "^1.7.2",
     "bignumber.js": "^9.1.1",
-    "csv-writer": "^1.6.0",
     "date-fns": "^2.23.0",
     "dotenv": "^10.0.0",
     "ethers": "^5.7.2",
