@@ -30,12 +30,11 @@ const multiCall = async (abi, calls) =>
 // "Pareto AA Tranche - FalconXUSDC" -> "FalconX", "IdleCDO AA Tranche - idle_Fasanara" -> "Fasanara"
 const vaultName = (trancheName, tokenSymbol) => {
   if (!trancheName) return undefined;
-  return trancheName
-    .split(' - ')
-    .pop()
-    .replace(new RegExp(`${tokenSymbol}$`), '')
-    .replace(/^idle_/, '')
-    .trim();
+  let name = trancheName.split(' - ').pop();
+  if (tokenSymbol && name.endsWith(tokenSymbol)) {
+    name = name.slice(0, -tokenSymbol.length);
+  }
+  return name.replace(/^idle_/, '').trim();
 };
 
 const apy = async () => {
