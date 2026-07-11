@@ -63,9 +63,13 @@ const apy = async () => {
     multiCall('uint256:getContractValue', vaultCalls),
   ]);
 
-  const [aprs, trancheNames, symbols, decimals] = await Promise.all([
+  const [aprs, sharePrices, trancheNames, symbols, decimals] = await Promise.all([
     multiCall(
       'function getApr(address) view returns (uint256)',
+      vaults.map((target, i) => ({ target, params: [tranches[i]] }))
+    ),
+    multiCall(
+      'function virtualPrice(address) view returns (uint256)',
       vaults.map((target, i) => ({ target, params: [tranches[i]] }))
     ),
     multiCall('string:name', tranches.map((target) => ({ target }))),
@@ -89,11 +93,13 @@ const apy = async () => {
       pool: `${vault}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: 'pareto-credit',
-      symbol: utils.formatSymbol(symbols[i]),
+      symbol: symbols[i],
       poolMeta: vaultName(trancheNames[i], symbols[i]),
       tvlUsd,
       apyBase: aprs[i] / 1e18,
       underlyingTokens: [token],
+      pricePerShare: sharePrices[i] / 10 ** decimals[i],
+      url: `https://app.pareto.credit/vault/${vault}`,
     };
   });
 
