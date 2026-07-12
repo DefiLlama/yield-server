@@ -137,13 +137,14 @@ const chainPools = async (chain, vaults) => {
       (Number(totalAssets.output[i].output) / 10 ** assetDecimal) * price;
 
     const rawNow = Number(ppsNow.output[i].output);
-    const rawThen = Number(ppsThen.output[i]?.output);
+    const rawThenOutput = ppsThen.output[i]?.output;
+    const rawThen = rawThenOutput != null ? Number(rawThenOutput) : null;
     const pricePerShare = rawNow / 10 ** assetDecimal;
 
     const apyBase =
-      rawThen > 0 && rawNow > 0
+      rawThen != null && rawThen > 0 && rawNow > 0
         ? (rawNow / rawThen - 1) * (365 / LOOKBACK_DAYS) * 100
-        : 0;
+        : null;
 
     return {
       pool: `${vault}-${chain}`.toLowerCase(),
@@ -159,11 +160,12 @@ const chainPools = async (chain, vaults) => {
 };
 
 const poolsFunction = async () => {
-  const pools = (
-    await Promise.all(
-      Object.entries(config).map(([chain, vaults]) => chainPools(chain, vaults))
-    )
-  ).flat();
+  const results = await Promise.allSettled(
+    Object.entries(config).map(([chain, vaults]) => chainPools(chain, vaults))
+  );
+  const pools = results
+    .filter((r) => r.status === 'fulfilled')
+    .flatMap((r) => r.value);
 
   return pools.filter(Boolean).filter((p) => utils.keepFinite(p));
 };
