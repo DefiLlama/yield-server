@@ -92,7 +92,7 @@ const apy = async () => {
       apyBase: aprs[i] / 1e18,
       underlyingTokens: [token],
       pricePerShare: sharePrices[i] / 10 ** decimals[i],
-      url: `https://app.pareto.credit/vault#${vault}`,
+      url: `https://app.pareto.credit/vault#${tranches[i]}`,
     };
   });
 
