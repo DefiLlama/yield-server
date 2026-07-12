@@ -404,14 +404,15 @@ const main = async () => {
         // Fee metadata: always show the performance fee, then append the
         // management, entry, and exit fees whenever they are non-zero (kept
         // conditional so vaults that don't charge them aren't cluttered with 0%).
-        const feeParts = [`perf ${vault.perfFeePct.toFixed(1)}%`];
-        if (vault.mgmtFeePct > 0)
-          feeParts.push(`mgmt ${vault.mgmtFeePct.toFixed(1)}%`);
-        if (vault.entryFeePct > 0)
-          feeParts.push(`entry ${vault.entryFeePct.toFixed(1)}%`);
-        if (vault.exitFeePct > 0)
-          feeParts.push(`exit ${vault.exitFeePct.toFixed(1)}%`);
-        const poolMeta = feeParts.join(', ');
+        // Compact labels (in/out) and a '/' separator keep the string short;
+        // rates keep up to 2 decimals with trailing zeros stripped, so fine fees
+        // like 0.05% aren't rounded away while whole numbers stay as e.g. 20%.
+        const fmtPct = (x) => `${Math.round(x * 100) / 100}%`;
+        const feeParts = [`perf ${fmtPct(vault.perfFeePct)}`];
+        if (vault.mgmtFeePct > 0) feeParts.push(`mgmt ${fmtPct(vault.mgmtFeePct)}`);
+        if (vault.entryFeePct > 0) feeParts.push(`in ${fmtPct(vault.entryFeePct)}`);
+        if (vault.exitFeePct > 0) feeParts.push(`out ${fmtPct(vault.exitFeePct)}`);
+        const poolMeta = feeParts.join('/');
 
         pools.push({
           pool: `${vault.address}-${chain}`.toLowerCase(),
