@@ -155,6 +155,7 @@ const chainPools = async (chain, vaults) => {
       apyBase,
       underlyingTokens: [asset],
       pricePerShare,
+      url: `https://d2.finance/strategies/${vault}`,
     };
   });
 };
