@@ -1,20 +1,15 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-// Pareto credit vaults are IdleCDO-style epoch contracts (single AA tranche in
-// practice, BB supply is 0 on every live vault). TVL comes from the vault's
-// getContractValue (denominated in the underlying token) and the advertised
-// rate from getApr(AATranche), which the manager sets per epoch.
 const CHAIN = 'ethereum';
 const FACTORY = '0x59aabDAd8FDaBD227CC71543B128765f93906626';
 const FACTORY_START_BLOCK = 22938055;
 
-// vaults deployed before the factory existed
 const LEGACY_VAULTS = [
-  '0xf6223C567F21E33e859ED7A045773526E9E3c2D5', // Fasanara
-  '0x4462eD748B8F7985A4aC6b538Dfc105Fce2dD165', // Bastion
-  '0x14B8E918848349D1e71e806a52c13D4e0d3246E0', // Adaptive Frontier
-  '0x433D5B175148dA32Ffe1e1A37a939E1b7e79be4d', // FalconX
+  '0xf6223C567F21E33e859ED7A045773526E9E3c2D5',
+  '0x4462eD748B8F7985A4aC6b538Dfc105Fce2dD165',
+  '0x14B8E918848349D1e71e806a52c13D4e0d3246E0',
+  '0x433D5B175148dA32Ffe1e1A37a939E1b7e79be4d',
 ];
 
 const multiCall = async (abi, calls) =>
@@ -27,7 +22,6 @@ const multiCall = async (abi, calls) =>
     })
   ).output.map((o) => o.output);
 
-// "Pareto AA Tranche - FalconXUSDC" -> "FalconX", "IdleCDO AA Tranche - idle_Fasanara" -> "Fasanara"
 const vaultName = (trancheName, tokenSymbol) => {
   if (!trancheName) return undefined;
   let name = trancheName.split(' - ').pop();
@@ -98,7 +92,7 @@ const apy = async () => {
       apyBase: aprs[i] / 1e18,
       underlyingTokens: [token],
       pricePerShare: sharePrices[i] / 10 ** decimals[i],
-      url: `https://app.pareto.credit/vault/${vault}`,
+      url: `https://app.pareto.credit/vault#${vault}`,
     };
   });
 
