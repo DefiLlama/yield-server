@@ -47,13 +47,11 @@ const getStarknetRpc = () => {
   return process.env.STARKNET_RPC;
 };
 
-const rateLimitedStarknetCall =
-  (fn) =>
-  (...args) => {
-    const promise = pendingStarknetCall.then(() => fn(...args));
-    pendingStarknetCall = promise.catch(() => {});
-    return promise;
-  };
+const rateLimitedStarknetCall = (fn) => (...args) => {
+  const promise = pendingStarknetCall.then(() => fn(...args));
+  pendingStarknetCall = promise.catch(() => {});
+  return promise;
+};
 
 const chunkArray = (arr, chunkSize = 100) => {
   const chunks = [];
@@ -65,23 +63,16 @@ const chunkArray = (arr, chunkSize = 100) => {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const getStarknetCallBody = (
-  { abi, target, params = [], allAbi = [] },
-  id = 0
-) => {
+const getStarknetCallBody = ({ abi, target, params = [], allAbi = [] }, id = 0) => {
   if ((params || params === 0) && !Array.isArray(params)) params = [params];
 
   const contract = new Contract([abi, ...allAbi], target, null);
   const requestData = contract.populate(abi.name, params);
-  requestData.entry_point_selector = starknetHash.getSelectorFromName(
-    requestData.entrypoint
-  );
+  requestData.entry_point_selector = starknetHash.getSelectorFromName(requestData.entrypoint);
   requestData.contract_address = requestData.contractAddress;
   delete requestData.contractAddress;
   delete requestData.entrypoint;
-  requestData.calldata = requestData.calldata.map((i) =>
-    starknetNumber.toHex(starknetNumber.toBN(i))
-  );
+  requestData.calldata = requestData.calldata.map((i) => starknetNumber.toHex(starknetNumber.toBN(i)));
 
   return {
     jsonrpc: '2.0',
@@ -113,20 +104,12 @@ const parseStarknetOutput = (result, abi, allAbi) => {
 const starknetCall = async ({ abi, target, params = [], allAbi = [] } = {}) => {
   const {
     data: { result },
-  } = await axios.post(
-    getStarknetRpc(),
-    getStarknetCallBody({ abi, target, params, allAbi })
-  );
+  } = await axios.post(getStarknetRpc(), getStarknetCallBody({ abi, target, params, allAbi }));
 
   return parseStarknetOutput(result, abi, allAbi);
 };
 
-const starknetMultiCall = async ({
-  abi: rootAbi,
-  target: rootTarget,
-  calls = [],
-  allAbi = [],
-}) => {
+const starknetMultiCall = async ({ abi: rootAbi, target: rootTarget, calls = [], allAbi = [] }) => {
   if (!calls.length) return [];
 
   calls = calls.map((callArgs) => {
@@ -275,7 +258,7 @@ const getBlocksByTime = async (timestamps, chainString) => {
   return Promise.all(
     timestamps.map(async (timestamp) => {
       const response = await axios.get(
-        getPriceApiUrl(`/block/${chain}/${timestamp}`)
+      getPriceApiUrl(`/block/${chain}/${timestamp}`)
       );
       return response.data.height;
     })
@@ -683,43 +666,42 @@ exports.getERC4626Info = async (
         .then((r) => r.data.height)
     )
   );
-  const [tvl, priceNow, priceYesterday, asset, shareDecimalsRes] =
-    await Promise.all([
-      sdk.api.abi.call({
+  const [tvl, priceNow, priceYesterday, asset, shareDecimalsRes] = await Promise.all([
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: totalAssetsAbi,
+      chain: chain,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+      chain: chain,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockYesterday,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+      chain: chain,
+    }),
+    sdk.api.abi
+      .call({
         target: address,
-        block: blockNow,
-        abi: totalAssetsAbi,
+        abi: 'address:asset',
         chain: chain,
-      }),
-      sdk.api.abi.call({
+      })
+      .catch(() => null),
+    sdk.api.abi
+      .call({
         target: address,
-        block: blockNow,
-        abi: convertToAssetsAbi,
-        params: [assetUnit],
+        abi: 'erc20:decimals',
         chain: chain,
-      }),
-      sdk.api.abi.call({
-        target: address,
-        block: blockYesterday,
-        abi: convertToAssetsAbi,
-        params: [assetUnit],
-        chain: chain,
-      }),
-      sdk.api.abi
-        .call({
-          target: address,
-          abi: 'address:asset',
-          chain: chain,
-        })
-        .catch(() => null),
-      sdk.api.abi
-        .call({
-          target: address,
-          abi: 'erc20:decimals',
-          chain: chain,
-        })
-        .catch(() => null),
-    ]);
+      })
+      .catch(() => null),
+  ]);
   const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
   let assetDecimals = 18;
   if (asset && asset.output) {
@@ -784,22 +766,15 @@ exports.getTotalSupply = async (tokenMintAddress) => {
 };
 
 // Solana RPC helper for getAccountInfo
-const getSolanaAccountInfo = async (
-  address,
-  rpcUrl = 'https://api.mainnet-beta.solana.com'
-) => {
-  const response = await axios.post(
-    rpcUrl,
-    {
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'getAccountInfo',
-      params: [address, { encoding: 'base64' }],
-    },
-    {
-      headers: { 'Content-Type': 'application/json' },
-    }
-  );
+const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const response = await axios.post(rpcUrl, {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getAccountInfo',
+    params: [address, { encoding: 'base64' }],
+  }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
 
   const data = response.data;
   if (data.error) {
@@ -816,64 +791,41 @@ const getSolanaAccountInfo = async (
 // SPL Stake Pool data decoder using official library
 const { StakePoolLayout } = require('@solana/spl-stake-pool');
 
-exports.getStakePoolInfo = async (
-  stakePoolAddress,
-  rpcUrl = 'https://api.mainnet-beta.solana.com'
-) => {
-  const stakePoolAccountData = await getSolanaAccountInfo(
-    stakePoolAddress,
-    rpcUrl
-  );
+exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const stakePoolAccountData = await getSolanaAccountInfo(stakePoolAddress, rpcUrl);
 
   // Decode using official SPL stake pool layout
   const stakePool = StakePoolLayout.decode(stakePoolAccountData);
 
   const totalLamports = BigInt(stakePool.totalLamports.toString());
   const poolTokenSupply = BigInt(stakePool.poolTokenSupply.toString());
-  const lastEpochTotalLamports = BigInt(
-    stakePool.lastEpochTotalLamports.toString()
-  );
-  const lastEpochPoolTokenSupply = BigInt(
-    stakePool.lastEpochPoolTokenSupply.toString()
-  );
+  const lastEpochTotalLamports = BigInt(stakePool.lastEpochTotalLamports.toString());
+  const lastEpochPoolTokenSupply = BigInt(stakePool.lastEpochPoolTokenSupply.toString());
   const lastUpdateEpoch = BigInt(stakePool.lastUpdateEpoch.toString());
 
   // Exchange rate = SOL per pool token (guard against division by zero)
-  const exchangeRate =
-    poolTokenSupply === 0n
-      ? 0
-      : Number(totalLamports) / Number(poolTokenSupply);
+  const exchangeRate = poolTokenSupply === 0n ? 0 : Number(totalLamports) / Number(poolTokenSupply);
 
   // Epoch fee as a fraction (numerator/denominator)
-  const epochFee =
-    stakePool.epochFee && Number(stakePool.epochFee.denominator) > 0
-      ? {
-          numerator: Number(stakePool.epochFee.numerator),
-          denominator: Number(stakePool.epochFee.denominator),
-        }
-      : null;
+  const epochFee = stakePool.epochFee && Number(stakePool.epochFee.denominator) > 0
+    ? { numerator: Number(stakePool.epochFee.numerator), denominator: Number(stakePool.epochFee.denominator) }
+    : null;
 
   // Fetch current epoch info for epochs-per-year calculation
-  const epochResponse = await axios.post(
-    rpcUrl,
-    {
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'getEpochInfo',
-      params: [{ commitment: 'confirmed' }],
-    },
-    {
-      headers: { 'Content-Type': 'application/json' },
-    }
-  );
+  const epochResponse = await axios.post(rpcUrl, {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getEpochInfo',
+    params: [{ commitment: 'confirmed' }],
+  }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
   const currentEpoch = epochResponse.data.result?.epoch || 0;
 
   // Solana genesis: March 16, 2020 (UTC)
   const SOLANA_GENESIS_MS = Date.UTC(2020, 2, 16);
-  const yearsSinceGenesis =
-    (Date.now() - SOLANA_GENESIS_MS) / (365.25 * 24 * 60 * 60 * 1000);
-  const epochsPerYear =
-    yearsSinceGenesis > 0 ? currentEpoch / yearsSinceGenesis : 0;
+  const yearsSinceGenesis = (Date.now() - SOLANA_GENESIS_MS) / (365.25 * 24 * 60 * 60 * 1000);
+  const epochsPerYear = yearsSinceGenesis > 0 ? currentEpoch / yearsSinceGenesis : 0;
 
   return {
     totalLamports: Number(totalLamports),
@@ -900,10 +852,8 @@ exports.solanaLstPricePerShare = (stakePoolInfo) => {
 // Uses previous-epoch snapshots stored in the stake pool account
 exports.calcSolanaLstApy = (stakePoolInfo) => {
   const {
-    totalLamports,
-    poolTokenSupply,
-    lastEpochTotalLamports,
-    lastEpochPoolTokenSupply,
+    totalLamports, poolTokenSupply,
+    lastEpochTotalLamports, lastEpochPoolTokenSupply,
     epochsPerYear,
   } = stakePoolInfo;
 
@@ -927,11 +877,7 @@ exports.calcSolanaLstApy = (stakePoolInfo) => {
 };
 
 // 7-day smoothed APY from DefiLlama price ratio for Solana LSTs
-exports.calcSolanaLstApyFromPriceRatio = async (
-  currentExchangeRate,
-  lstMint,
-  days = 7
-) => {
+exports.calcSolanaLstApyFromPriceRatio = async (currentExchangeRate, lstMint, days = 7) => {
   const SOL = 'So11111111111111111111111111111111111111112';
   const lstKey = `solana:${lstMint}`;
   const solKey = `solana:${SOL}`;
