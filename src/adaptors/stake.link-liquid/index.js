@@ -17,19 +17,12 @@ const SUBGRAPH_URL =
 
 const linkQuery = `
   {
-    totalRewardAmounts {
-      totalRewardSTLINK
-      __typename
-    }
-    totalCounts {
-      linkStakingDistributionCount
-      __typename
-    }
     linkStakingDistributions(
       first: 1
       skip: 0
       orderBy: ts
       orderDirection: desc
+      subgraphError: allow
     ) {
       reward_rate
       reward_amount
@@ -45,20 +38,13 @@ const linkQuery = `
 
 const polQuery = `
  {
-    totalRewardAmounts {
-      totalRewardSTPOL
-      __typename
-    }
-    totalCounts {
-      polStakingDistributionCount
-      __typename
-    }
     polStakingDistributions(
       first: 1
       skip: 0
       orderBy: ts
       orderDirection: desc
       where: {isUpdatedWithBurnAmount: true}
+      subgraphError: allow
     ) {
       reward_rate
       reward_amount
@@ -136,6 +122,8 @@ const fetchPool = async (pool) => {
       tvlUsd: tvl,
       apyBase: apy,
       underlyingTokens: [underlying],
+      searchTokenOverride: address,
+      isIntrinsicSource: true,
     };
   } catch (error) {
     console.error(
