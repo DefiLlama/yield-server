@@ -61,6 +61,8 @@ const chunkArray = (arr, chunkSize = 100) => {
   return chunks;
 };
 
+exports.chunkArray = chunkArray;
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getStarknetCallBody = ({ abi, target, params = [], allAbi = [] }, id = 0) => {
