@@ -146,7 +146,9 @@ functions:
     timeout: 300
     events:
       # every hour at 30 past
-      - schedule: cron(30 * * * ? *)
+      - schedule:
+          rate: cron(30 * * * ? *)
+          enabled: false
     environment:
       STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
 
