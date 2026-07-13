@@ -532,6 +532,54 @@ const susdsAPY = async () => {
   return pools.filter(Boolean);
 };
 
+// stUSDS (Expert mode staked USDS) — same rate-accumulator pattern as sUSDS,
+// the per-second RAY rate getter is str() instead of ssr().
+const stusdsAPY = async () => {
+  const STUSDS = '0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9';
+  const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
+  const strAbi = {
+    inputs: [],
+    name: 'str',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+  const RAY = 1e27;
+
+  const [strRes, totalSupplyRes] = await Promise.all([
+    sdk.api.abi.call({ target: STUSDS, abi: strAbi, chain: 'ethereum' }),
+    sdk.api.abi.call({
+      target: STUSDS,
+      abi: 'erc20:totalSupply',
+      chain: 'ethereum',
+    }),
+  ]);
+
+  const str = strRes.output / RAY;
+  const apyBase = (Math.pow(str, SECONDS_PER_YEAR) - 1) * 100;
+
+  const key = `ethereum:${STUSDS}`;
+  const price = (await getPriceApiData(`/prices/current/${key}`)).coins[key]
+    ?.price;
+  if (!price) return [];
+
+  return [
+    {
+      pool: STUSDS,
+      symbol: 'STUSDS',
+      project: 'sky-lending',
+      chain: 'ethereum',
+      token: STUSDS,
+      poolMeta: 'Expert Mode',
+      tvlUsd: (totalSupplyRes.output / 1e18) * price,
+      apyBase,
+      underlyingTokens: [USDS],
+      isIntrinsicSource: true,
+      url: 'https://app.sky.money/?network=ethereum&widget=expert&expert_module=stusds&flow=supply',
+    },
+  ];
+};
+
 // Staking farms (Synthetix-style StakingRewards).
 const farmsAPY = async () => {
   const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
@@ -617,7 +665,12 @@ const farmsAPY = async () => {
 };
 
 const apy = async () => {
-  const pools = await Promise.all([main(), susdsAPY(), farmsAPY()]);
+  const pools = await Promise.all([
+    main(),
+    susdsAPY(),
+    stusdsAPY(),
+    farmsAPY(),
+  ]);
   return pools.flat();
 };
 
