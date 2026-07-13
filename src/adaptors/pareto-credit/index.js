@@ -78,7 +78,7 @@ const apy = async () => {
   const pools = vaults.map((vault, i) => {
     const token = tokens[i];
     const price = prices[token?.toLowerCase()];
-    if (!token || !price || !contractValues[i]) return null;
+    if (!token || !price || !contractValues[i] || !tranches[i]) return null;
 
     const tvlUsd = (contractValues[i] / 10 ** decimals[i]) * price;
 
@@ -90,6 +90,7 @@ const apy = async () => {
       poolMeta: vaultName(trancheNames[i], symbols[i]),
       tvlUsd,
       apyBase: aprs[i] / 1e18,
+      token: tranches[i].toLowerCase(),
       underlyingTokens: [token],
       pricePerShare: sharePrices[i] / 10 ** decimals[i],
       url: `https://app.pareto.credit/vault#${tranches[i]}`,
