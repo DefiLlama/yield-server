@@ -175,9 +175,9 @@ const topLvl = async (chainString, url, timestamp) => {
   }
 };
 
-const latestPoolsQuery = (skip) => gql`
+const latestPoolsQuery = (idCursor) => gql`
   {
-    pools(first: ${PAGE_SIZE}, skip: ${skip}, orderBy: id, where: {totalValueLockedUSD_gte: ${TVL_MIN}}) {${POOL_FIELDS}
+    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${TVL_MIN}, id_gt: "${idCursor}"}) {${POOL_FIELDS}
     }
   }
 `;
@@ -189,9 +189,10 @@ const poolsByIdQuery = (ids) => gql`
   }
 `;
 
-const dayVolumesQuery = (dateGte, dateLte, skip) => gql`
+const dayVolumesQuery = (dateGte, dateLte, idCursor) => gql`
   {
-    poolDayDatas(first: ${PAGE_SIZE}, skip: ${skip}, orderBy: id, where: {date_gte: ${dateGte}, date_lte: ${dateLte}}) {
+    poolDayDatas(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {date_gte: ${dateGte}, date_lte: ${dateLte}, id_gt: "${idCursor}"}) {
+      id
       date
       volumeUSD
       pool {
@@ -202,12 +203,15 @@ const dayVolumesQuery = (dateGte, dateLte, skip) => gql`
 `;
 
 const fetchLatestPools = async (url) => {
-  let allPools = [];
+  const allPools = [];
+  let idCursor = '';
 
-  for (let skip = 0; skip <= 5000; skip += PAGE_SIZE) {
-    const data = await request(url, latestPoolsQuery(skip));
-    allPools = allPools.concat(data.pools ?? []);
-    if (!data.pools || data.pools.length < PAGE_SIZE) break;
+  while (true) {
+    const data = await request(url, latestPoolsQuery(idCursor));
+    const page = data.pools ?? [];
+    allPools.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    idCursor = page[page.length - 1].id;
   }
 
   return allPools;
@@ -218,11 +222,16 @@ const fetchLatestPools = async (url) => {
 const fetchDayVolumes = async (url, previousDay) => {
   const volumesByPoolId = {};
   const firstDay = previousDay - 6 * 86400;
+  let idCursor = '';
 
-  for (let skip = 0; skip <= 5000; skip += PAGE_SIZE) {
-    const data = await request(url, dayVolumesQuery(firstDay, previousDay, skip));
+  while (true) {
+    const data = await request(
+      url,
+      dayVolumesQuery(firstDay, previousDay, idCursor)
+    );
+    const page = data.poolDayDatas ?? [];
 
-    for (const dayData of data.poolDayDatas ?? []) {
+    for (const dayData of page) {
       const poolId = dayData.pool.id;
       const volumes = volumesByPoolId[poolId] ?? {
         volumeUSD1d: 0,
@@ -237,7 +246,8 @@ const fetchDayVolumes = async (url, previousDay) => {
       volumesByPoolId[poolId] = volumes;
     }
 
-    if (!data.poolDayDatas || data.poolDayDatas.length < PAGE_SIZE) break;
+    if (page.length < PAGE_SIZE) break;
+    idCursor = page[page.length - 1].id;
   }
 
   return volumesByPoolId;
