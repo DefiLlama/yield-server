@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const { ethers } = require('ethers');
 const utils = require('../utils');
 
 const CHAIN = 'base';
@@ -102,14 +101,12 @@ const CURRENCY_FEEDS = {
   },
 };
 
-const CURRENCY_BY_HASH = Object.fromEntries(
-  Object.keys(CURRENCY_FEEDS).map((code) => [
-    ethers.utils.id(code).toLowerCase(),
-    code,
-  ])
-);
+const CURRENCY_BY_HASH = {
+  '0xc4ae21aac0c6549d71dd96035b7e0bdb6c79ebdba8891b666115bc976d16a29e': 'USD',
+  '0xfff16d60be267153303bbfa66e593fb8d06e24ea5ef24b6acca5224c2ca6b907': 'EUR',
+  '0x90832e2dc3221e4d56977c1aa8f6a6706b9ad6542fbbdaac13097d0fa5e42e67': 'GBP',
+};
 const SUPPORTED_CURRENCY_HASHES = new Set(Object.keys(CURRENCY_BY_HASH));
-const CURRENCY_SORT_ORDER = Object.keys(CURRENCY_FEEDS);
 
 const PLATFORM_BY_PAYMENT_METHOD = {
   '0x90262a3db0edd0be2369c6b28f9e8511ec0bac7136cefbada0880602f87e7268': {
@@ -146,10 +143,10 @@ const PLATFORM_BY_PAYMENT_METHOD = {
   },
 };
 
-const asBigNumber = (value) => ethers.BigNumber.from(value.toString());
+const asBigInt = (value) => BigInt(value.toString());
 
 const formatAmount = (value, decimals) =>
-  Number(ethers.utils.formatUnits(asBigNumber(value), decimals));
+  Number(asBigInt(value)) / 10 ** decimals;
 
 const eventArg = (log, name, index) => {
   const args = log.args || log;
@@ -188,19 +185,6 @@ const platformForPaymentMethod = (paymentMethod) => {
   const normalized = String(paymentMethod || '').toLowerCase();
   return PLATFORM_BY_PAYMENT_METHOD[normalized] || null;
 };
-
-const sortedCurrencies = (currencies) =>
-  [...currencies].sort((left, right) => {
-    const leftIndex = CURRENCY_SORT_ORDER.indexOf(left);
-    const rightIndex = CURRENCY_SORT_ORDER.indexOf(right);
-    if (leftIndex !== -1 || rightIndex !== -1) {
-      return (
-        (leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex) -
-        (rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex)
-      );
-    }
-    return left.localeCompare(right);
-  });
 
 const chunkArray = (values, size) => {
   const chunks = [];
@@ -268,11 +252,11 @@ async function fetchDepositIds(block) {
     block,
   });
 
-  const depositCount = asBigNumber(output).toNumber();
+  const depositCount = Number(asBigInt(output));
   return Array.from({ length: depositCount }, (_, index) => String(index));
 }
 
-async function fetchPlatformLiquidity(block) {
+async function fetchPlatformLiquidity(block, usdcPrice) {
   const depositIds = await fetchDepositIds(block);
   if (depositIds.length === 0) return new Map();
 
@@ -303,12 +287,12 @@ async function fetchPlatformLiquidity(block) {
       continue;
     }
 
-    const remaining = asBigNumber(tupleField(deposit, 'remainingDeposits', 5));
-    const outstanding = asBigNumber(
+    const remaining = asBigInt(tupleField(deposit, 'remainingDeposits', 5));
+    const outstanding = asBigInt(
       tupleField(deposit, 'outstandingIntentAmount', 6)
     );
-    const liquidity = remaining.add(outstanding);
-    if (liquidity.lte(0)) continue;
+    const liquidity = remaining + outstanding;
+    if (liquidity <= 0n) continue;
 
     deposits.push({ depositId: depositIds[index], liquidity });
   }
@@ -375,25 +359,40 @@ async function fetchPlatformLiquidity(block) {
   });
 
   const platformBuckets = new Map();
+  const routesByDeposit = new Map();
   for (let index = 0; index < routeChecks.length; index++) {
     const rate = rateResults[index]?.output;
-    if (rate === undefined || asBigNumber(rate).lte(0)) continue;
+    if (rate === undefined || asBigInt(rate) <= 0n) continue;
 
-    const { deposit, platform, currencyHash } = routeChecks[index];
-    const currencyCode = CURRENCY_BY_HASH[currencyHash];
-    const existing = platformBuckets.get(platform.key) || {
-      platform,
-      depositIds: new Set(),
-      liquidityRaw: ethers.BigNumber.from(0),
-      currencies: new Set(),
+    const { deposit, platform } = routeChecks[index];
+    const depositRoutes = routesByDeposit.get(deposit.depositId) || {
+      deposit,
+      platforms: new Map(),
     };
+    depositRoutes.platforms.set(platform.key, platform);
+    routesByDeposit.set(deposit.depositId, depositRoutes);
+  }
 
-    if (!existing.depositIds.has(deposit.depositId)) {
-      existing.depositIds.add(deposit.depositId);
-      existing.liquidityRaw = existing.liquidityRaw.add(deposit.liquidity);
+  // A deposit's USDC backs every enabled payment method. Split it once across
+  // unique platform pools so their aggregate TVL matches the escrowed balance.
+  for (const { deposit, platforms } of routesByDeposit.values()) {
+    const platformEntries = [...platforms.entries()].sort(([left], [right]) =>
+      left.localeCompare(right)
+    );
+    const platformCount = BigInt(platformEntries.length);
+    const liquidityShare = deposit.liquidity / platformCount;
+    const remainder = deposit.liquidity % platformCount;
+
+    for (let index = 0; index < platformEntries.length; index++) {
+      const [platformKey, platform] = platformEntries[index];
+      const existing = platformBuckets.get(platformKey) || {
+        platform,
+        liquidityRaw: 0n,
+      };
+      existing.liquidityRaw +=
+        liquidityShare + (BigInt(index) < remainder ? 1n : 0n);
+      platformBuckets.set(platformKey, existing);
     }
-    existing.currencies.add(currencyCode);
-    platformBuckets.set(platform.key, existing);
   }
 
   return new Map(
@@ -401,8 +400,7 @@ async function fetchPlatformLiquidity(block) {
       platformKey,
       {
         platform: bucket.platform,
-        tvlUsd: formatAmount(bucket.liquidityRaw, USDC_DECIMALS),
-        currencies: sortedCurrencies(bucket.currencies),
+        tvlUsd: formatAmount(bucket.liquidityRaw, USDC_DECIMALS) * usdcPrice,
       },
     ])
   );
@@ -431,17 +429,17 @@ async function fetchMarketRates(block) {
     const answer = tupleField(entry.output, 'answer', 1);
     const updatedAt = tupleField(entry.output, 'updatedAt', 3);
     const updatedAtTimestamp =
-      updatedAt === undefined ? null : asBigNumber(updatedAt);
+      updatedAt === undefined ? null : asBigInt(updatedAt);
     const answeredInRound = tupleField(entry.output, 'answeredInRound', 4);
     const roundId = tupleField(entry.output, 'roundId', 0);
     const staleBefore = Math.floor(Date.now() / 1000) - config.heartbeat;
     if (
       answer === undefined ||
-      asBigNumber(answer).lte(0) ||
+      asBigInt(answer) <= 0n ||
       updatedAtTimestamp === null ||
-      updatedAtTimestamp.isZero() ||
-      updatedAtTimestamp.lt(staleBefore) ||
-      asBigNumber(answeredInRound).lt(asBigNumber(roundId))
+      updatedAtTimestamp === 0n ||
+      updatedAtTimestamp < BigInt(staleBefore) ||
+      asBigInt(answeredInRound) < asBigInt(roundId)
     ) {
       continue;
     }
@@ -456,7 +454,8 @@ async function fetchMarketRates(block) {
 async function fetchWindowStats(
   signalFromBlock,
   windowFromBlock,
-  latestBlockNumber
+  latestBlockNumber,
+  usdcPrice
 ) {
   const [signalLogs, fulfillmentLogs, transferLogs, marketRates] =
     await Promise.all([
@@ -523,7 +522,7 @@ async function fetchWindowStats(
     const grossAmount = transferAmountByHash.get(intentHash);
     if (grossAmount === undefined) continue;
 
-    const amountUsd = formatAmount(grossAmount, USDC_DECIMALS);
+    const amountUsd = formatAmount(grossAmount, USDC_DECIMALS) * usdcPrice;
     if (!Number.isFinite(amountUsd) || amountUsd <= 0) continue;
 
     const currencyCode = CURRENCY_BY_HASH[signal.currencyHash];
@@ -542,13 +541,11 @@ async function fetchWindowStats(
       volumeUsd: 0,
       spreadWeightedVolume: 0,
       fills: 0,
-      currencies: new Set(),
     };
 
     existing.volumeUsd += amountUsd;
     existing.spreadWeightedVolume += Math.max(spread, 0) * amountUsd;
     existing.fills += 1;
-    existing.currencies.add(currencyCode);
     platformStats.set(platform.key, existing);
   }
 
@@ -563,10 +560,18 @@ async function fetchWindowStats(
             ? stats.spreadWeightedVolume / stats.volumeUsd
             : 0,
         fills: stats.fills,
-        currencies: sortedCurrencies(stats.currencies),
       },
     ])
   );
+}
+
+async function fetchUsdcPrice() {
+  const { pricesByAddress } = await utils.getPrices([BASE_USDC], CHAIN);
+  const usdcPrice = pricesByAddress[BASE_USDC.toLowerCase()];
+  if (!Number.isFinite(usdcPrice) || usdcPrice <= 0) {
+    throw new Error(`Invalid USDC price for ${CHAIN}:${BASE_USDC}`);
+  }
+  return usdcPrice;
 }
 
 async function apy() {
@@ -577,17 +582,19 @@ async function apy() {
   );
   const windowStart = latestBlock.timestamp - LOOKBACK_SECONDS;
   const signalWindowStart = windowStart - SIGNAL_LOOKBACK_SECONDS;
-  const [signalFromBlock, windowFromBlock] = await Promise.all([
+  const [signalFromBlock, windowFromBlock, usdcPrice] = await Promise.all([
     sdk.api.util.lookupBlock(signalWindowStart, { chain: CHAIN }),
     sdk.api.util.lookupBlock(windowStart, { chain: CHAIN }),
+    fetchUsdcPrice(),
   ]);
 
   const [liquidityByPlatform, statsByPlatform] = await Promise.all([
-    fetchPlatformLiquidity(latestBlockNumber),
+    fetchPlatformLiquidity(latestBlockNumber, usdcPrice),
     fetchWindowStats(
       signalFromBlock.block,
       windowFromBlock.block,
-      latestBlockNumber
+      latestBlockNumber,
+      usdcPrice
     ),
   ]);
 
@@ -597,7 +604,6 @@ async function apy() {
       const stats = statsByPlatform.get(platformKey) || {
         volumeUsd: 0,
         weightedPositiveSpread: 0,
-        currencies: [],
       };
       const apyBase =
         liquidity.tvlUsd > 0 && stats.volumeUsd > 0
@@ -606,12 +612,6 @@ async function apy() {
             (SECONDS_PER_YEAR / LOOKBACK_SECONDS) *
             100
           : 0;
-      const currencies = sortedCurrencies(
-        new Set([...(liquidity.currencies || []), ...(stats.currencies || [])])
-      );
-      const currencyMeta =
-        currencies.length > 0 ? currencies.join('/') : 'USD/EUR/GBP';
-
       return {
         pool: `${ESCROW_V2}-${CHAIN}-${platformKey}`.toLowerCase(),
         chain: utils.formatChain(CHAIN),
@@ -621,8 +621,8 @@ async function apy() {
         apyBase,
         underlyingTokens: [BASE_USDC],
         token: null,
-        poolMeta: `${liquidity.platform.label} (${currencyMeta}) seller liquidity (24h fee APR)`,
-        url: 'https://www.peer.xyz/',
+        poolMeta: liquidity.platform.label,
+        url: 'https://app.peer.xyz/liquidity',
       };
     });
 }
