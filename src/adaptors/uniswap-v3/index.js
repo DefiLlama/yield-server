@@ -299,8 +299,8 @@ const main = async (timestamp = null) => {
       );
     })
   );
-  const [data, bobPools] = await Promise.all([dataPromise, getOnchainPools()]);
-  data.push(bobPools);
+  const [data, onchainPools] = await Promise.all([dataPromise, getOnchainPools()]);
+  data.push(onchainPools);
 
   const pools = await addMerklRewardApy(
     data
