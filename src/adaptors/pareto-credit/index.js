@@ -78,7 +78,7 @@ const apy = async () => {
   const pools = vaults.map((vault, i) => {
     const token = tokens[i];
     const price = prices[token?.toLowerCase()];
-    if (!token || !price || !contractValues[i]) return null;
+    if (!token || !price || !contractValues[i] || !tranches[i]) return null;
 
     const tvlUsd = (contractValues[i] / 10 ** decimals[i]) * price;
 
