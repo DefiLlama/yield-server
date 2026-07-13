@@ -90,6 +90,7 @@ const apy = async () => {
       poolMeta: vaultName(trancheNames[i], symbols[i]),
       tvlUsd,
       apyBase: aprs[i] / 1e18,
+      token: tranches[i].toLowerCase(),
       underlyingTokens: [token],
       pricePerShare: sharePrices[i] / 10 ** decimals[i],
       url: `https://app.pareto.credit/vault#${tranches[i]}`,
