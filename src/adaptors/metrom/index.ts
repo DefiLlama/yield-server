@@ -42,6 +42,24 @@ interface Token {
   symbol: string;
 }
 
+interface LpTokenDetails {
+  type: 'lp';
+  dex: string;
+  baseTokenAddress: string;
+  baseTokenSymbol: string;
+  quoteTokenAddress: string;
+  quoteTokenSymbol: string;
+}
+
+interface ProtocolTokenDetails {
+  type: 'protocol';
+  slug: string;
+}
+
+interface TokenWithDetails extends Token {
+  details?: LpTokenDetails | ProtocolTokenDetails;
+}
+
 interface BaseTarget {
   chainType: string;
   chainId: number;
@@ -110,6 +128,11 @@ interface YieldSeekerTarget extends BaseTarget {
   type: 'yield-seeker';
 }
 
+interface HoldFungibleAssetTarget extends BaseTarget {
+  type: 'hold-fungible-asset';
+  asset: TokenWithDetails;
+}
+
 interface Erc4626Target extends BaseTarget {
   type: 'erc4626-vault';
   brand: string;
@@ -143,6 +166,7 @@ interface Campaign {
     | AaveV3NetSupplyTarget
     | TurtleTarget
     | YieldSeekerTarget
+    | HoldFungibleAssetTarget
     | Erc4626Target;
   rewards?: Rewards;
   usdTvl?: number;
@@ -312,6 +336,28 @@ async function processCampaign(
         symbol: 'USDC',
         underlyingTokens: [BASE_USDC],
         poolMeta: 'Deposit',
+      };
+    }
+    case 'hold-fungible-asset': {
+      const asset = campaign.target.asset;
+
+      if (asset.details?.type === 'lp')
+        return {
+          symbol: `${asset.details.baseTokenSymbol} - ${asset.details.quoteTokenSymbol}`,
+          underlyingTokens: [
+            asset.details.baseTokenAddress,
+            asset.details.quoteTokenAddress,
+          ],
+          poolMeta: humanizeTargetProtocol('Pool on', asset.details.dex),
+        };
+
+      return {
+        symbol: asset.symbol,
+        underlyingTokens: [asset.address],
+        poolMeta: humanizeTargetProtocol(
+          'Hold',
+          asset.details?.type === 'protocol' ? asset.details.slug : undefined
+        ),
       };
     }
     case 'erc4626-vault': {
