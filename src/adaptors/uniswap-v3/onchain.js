@@ -61,8 +61,8 @@ const getPricesChunked = async (tokens, chain) => {
   const pricesByAddress = {};
   const pricesBySymbol = {};
 
-  for (let start = 0; start < tokens.length; start += 100) {
-    const prices = await utils.getPrices(tokens.slice(start, start + 100), chain);
+  for (let start = 0; start < tokens.length; start += 50) {
+    const prices = await utils.getPrices(tokens.slice(start, start + 50), chain);
     Object.assign(pricesByAddress, prices.pricesByAddress);
     Object.assign(pricesBySymbol, prices.pricesBySymbol);
   }
@@ -84,12 +84,15 @@ const getPools = async (chain) => {
     toBlock: currentBlock.number,
   });
 
-  const pools = poolCreatedLogs.map((log) => ({
-    token0: log.args.token0.toLowerCase(),
-    token1: log.args.token1.toLowerCase(),
-    address: log.args.pool.toLowerCase(),
-    fee: BigInt(log.args.fee),
-  }));
+  const seenPools = new Set();
+  const pools = poolCreatedLogs
+    .map((log) => ({
+      token0: log.args.token0.toLowerCase(),
+      token1: log.args.token1.toLowerCase(),
+      address: log.args.pool.toLowerCase(),
+      fee: BigInt(log.args.fee),
+    }))
+    .filter((p) => !seenPools.has(p.address) && seenPools.add(p.address));
 
   const tokens = getUniqueAddresses(
     pools.map((p) => p.token0).concat(pools.map((p) => p.token1))
