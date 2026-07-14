@@ -343,7 +343,6 @@ const excludedProtocols = [
   { id: '450', slug: 'scream' },
   { id: '2805', slug: 'stake.link-index' },
   { id: '6792', slug: 'ploutos-money' },
-  { id: '3667', slug: 'amnis-finance' }, // temp only, until fix is in
   { id: '111', slug: 'aave-v2' },
   { id: '1918', slug: 'aura' }, // winding down
   { id: '4182', slug: 'bakerfi' }, // wound down
