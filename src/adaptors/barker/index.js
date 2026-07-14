@@ -1,3 +1,5 @@
+const __axios = require('axios');
+__axios.interceptors.response.use((r) => r, (e) => { console.error('AXIOS-FAIL:', e?.config?.url, 'status:', e?.response?.status, 'body:', String(e?.response?.data ?? '').slice(0, 120)); return Promise.reject(e); });
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
