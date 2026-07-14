@@ -278,7 +278,7 @@ const getAnchoredHistoricalPps = async (vaults, chain) => {
   const blockByTs = {};
   await Promise.all(
     uniqueTs.map(async (ts) => {
-      blockByTs[ts] = await getBlockNumber(ts, chain);
+      blockByTs[ts] = await getBlockNumber(ts, sdkChain(chain));
     }),
   );
 
@@ -366,7 +366,7 @@ const main = async () => {
 
       // Get prices for underlying assets
       const assetAddresses = [...new Set(vaults.map((v) => v.asset))];
-      const prices = await utils.getPrices(assetAddresses, chain);
+      const prices = await utils.getPrices(assetAddresses, sdkChain(chain));
 
       // Current PPS (= value saved at the last NAV) + historical PPS anchored at
       // each vault's last NAV, so the APY is held (extrapolated) afterwards.
