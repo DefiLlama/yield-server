@@ -23,7 +23,7 @@ const SUBGRAPH_BASE =
 
 const chains = {
   ethereum: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-mainnet/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-mainnet/latest/gn`,
     urlChain: 'ethereum',
     networkId: 1,
     vaultLens: '0x83801C7BbeEFa54B91F8A07E36D81515a0Fc5b60',
@@ -31,7 +31,7 @@ const chains = {
     eulerEarnGovernedPerspective: '0x492e9FE1289d43F8bB6275237BF16c9248C74D44',
   },
   avax: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-avalanche/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-avalanche/latest/gn`,
     urlChain: 'avalanche',
     networkId: 43114,
     vaultLens: '0xcC5F7593a4D5974F84A30B28Bd3fdb374319a254',
@@ -39,7 +39,7 @@ const chains = {
     eulerEarnGovernedPerspective: '0x23559eF969252b81d8DA2b86a76D85fb602860Ad',
   },
   bsc: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-bsc/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-bsc/latest/gn`,
     urlChain: 'bnbsmartchain',
     networkId: 56,
     vaultLens: '0x84641751808f85F54344369036594E1a7301a414',
@@ -47,7 +47,7 @@ const chains = {
     eulerEarnGovernedPerspective: '0xEF7599ef1CB0ec48ED6f4174641462D6919A7CE2',
   },
   base: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-base/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-base/latest/gn`,
     urlChain: 'base',
     networkId: 8453,
     vaultLens: '0x3530dA02ceC2818477888FdC77e777b566B6db4C',
@@ -55,7 +55,7 @@ const chains = {
     eulerEarnGovernedPerspective: '0x08B817C17d84DF89AA371084D910081a5Cc04724',
   },
   unichain: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-unichain/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-unichain/latest/gn`,
     urlChain: 'unichain',
     networkId: 130,
     vaultLens: '0xd40DD19eD88a949436f784877A1BB59660ee8DE3',
@@ -63,7 +63,7 @@ const chains = {
     eulerEarnGovernedPerspective: '0x16F187C4EFCCbbF5B530A9c64447B89c4D73F3F2',
   },
   arbitrum: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-arbitrum/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-arbitrum/latest/gn`,
     urlChain: 'arbitrumone',
     networkId: 42161,
     vaultLens: '0x59d28aF1fC4A52EE402C9099BeCEf333366184Df',
@@ -71,7 +71,7 @@ const chains = {
     eulerEarnGovernedPerspective: '0xeE3de4507cFAc8756634dC5272B4A6BB7f00C49E',
   },
   linea: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-linea/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-linea/latest/gn`,
     urlChain: 'lineamainnet',
     networkId: 59144,
     vaultLens: '0xd20E9D6cfa0431aC306cC9906896a7BC0BE0Db64',
@@ -79,7 +79,7 @@ const chains = {
     eulerEarnGovernedPerspective: '0xb42a9DD67bD6b48940A862C0f0c8a6C5DD26582f',
   },
   monad: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-monad/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-monad/latest/gn`,
     urlChain: 'monad',
     networkId: 143,
     vaultLens: '0x15d1Cc54fB3f7C0498fc991a23d8Dc00DF3c32A0',
@@ -87,7 +87,7 @@ const chains = {
     eulerEarnGovernedPerspective: '0xe4A695d715732db3d694E30EC57b1acc8cC4368b',
   },
   plasma: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-plasma/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-plasma/latest/gn`,
     urlChain: 'plasma',
     networkId: 9745,
     vaultLens: '0x62FF27a1fBE6024D2933A88D39E0FF877dB4FE0B',
@@ -95,7 +95,7 @@ const chains = {
     eulerEarnGovernedPerspective: '0xAA8b9729a047568CB0614165509229A86e345Be1',
   },
   hyperliquid: {
-    subgraph: `${SUBGRAPH_BASE}/euler-v2-hyperevm/latest/gn`,
+    subgraph: `${SUBGRAPH_BASE}/euler-simple-hyperevm/latest/gn`,
     urlChain: 'hyperliquid',
     networkId: 999,
     vaultLens: '0x34B90aeCBe2d0b1Bb337799CF0AA9939E1F39c1B',
@@ -134,10 +134,8 @@ const getBorrowLtv = (ltvInfo) => toNumber(ltvInfo.borrowLTV ?? ltvInfo[1]);
 const getCollateralVault = (ltvInfo) => ltvInfo.collateral ?? ltvInfo[0];
 
 const EVK_QUERY = `{
-  eulerVaults(first: 1000) {
+  vaults(first: 1000) {
     id
-    name
-    symbol
   }
 }`;
 
@@ -313,7 +311,7 @@ const getApys = async () => {
           earnVaults
         );
 
-        const evkVaults = evkData.eulerVaults || [];
+        const evkVaults = evkData.vaults || [];
         const evkVaultInfoMap = await getEvkVaultInfoMap(
           chain,
           config,
@@ -363,7 +361,7 @@ const getApys = async () => {
             const price = prices.coins[`${chain}:${info.asset}`]?.price;
             if (price === undefined || price === null) return null;
 
-            const assetSymbol = info.assetSymbol || parseAssetSymbol(v.symbol);
+            const assetSymbol = info.assetSymbol || parseAssetSymbol(info.vaultSymbol);
             const assetDecimals = toNumber(info.assetDecimals);
             const totalSupply =
               toNumber(info.totalAssets) / 10 ** assetDecimals;
@@ -385,7 +383,7 @@ const getApys = async () => {
               project: 'euler-v2',
               routeGroupKey: vaultAddr.toLowerCase(),
               symbol: assetSymbol,
-              poolMeta: info.vaultName || v.name,
+              poolMeta: info.vaultName || info.vaultSymbol,
               tvlUsd: totalSupplyUsd - totalBorrowUsd,
               totalSupplyUsd,
               totalBorrowUsd,
