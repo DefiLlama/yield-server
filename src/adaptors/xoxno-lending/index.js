@@ -108,7 +108,7 @@ async function apy() {
         token: null,
         url:
           spoke.url ||
-          `https://xoxno.com/defi/lending/spoke/${spoke.spokeId}/hub/${spoke.hubId}/${spoke.token}?fromAsset=${spoke.token}`,
+          `https://xoxno.com/defi/lending/spoke/${spoke.spokeId}/hub/${spoke.hubId}/${spoke.token}`,
       };
 
       if (spoke.borrowable) {
