@@ -2,7 +2,8 @@ const express = require('express');
 const helmet = require('helmet');
 const { Redis } = require("ioredis");
 
-const redis = new Redis(process.env.REDIS_URL);
+const redis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 1, enableOfflineQueue: false });
+redis.on('error', () => {});
 
 const yieldRoutes = require('./routes/yield');
 const holderRoutes = require('./routes/holders');
@@ -22,10 +23,11 @@ app.use(helmet());
 app.use(express.json());
 
 async function redisCache (req, res, next) {
-  const lastCacheUpdate = await redis.get("lastUpdate#"+req.url)
+  const lastCacheUpdate = await redis.get("lastUpdate#"+req.url).catch(() => null)
   const {headers, nextCacheDate} = getCacheDates()
-  if(lastCacheUpdate !== null && Number(lastCacheUpdate) > (nextCacheDate.getTime() - 3600e3)){
-    const cacheObject = await redis.get("data#"+req.url)
+  const cacheObject = lastCacheUpdate !== null && Number(lastCacheUpdate) > (nextCacheDate.getTime() - 3600e3)
+    ? await redis.get("data#"+req.url).catch(() => null) : null
+  if(cacheObject !== null){
     res.set(headers)
       .status(200)
       .send(cacheObject);
@@ -36,8 +38,8 @@ async function redisCache (req, res, next) {
     }
     res.end = function(content, encoding) {
       if(res.statusCode === 200){
-        redis.set("data#" + res._apicache.url, content.toString())
-        redis.set("lastUpdate#" + res._apicache.url, Date.now())
+        redis.set("data#" + res._apicache.url, content.toString()).catch(() => {})
+        redis.set("lastUpdate#" + res._apicache.url, Date.now()).catch(() => {})
         res.set(headers)
       }
       return res._apicache.end.apply(this, arguments)
