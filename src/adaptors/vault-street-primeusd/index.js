@@ -73,6 +73,7 @@ const apy = async () => {
       pricePerShare,
       underlyingTokens: [USDC],
       token: primeUSD,
+      url: 'https://app.vaultstreet.com/prime-usd'
     },
   ];
 };
