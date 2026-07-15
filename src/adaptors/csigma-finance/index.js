@@ -93,6 +93,7 @@ const apy = async function () {
   if (data.data.yieldBearingTokens && data.data.yieldBearingTokens.length > 0) {
     for (const ybt of data.data.yieldBearingTokens) {
       const { address, networkId, apr, vaults, assetOracleAddress } = ybt;
+      if (!assetOracleAddress) continue;
       const chain = (chainIdToName[networkId] || 'unknown').toLowerCase();
 
       const [
