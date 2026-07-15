@@ -16,7 +16,8 @@ const CHAINS = {
   monad: 143,
   wc: 480,
   stable: 988,
-  tempo: 4217
+  tempo: 4217,
+  robinhood: 4663
 };
 
 // Maps chain keys to URL slugs used by app.morpho.org
@@ -24,7 +25,8 @@ const CHAINS = {
 const CHAIN_URL_SLUG = {
   hyperliquid: 'hyperevm',
   wc: 'worldchain',
-  optimism: 'opmainnet'
+  optimism: 'opmainnet',
+  robinhood: 'robinhood-chain'
 };
 
 const getChainSlug = (chain) => CHAIN_URL_SLUG[chain] || chain;
