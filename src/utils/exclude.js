@@ -439,7 +439,6 @@ const excludedProtocols = [
   { id: '6292', slug: 'superfund' },
   { id: '1687', slug: 'smartcredit' },
   { id: '2876', slug: 'sft-protocol' },
-  { id: '1979', slug: 'saucerswap-v1' },
   { id: '5487', slug: 'nucleus' },
   { id: '4463', slug: 'blazeswap' },
   { id: '2169', slug: 'babydogeswap' },
