@@ -42,13 +42,19 @@ const getAssetInfo = async () => {
 };
 
 const poolsFunction = async () => {
-  const [tvolNow, assetInfo, assetPrice, assetDecimals] = await Promise.all([
+  const [tvolNow, assetInfo, assetPrice, assetDecimals, pricePerShareInfo] = await Promise.all([
     getTVOL(),
     getAssetInfo(),
     utils.getPrices([AUSD], CHAIN),
     sdk.api.abi.call({
       target: AUSD,
       abi: 'erc20:decimals',
+      chain: CHAIN,
+    }),
+    sdk.api.abi.call({
+      target: VAULT,
+      abi: 'function readValue(address _token, uint256 shares) view returns (uint256)',
+      params: [AUSD, '1000000000000000000'],
       chain: CHAIN,
     }),
   ]);
@@ -66,6 +72,7 @@ const poolsFunction = async () => {
   const apyBase = Number.isFinite(apr) && apr >= 0
     ? utils.aprToApy(apr)
     : 0;
+  const pricePerShare = Number(pricePerShareInfo.output) / 1e18;
 
   return [{
     pool: `${VAULT}-${CHAIN}`.toLowerCase(),
@@ -74,9 +81,11 @@ const poolsFunction = async () => {
     symbol: 'AUSD',
     tvlUsd,
     apyBase,
+    pricePerShare,
     underlyingTokens: [AUSD],
-    poolMeta: 'AUSD margin lending vault',
     url: 'https://app.tristero.com',
+    // Deposits mint ERC6909 shares on the vault, keyed by the AUSD-derived
+    // asset ID. There is no standalone ERC20 receipt-token address to expose.
     token: null,
   }];
 };
