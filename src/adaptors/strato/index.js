@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 
-// STRATO (Mercata) is BlockApps' institutional L1. It is served over a public,
+// STRATO is BlockApps' institutional L1. It is served over a public,
 // unauthenticated JSON-RPC node that the DefiLlama TVL adapter already uses.
 // @defillama/sdk resolves the RPC for chain `strato` from the STRATO_RPC env var.
 const RPC_URL = 'https://noderpc.strato.nexus/rpc';
