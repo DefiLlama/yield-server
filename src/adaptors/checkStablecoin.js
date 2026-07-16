@@ -6,7 +6,8 @@ const checkStablecoin = (el, stablecoins) => {
   // e.g. 'pufeth'.includes('feth') or 'lanternsol'.includes('ern') otherwise flag these
   // volatile assets (restaked ETH, a SOL LST, TRON SUN) as stablecoin: true.
   const notStable = ['pufeth', 'lanternsol', 'sunold'];
-  if (tokens.some((t) => notStable.includes(t))) return false;
+  if (tokens.some((t) => notStable.includes(t.replace(/\s*\(.*?\)\s*/g, ''))))
+    return false;
 
   let stable;
   if (
