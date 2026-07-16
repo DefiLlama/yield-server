@@ -2,6 +2,12 @@ const checkStablecoin = (el, stablecoins) => {
   let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
   const symbolLC = el.symbol.toLowerCase();
 
+  // tokens that merely CONTAIN a stablecoin symbol substring but are NOT stablecoins.
+  // e.g. 'pufeth'.includes('feth') or 'lanternsol'.includes('ern') otherwise flag these
+  // volatile assets (restaked ETH, a SOL LST, TRON SUN) as stablecoin: true.
+  const notStable = ['pufeth', 'lanternsol', 'sunold'];
+  if (tokens.some((t) => notStable.includes(t))) return false;
+
   let stable;
   if (
     el.project === 'curve' &&
