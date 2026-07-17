@@ -66,7 +66,6 @@ const rewardTokenAddresses = (vault, apyReward) => {
 const collectVaultEntries = (vaults, chainKey) => {
   const out = [];
   for (const vault of vaults) {
-    if (vault.isPrivate) continue;
     const details = vault.detailsByChain?.[chainKey];
     if (!details?.address) continue;
     if (BLACKLISTED_VAULTS.has(details.address.toLowerCase())) continue;
