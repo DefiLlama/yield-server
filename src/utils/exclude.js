@@ -384,7 +384,6 @@ const excludedProtocols = [
   { id: '2992', slug: 'gravita-protocol' },
   { id: '6761', slug: 'sendit' },
   { id: '5746', slug: 'beraborrow' },
-  { id: '2309', slug: 'indigo' },
   { id: '4818', slug: 'bitu-protocol' },
   { id: '3068', slug: 'raft' },
   { id: '6681', slug: 'aimstrong' },
