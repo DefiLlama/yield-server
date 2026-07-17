@@ -13,6 +13,9 @@ const hubsByChain = {
     plus: '0x06002e9c4412CB7814a791eA3666D905871E536A',
     prime: '0x943827DCA022D0F354a8a8c332dA1e5Eb9f9F931',
   },
+  avax: {
+    core: '0xd07369fAE4A5BB13c9Ce446B052c7867B1AbDf6e',
+  },
 };
 
 const spokeNamesByChain = {
@@ -27,6 +30,11 @@ const spokeNamesByChain = {
     '0xe1900480ac69f0b296841cd01cc37546d92f35cd': 'Lido',
     '0x7ec68b5695e803e98a21a9a05d744f28b0a7753d': 'Lombard',
     '0x94e7a5dcbe816e498b89ab752661904e2f56c485': 'Main',
+  },
+  avax: {
+    '0x435272ceff93a1e657e8abfdf0a13e95900a3a56': 'Main',
+    '0x6a37776b5e026dbdf043b4f933c323c84dd1b514': 'Forex',
+    '0x3b517594277c67307cf2d7cbe6fe1d4399b68c41': 'AVAX Correlated',
   },
 };
 
@@ -168,6 +176,7 @@ const getAssetAvailableBorrowUsd = ({ reserves, ...asset }) =>
 
 const getApy = async (chain) => {
   const hubs = hubsByChain[chain];
+  const chainLabel = chain === 'avax' ? 'avalanche' : chain;
   const api = new sdk.ChainApi({ chain });
 
   const hubEntries = Object.entries(hubs);
@@ -223,13 +232,18 @@ const getApy = async (chain) => {
   ];
   const priceKeys = uniqueTokens.map((t) => `${chain}:${t}`).join(',');
 
-  const [balances, pricesRes] = await Promise.all([
+  const [balances, tokenSymbols, pricesRes] = await Promise.all([
     api.multiCall({
       abi: 'erc20:balanceOf',
       calls: allCalls.map((c, i) => ({
         target: underlyings[i][0],
         params: [c.hub],
       })),
+    }),
+    api.multiCall({
+      abi: 'erc20:symbol',
+      calls: allCalls.map((c, i) => underlyings[i][0]),
+      permitFailure: true,
     }),
     axios.get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`)),
   ]);
@@ -244,7 +258,7 @@ const getApy = async (chain) => {
       const decimals = Number(decStr);
       const priceKey = `${chain}:${underlying.toLowerCase()}`;
       const price = prices[priceKey]?.price;
-      const symbol = prices[priceKey]?.symbol;
+      const symbol = tokenSymbols[i] || prices[priceKey]?.symbol;
       if (!price || !symbol) return null;
 
       const totalAdded = Number(addedAssets[i]) / 10 ** decimals;
@@ -273,8 +287,8 @@ const getApy = async (chain) => {
         maxSpokeCap: maxSpokeCaps[c.hubIndex],
       });
       const pool = {
-        pool: `${c.hub}-${c.assetId}-${chain}`.toLowerCase(),
-        chain: utils.formatChain(chain),
+        pool: `${c.hub}-${c.assetId}-${chainLabel}`.toLowerCase(),
+        chain: utils.formatChain(chainLabel),
         project: 'aave-v4',
         symbol: symbol,
         underlyingStateKey,
@@ -334,7 +348,7 @@ const getApy = async (chain) => {
       const underlyingStateKey = getAssetKey(entry.hub, entry.assetId);
       const pool = {
         pool:
-          `${entry.spoke}-${entry.hub}-${entry.assetId}-${chain}`.toLowerCase(),
+          `${entry.spoke}-${entry.hub}-${entry.assetId}-${chainLabel}`.toLowerCase(),
         chain: asset.chain,
         project: 'aave-v4',
         symbol: asset.symbol,
