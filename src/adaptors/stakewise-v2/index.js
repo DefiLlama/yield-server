@@ -90,7 +90,8 @@ const getGenesisPool = async (ethPrice) => {
       totalAssets
     }
   }`;
-  const { data } = await axios.post(subgraphUrl, { query });
+  // bound the request — a hang would otherwise block the osETH pool too
+  const { data } = await axios.post(subgraphUrl, { query }, { timeout: 10000 });
   if (data?.errors) {
     console.error(
       'stakewise-v2: subgraph errors —',
@@ -99,8 +100,9 @@ const getGenesisPool = async (ethPrice) => {
     return null;
   }
   const vault = data?.data?.vault;
-  if (!vault) {
-    console.error('stakewise-v2: Genesis vault missing from subgraph response');
+  // null metrics would coerce to 0 and publish a false APY/TVL — skip instead
+  if (vault?.apy == null || vault?.totalAssets == null) {
+    console.error('stakewise-v2: Genesis vault missing or has null metrics');
     return null;
   }
 
