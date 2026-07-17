@@ -46,10 +46,10 @@ const apy = async () => {
   ]);
 
   const apr1d =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18) * 365 * 100;
+    ((exchangeRates[0].output - exchangeRates[1].output) / exchangeRates[1].output) * 365 * 100;
 
   const apr7d =
-    ((exchangeRates[0].output - exchangeRates[2].output) / 1e18) * 52 * 100;
+    ((exchangeRates[0].output - exchangeRates[2].output) / exchangeRates[2].output) * 52 * 100;
 
   const priceKey = `ethereum:${weth}`;
   const price = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
