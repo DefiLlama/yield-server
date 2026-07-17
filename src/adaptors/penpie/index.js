@@ -115,6 +115,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3083',
   timetravel: false,
   apy,
   url: 'https://www.pendle.magpiexyz.io/stake',

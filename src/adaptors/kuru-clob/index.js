@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+const { getPriceApiUrl } = require('../utils');
 
 const API_URL = 'https://api.kuru.io/api/v2/vaults';
 
@@ -33,7 +34,7 @@ const apy = async () => {
       
       const quoteTokenPriceKey = `monad:${vault.quotetoken.address}`;
       const quoteTokenPriceResponse = await axios.get(
-        `https://coins.llama.fi/prices/current/${quoteTokenPriceKey}`
+        getPriceApiUrl(`/prices/current/${quoteTokenPriceKey}`)
       );
       const quoteTokenPrice = quoteTokenPriceResponse.data.coins[quoteTokenPriceKey]?.price;
 
@@ -65,6 +66,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7029',
   timetravel: false,
   apy,
 };

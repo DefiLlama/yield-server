@@ -9,6 +9,7 @@ async function main() {
  
 
 module.exports = {
+  protocolId: '3705',
     timetravel: false,
     apy: main,
     url: 'https://app.aptin.io',

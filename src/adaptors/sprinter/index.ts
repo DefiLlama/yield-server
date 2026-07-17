@@ -16,7 +16,11 @@ const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
 const DataQuery = gql`
     query DataQuery($from: BigInt = "", $to: BigInt = "") {
-        depositProfits(where: {blockTimestamp_gte: $from, blockTimestamp_lte: $to}) {
+        depositProfits(
+            where: {blockTimestamp_gte: $from, blockTimestamp_lte: $to}
+            orderBy: blockTimestamp
+            orderDirection: desc
+        ) {
             assets
             totalAssets
             blockTimestamp
@@ -52,6 +56,14 @@ async function apy() {
 
   const lastDepositProfit = depositProfits[0];
 
+  const totalAssets = (
+    await sdk.api.abi.call({
+      target: HUB_CONTRACT_ADDRESS,
+      abi: 'function totalAssets() external view returns (uint256)',
+      chain: 'base',
+    })
+  ).output;
+
   const timeDiff =
     new Date(parseInt(lastDepositProfit.blockTimestamp) * 1000).getTime() - startTimestamp;
   const daysInPeriod = Math.max(1, Math.floor(timeDiff / DAY_IN_MS));
@@ -66,13 +78,14 @@ async function apy() {
     pool: HUB_CONTRACT_ADDRESS,
     chain: utils.formatChain("base"),
     symbol: "USDC",
-    tvlUsd: Number(formatUnits(lastDepositProfit.totalAssets, USDC_DECIMALS)),
+    tvlUsd: Number(formatUnits(totalAssets, USDC_DECIMALS)),
     apy: rate * 100,
     underlyingTokens: [USDC_BASE],
   }];
 }
 
 module.exports = {
+  protocolId: '6507',
   apy: apy,
   url: 'https://app.sprinter.tech/',
 }

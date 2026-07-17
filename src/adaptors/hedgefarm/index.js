@@ -67,9 +67,7 @@ const poolsFunction = async () => {
   );
 
   const btcbKey = 'avax:0x152b9d0fdc40c096757f570a51e494bd4b943e50';
-  const btcbTokenPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${btcbKey}`)
-  ).data.coins[btcbKey].price;
+  const btcbTokenPrice = (await utils.getPriceApiData(`/prices/current/${btcbKey}`)).coins[btcbKey].price;
 
   const balanceAlpha1 = await tvlAlpha1();
   const balanceAlpha2 = await tvlAlpha2();
@@ -99,6 +97,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2199',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://hedgefarm.finance',

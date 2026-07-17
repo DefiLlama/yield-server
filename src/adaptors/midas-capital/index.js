@@ -183,11 +183,7 @@ const main = async () => {
       } catch (e) {}
     }
 
-    const price = (
-      await axios.get(
-        `https://coins.llama.fi/prices/current/${CG_KEY[chain]}`
-      )
-    ).data.coins[CG_KEY[chain]].price;
+    const price = (await utils.getPriceApiData(`/prices/current/${CG_KEY[chain]}`)).coins[CG_KEY[chain]].price;
 
     for (const market of allMarkets) {
       if (market.mintGuardianPaused && market.borrowGuardianPaused) continue;
@@ -299,6 +295,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1925',
   timetravel: false,
   apy: main,
   url: PROJECT_URL,

@@ -1,7 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { ethers } = require('ethers');
-const fetch = require('node-fetch');
 
 const liquidity_endpoint = sdk.graph.modifyEndpoint('BgVpYLQVGwb2RRPcW66aLBtmv48w9NwGxhypBMRNDi34');
 const pricing_endpoint = sdk.graph.modifyEndpoint('39DkzkpLtF3xJTWgpZwnSKPqqnHbErYhHTVh7RCZ6SMN');
@@ -79,6 +78,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3597',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.zeroliquid.xyz/earn',

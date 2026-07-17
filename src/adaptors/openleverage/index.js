@@ -43,11 +43,7 @@ const oleAddr = {
 };
 
 async function getTokenPriceInUsdt(chain, tokenAddr) {
-  const tokenPrice = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${coins_llama_name[chain]}:${tokenAddr}`
-    )
-  ).data;
+  const tokenPrice = (await utils.getPriceApiData(`/prices/current/${coins_llama_name[chain]}:${tokenAddr}`));
   return tokenPrice.coins[`${coins_llama_name[chain]}:${tokenAddr}`].price;
 }
 
@@ -241,6 +237,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1208',
   timetravel: false,
   apy: main,
   url: 'https://openleverage.finance/',

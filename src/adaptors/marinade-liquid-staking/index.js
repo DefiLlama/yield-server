@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getPriceApiUrl } = require('../utils');
 
 const MSOL_ADDRESS = 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So';
 const SOL = 'So11111111111111111111111111111111111111112';
@@ -8,7 +8,7 @@ const priceKey = `solana:${MSOL_ADDRESS}`;
 const apy = async () => {
   const [apyResponse, priceResponse, totalSupply] = await Promise.all([
     axios.get('https://api.marinade.finance/msol/apy/7d'),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
     getTotalSupply(MSOL_ADDRESS),
   ]);
 
@@ -31,4 +31,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://marinade.finance/liquid-staking' };
+module.exports = { protocolId: '484', apy, url: 'https://marinade.finance/liquid-staking' };

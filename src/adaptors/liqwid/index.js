@@ -73,6 +73,7 @@ const apy = async () => {
         market.borrowAPY * 100 > 100
           ? market.borrowAPY
           : market.borrowAPY * 100,
+      ...(underlyingToken && { borrowToken: underlyingToken }),
       totalSupplyUsd: market.supply * market.asset.price,
       totalBorrowUsd: market.borrow * market.asset.price,
     };
@@ -82,6 +83,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2491',
   timetravel: false,
   apy: apy,
   url: 'https://v2.liqwid.finance/',

@@ -17,8 +17,9 @@ async function getRawApy(loanAddresses, chain) {
         abi: abis.loan,
         calls: loanAddresses.map(loanAddress => ({ target: loanAddress })),
         chain: chain,
+        permitFailure: true,
     });
-    return loans.output.map(loan => Number(loan.output[8]));
+    return loans.output.map(loan => loan.output ? Number(loan.output[8]) : null);
 }
 
 async function getPerformanceFee(feeManagers, loanAddresses, chain) {
@@ -26,14 +27,15 @@ async function getPerformanceFee(feeManagers, loanAddresses, chain) {
         abi: abis.performanceFee,
         calls: loanAddresses.map((_, i) => ({ target: feeManagers[i], params: [loanAddresses[i]] })),
         chain: chain,
+        permitFailure: true,
     });
-    return performanceFees.output.map(performanceFee => Number(performanceFee.output));
+    return performanceFees.output.map(performanceFee => performanceFee.output ? Number(performanceFee.output) : null);
 }
 
 async function getTVLAndBorrow(vaults, underlyings, chain) {
     const [supplies, decimals] = await Promise.all([
-        sdk.api.abi.multiCall({ abi: 'erc20:totalSupply', calls: vaults.map(vault => ({ target: vault })), chain: chain }),
-        sdk.api.abi.multiCall({ abi: 'erc20:decimals', calls: underlyings.map(underlying => ({ target: underlying })), chain: chain }),
+        sdk.api.abi.multiCall({ abi: 'erc20:totalSupply', calls: vaults.map(vault => ({ target: vault })), chain: chain, permitFailure: true }),
+        sdk.api.abi.multiCall({ abi: 'erc20:decimals', calls: underlyings.map(underlying => ({ target: underlying })), chain: chain, permitFailure: true }),
     ]);
 
     const [totalAssets, liquidity] = await Promise.all([
@@ -41,8 +43,9 @@ async function getTVLAndBorrow(vaults, underlyings, chain) {
             abi: abis.convertToAssets,
             calls: vaults.map((vault, i) => ({ target: vault, params: [supplies.output[i].output || 0] })),
             chain: chain,
+            permitFailure: true,
         }),
-        sdk.api.abi.multiCall({ abi: 'erc20:balanceOf', calls: vaults.map((vault, i) => ({ target: underlyings[i], params: [vault] })), chain: chain })
+        sdk.api.abi.multiCall({ abi: 'erc20:balanceOf', calls: vaults.map((vault, i) => ({ target: underlyings[i], params: [vault] })), chain: chain, permitFailure: true })
     ])
 
     const prices = await utils.getPrices(underlyings, chain)
@@ -76,7 +79,8 @@ const apy = async () => {
                 asset: v.depositTokenAddress,
                 loan: v.loanAddress,
                 symbols: v.depositSymbol,
-                partner: v.partner
+                partner: v.partner,
+                apy: v.apy,
             }
         });
 
@@ -87,6 +91,10 @@ const apy = async () => {
         ]);
 
         for (let i = 0; i < data.length; i++) {
+            const apyBase = rawApy[i] == null || performanceFees[i] == null
+                ? Number(data[i].apy) * 100
+                : (Number(rawApy[i]) * (1 - Number(performanceFees[i]) / 1e6)) / 1e4;
+
             pools.push({
                 pool: `${data[i].vault}-${chain}`.toLowerCase(),
                 chain: utils.formatChain(chain),
@@ -94,7 +102,7 @@ const apy = async () => {
                 symbol: data[i].symbols,
                 underlyingTokens: [data[i].asset],
                 tvlUsd: tvlAndBorrow[i].tvl,
-                apyBase: (Number(rawApy[i]) * (1 - Number(performanceFees[i]) / 1e6)) / 1e4,
+                apyBase,
                 url: `https://www.travessiacredit.com/vaults/${chainId}/${data[i].partner}/${data[i].vault}`,
             });
         }
@@ -104,6 +112,7 @@ const apy = async () => {
 }
 
 module.exports = {
+  protocolId: '7674',
     timetravel: false,
     apy,
     url: "https://www.travessiacredit.com",

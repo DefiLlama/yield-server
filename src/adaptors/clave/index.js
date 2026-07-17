@@ -29,10 +29,10 @@ const buildTokenParam = (chain, address) => {
 };
 
 const buildPriceUrl = (chain, address) => {
-  return `https://coins.llama.fi/prices/current/${buildTokenParam(
+  return utils.getPriceApiUrl(`/prices/current/${buildTokenParam(
     chain,
     address
-  )}`;
+  )}`);
 };
 
 const getTokenData = async (address) => {
@@ -94,6 +94,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4999',
   timetravel: false,
   apy: getApy,
   url: 'https://getclave.io',

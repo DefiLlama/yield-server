@@ -36,13 +36,9 @@ const getPrices = async (addresses) => {
   const yieldAddr = '0x3f7a11bb98959966260347233bfe6559a1067dbf';
   const aaveOracleAddr = '0x0B9252d63cb44eFa7f18911Ee2259cB40d0c2965';
 
-  const _prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const _prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const oraclePrice = (
     await sdk.api.abi.call({
@@ -256,6 +252,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3889',
   timetravel: false,
   apy,
 };

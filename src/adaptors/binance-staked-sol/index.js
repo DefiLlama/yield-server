@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getPriceApiUrl } = require('../utils');
 
 const BNSOL_ADDRESS = 'BNso1VUJnh4zcfpZa6986Ea66P6TCp59hvtNJ8b1X85';
 const SOL = 'So11111111111111111111111111111111111111112';
@@ -9,7 +9,7 @@ const apy = async () => {
   const totalSupply = await getTotalSupply(BNSOL_ADDRESS);
 
   const priceResponse = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
+    getPriceApiUrl(`/prices/current/${priceKey}`)
   );
   const currentPrice = priceResponse.data.coins[priceKey].price;
 
@@ -33,4 +33,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://www.binance.com/en/solana-staking' };
+module.exports = { protocolId: '5135', apy, url: 'https://www.binance.com/en/solana-staking' };

@@ -416,6 +416,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '3499',
   timetravel: false,
   apy,
   url: 'https://app.ekubo.org/charts',

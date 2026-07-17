@@ -20,13 +20,19 @@ const buildDataSource = async (poolArr, depositsStakingInfo, loanType) => {
       borrowsUsd,
       depositInterestYield,
       variableBorrowInterestYield,
+      availableBorrowUsd,
+      deprecated,
     } = poolInfo;
+    if (deprecated) continue;
+    const poolLoanInfo = poolsLoanInfo[pool.appId];
+    if (!poolLoanInfo) continue;
     const totalSupplyUsd = Number(depositsUsd.toFixed(2));
     const totalBorrowUsd = Number(borrowsUsd.toFixed(2));
     const tvlUsd = Number((depositsUsd - borrowsUsd).toFixed(2));
     const apyBase = interestRateToPercentage(depositInterestYield);
     const apyBaseBorrow = interestRateToPercentage(variableBorrowInterestYield);
-    const ltv = ratioToPercentage(poolsLoanInfo[pool.appId].collateralFactor);
+    const ltv = ratioToPercentage(poolLoanInfo.collateralFactor);
+    const borrowable = poolLoanInfo.borrowFactor > 0n;
 
     let dataSource = {
       pool: `${pool.appId}-algorand`,
@@ -38,7 +44,10 @@ const buildDataSource = async (poolArr, depositsStakingInfo, loanType) => {
       totalBorrowUsd,
       apyBase,
       apyBaseBorrow,
+      borrowToken: String(pool.assetId == 0 ? 1 : pool.assetId),
       ltv,
+      borrowable,
+      availableBorrowUsd,
       underlyingTokens: [String(pool.assetId == 0 ? 1 : pool.assetId)],
     };
 
@@ -70,6 +79,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1642',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.folks.finance/',

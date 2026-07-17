@@ -73,9 +73,7 @@ const TOKEN_META = {
 
 const getUsdPrice = async (chain, token) => {
   const priceKey = `${chain}:${token.address}`;
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`,
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
   const price = data.coins[priceKey]?.price;
   if (price === undefined) {
     throw new Error(`Price not found for ${priceKey}`);
@@ -241,5 +239,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6997',
   apy,
 };

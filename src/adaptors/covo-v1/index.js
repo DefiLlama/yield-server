@@ -194,9 +194,7 @@ const getPools = async () => {
   const priceKeys = ['gmx', 'wmatic', 'avalanche-2']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: priceData } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: priceData } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   let queryC = query;
   let covographprice = await request(baseUrl, queryC);
@@ -297,6 +295,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2525',
   timetravel: false,
   apy: getPools,
   url: 'https://app.covo.finance/#/earn',

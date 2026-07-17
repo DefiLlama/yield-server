@@ -30,7 +30,7 @@ const graphQuery = () => gql`
 
 const graphUrl = sdk.graph.modifyEndpoint('9MKTb9g59rBG1CNUTrriA6tDdSR8neruGJCP6FjD7SSo');
 
-const defiUrl = 'https://coins.llama.fi/prices/current/';
+const defiUrl = utils.getPriceApiUrl('/prices/current/');
 
 const poolsFunction = async () => {
   const { bonds } = await request(graphUrl, graphQuery(), {});
@@ -75,6 +75,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2261',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.arbor.finance/offerings',

@@ -17,6 +17,12 @@ const { getCachedPrices } = require('./prices');
 
 const REWARD_APP_ID = 1093729103;
 
+const parseBitsAsBooleans = (base64Value) => {
+  const value = Buffer.from(base64Value, 'base64').toString('hex');
+  const bits = ('00000000' + Number('0x' + value).toString(2)).slice(-8);
+  return [...bits].map((bit) => Boolean(parseInt(bit)));
+};
+
 async function retrievePoolInfo({ poolAppId, poolAssetId }) {
   const state = await getAppState(poolAppId);
 
@@ -24,21 +30,32 @@ async function retrievePoolInfo({ poolAppId, poolAssetId }) {
     return {
       depositsUsd: 0,
       borrowsUsd: 0,
+      availableBorrowUsd: 0,
     };
 
   const prices = await getCachedPrices();
   const price = prices[poolAssetId];
-  if (price === undefined) return { depositsUsd: 0, borrowsUsd: 0 };
+  if (price === undefined)
+    return { depositsUsd: 0, borrowsUsd: 0, availableBorrowUsd: 0 };
 
   const varBor = parseUint64s(String(getParsedValueFromState(state, 'v')));
   const stblBor = parseUint64s(String(getParsedValueFromState(state, 's')));
   const interest = parseUint64s(String(getParsedValueFromState(state, 'i')));
+  const caps = parseUint64s(String(getParsedValueFromState(state, 'ca')));
+  const config = parseBitsAsBooleans(
+    String(getParsedValueFromState(state, 'co'))
+  );
 
   const variableBorrowAmountUsd = Number(varBor[3]) * transformPrice(price);
   const stableBorrowAmountUsd = Number(stblBor[8]) * transformPrice(price);
   const borrowsAmountUsd = variableBorrowAmountUsd + stableBorrowAmountUsd;
 
   const depositsAmountUsd = Number(interest[3]) * transformPrice(price);
+  const availableLiquidityUsd = Math.max(
+    depositsAmountUsd - borrowsAmountUsd,
+    0
+  );
+  const borrowCapUsd = Number(caps[0]);
 
   const depositInterestYield = calculateInterestYield(interest[4]);
   const depositInterestRate = interest[4];
@@ -61,6 +78,14 @@ async function retrievePoolInfo({ poolAppId, poolAssetId }) {
     depositInterestRate,
     depositInterestIndex,
     variableBorrowInterestYield,
+    availableBorrowUsd:
+      borrowCapUsd > 0
+        ? Math.max(
+            Math.min(availableLiquidityUsd, borrowCapUsd - borrowsAmountUsd),
+            0
+          )
+        : availableLiquidityUsd,
+    deprecated: config[0],
   };
 }
 

@@ -19,9 +19,7 @@ const getApyAbi = {
 const getApy = async () => {
   // <- Filecoin ->
   const filPriceKey = `coingecko:filecoin`;
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${filPriceKey}`)
-  ).data.coins[filPriceKey]?.price;
+  const price = (await utils.getPriceApiData(`/prices/current/${filPriceKey}`)).coins[filPriceKey]?.price;
 
   const tokenAddress = '0x84B038DB0fCde4fae528108603C7376695dc217F'; // Replace with your token address
   const getFilAPY = await sdk.api2.abi.call({
@@ -84,5 +82,6 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3202',
   apy: getApy,
 };

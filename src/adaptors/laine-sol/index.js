@@ -3,6 +3,7 @@ const {
   getStakePoolInfo,
   calcSolanaLstApy,
   solanaLstPricePerShare,
+  getPriceApiUrl,
 } = require('../utils');
 
 const LAINESOL_MINT = 'LAinEtNLgpmCP9Rvsf5Hn8W6EhNiKLZQti1xfWMLy6X';
@@ -14,7 +15,7 @@ const solKey = `solana:${SOL}`;
 const apy = async () => {
   const [stakePool, priceRes] = await Promise.all([
     getStakePoolInfo(STAKE_POOL),
-    axios.get(`https://coins.llama.fi/prices/current/${solKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${solKey}`)),
   ]);
 
   const solPrice = priceRes.data.coins[solKey]?.price;
@@ -45,6 +46,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6460',
   timetravel: false,
   apy,
   url: 'https://stake.laine.one/',

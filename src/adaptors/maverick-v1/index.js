@@ -114,6 +114,7 @@ const main = async (unixTimestamp) => {
 };
 
 module.exports = {
+  protocolId: '2644',
   timetravel: true,
   apy: main,
 };

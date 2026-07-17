@@ -5,6 +5,7 @@ const abiIBToken = require('./abiIBToken.json');
 const abiDebtToken = require('./abiDebtToken.json');
 const abiMoneyMarketReader = require('./abiMoneyMarketReader.json');
 const abiMiniFL = require('./abiMiniFL.json');
+const { getPriceApiData } = require('../utils');
 
 const moneyMarketReader = '0x4913DEC75cC0e061Ba78ebbDb2584905760be4C6';
 const miniFL = '0x4579587AE043131999cE3d9C66199726972E3Fb7';
@@ -157,9 +158,7 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   const priceKeys = markets.map((m) => `bsc:${m.token}`).join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const pools = markets.map((m, i) => {
     const underlyingPrice = prices[`bsc:${m.token}`].price;
@@ -208,5 +207,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3027',
   apy,
 };

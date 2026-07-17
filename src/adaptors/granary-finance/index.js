@@ -75,6 +75,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1514',
   timetravel: false,
   apy: main,
   url: 'https://granary.finance/markets/',

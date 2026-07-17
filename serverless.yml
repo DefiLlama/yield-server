@@ -34,6 +34,9 @@ provider:
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
     ZEROX_API: ${file(./env.js):ZEROX_API}
     GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
+    R2_ENDPOINT: ${file(./env.js):R2_ENDPOINT}
+    R2_ACCESS_KEY_ID: ${file(./env.js):R2_ACCESS_KEY_ID}
+    R2_SECRET_ACCESS_KEY: ${file(./env.js):R2_SECRET_ACCESS_KEY}
 
 functions:
   # ---------- TRIGGER HANDLERS
@@ -61,9 +64,6 @@ functions:
               - Arn
           batchSize: 4
     environment:
-      ALCHEMY_CONNECTION_ARBITRUM: ${file(./env.js):ALCHEMY_CONNECTION_ARBITRUM}
-      ALCHEMY_CONNECTION_ETHEREUM: ${file(./env.js):ALCHEMY_CONNECTION_ETHEREUM}
-      ALCHEMY_CONNECTION_POLYGON: ${file(./env.js):ALCHEMY_CONNECTION_POLYGON}
       ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
       XDAI_RPC: ${file(./env.js):XDAI_RPC}
       CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
@@ -79,6 +79,7 @@ functions:
       VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
       TRADERJOE: ${file(./env.js):TRADERJOE}
       OSMOSIS_API_KEY: ${file(./env.js):OSMOSIS_API_KEY}
+      SAUCERSWAP_API_KEY: ${file(./env.js):SAUCERSWAP_API_KEY}
       DUNE_API_KEY: ${file(./env.js):DUNE_API_KEY}
       HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
       PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
@@ -139,15 +140,6 @@ functions:
       # 30min prior midnight
       - schedule: cron(30 23 * * ? *)
 
-  # --- save poolsEnriched as CSV
-  triggerCsv:
-    handler: src/handlers/triggerCsv.handler
-    description: Lambda which saves poolsEnriched as csv to s3 bucket
-    timeout: 300
-    events:
-      # every hour at 25 past
-      - schedule: cron(25 * * * ? *)
-
   # --- trigger monitor
   triggerMonitor:
     handler: src/handlers/triggerMonitor.handler
@@ -155,7 +147,9 @@ functions:
     timeout: 300
     events:
       # every hour at 30 past
-      - schedule: cron(30 * * * ? *)
+      - schedule:
+          rate: cron(30 * * * ? *)
+          enabled: false
     environment:
       STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
 

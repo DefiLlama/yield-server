@@ -17,6 +17,83 @@ const chains = {
   polygon: 137,
 };
 
+const YFI = '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e';
+const STYFI = '0x42b25284E8ae427D79da78b65DFFC232aAECc016';
+const STYFIX = '0x9C42461AA8422926e3AEF7B1C6e3743597149d79';
+const YVUSDC = '0xBe53A109B494E5c9f97b9Cd39Fe969BE68BF6204';
+const STYFI_REWARD_DISTRIBUTOR = '0x95547eDe56cF74B73dd78a37f547127dffDA6113';
+const STYFI_EPOCHS_PER_YEAR = (365 * 86400) / (14 * 86400);
+
+// stYFIx wraps stYFI 1:1, so its stake is subtracted from the stYFI pool tvl.
+// Both earn the same rate: the distributor pays all stYFI holders pro-rata
+// in yvUSDC per 14-day epoch and stYFIx passes its share through.
+const getStyfiPools = async () => {
+  try {
+    const [totalStakedRes, styfixStakedRes, epochRewardsRes, prices] =
+      await Promise.all([
+        sdk.api.abi.call({
+          target: STYFI,
+          abi: 'erc20:totalSupply',
+          chain: 'ethereum',
+        }),
+        sdk.api.abi.call({
+          target: STYFI,
+          abi: 'erc20:balanceOf',
+          params: [STYFIX],
+          chain: 'ethereum',
+        }),
+        sdk.api.abi.call({
+          target: STYFI_REWARD_DISTRIBUTOR,
+          abi: 'function epoch_rewards() view returns (uint256, uint256)',
+          chain: 'ethereum',
+        }),
+        utils.getPrices([YFI, YVUSDC], 'ethereum'),
+      ]);
+
+    const yfiPrice = prices.pricesByAddress[YFI.toLowerCase()];
+    const yvUsdcPrice = prices.pricesByAddress[YVUSDC.toLowerCase()];
+
+    const totalStaked = totalStakedRes.output / 1e18;
+    const styfixStaked = styfixStakedRes.output / 1e18;
+    const styfiStaked = totalStaked - styfixStaked;
+    const epochRewards = epochRewardsRes.output[1] / 1e6;
+
+    const apyReward =
+      ((epochRewards * STYFI_EPOCHS_PER_YEAR * yvUsdcPrice) /
+        (totalStaked * yfiPrice)) *
+      100;
+
+    const basePool = {
+      chain: 'Ethereum',
+      project: 'yearn-finance',
+      rewardTokens: [YVUSDC],
+      underlyingTokens: [YFI],
+      url: 'https://styfi.yearn.fi/',
+    };
+
+    return [
+      {
+        ...basePool,
+        pool: STYFI,
+        symbol: 'stYFI',
+        tvlUsd: styfiStaked * yfiPrice,
+        apyReward,
+      },
+      {
+        ...basePool,
+        pool: STYFIX,
+        symbol: 'stYFIx',
+        poolMeta: 'delegated',
+        tvlUsd: styfixStaked * yfiPrice,
+        apyReward,
+      },
+    ];
+  } catch (e) {
+    console.error('failed to fetch stYFI pools', e.message);
+    return [];
+  }
+};
+
 // For Velodrome/Aerodrome LP vaults where the API doesn't provide underlying tokens,
 // fetch token0/token1 from the LP contract on-chain
 const getLpUnderlying = async (lpAddress, chain) => {
@@ -32,6 +109,7 @@ const getLpUnderlying = async (lpAddress, chain) => {
 };
 
 const getApy = async () => {
+  const styfiPools = getStyfiPools();
   const data = await Promise.all(
     Object.entries(chains).map(async (chain) => {
       const data = await utils.getData(
@@ -81,6 +159,7 @@ const getApy = async () => {
 
   const pools = data
     .flat()
+    .concat(await styfiPools)
     .filter((p) => utils.keepFinite(p))
     // old usdc vault
     .filter((p) => p.pool !== '0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9');
@@ -89,6 +168,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '113',
   timetravel: false,
   apy: getApy,
 };

@@ -87,10 +87,8 @@ const topLvl = async (chainString, underlying) => {
         ethValue) /
         kETHTvl
 
-    const ethUSDPrice = (
-        await axios.get(`https://coins.llama.fi/prices/current/ethereum:0x0000000000000000000000000000000000000000`)
-    ).data;
-    
+    const ethUSDPrice = (await utils.getPriceApiData(`/prices/current/ethereum:0x0000000000000000000000000000000000000000`));
+
     ethUsd = ethUSDPrice.coins['ethereum:0x0000000000000000000000000000000000000000'].price;
 
     return [{
@@ -114,6 +112,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3739',
   timetravel: false,
   apy: main,
   url: 'https://dapp.getketh.com/home/',

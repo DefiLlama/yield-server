@@ -2,7 +2,7 @@ const utils = require('../utils');
 const BigNumber = require("bignumber.js");
 //https://coins.llama.fi/prices/current/aptos:0x1::aptos_coin::AptosCoin
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
+const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
 
 const APT_ADDR = "0x1::aptos_coin::AptosCoin";
 const APT_PRICE_ID = 'coingecko:aptos';
@@ -309,6 +309,7 @@ fetchRewards = async (
 
 
 module.exports = {
+  protocolId: '4194',
     timetravel: false,
     apy: main,
     url: 'https://app.cellana.finance',

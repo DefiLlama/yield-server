@@ -17,6 +17,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1895',
   timetravel: false,
   apy: main,
   url: 'https://sideshift.ai/staking',

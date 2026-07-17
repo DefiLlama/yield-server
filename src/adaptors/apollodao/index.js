@@ -65,6 +65,7 @@ const aprToApy = (apr) => {
 };
 
 module.exports = {
+  protocolId: '545',
   timetravel: false,
   apy: getApy,
 };

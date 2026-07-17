@@ -59,6 +59,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2551',
   apy,
   timetravel: false,
   url: 'https://app.ashswap.io/pool/',

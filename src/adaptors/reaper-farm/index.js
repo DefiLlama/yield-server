@@ -62,6 +62,7 @@ const main = async () => {
 
 
 module.exports = {
+  protocolId: '394',
   timetravel: false,
   apy: main,
   url: 'https://reaper.farm/',

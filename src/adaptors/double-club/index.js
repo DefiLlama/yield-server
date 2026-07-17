@@ -28,6 +28,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1704',
   timetravel: true,
   apy: main,
   url: 'https://double.club/',

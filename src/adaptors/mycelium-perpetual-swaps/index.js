@@ -151,9 +151,7 @@ const getPools = async () => {
   const priceKeys = ['mycelium', 'ethereum']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: priceData } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: priceData } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const arbitrumFeeMlp = await getAdjustedAmount(
     arbitrumFeeMlpTracker,
@@ -186,6 +184,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '1989',
   timetravel: false,
   apy: getPools,
   url: 'https://swaps.mycelium.xyz/',

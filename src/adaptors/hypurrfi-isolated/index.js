@@ -134,9 +134,7 @@ const apy = async () => {
 
   // 4. Prices
   const priceKeys = uniqueAssets.map((t) => `${chain}:${t}`).join(",");
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   // 5. Build pools
   const pools = pairs
@@ -213,6 +211,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6053',
   timetravel: false,
   apy,
   url: "https://hypurrfi.com/lend",

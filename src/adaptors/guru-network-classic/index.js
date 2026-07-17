@@ -18,7 +18,7 @@ const main = async (timestamp = null) => {
     .map((w) => `${w.underlyingChain}:${w.underlyingToken}`)
     .join(',');
   const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKeys}`,
+    utils.getPriceApiUrl(`/prices/current/${priceKeys}`),
     { timeout: 10_000 }
   );
   const prices = data?.coins ?? {};
@@ -47,6 +47,7 @@ const main = async (timestamp = null) => {
  };
 
 module.exports = {
+  protocolId: '1299',
   timetravel: true,
   apy: main,
   // url: 'https://example.com/pools', // Link to page with pools (Only required if you do not provide url's for each pool),

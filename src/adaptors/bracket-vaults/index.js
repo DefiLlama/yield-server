@@ -120,7 +120,7 @@ const getVaultAPY = async (vaultAddress) => {
 
 const getTokenPrice = async (priceKey, amount, decimals) => {
   try {
-    const response = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`);
+    const response = await axios.get(utils.getPriceApiUrl(`/prices/current/${priceKey}`));
     if (!response.data?.coins?.[priceKey]?.price) {
       console.warn(`No price found for ${priceKey}`);
       return 0;
@@ -178,6 +178,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '6504',
   timetravel: false,
   apy: main,
   url: 'https://bracket.fi/'

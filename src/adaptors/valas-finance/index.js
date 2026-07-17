@@ -125,9 +125,7 @@ const apy = async () => {
   const pricesArray = [rewardToken, ...reservesList].map(
     (t) => `${chain}:${t}`
   );
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${pricesArray}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${pricesArray}`)).coins;
 
   const secondsPerYear = 60 * 60 * 24 * 365;
   const rewardPerYear =
@@ -190,6 +188,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1584',
   timetravel: false,
   apy,
 };

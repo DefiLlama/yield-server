@@ -4,7 +4,7 @@ const utils = require('../utils');
 
 const AMNIS_RESOURCE_ACCOUNT ='0x111ae3e5bc816a5e63c2da97d0aa3886519e0cd5e4b046659fa35796bd11542a';
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
+const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
 const AMNIS_API_URL = 'https://api.amnis.finance/api/v1/stake/info';
 const DECIMALS = 1e8;
 const axios = require('axios');
@@ -50,5 +50,6 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '3667',
   apy: main,
 };

@@ -17,6 +17,8 @@ test.sql
 yarn.lock
 .test-adapter-output/
 .claude/
+local/
+backfill.env*
 
 src/adaptors/maverick-protocol/
 src/adaptors/metavault-v3/

@@ -20,6 +20,7 @@ const collectPools = async () => {
 };
 
 module.exports = {
+  protocolId: '1809',
   timetravel: false,
   apy: collectPools,
   url: 'https://app.penrose.money/dashboard/earn/stake',

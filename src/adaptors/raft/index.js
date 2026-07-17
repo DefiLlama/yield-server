@@ -51,6 +51,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '3068',
   apy,
   url: 'https://app.raft.fi/savings',
 };

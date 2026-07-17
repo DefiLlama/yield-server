@@ -1,10 +1,11 @@
 const sdk = require('@defillama/sdk');
 
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 async function getTokenPrice(chain, token) {
   const data = await axios.get(
-    `https://coins.llama.fi/prices/current/${chain}:${token}`
+    getPriceApiUrl(`/prices/current/${chain}:${token}`)
   );
   return data.data.coins[`${chain}:${token}`]?.price;
 }
@@ -70,6 +71,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3946',
   timetravel: false,
   apy,
 };

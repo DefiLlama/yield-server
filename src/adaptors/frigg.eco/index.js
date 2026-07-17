@@ -20,6 +20,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2181',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://agatobwe.eco',

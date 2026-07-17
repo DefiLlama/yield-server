@@ -33,13 +33,9 @@ async function getPrices(chain, addresses) {
     const priceKeys = [...new Set(addresses)].map(
             (address) => `${chain}:${address}`
     );
-    return (
-        await axios.get(
-            `https://coins.llama.fi/prices/current/${priceKeys
+    return (await utils.getPriceApiData(`/prices/current/${priceKeys
                 .join(',')
-                .toLowerCase()}`
-        )
-    ).data.coins;
+                .toLowerCase()}`)).coins;
 }
 
 const getRebaserTopic = async () => {
@@ -183,6 +179,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '5719',
     timetravel: false,
     apy: poolsFunction, // Main function, returns pools
     url: 'https://wink.finance/', // Link to page with pools (Only required if you do not provide url's for each pool)

@@ -157,6 +157,7 @@ const getData = async ({ chainId, address }) => {
 };
 
 module.exports = {
+  protocolId: '2839',
   apy: getAPY,
   url: STABLECOIN_URL,
 };

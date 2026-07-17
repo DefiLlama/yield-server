@@ -5,7 +5,7 @@ const {
   FixedMath,
   TokenMetadata,
 } = require('@blend-capital/blend-sdk');
-const { getPrices, keepFinite, formatChain, getData } = require('../utils');
+const { getPrices, keepFinite, formatChain, getData, getPriceApiData } = require('../utils');
 
 const BACKSTOP_ID = 'CAQQR5SWBXKIGZKPBZDH3KM5GQ5GUTPKB7JAFCINLZBC5WXPJKRG3IM7';
 const BLND_ID = 'CD25MNVTZDL4Y3XBCPCJXGXATV5WUHHOWMYFF4YBEGU5FCPGMYTVG5JY';
@@ -53,6 +53,14 @@ const getApy = async (poolId, backstop, blndPrice) => {
 
       let totalSupply = reserve.totalSupplyFloat() * price;
       let totalBorrow = reserve.totalLiabilitiesFloat() * price;
+      const maxUtil =
+        reserve.config.max_util !== undefined
+          ? FixedMath.toFloat(BigInt(reserve.config.max_util), 7)
+          : 1;
+      const availableBorrowUsd = Math.max(
+        Math.min(totalSupply - totalBorrow, totalSupply * maxUtil - totalBorrow),
+        0
+      );
       const url = `https://mainnet.blend.capital/dashboard/?poolId=${poolId}`;
 
       pools.push({
@@ -68,10 +76,15 @@ const getApy = async (poolId, backstop, blndPrice) => {
         rewardTokens: borrowEmissionsAPR || supplyEmissionsAPR ? [BLND_ID] : [],
         totalSupplyUsd: totalSupply,
         totalBorrowUsd: totalBorrow,
+        availableBorrowUsd,
+        borrowable:
+          reserve.config.enabled &&
+          reserve.config.l_factor > 0,
         // Estimated daily compounding
         apyBaseBorrow: reserve.estBorrowApy * 100,
+        borrowToken: reserve.assetId,
         apyRewardBorrow: borrowEmissionsAPR * 100,
-        ltv: totalBorrow / totalSupply,
+        ltv: FixedMath.toFloat(BigInt(reserve.config.c_factor), 7),
         poolMeta: `${pool.metadata.name} Pool`,
         url,
       });
@@ -83,9 +96,7 @@ const getApy = async (poolId, backstop, blndPrice) => {
 const apy = async () => {
   let backstop = await Backstop.load(NETWORK, BACKSTOP_ID);
   let pools = [];
-  const data = await getData(
-    'https://coins.llama.fi/prices/current/coingecko:blend'
-  );
+  const data = await getPriceApiData('/prices/current/coingecko:blend');
   for (const poolId of BLEND_POOLS) {
     let poolApys = await getApy(
       poolId,
@@ -98,5 +109,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6122',
   apy,
 };

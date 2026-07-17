@@ -3,7 +3,7 @@ const utils = require('../utils');
 const axios = require('axios');
 
 const HYDRATION_GRAPHQL_URL =
-  'https://orca-main-aggr-indx.indexer.hydration.cloud/graphql';
+  'https://unified-main-aggr-indx.indexer.hydration.cloud/graphql';
 
 // CoinGecko ID mapping for underlying token resolution and pricing
 const cgMapping = {
@@ -394,7 +394,7 @@ async function getTokenPrices() {
   const cgIds = [...new Set(Object.values(cgMapping))];
   const coins = cgIds.map((id) => `coingecko:${id}`).join(',');
   const res = await axios.get(
-    `https://coins.llama.fi/prices/current/${coins}`
+    utils.getPriceApiUrl(`/prices/current/${coins}`)
   );
 
   const prices = {};
@@ -479,6 +479,7 @@ function cleanSymbol(symbol) {
 }
 
 module.exports = {
+  protocolId: '3439',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.hydration.net/liquidity/all-pools',

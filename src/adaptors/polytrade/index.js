@@ -67,6 +67,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2372',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://lender.polytrade.app',

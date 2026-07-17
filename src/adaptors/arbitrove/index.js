@@ -5,9 +5,7 @@ const abi = require('./abi/abi.json');
 const chains = { arbitrum: 'arbitrum' };
 
 const getApy = async () => {
-  const { coins: priceData } = await utils.getData(
-    `https://coins.llama.fi/prices/current/coingecko:nitro-cartel,coingecko:arbitrove-alp`
-  );
+  const { coins: priceData } = await utils.getPriceApiData(`/prices/current/coingecko:nitro-cartel,coingecko:arbitrove-alp`);
 
   const { alpData } = await utils.getData(
     'https://nitrocartel.finance/api/alpData?chainId=42161&trove=alp'
@@ -97,6 +95,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3309',
   timetravel: false,
   apy: getApy,
 };

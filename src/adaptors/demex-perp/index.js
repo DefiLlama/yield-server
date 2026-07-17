@@ -45,6 +45,7 @@ const apr = async () => {
 };
 
 module.exports = {
+  protocolId: '2001',
   timetravel: false,
   apy: apr,
   url: 'https://app.dem.exchange/pools',

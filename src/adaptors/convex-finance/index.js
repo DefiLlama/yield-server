@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-require('dotenv').config({ path: './config.env' });
 
 const utils = require('../utils');
 const abi = require('./abi.json');
@@ -44,15 +43,15 @@ const main = async () => {
     }
   });
 
-  const mappedGauges = Object.values(gauges).reduce(
-    (acc, gauge) => ({
-      ...acc,
-      ...(gauge.blockchainId !== 'ethereum'
-        ? {}
-        : { [(gauge.isPool ? gauge.swap_token : gauge.lendingVaultAddress).toLowerCase()]: { ...gauge } }),
-    }),
-    {}
-  );
+  const mappedGauges = Object.values(gauges).reduce((acc, gauge) => {
+    if (gauge.blockchainId !== 'ethereum') return acc;
+
+    const gaugeKey = gauge.isPool ? gauge.swap_token : gauge.lendingVaultAddress;
+    if (!gaugeKey) return acc;
+
+    acc[gaugeKey.toLowerCase()] = { ...gauge };
+    return acc;
+  }, {});
 
   const poolLength = (
     await sdk.api.abi.call({
@@ -462,6 +461,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '319',
   timetravel: false,
   apy: main,
   url: 'https://curve.convexfinance.com/stake',

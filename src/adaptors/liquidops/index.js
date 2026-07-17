@@ -116,6 +116,7 @@ function formatSupplyAPR(borrowAPR, infoTagsObject, totalBorrows, totalSupply) {
 
 
 module.exports = {
+  protocolId: '5980',
     apy,
 };
 // npm run test --adapter=liquidops

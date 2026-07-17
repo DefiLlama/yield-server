@@ -206,6 +206,7 @@ async function fetchEchelonForChain(chain) {
     const totalBorrow = marketSpecificStats?.totalLiability;
     const totalSupplyUsd = totalSupply * market.price;
     const totalBorrowUsd = totalBorrow * market.price;
+    const availableBorrowUsd = Math.max(0, Math.min(totalSupply, market.borrowCap) - totalBorrow) * market.price;
     
     const lendingSupplyApr = market.supplyApr;
     const lendingBorrowApr = market.borrowApr;
@@ -246,8 +247,12 @@ async function fetchEchelonForChain(chain) {
       apyReward: ((farmingAPTApr ?? 0) + (farmingTHAPTApr ?? 0) + (farmingEsINITApr ?? 0) + (market.symbol.toLowerCase() === 'susde' ? 0 : stakingSupplyApr ?? 0)) * 100,
       apyBaseBorrow: (lendingBorrowApr ?? 0) * 100,
       apyRewardBorrow: ((farmingEsINITBorrowApr ?? 0) + (farmingAPTAprBorrow ?? 0) + (farmingTHAPTAprBorrow ?? 0)) * 100,
+      borrowToken: assetAddress,
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
+      ltv: market.ltv,
+      borrowable: availableBorrowUsd > 0,
       rewardTokens: rewardTokens.filter(token => token !== undefined),
       symbol: market.symbol,
       tvlUsd: (totalSupplyUsd - totalBorrowUsd),
@@ -260,6 +265,7 @@ async function fetchEchelonForChain(chain) {
 }
 
 module.exports = {
+  protocolId: '4367',
   timetravel: false,
   apy: main,
   url: 'https://app.echelon.market/markets',

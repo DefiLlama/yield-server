@@ -3,7 +3,6 @@ const utils = require('../utils');
 
 const sdk = require('@defillama/sdk');
 const { gql, default: request } = require('graphql-request');
-const fetch = require('node-fetch');
 const { ethers } = require('ethers');
 const { sub } = require('date-fns');
 
@@ -255,9 +254,7 @@ const getMarkets = async (chain) => {
       return acc;
     }, {});
 
-    priceARB = await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKey}`
-    );
+    priceARB = await utils.getPriceApiData(`/prices/current/${priceKey}`);
   }
 
   const marketTokensAPRData = marketInfos.map((market) => {
@@ -331,6 +328,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3365',
   timetravel: false,
   apy,
   url: 'https://app.gmx.io/#/earn',

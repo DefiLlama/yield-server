@@ -8,6 +8,19 @@ const DOLOMITE_MARGIN_ADDRESS_MAP = {
   berachain: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
   ethereum: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
 };
+const getMarketMaxBorrowWeiAbi = {
+  name: 'getMarketMaxBorrowWei',
+  type: 'function',
+  inputs: [{ name: 'marketId', type: 'uint256' }],
+  outputs: [{
+    type: 'tuple',
+    components: [
+      { name: 'sign', type: 'bool' },
+      { name: 'value', type: 'uint256' },
+    ],
+  }],
+  stateMutability: 'view',
+};
 
 async function apy() {
   const allPools = await Promise.all(
@@ -116,6 +129,17 @@ async function apy() {
         });
         const interestRates = interestRatesRes.output.map((o) => o.output);
 
+        const maxBorrowWeiRes = await sdk.api.abi.multiCall({
+          abi: getMarketMaxBorrowWeiAbi,
+          calls: range.map((i) => ({
+            target: dolomiteMargin,
+            params: i,
+          })),
+          chain: chain,
+          permitFailure: true,
+        });
+        const maxBorrowWeis = maxBorrowWeiRes.output.map((o) => o.success ? o.output : null);
+
         const marginPremiumsRes = await sdk.api.abi.multiCall({
           abi: dolomiteMarginAbi.find((i) => i.name === 'getMarketMarginPremium'),
           calls: range.map((i) => ({
@@ -184,6 +208,11 @@ async function apy() {
         const borrowUsds = borrowWeis.map(
           (borrowWei, i) => (borrowWei * prices[i]) / 1e36
         );
+        const maxBorrowUsds = maxBorrowWeis.map((maxBorrowWei, i) =>
+          maxBorrowWei && Number(maxBorrowWei.value) > 0
+            ? (Number(maxBorrowWei.value) * prices[i]) / 1e36
+            : null
+        );
 
         const secondsInYear = 31_536_000;
         const borrowInterestRateApys = interestRates.map((interestRate) => {
@@ -204,6 +233,17 @@ async function apy() {
 
         return range.reduce((acc, i) => {
           if (tokens[i]) {
+            const availableBorrowUsd = borrowables[i]
+              ? Math.max(
+                  Math.min(
+                    supplyUsds[i] - borrowUsds[i],
+                    maxBorrowUsds[i] === null
+                      ? Infinity
+                      : maxBorrowUsds[i] - borrowUsds[i]
+                  ),
+                  0
+                )
+              : 0;
             acc.push({
               pool: `${tokens[i]}-dolomite-${chain}`.toLowerCase(),
               symbol: symbols[i],
@@ -212,16 +252,14 @@ async function apy() {
               token: receiptTokens[i] || null,
               tvlUsd: supplyUsds[i] - borrowUsds[i],
               apyBase: supplyInterestRateApys[i],
-              apyReward: 0,
               ...(Number(indices[i].supply) / 1e18 > 0 && { pricePerShare: Number(indices[i].supply) / 1e18 }),
               underlyingTokens: [tokens[i]],
-              rewardTokens: [],
               apyBaseBorrow: borrowInterestRateApys[i],
-              apyRewardBorrow: 0,
+              borrowToken: tokens[i],
               totalSupplyUsd: supplyUsds[i],
               totalBorrowUsd: borrowUsds[i],
+              availableBorrowUsd,
               ltv: 1 / (1 + marginRatio + (1 + marginRatio) * marginPremiums[i]),
-              poolMeta: 'Dolomite Balance',
               url: `https://app.dolomite.io/stats/token/${tokens[
                 i
               ].toLowerCase()}`,
@@ -237,6 +275,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2187',
   timetravel: true,
   apy,
   url: 'https://app.dolomite.io/stats',

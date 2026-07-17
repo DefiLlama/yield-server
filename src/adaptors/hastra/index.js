@@ -27,7 +27,7 @@ const apy = async () => {
     await Promise.all([
       axios.get(POR_URL),
       axios.get(
-        `https://coins.llama.fi/prices/current/solana:${WYLDS_MINT}`
+        utils.getPriceApiUrl(`/prices/current/solana:${WYLDS_MINT}`)
       ),
       getTotalSupply(WYLDS_MINT),
       getTokenAccountBalance(PRIME_VAULT),
@@ -67,6 +67,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7266',
   timetravel: false,
   apy,
   url: 'https://hastra.io',

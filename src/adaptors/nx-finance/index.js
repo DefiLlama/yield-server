@@ -29,6 +29,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4682',
   apy: getApy,
   url: 'https://nxfinance.io/',
 };

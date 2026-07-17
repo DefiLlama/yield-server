@@ -61,9 +61,7 @@ const getApy = async () => {
 
   const priceKeys = tokens.map((i) => `${chain}:${i}`).join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const optionTokens = Object.keys(optionTokenToGovToken);
   // get discount for redeeming option token to liquidity token
@@ -256,6 +254,7 @@ const getApy = async () => {
   return pools.filter((p) => utils.keepFinite(p));
 };
 module.exports = {
+  protocolId: '2668',
   timetravel: false,
   apy: getApy,
 };

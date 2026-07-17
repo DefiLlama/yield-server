@@ -26,8 +26,9 @@ const CHAIN_TYPE_AND_NAMES: ByChainTypeAndId<string> = {
     42_161: 'Arbitrum',
     9_745: 'Plasma',
     5_464: 'Saga',
-    56: 'BSC',
     747_474: 'Katana',
+    4_326: 'MegaETH',
+    1: 'Ethereum',
   },
   aptos: {
     1: 'Aptos',
@@ -50,6 +51,7 @@ interface BaseTarget {
 interface AmmPoolLiquidityTarget extends BaseTarget {
   type: 'amm-pool-liquidity';
   id: string;
+  dex: string;
   tokens: Token[];
   usdTvl: number;
 }
@@ -108,6 +110,16 @@ interface YieldSeekerTarget extends BaseTarget {
   type: 'yield-seeker';
 }
 
+interface Erc4626Target extends BaseTarget {
+  type: 'erc4626-vault';
+  brand: string;
+  vault: {
+    name: string;
+    symbol: string;
+    asset: string;
+  };
+}
+
 interface Reward extends Token {
   amount: string;
   remaining: string;
@@ -130,7 +142,8 @@ interface Campaign {
     | AaveV3BorrowTarget
     | AaveV3NetSupplyTarget
     | TurtleTarget
-    | YieldSeekerTarget;
+    | YieldSeekerTarget
+    | Erc4626Target;
   rewards?: Rewards;
   usdTvl?: number;
   apr?: number;
@@ -151,6 +164,7 @@ interface TurtleOpportunity {
 }
 
 module.exports = {
+  protocolId: '5214',
   timetravel: false,
   apy: async () => {
     const campaigns = [];
@@ -218,6 +232,7 @@ interface ProcessedCampaign {
   apyBase?: number;
   apyReward?: number;
   rewardTokens?: string[];
+  poolMeta: string;
 }
 
 async function processCampaign(
@@ -228,13 +243,24 @@ async function processCampaign(
       return {
         symbol: campaign.target.tokens.map((token) => token.symbol).join(' - '),
         underlyingTokens: campaign.target.tokens.map((token) => token.address),
+        poolMeta: humanizeTargetProtocol('Pool on', campaign.target.dex),
       };
     }
-    case 'liquity-v2-debt':
+    case 'liquity-v2-debt': {
+      return {
+        symbol: campaign.target.collateral.symbol,
+        underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Borrow on', campaign.target.brand),
+      };
+    }
     case 'liquity-v2-stability-pool': {
       return {
         symbol: campaign.target.collateral.symbol,
         underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol(
+          'Stability pool on',
+          campaign.target.brand
+        ),
       };
     }
     case 'gmx-v1-liquidity': {
@@ -242,12 +268,25 @@ async function processCampaign(
       // campaigns, address this later on
       return null;
     }
-    case 'aave-v3-supply':
-    case 'aave-v3-borrow':
+    case 'aave-v3-supply': {
+      return {
+        symbol: campaign.target.collateral.symbol,
+        underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Lend on', campaign.target.brand),
+      };
+    }
+    case 'aave-v3-borrow': {
+      return {
+        symbol: campaign.target.collateral.symbol,
+        underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Borrow on', campaign.target.brand),
+      };
+    }
     case 'aave-v3-net-supply': {
       return {
         symbol: campaign.target.collateral.symbol,
         underlyingTokens: [campaign.target.collateral.address],
+        poolMeta: humanizeTargetProtocol('Net lend on', campaign.target.brand),
       };
     }
     case 'turtle': {
@@ -258,16 +297,31 @@ async function processCampaign(
         opportunity?.incentives || campaign.target.incentives || [];
 
       return {
-        symbol: (opportunity?.name || campaign.target.name).replace(/^Katana\s+/i, ''),
+        symbol: (opportunity?.name || campaign.target.name).replace(
+          /^Katana\s+/i,
+          ''
+        ),
         underlyingTokens: getTurtleUnderlyingTokens(opportunity),
         url: opportunity?.url,
         ...getTurtleApyFields(incentives, campaign.apr),
+        poolMeta: humanizeTargetProtocol('Deposit to', campaign.target.name),
       };
     }
     case 'yield-seeker': {
       return {
         symbol: 'USDC',
         underlyingTokens: [BASE_USDC],
+        poolMeta: 'Deposit',
+      };
+    }
+    case 'erc4626-vault': {
+      return {
+        symbol: campaign.target.vault.symbol,
+        underlyingTokens: [campaign.target.vault.asset],
+        poolMeta: humanizeTargetProtocol(
+          'Deposit to',
+          campaign.target.vault.name
+        ),
       };
     }
     default: {
@@ -361,4 +415,14 @@ function getCampaignApyFields(
         rewardTokens: rewards.map((reward) => reward.address),
       }
     : { apy: campaign.apr };
+}
+
+function humanizeTargetProtocol(action: string, protocolSlug?: string): string {
+  const normalizedSlug = protocolSlug?.trim();
+  if (!normalizedSlug) return action;
+
+  return `${action} ${normalizedSlug
+    .split(/[-_]/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')}`;
 }

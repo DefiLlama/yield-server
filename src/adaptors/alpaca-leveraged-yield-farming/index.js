@@ -134,6 +134,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '345',
   timetravel: false,
   apy: main,
   url: 'https://app.alpacafinance.org/farm',

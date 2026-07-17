@@ -1,5 +1,6 @@
 
 const axios = require("axios");
+const { getPriceApiData } = require('../utils');
 
 
 async function getConfig() {
@@ -12,7 +13,7 @@ async function getStats() {
 }
 
 async function getTrxPrice() {
-  const { data } = await axios.get('https://coins.llama.fi/prices/current/coingecko:tron')
+  const data = await getPriceApiData('/prices/current/coingecko:tron')
   return data.coins
 }
 
@@ -34,7 +35,6 @@ async function apy() {
 
   // APY
   const baseApy = Number(((profit_percent + static_percent + landing_percent) * 100).toFixed(2));
-  
   return [
     {
       pool: "trenergy-trx",
@@ -50,6 +50,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6360',
   timetravel: false,
   apy,
   url: "https://tr.energy",

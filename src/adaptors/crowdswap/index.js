@@ -103,6 +103,7 @@ const main = async () => {
   };
 
 module.exports = {
+  protocolId: '3049',
     timetravel: false,
     apy: main,
     url: 'https://app.crowdswap.org/opportunity'

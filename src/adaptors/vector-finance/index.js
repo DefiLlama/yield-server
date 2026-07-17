@@ -66,6 +66,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1525',
   timetravel: false,
   apy: main,
   url: 'https://vectorfinance.io/stake',

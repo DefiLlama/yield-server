@@ -51,6 +51,16 @@ const poolsFunction = async () => {
       const price = parseFloat(pool.tokenInfo.price);
       const totalSupplyUsd = (pool.totalSupply / 10 ** decimals) * price;
       const totalBorrowUsd = (pool.totalBorrow / 10 ** decimals) * price;
+      const availableLiquidityUsd =
+        (pool.liqAvailable / 10 ** decimals) * price;
+      const borrowCapUsd = (pool.borrowCap / 10 ** decimals) * price;
+      const hasBorrowCap = Number(pool.borrowCap) > 0;
+      const borrowCapacityUsd = hasBorrowCap
+        ? Math.max(borrowCapUsd - totalBorrowUsd, 0)
+        : availableLiquidityUsd;
+      const availableBorrowUsd = pool.borrowPaused
+        ? 0
+        : Math.min(availableLiquidityUsd, borrowCapacityUsd);
 
       const key = `${pool.marketID}-${pool.token}`;
       const r = rewards[key];
@@ -75,16 +85,22 @@ const poolsFunction = async () => {
         rewardTokens: rewardTokens.length ? rewardTokens : [],
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow: pool.borrowAPY * 100,
+        borrowToken: `0x${pool.token}`,
         apyRewardBorrow,
+        ltv: pool.maxLTV,
+        borrowable: !pool.borrowPaused,
         underlyingTokens: [`0x${pool.token}`],
         poolMeta: pool.name,
+        routeGroupKey: pool.marketID,
         url: `https://app.current.finance/market/${pool.marketType}/${pool.token}`,
       };
     });
 };
 
 module.exports = {
+  protocolId: '7603',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.current.finance/',

@@ -37,6 +37,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '6579',
     apy: poolsFunction,
     url: 'https://cap.app',
 };

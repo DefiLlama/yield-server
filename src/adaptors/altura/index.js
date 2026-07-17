@@ -1,4 +1,5 @@
 const utils = require('../utils');
+const { merklGet } = require('../merkl/merkl-client');
 
 const VAULT_ADDRESS = '0xd0Ee0CF300DFB598270cd7F4D0c6E0D8F6e13f29';
 const USDT0_ADDRESS = '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb';
@@ -6,9 +7,9 @@ const CHAIN = 'hyperliquid';
 
 const getRewardsFromMerkl = async () => {
   try {
-    const data = await utils.getData(
-      'https://api.merkl.xyz/v4/opportunities?mainProtocolId=altura'
-    );
+    const data = await merklGet('/v4/opportunities', {
+      params: { mainProtocolId: 'altura' },
+    });
 
     const vault = data.find(
       (d) => d.identifier.toLowerCase() === VAULT_ADDRESS.toLowerCase()
@@ -63,6 +64,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '7300',
   timetravel: false,
   apy,
   url: 'https://altura.trade',

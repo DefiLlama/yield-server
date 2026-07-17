@@ -25,9 +25,7 @@ const poolsFunction = async () => {
     ).output / 1e18;
 
   const priceKey = `bsc:${minto}`;
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey].price;
+  const price = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
   const pool = {
     pool: staking,
@@ -43,6 +41,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1880',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://minto.finance/staking',

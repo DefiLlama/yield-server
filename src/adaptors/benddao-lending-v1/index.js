@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const BigNumber = require('bignumber.js');
+const { getPriceApiUrl } = require('../utils');
 
 const AddressMap = {
   ethereum: {
@@ -34,7 +35,7 @@ async function apy() {
             .toLowerCase();
 
           const ret = await axios.get(
-            `https://coins.llama.fi/prices/current/${coins}`
+            getPriceApiUrl(`/prices/current/${coins}`)
           );
           return ret.data.coins;
         })(),
@@ -211,6 +212,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '1773',
   timetravel: false,
   apy: apy,
 };

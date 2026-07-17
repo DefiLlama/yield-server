@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getPriceApiUrl } = require('../utils');
 
 const KYSOL_MINT = 'kySo1nETpsZE2NWe5vj2C64mPSciH1SppmHb4XieQ7B';
 const KYJTO_MINT = 'kyJtowDDACsJDm2jr3VZdpCA6pZcKAaNftQwrJ8KBQP';
@@ -15,7 +15,7 @@ const apy = async () => {
   const priceKeys = pools.map((p) => `solana:${p.mint}`).join(',');
 
   const [priceRes, apyRes, ...supplies] = await Promise.all([
-    axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKeys}`)),
     axios.get('https://api.kyros.fi/kyros/apy'),
     ...pools.map((p) => getTotalSupply(p.mint)),
   ]);
@@ -45,6 +45,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5294',
   timetravel: false,
   apy,
   url: 'https://app.kyros.fi/',

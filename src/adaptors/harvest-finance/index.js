@@ -1,7 +1,6 @@
 const axios = require('axios');
 
 const utils = require('../utils');
-const { readFromS3 } = require('../../utils/s3');
 // no longer needed, see note below
 const farmsUrl =
   'https://api.harvest.finance/vaults?key=41e90ced-d559-4433-b390-af424fdc76d6';
@@ -51,17 +50,9 @@ async function apy() {
   let allVaults = [];
   let specialVaults = [];
 
-  // note (!) calling their api via aws lambda stopped working due to cloudflare bot protection.
-  // instead, we use a python lambda which bypasses cloudflare
-  // and stores the output to s3 (i tried node js packages, none of them worked; the repo to the
-  // lambda
   const farmsResponse = (await axios.get(farmsUrl)).data;
   const poolsResponse = (await axios.get(poolsUrl)).data;
   const statsResponse = (await axios.get(statsUrl)).data;
-  // const data = await readFromS3('llama-apy-prod-data', 'harvest_api_data.json');
-  // const farmsResponse = data['vaults'];
-  // const poolsResponse = data['pools'];
-  // const statsResponse = data['token-stats'];
 
   let specialVaultIds = ['farm-grain', 'farm-weth'];
   specialVaults = specialVaultIds.map((vaultId) => {
@@ -152,6 +143,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '112',
   timetravel: false,
   apy,
 };

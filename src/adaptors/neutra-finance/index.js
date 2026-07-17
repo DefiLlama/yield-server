@@ -75,6 +75,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2459',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://neutra.finance',

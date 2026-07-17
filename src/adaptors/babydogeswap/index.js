@@ -143,6 +143,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '2169',
   timetravel: false,
   apy: main,
   url: 'https://babydogeswap.com/farms',

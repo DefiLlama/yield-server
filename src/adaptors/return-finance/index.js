@@ -142,6 +142,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4290',
   timetravel: false,
   apy: getApy,
   url: 'https://return.finance',

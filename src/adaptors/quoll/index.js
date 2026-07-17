@@ -375,6 +375,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '2278',
     timetravel: false,
     apy,
     url: 'https://quoll.finance/deposit'

@@ -111,9 +111,7 @@ const getApy = async () => {
 
   const priceKeys = tokens.map((i) => `kava:${i}`).join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const pools = allPairs.map((p, i) => {
     const poolMeta = metaData[i];
@@ -159,6 +157,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2586',
   timetravel: false,
   apy: getApy,
   url: 'https://equilibrefinance.com/liquidity',

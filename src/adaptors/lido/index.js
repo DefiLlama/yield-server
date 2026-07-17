@@ -1,9 +1,12 @@
 const utils = require('../utils');
 
+const STETH_STATS_URL = 'https://eth-api.lido.fi/v1/protocol/steth/stats';
+const STETH_APR_URL = 'https://eth-api.lido.fi/v1/protocol/steth/apr/last';
+
 const topLvl = async () => {
   const [tvlData, apyData] = await Promise.all([
-    utils.getData('https://eth-api.lido.fi/v1/protocol/steth/stats'),
-    utils.getData('https://eth-api.lido.fi/v1/protocol/steth/apr/last'),
+    utils.getEgressData('lido/v1/protocol/steth/stats', STETH_STATS_URL),
+    utils.getEgressData('lido/v1/protocol/steth/apr/last', STETH_APR_URL),
   ]);
 
   return {
@@ -22,6 +25,7 @@ const topLvl = async () => {
 const main = async () => [await topLvl()];
 
 module.exports = {
+  protocolId: '182',
   timetravel: false,
   apy: main,
   url: 'https://lido.fi/#networks',

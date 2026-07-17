@@ -77,6 +77,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '5906',
   timetravel: false,
   apy: main,
   url: `${YUZU_API_URL_BASE}/pools`,

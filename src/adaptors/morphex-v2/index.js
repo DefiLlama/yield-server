@@ -152,9 +152,7 @@ const getPools = async () => {
   const priceKeys = ['fantom', 'binancecoin', 'mpx']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const priceData = {
     mpx: prices['coingecko:mpx'],
@@ -274,6 +272,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2662',
   timetravel: false,
   apy: getPools,
   url: 'https://www.morphex.trade/earn',

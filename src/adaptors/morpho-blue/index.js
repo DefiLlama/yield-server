@@ -16,6 +16,8 @@ const CHAINS = {
   monad: 143,
   wc: 480,
   stable: 988,
+  tempo: 4217,
+  robinhood: 4663
 };
 
 // Maps chain keys to URL slugs used by app.morpho.org
@@ -23,6 +25,8 @@ const CHAINS = {
 const CHAIN_URL_SLUG = {
   hyperliquid: 'hyperevm',
   wc: 'worldchain',
+  optimism: 'opmainnet',
+  robinhood: 'robinhood-chain'
 };
 
 const getChainSlug = (chain) => CHAIN_URL_SLUG[chain] || chain;
@@ -46,11 +50,15 @@ const gqlQueries = {
         skip: $skip
         orderBy: SupplyAssetsUsd
         orderDirection: Desc
-        where: { chainId_in: [$chainId], whitelisted: true }
+        where: { chainId_in: [$chainId], listed: true }
       ) {
         items {
-          uniqueKey
+          uniqueKey: marketId
           lltv
+          reallocatableLiquidityAssets
+          warnings {
+            level
+          }
           loanAsset {
             address
             symbol
@@ -74,6 +82,7 @@ const gqlQueries = {
             collateralAssetsUsd
             supplyAssetsUsd
             borrowAssetsUsd
+            liquidityAssetsUsd
             rewards {
               borrowApr
               asset {
@@ -92,7 +101,11 @@ const gqlQueries = {
         skip: $skip
         orderBy: TotalAssetsUsd
         orderDirection: Desc
-        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
+        where: {
+          chainId_in: [$chainId]
+          totalAssetsUsd_gte: 10000
+          listed: true
+        }
       ) {
         items {
           chain {
@@ -101,6 +114,9 @@ const gqlQueries = {
           address
           name
           symbol
+          warnings {
+            level
+          }
           asset {
             address
             decimals
@@ -114,7 +130,7 @@ const gqlQueries = {
             allocation {
               supplyAssetsUsd
               market {
-                uniqueKey
+                uniqueKey: marketId
                 state {
                   rewards {
                     asset {
@@ -135,12 +151,19 @@ const gqlQueries = {
       vaultV2s(
         first: 100
         skip: $skip
-        where: { chainId_in: [$chainId], totalAssetsUsd_gte: 10000 }
+        where: {
+          chainId_in: [$chainId]
+          totalAssetsUsd_gte: 10000
+          listed: true
+        }
       ) {
         items {
           address
           symbol
           name
+          warnings {
+            level
+          }
           asset {
             address
           }
@@ -243,6 +266,9 @@ const getExpiredPTAddresses = async (ptMarkets, chain) => {
 // Allowed adapter types for Vault V2
 // Vault V2 only allocates to Vault V1 (MetaMorpho) and Market V1
 const ALLOWED_ADAPTER_TYPES = ['MetaMorpho', 'MorphoMarketV1'];
+
+const hasRedWarning = (item) =>
+  item.warnings?.some((warning) => warning.level === 'RED');
 
 const buildVaultV2Pools = (earnV2, chain) =>
   earnV2
@@ -351,9 +377,9 @@ const fetchChainData = async (chainId) => {
   });
 
   return {
-    earnV1: vaults.filter((v) => v.state !== null),
-    earnV2: vaultV2s,
-    borrow: markets,
+    earnV1: vaults.filter((v) => v.state !== null && !hasRedWarning(v)),
+    earnV2: vaultV2s.filter((v) => !hasRedWarning(v)),
+    borrow: markets.filter((m) => !hasRedWarning(m)),
   };
 };
 
@@ -464,6 +490,12 @@ const apy = async () => {
           0,
           (market.state.borrowApy || 0) - (market.state.netBorrowApy || 0)
         ) * 100;
+      const reallocatableLiquidityUsd =
+        (Number(market.reallocatableLiquidityAssets || 0) /
+          10 ** Number(market.loanAsset?.decimals || 0)) *
+        Number(market.loanAsset?.priceUsd || 0);
+      const availableBorrowUsd =
+        (market.state.liquidityAssetsUsd ?? 0) + reallocatableLiquidityUsd;
 
       return {
         pool: `morpho-blue-${market.uniqueKey}-${chain}`,
@@ -477,11 +509,13 @@ const apy = async () => {
         apyBaseBorrow: market.state.borrowApy * 100,
         totalSupplyUsd: market.state.collateralAssetsUsd ?? 0,
         totalBorrowUsd: market.state.borrowAssetsUsd ?? 0,
+        availableBorrowUsd,
         debtCeilingUsd:
           market.state.supplyAssetsUsd - market.state.borrowAssetsUsd,
         ltv: market.lltv / 1e18,
         mintedCoin: market.loanAsset?.symbol,
         borrowToken: market.loanAsset?.address,
+        borrowable: market.lltv > 0,
         url: `https://app.morpho.org/${getChainSlug(chain)}/market/${market.uniqueKey}`,
         apyRewardBorrow,
         rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],
@@ -556,5 +590,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4025',
   apy,
 };

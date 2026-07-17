@@ -31,9 +31,7 @@ const query = gql`
 
 const getRewardTokenApr = async (marketsData) => {
   const key = 'coingecko:scream';
-  const rewardTokenPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins[key]?.price;
+  const rewardTokenPrice = (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key]?.price;
 
   const compSpeeds = (
     await sdk.api.abi.multiCall({
@@ -110,6 +108,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '450',
   timetravel: false,
   apy: getApy,
   url: 'https://scream.sh/lend',

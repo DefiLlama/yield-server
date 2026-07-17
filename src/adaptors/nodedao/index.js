@@ -73,17 +73,15 @@ const getApy = async () => {
   const [{ height: block1dayAgo }, { height: block7dayAgo }] =
     await Promise.all([
       axios
-        .get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
+        .get(utils.getPriceApiUrl(`/block/ethereum/${timestamp1dayAgo}`))
         .then((r) => r.data),
       axios
-        .get(`https://coins.llama.fi/block/ethereum/${timestamp7dayAgo}`)
+        .get(utils.getPriceApiUrl(`/block/ethereum/${timestamp7dayAgo}`))
         .then((r) => r.data),
     ]);
 
   const ethPriceKey = 'coingecko:ethereum';
-  const ethPriceRes = (
-    await axios.get(`https://coins.llama.fi/prices/current/${ethPriceKey}`)
-  ).data;
+  const ethPriceRes = (await utils.getPriceApiData(`/prices/current/${ethPriceKey}`));
   const ethPrice = ethPriceRes?.coins?.[ethPriceKey]?.price;
   if (!ethPrice) throw new Error('nodedao: failed to fetch ETH price');
 
@@ -127,6 +125,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2993',
   timetravel: false,
   apy: getApy,
   url,

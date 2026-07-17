@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getTotalSupply } = require('../utils');
+const { getTotalSupply, getPriceApiUrl } = require('../utils');
 
 const project = 'apollo-diversified-credit-securitize-fund';
 
@@ -19,7 +19,7 @@ const SOLANA_TOKEN = 'FubtUcvhSCr3VPXEcxouoQjKQ7NWTCzXyECe76B7L3f8';
 
 const getBlock = (timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/ethereum/${timestamp}`)
+    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`))
     .then((r) => r.data.height);
 
 const getOraclePrice = (block) =>
@@ -107,6 +107,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6582',
   timetravel: false,
   apy,
   url: 'https://securitize.io/invest/apollo-acred',

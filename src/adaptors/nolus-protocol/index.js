@@ -179,6 +179,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3663',
   timetravel: false,
   apy: getApy,
   url: 'https://app.nolus.io/earn',

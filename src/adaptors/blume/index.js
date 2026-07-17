@@ -24,13 +24,9 @@ const NATIVE_TOKEN = {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -113,6 +109,7 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   const isPaused = await getRewards(allMarkets, 'mintGuardianPaused');
+  const isBorrowPaused = await getRewards(allMarkets, 'borrowGuardianPaused');
 
   const supplySpeeds = await multiCallMarkets(
     allMarkets,
@@ -176,6 +173,15 @@ const apy = async () => {
     const tvlUsd = (marketsCash[i] / 10 ** decimals) * price;
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
+    const availableBorrowUsd =
+      (Math.min(
+        Number(marketsCash[i]),
+        Number(borrowCaps[i]) > 0
+          ? Math.max(Number(borrowCaps[i]) - Number(totalBorrows[i]), 0)
+          : Number(marketsCash[i])
+      ) /
+        10 ** decimals) *
+      price;
 
     const apyBase = calculateApy(supplySpeeds[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowSpeeds[i] / 10 ** 18);
@@ -195,6 +201,8 @@ const apy = async () => {
         // borrow fields
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
+        borrowable: isBorrowPaused[i] === false,
         apyBaseBorrow,
         ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
         debtCeilingUsd: (borrowCaps[i] / 1e18) * price,
@@ -207,6 +215,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4239',
   timetravel: false,
   apy,
   url: 'https://app.orbitlending.io/markets',

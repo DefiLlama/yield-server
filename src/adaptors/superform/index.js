@@ -9,6 +9,7 @@ const API_BASE = 'https://persephone.superform.xyz/v1';
 const CHAIN_MAPPING = {
   '1': 'ethereum',
   '8453': 'base',
+  '14': 'flare',
 };
 
 const main = async () => {
@@ -44,6 +45,7 @@ const main = async () => {
       totalAssetsWeekAgoRes,
       totalSupplyWeekAgoRes,
       assetRes,
+      shareDecimalsRes,
     ] = await Promise.all([
       sdk.api.abi.multiCall({
         abi: 'uint256:totalAssets',
@@ -74,6 +76,12 @@ const main = async () => {
         calls: vaultAddresses.map((target) => ({ target })),
         chain,
       }),
+      sdk.api.abi.multiCall({
+        abi: 'uint8:decimals',
+        calls: vaultAddresses.map((target) => ({ target })),
+        chain,
+        permitFailure: true,
+      }),
     ]);
 
     // Get unique asset addresses for decimals + prices
@@ -97,9 +105,7 @@ const main = async () => {
     });
 
     const priceKeys = assetAddresses.map((a) => `${chain}:${a}`).join(',');
-    const pricesRes = await utils.getData(
-      `https://coins.llama.fi/prices/current/${priceKeys}`
-    );
+    const pricesRes = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
     const prices = {};
     for (const [key, value] of Object.entries(pricesRes.coins || {})) {
@@ -135,6 +141,13 @@ const main = async () => {
         apyBase = Math.max(apyBase, 0);
       }
 
+      const shareDecimals = shareDecimalsRes.output[i]?.output;
+      const assetDecimals = decimalsMap[assetAddress];
+      const pricePerShare =
+        shareDecimals != null && assetDecimals != null
+          ? priceNow * 10 ** (Number(shareDecimals) - Number(assetDecimals))
+          : undefined;
+
       const symbol =
         vault.symbol ||
         vault.assets?.[0]?.symbol ||
@@ -158,8 +171,7 @@ const main = async () => {
         symbol: symbol,
         tvlUsd,
         apyBase,
-        // SuperVault shares are 18-dec; assets in own decimals.
-        ...(priceNow * 10 ** (18 - decimals) > 0 && { pricePerShare: priceNow * 10 ** (18 - decimals) }),
+        ...(pricePerShare > 0 && { pricePerShare }),
         underlyingTokens: [assetAddress],
         poolMeta: 'SuperVault',
         url: `https://app.superform.xyz/vault/${vault.chain_id}_${vault.address}`,
@@ -178,6 +190,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '4448',
   timetravel: false,
   apy: main,
   url: 'https://app.superform.xyz/earn',

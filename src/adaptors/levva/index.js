@@ -24,9 +24,7 @@ const apy = async () => {
 
   // 7d APY via share price growth
   const ts7dAgo = Math.floor(Date.now() / 1000) - 7 * 86400;
-  const { data: blockData } = await axios.get(
-    `https://coins.llama.fi/block/${CHAIN}/${ts7dAgo}`
-  );
+  const blockData = await utils.getPriceApiData(`/block/${CHAIN}/${ts7dAgo}`);
   const oneShare = (10n ** 18n).toString();
 
   const [currentRates, pastRates] = await Promise.all([
@@ -89,6 +87,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5426',
   timetravel: false,
   apy,
   url: 'https://levva.fi',

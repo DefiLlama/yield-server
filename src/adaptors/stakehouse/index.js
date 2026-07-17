@@ -92,9 +92,7 @@ const topLvl = async (chainString, url) => {
   );
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethUSDPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethUSDPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   let apyList = [],
     tvlUsd;
@@ -154,6 +152,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2838',
   timetravel: false,
   apy: main,
   url: 'https://joinstakehouse.com/',

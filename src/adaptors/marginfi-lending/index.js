@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 
 const MARGINFI_URL = 'https://app.marginfi.com';
 const SNAPSHOT_URL =
@@ -11,6 +10,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '2570',
   timetravel: false,
   apy: main,
   url: MARGINFI_URL,

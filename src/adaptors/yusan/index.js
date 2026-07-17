@@ -20,6 +20,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '7177',
   timetravel: false,
   apy: getApy,
   url: 'https://yusan.fi',

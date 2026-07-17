@@ -174,6 +174,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5570',
   timetravel: false,
   apy: apy,
 };

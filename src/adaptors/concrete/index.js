@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const VAULTS_URL = 'https://apy.api.concrete.xyz/v1/vault:tvl/all';
 
@@ -19,7 +20,7 @@ const CONVERT_ABI = 'function convertToAssets(uint256) view returns (uint256)';
 
 const getBlock = (chain, timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/${chain}/${timestamp}`)
+    .get(getPriceApiUrl(`/block/${chain}/${timestamp}`))
     .then((r) => r.data.height);
 
 const num = (x) => {
@@ -78,8 +79,7 @@ const buildChainPools = async (displayChain, vaultMap, timestamp) => {
 
   const priceKey = underlyings.map((u) => `${chain}:${u}`).join(',');
   const prices = priceKey
-    ? (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`))
-        .data.coins
+    ? (await getPriceApiData(`/prices/current/${priceKey}`)).coins
     : {};
 
   return vaults
@@ -131,5 +131,6 @@ const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
 };
 
 module.exports = {
+  protocolId: '5751',
   apy,
 };

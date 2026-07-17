@@ -366,6 +366,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2020',
   timetravel: false,
   apy: main,
 };

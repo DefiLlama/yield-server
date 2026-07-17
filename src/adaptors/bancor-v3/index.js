@@ -24,6 +24,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1995',
   apy,
   url: 'https://app.bancor.network/earn',
   timetravel: false,

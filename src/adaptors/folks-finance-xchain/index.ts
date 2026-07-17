@@ -65,6 +65,7 @@ async function initPools() {
         symbol: pool.underlyingSymbol,
         tvlUsd: toUsdValue(poolTvl, price, decimals),
         underlyingTokens: [pool.tokenAddress],
+        borrowToken: pool.tokenAddress,
         rewardTokens: [],
         apyReward: 0,
         meta: {
@@ -91,7 +92,14 @@ const updateWithLendingData = async (poolsInfo) => {
     poolsInfo.map((item) => item.meta.pool),
     poolsInfo.map((item) => item.meta.poolId),
   ];
-  const [depositData, variableBorrowData, stableBorrowData, loanPools] =
+  const [
+    depositData,
+    variableBorrowData,
+    stableBorrowData,
+    poolCapsData,
+    poolConfigData,
+    loanPools,
+  ] =
     await Promise.all([
       await chainApi.multiCall({
         calls: targets,
@@ -104,6 +112,14 @@ const updateWithLendingData = async (poolsInfo) => {
       await chainApi.multiCall({
         calls: targets,
         abi: HubPoolAbi.getStableBorrowData,
+      }),
+      await chainApi.multiCall({
+        calls: targets,
+        abi: HubPoolAbi.getCapsData,
+      }),
+      await chainApi.multiCall({
+        calls: targets,
+        abi: HubPoolAbi.getConfigData,
       }),
       await chainApi.multiCall({
         calls: poolIds.map((poolId) => ({
@@ -127,13 +143,17 @@ const updateWithLendingData = async (poolsInfo) => {
     stableBorrowData.map((item) => BigInt(item.totalAmount)),
     stableBorrowData.map((item) => BigInt(item.interestRate)),
   ];
-  const ltvs = loanPools.map(
-    (item) => (Number(item.collateralFactor) * Number(item.borrowFactor)) / 1e8
-  );
+  const ltvs = loanPools.map((item) => {
+    const borrowFactor = Number(item.borrowFactor);
+    return borrowFactor > 0 ? Number(item.collateralFactor) / borrowFactor : 0;
+  });
 
   poolsInfo.forEach((poolInfo, i) => {
     const { price, decimals } = poolInfo.meta;
     const totalDebt = varBorrTotalAmount[i] + stblBorrTotalAmount[i];
+    const loanPool = loanPools[i];
+    const poolBorrowCapUsd = Number(poolCapsData[i].borrow);
+    const loanBorrowCapUsd = Number(loanPool.borrowCap);
 
     // Calculate overall borrow rate
     const borrowRate = overallBorrowInterestRate(
@@ -161,8 +181,29 @@ const updateWithLendingData = async (poolsInfo) => {
     );
     poolInfo.totalBorrowUsd = toUsdValue(totalDebt, price, decimals);
     poolInfo.ltv = ltvs[i];
+    poolInfo.borrowable =
+      loanPool.isAdded &&
+      !loanPool.isDeprecated &&
+      !poolConfigData[i].deprecated &&
+      Number(loanPool.borrowFactor) > 0 &&
+      poolBorrowCapUsd > 0 &&
+      loanBorrowCapUsd > 0;
+    poolInfo.availableBorrowUsd = Math.max(
+      Math.min(
+        poolInfo.totalSupplyUsd - poolInfo.totalBorrowUsd,
+        poolBorrowCapUsd - poolInfo.totalBorrowUsd,
+        loanBorrowCapUsd -
+          toUsdValue(BigInt(loanPool.borrowUsed), price, decimals)
+      ),
+      0
+    );
   });
-  return poolsInfo;
+  return poolsInfo.filter(
+    (_, i) =>
+      loanPools[i].isAdded &&
+      !loanPools[i].isDeprecated &&
+      !poolConfigData[i].deprecated
+  );
 };
 
 const updateWithRewardsV2Data = async (poolsInfo) => {
@@ -262,6 +303,7 @@ const calcYields = async () => {
 };
 
 module.exports = {
+  protocolId: '5199',
   timetravel: true,
   apy: calcYields,
   url: 'https://xapp.folks.finance/',

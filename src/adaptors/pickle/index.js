@@ -53,6 +53,7 @@ const main = async () => {
   return data;
 };
 module.exports = {
+  protocolId: '134',
   timetravel: false,
   apy: main,
   url: 'https://app.pickle.finance/farms',

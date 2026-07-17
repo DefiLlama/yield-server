@@ -96,4 +96,4 @@ const apy = async () => {
   return addMerklRewardApy(pools.filter(Boolean), 'yieldnest', (p) => p.pool.split('-')[0]);
 };
 
-module.exports = { timetravel: false, apy };
+module.exports = { protocolId: '4606', timetravel: false, apy };

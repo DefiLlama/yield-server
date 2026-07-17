@@ -2,6 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.json');
+const { getPriceApiData } = require('../utils');
 const mevETH = '0x24Ae2dA0f361AA4BE46b48EB19C91e02c5e4f27E';
 
 const apy = async () => {
@@ -20,9 +21,7 @@ const apy = async () => {
     })
   ).output;
 
-  const mevEthPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/ethereum:${mevETH}`)
-  ).data.coins[`ethereum:${mevETH}`].price;
+  const mevEthPrice = (await getPriceApiData(`/prices/current/ethereum:${mevETH}`)).coins[`ethereum:${mevETH}`].price;
 
   const elastic = fraction[0];
   const base = fraction[1];
@@ -55,6 +54,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3708',
   timetravel: false,
   apy,
   url: 'https://mev.io/stake',

@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const ibera = '0x9b6761bf2397bb5a6624a856cc84a3a14dcd3fe5';
 const bera = '0x0000000000000000000000000000000000000000';
@@ -8,20 +9,12 @@ const symbol = 'ibera';
 
 const apy = async () => {
   const priceKey = `berachain:${bera}`;
-  const beraPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const beraPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
   const timestampNow = Math.floor(Date.now() / 1000);
   const timestampYesterday = timestampNow - 86400;
 
-  const blockNow = (
-    await axios.get(
-      `https://coins.llama.fi/block/berachain/${timestampNow}`
-    )
-  ).data.height;
-  const blockYesterday = (
-    await axios.get(`https://coins.llama.fi/block/berachain/${timestampYesterday}`)
-  ).data.height;
+  const blockNow = (await getPriceApiData(`/block/berachain/${timestampNow}`)).height;
+  const blockYesterday = (await getPriceApiData(`/block/berachain/${timestampYesterday}`)).height;
 
       const exchangeRateAbi = {
         inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
@@ -72,4 +65,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://infrared.finance/ibera' };
+module.exports = { protocolId: '5775', apy, url: 'https://infrared.finance/ibera' };

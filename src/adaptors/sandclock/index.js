@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 const abi = require('./abi');
 const BigNumber = require('bignumber.js'); // support decimal points
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const AMBER = '0xdb369eEB33fcfDCd1557E354dDeE7d6cF3146A11';
 const EMERALD = '0x4c406C068106375724275Cbff028770C544a1333';
@@ -58,14 +59,14 @@ const apy = async () => {
 
 async function getPrices(addresses) {
   const coins = getCoinsURI(addresses);
-  const url = `https://coins.llama.fi/prices/current/${coins}`;
+  const url = getPriceApiUrl(`/prices/current/${coins}`);
   return await fetchPrices(url);
 }
 
 async function getPricesDaysBefore(addresses, days) {
   const coins = getCoinsURI(addresses);
   const timestamp = getTimestampDaysBefore(days);
-  const url = `https://coins.llama.fi/prices/historical/${timestamp}/${coins}`;
+  const url = getPriceApiUrl(`/prices/historical/${timestamp}/${coins}`);
   return await fetchPrices(url);
 }
 
@@ -98,7 +99,7 @@ function getTimestampDaysBefore(days) {
 
 async function getBlockNumber(timestamp) {
   const response = await axios.get(
-    `https://coins.llama.fi/block/ethereum/${timestamp}`
+    getPriceApiUrl(`/block/ethereum/${timestamp}`)
   );
   return response.data.height;
 }
@@ -309,6 +310,7 @@ async function calcQuartzStakingApy(prices) {
 }
 
 module.exports = {
+  protocolId: '2386',
   timetravel: true,
   apy,
   url: 'https://sandclock.org',

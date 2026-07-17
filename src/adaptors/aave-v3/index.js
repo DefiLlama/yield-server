@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+const { merklGet } = require('../merkl/merkl-client');
 const poolAbi = require('./poolAbi');
 const { aaveStakedTokenDataProviderAbi } = require('./abi');
 
@@ -20,6 +21,10 @@ const UMBRELLA_STAKE_TOKENS = [
   '0xaAFD07D53A7365D3e9fb6F3a3B09EC19676B73Ce',
   '0x4f827A63755855cDf3e8f3bcD20265C833f15033',
 ];
+const CELO_AAVE_MERKL_APR_CORRECTION_POOLS = new Set([
+  '0xdee98402a302e4d707fb9bf2bac66faeec31e8df-celo',
+  '0xf385280f36e009c157697d25e0b802efabfd789c-celo',
+]);
 
 const umbrellaStakeDataProviderAbi =
   'function getStakeData() view returns (tuple(address tokenAddress,string,string,uint256 price,uint256 totalAssets,uint256,address underlyingTokenAddress,string underlyingTokenName,string underlyingTokenSymbol,uint8 underlyingTokenDecimals,uint256,uint256,bool underlyingIsStataToken,tuple(address asset,string assetName,string assetSymbol,address aToken,string aTokenName,string aTokenSymbol) stataTokenData,tuple(address rewardAddress,string,string,uint256,uint8,uint256,uint256,uint256,uint256,uint256 apy)[] rewards)[])';
@@ -37,7 +42,6 @@ const protocolDataProviders = {
   scroll: '0xDC3c96ef82F861B4a3f10C81d4340c75460209ca',
   era: '0xf79473ea6ef2C9537027bAe2f6E07d67dD9999E0',
   lido: '0x66FeAe868EBEd74A34A7043e88742AAE00D2bC53', // on ethereum
-  etherfi: '0xECdA3F25B73261d1FdFa1E158967660AA29f00cC', // on ethereum
   linea: '0x9eEBf28397D8bECC999472fC8838CBbeF54aebf6',
   sonic: '0x306c124fFba5f2Bc0BcAf40D249cf19D492440b9',
   celo: '0x33b7d355613110b4E842f5f7057Ccd36fb4cee28',
@@ -46,10 +50,16 @@ const protocolDataProviders = {
   mantle: '0x487c5c669D9eee6057C44973207101276cf73b68',
   megaeth: '0x9588b453A4EE24a420830CB3302195cA7aA3b403',
   xlayer: '0x6C505C31714f14e8af2A03633EB2Cdfb4959138F',
+  monad: '0xB65A68B98274ef7D9a60E0C0747dD1BEc3D32fad',
+};
+
+const ethereumMarkets = {
+  lido: 'Prime Instance',
+  horizon: 'Aave Horizon Market',
 };
 
 const getApy = async (market) => {
-  const chain = ['lido', 'etherfi', 'horizon'].includes(market) ? 'ethereum' : market;
+  const chain = ethereumMarkets[market] ? 'ethereum' : market;
 
   const protocolDataProvider = protocolDataProviders[market];
   const reserveTokens = (
@@ -90,6 +100,17 @@ const getApy = async (market) => {
     })
   ).output.map((o) => o.output);
 
+  const poolsReserveCaps = (
+    await sdk.api.abi.multiCall({
+      calls: reserveTokens.map((p) => ({
+        target: protocolDataProvider,
+        params: p.tokenAddress,
+      })),
+      abi: poolAbi.find((m) => m.name === 'getReserveCaps'),
+      chain,
+    })
+  ).output.map((o) => o.output);
+
   const totalSupply = (
     await sdk.api.abi.multiCall({
       chain,
@@ -121,21 +142,15 @@ const getApy = async (market) => {
     })
   ).output.map((o) => o.output);
 
-  const priceKeys = reserveTokens
-    .map((t) => `${chain}:${t.tokenAddress}`)
-    .concat(`${chain}:${GHO}`)
-    .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
-
-  const ghoSupply =
-    (
-      await sdk.api.abi.call({
-        target: GHO,
-        abi: 'erc20:totalSupply',
-      })
-    ).output / 1e18;
+  const priceKeys = [
+    ...new Set(
+      reserveTokens
+        .map((t) => `${chain}:${t.tokenAddress}`)
+        .concat(`ethereum:${GHO}`)
+    ),
+  ].join(',');
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
+  const ghoPrice = prices[`ethereum:${GHO}`]?.price;
 
   return reserveTokens
     .map((pool, i) => {
@@ -143,22 +158,41 @@ const getApy = async (market) => {
       if (frozen) return null;
 
       const p = poolsReserveData[i];
-      const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
+      const isGho = pool.symbol === 'GHO';
+      const isEthereumGhoFacilitator = isGho && market === 'ethereum';
+      const borrowable = poolsReservesConfigurationData[i].borrowingEnabled;
+      const price =
+        prices[`${chain}:${pool.tokenAddress}`]?.price ??
+        (isGho ? ghoPrice : undefined);
+      const decimals = Number(underlyingDecimals[i]);
 
-      const supply = totalSupply[i];
-      let totalSupplyUsd = (supply / 10 ** underlyingDecimals[i]) * price;
+      const supply = isGho ? p.totalAToken : totalSupply[i];
+      const totalSupplyUsd = (supply / 10 ** decimals) * price;
 
       const currentSupply = underlyingBalances[i];
-      let tvlUsd = (currentSupply / 10 ** underlyingDecimals[i]) * price;
-      let totalBorrowUsd;
-
-      if (pool.symbol === 'GHO') {
-        tvlUsd = 0;
-        totalSupplyUsd = tvlUsd;
-        totalBorrowUsd = ghoSupply * prices[`${chain}:${GHO}`]?.price;
+      const reserveLiquidityUsd = (currentSupply / 10 ** decimals) * price;
+      const totalBorrowUsd =
+        ((Number(p.totalStableDebt) + Number(p.totalVariableDebt)) /
+          10 ** decimals) *
+        price;
+      const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const hasBorrowCap = Number(poolsReserveCaps[i].borrowCap) > 0;
+      // Core Ethereum GHO is minted by the Aave facilitator, so available
+      // liquidity is constrained by remaining borrow cap, not reserve cash.
+      let availableBorrowUsd = null;
+      if (isEthereumGhoFacilitator) {
+        availableBorrowUsd = Math.max(borrowCapUsd - totalBorrowUsd, 0);
       } else {
-        totalBorrowUsd = totalSupplyUsd - tvlUsd;
+        availableBorrowUsd = hasBorrowCap
+          ? Math.max(
+              Math.min(reserveLiquidityUsd, borrowCapUsd - totalBorrowUsd),
+              0
+            )
+          : reserveLiquidityUsd;
       }
+      const tvlUsd = isEthereumGhoFacilitator
+        ? availableBorrowUsd
+        : reserveLiquidityUsd;
 
       const marketUrlParam =
         market === 'ethereum'
@@ -185,18 +219,19 @@ const getApy = async (market) => {
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
+        borrowToken: pool.tokenAddress,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
-        borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
-        ...(pool.symbol === 'GHO' && {
-          debtCeilingUsd: 1e8,
+        borrowable,
+        // TODO: Remove mintedCoin/debtCeiling once v2 is live
+        ...(isEthereumGhoFacilitator && {
+          debtCeilingUsd: borrowCapUsd,
           mintedCoin: 'GHO',
-          borrowToken: pool.tokenAddress,
         }),
-        poolMeta: ['lido', 'etherfi', 'horizon'].includes(market)
-          ? `${market}-market`
-          : null,
+        poolMeta: ethereumMarkets[market] ?? null,
+        routeGroupKey: protocolDataProvider.toLowerCase(),
       };
     })
     .filter((i) => Boolean(i));
@@ -231,6 +266,11 @@ const getApyAptos = async () => {
       const totalSupplyUsd = (availableLiquidity + totalVariableDebt) * priceUsd;
       const totalBorrowUsd = totalVariableDebt * priceUsd;
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+      const borrowCapUsd = Number(r.borrowCap) * priceUsd;
+      const hasBorrowCap = Number(r.borrowCap) > 0;
+      const availableBorrowUsd = hasBorrowCap
+        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : tvlUsd;
 
       return {
         pool: `${r.aTokenAddress}-aptos`.toLowerCase(),
@@ -242,7 +282,9 @@ const getApyAptos = async () => {
         underlyingTokens: [r.underlyingAsset],
         totalSupplyUsd,
         totalBorrowUsd,
+        availableBorrowUsd,
         apyBaseBorrow: Number(r.variableBorrowRate) / 1e25,
+        borrowToken: r.underlyingAsset,
         ltv: Number(r.baseLTVasCollateral) / 10000,
         url: `https://aptos.aave.com/reserve-overview/?underlyingAsset=${r.underlyingAsset}&marketName=aptos`,
         borrowable: r.borrowingEnabled,
@@ -263,7 +305,7 @@ const sGho = async () => {
       abi: 'function targetRate() view returns (uint256)',
       chain: 'ethereum',
     }),
-    axios.get(`https://coins.llama.fi/prices/current/ethereum:${GHO}`),
+    axios.get(utils.getPriceApiUrl(`/prices/current/ethereum:${GHO}`)),
   ]);
 
   return {
@@ -322,9 +364,7 @@ const stkGho = async () => {
       })
     ).output / 1e18;
 
-  const ghoPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/ethereum:${GHO}`)
-  ).data.coins[`ethereum:${GHO}`].price;
+  const ghoPrice = (await utils.getPriceApiData(`/prices/current/ethereum:${GHO}`)).coins[`ethereum:${GHO}`].price;
 
   const pool = {
     pool: `${STKGHO}-ethereum`.toLowerCase(),
@@ -395,6 +435,52 @@ const umbrella = async (aavePools) => {
   });
 };
 
+const correctCeloAaveMerklRewards = async (pools) => {
+  const shouldCorrect = (pool) =>
+    CELO_AAVE_MERKL_APR_CORRECTION_POOLS.has(pool.pool) &&
+    pool.apyReward > 100 &&
+    Number(pool.totalSupplyUsd) > 0;
+
+  if (!pools.some(shouldCorrect)) return pools;
+  try {
+    const dailyRewardsByPool = Object.fromEntries(
+      (
+        await merklGet('/v4/opportunities', {
+          params: {
+            mainProtocolId: 'aave',
+            chainId: 42220,
+            status: 'LIVE',
+            items: 100,
+            page: 0,
+          },
+        })
+      )
+        .flatMap((merklPool) =>
+          (merklPool.tokens || []).map((token) => [
+            `${token.address?.toLowerCase()}-celo`,
+            Number(merklPool.dailyRewards),
+          ])
+        )
+        .filter(([pool]) => CELO_AAVE_MERKL_APR_CORRECTION_POOLS.has(pool))
+    );
+
+    return pools.map((pool) => {
+      const dailyRewards = dailyRewardsByPool[pool.pool];
+      if (!dailyRewards || !shouldCorrect(pool)) {
+        return pool;
+      }
+
+      return {
+        ...pool,
+        apyReward: (dailyRewards * 365 * 100) / pool.totalSupplyUsd,
+      };
+    });
+  } catch (err) {
+    console.log(`failed to correct Celo Aave Merkl rewards: ${err}`);
+    return pools;
+  }
+};
+
 const apy = async () => {
   const pools = await Promise.allSettled(
     Object.keys(protocolDataProviders)
@@ -417,9 +503,16 @@ const apy = async () => {
     .concat([sghoPool, stkghoPool, ...umbrellaPools])
     .filter((p) => utils.keepFinite(p));
 
-  return addMerklRewardApy(result, 'aave', (p) => p.pool.split('-')[0]);
+  const withMerklRewards = await addMerklRewardApy(
+    result,
+    'aave',
+    (p) => p.pool.split('-')[0]
+  );
+
+  return correctCeloAaveMerklRewards(withMerklRewards);
 };
 
 module.exports = {
+  protocolId: '1599',
   apy,
 };

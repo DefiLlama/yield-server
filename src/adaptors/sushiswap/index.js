@@ -1,7 +1,6 @@
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
 const sdk = require('@defillama/sdk');
-const env = require('../../../env');
 
 const utils = require('../utils');
 const {
@@ -12,11 +11,13 @@ const {
 const { minichefV2 } = require('./abiMinichefV2');
 const { rewarderABI } = require('./abiRewarder');
 
+const graphApiKey = process.env.GRAPH_API_KEY;
+
 // exchange urls
 const urlEthereum = sdk.graph.modifyEndpoint(
   '6NUtT5mGjZ1tSshKLf5Q3uEEJtjBZJo1TpL5MXsUBqrT'
 );
-const urlArbitrum = `https://gateway-arbitrum.network.thegraph.com/api/${env.GRAPH_API_KEY}/deployments/id/QmfN96hDXYtgeLsBv5WjQY8FAwqBfBFoiq8gzsn9oApcoU`;
+const urlArbitrum = `https://gateway-arbitrum.network.thegraph.com/api/${graphApiKey}/deployments/id/QmfN96hDXYtgeLsBv5WjQY8FAwqBfBFoiq8gzsn9oApcoU`;
 
 const urlPolygon = sdk.graph.modifyEndpoint(
   '8NiXkxLRT3R22vpwLB4DXttpEf3X1LrKhe4T1tQ3jjbP'
@@ -24,7 +25,7 @@ const urlPolygon = sdk.graph.modifyEndpoint(
 const urlAvalanche = sdk.graph.modifyEndpoint(
   '6VAhbtW5u2sPYkJKAcMsxgqTBu4a1rqmbiVQWgtNjrvT'
 );
-const urlBase = `https://gateway-arbitrum.network.thegraph.com/api/${env.GRAPH_API_KEY}/deployments/id/QmQfYe5Ygg9A3mAiuBZYj5a64bDKLF4gF6sezfhgxKvb9y`;
+const urlBase = `https://gateway-arbitrum.network.thegraph.com/api/${graphApiKey}/deployments/id/QmQfYe5Ygg9A3mAiuBZYj5a64bDKLF4gF6sezfhgxKvb9y`;
 
 // LM reward urls
 const urlMc2 = sdk.graph.modifyEndpoint(
@@ -372,11 +373,7 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
     ].map((t) => `${chainString}:${t}`);
     const sushi = `${chainString}:${SUSHI[chainString]?.toLowerCase()}`;
     coins = [...coins, sushi];
-    const tokensUsd = (
-      await axios.get(
-        `https://coins.llama.fi/prices/current/${coins.join(',').toLowerCase()}`
-      )
-    ).data.coins;
+    const tokensUsd = (await utils.getPriceApiData(`/prices/current/${coins.join(',').toLowerCase()}`)).coins;
 
     // for mc1: calc sushi per year in usd
     if (chainString === 'ethereum') {
@@ -480,6 +477,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '119',
   timetravel: false,
   apy: main,
 };

@@ -1,14 +1,11 @@
-const ethers  = require('ethers');
-const {sushiSwapSubgraphUrl, BLOCK_TIME_SECONDS, feeRate, ETHEREUM_RPC_URL} = require('./constants');
+const sdk = require('@defillama/sdk');
+const {sushiSwapSubgraphUrl, BLOCK_TIME_SECONDS, feeRate} = require('./constants');
 const contract_addresses = require('./contract_addresses');
 const axios = require('axios');
-const fetch = require('node-fetch');
+const { getPriceApiData } = require('../utils');
 
-async function getBlockNumberOf24HoursAgo(providerUrl) {
-    const provider = new ethers.providers.JsonRpcProvider(providerUrl);
-  
-    // Get the current block number
-    const currentBlockNumber = await provider.getBlockNumber();
+async function getBlockNumberOf24HoursAgo() {
+    const currentBlockNumber = (await sdk.api.util.getLatestBlock('ethereum')).number;
   
     // Estimate the number of blocks in the past 24 hours
     const blocksIn24Hours = Math.floor(24 * 60 * 60 / BLOCK_TIME_SECONDS);
@@ -19,8 +16,8 @@ async function getBlockNumberOf24HoursAgo(providerUrl) {
     return approxBlockNumber;
   }
   
-  async function get24HourTradingVolume(pairAddress, providerUrl) {
-    const blockNumberOneDayAgo = await getBlockNumberOf24HoursAgo(providerUrl);
+  async function get24HourTradingVolume(pairAddress) {
+    const blockNumberOneDayAgo = await getBlockNumberOf24HoursAgo();
   
     const query = `
       {
@@ -103,7 +100,7 @@ async function getTotalValueInUSD(pairAddress) {
 
   // Get the price of ETH in USD
   const priceKey = `ethereum:${contract_addresses.WETH}`;
-  const ethPrice = (await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)).data.coins[priceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   // Calculate the total value of the liquidity pool's reserves in USD
   const totalValueInUSD =
@@ -112,11 +109,11 @@ async function getTotalValueInUSD(pairAddress) {
   return totalValueInUSD;
 }
 
-async function calculateTotalAPRSushi(pairAddress, providerUrl) {
-  const volume24h = await get24HourTradingVolume(pairAddress, providerUrl);
+async function calculateTotalAPRSushi(pairAddress) {
+  const volume24h = await get24HourTradingVolume(pairAddress);
 
   // Calculate the total value of the liquidity pool's reserves in USD
-  const totalValueInUSD = await getTotalValueInUSD(pairAddress, providerUrl);
+  const totalValueInUSD = await getTotalValueInUSD(pairAddress);
 
   if (totalValueInUSD === null) {
     return "Unable to calculate the total value in USD. Please check the pair address and try again.";
@@ -139,9 +136,8 @@ async function calculateTotalAPRSushi(pairAddress, providerUrl) {
 async function getLatestAPRSushi() {
   try {
     const pairAddress = contract_addresses.sushiSwapLP;
-    const providerUrl = ETHEREUM_RPC_URL;
 
-    const totalAPR = await calculateTotalAPRSushi(pairAddress, providerUrl);
+    const totalAPR = await calculateTotalAPRSushi(pairAddress);
     return totalAPR;
   }
   catch(err){

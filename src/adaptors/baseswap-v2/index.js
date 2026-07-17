@@ -233,29 +233,19 @@ const topLvl = async (
   const bsxPerSec = emissionRates['mainRate'] / 1e18;
 
   const bswapPriceKey = `base:${BSWAP}`;
-  const bswapPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${bswapPriceKey}`)
-  ).data.coins[bswapPriceKey]?.price;
+  const bswapPrice = (await utils.getPriceApiData(`/prices/current/${bswapPriceKey}`)).coins[bswapPriceKey]?.price;
 
   const bsxPriceKey = `base:${BSX}`;
-  const bsxPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${bsxPriceKey}`)
-  ).data.coins[bsxPriceKey]?.price;
+  const bsxPrice = (await utils.getPriceApiData(`/prices/current/${bsxPriceKey}`)).coins[bsxPriceKey]?.price;
 
   const wethPriceKey = `base:${WETH}`;
-  const wethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${wethPriceKey}`)
-  ).data.coins[wethPriceKey]?.price;
+  const wethPrice = (await utils.getPriceApiData(`/prices/current/${wethPriceKey}`)).coins[wethPriceKey]?.price;
 
   const usdbcPriceKey = `base:${USDBC}`;
-  const usdbcPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${usdbcPriceKey}`)
-  ).data.coins[usdbcPriceKey]?.price;
+  const usdbcPrice = (await utils.getPriceApiData(`/prices/current/${usdbcPriceKey}`)).coins[usdbcPriceKey]?.price;
 
   const edePriceKey = `base:${EDE}`;
-  const edePrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${edePriceKey}`)
-  ).data.coins[edePriceKey]?.price;
+  const edePrice = (await utils.getPriceApiData(`/prices/current/${edePriceKey}`)).coins[edePriceKey]?.price;
 
   const prices = {
     [BSWAP]: bswapPrice,
@@ -399,6 +389,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '3333',
   timetravel: false,
   apy: main,
 };

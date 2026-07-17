@@ -28,7 +28,7 @@ const getApy = async () => {
   const apy = apyInfo.data;
 
   const totalLockedFIL = await getTotalLockedFIL();
-  const filecoinPrice = (await utils.getData('https://coins.llama.fi/prices/current/coingecko:filecoin'))['coins']['coingecko:filecoin']['price'];
+  const filecoinPrice = (await utils.getPriceApiData('/prices/current/coingecko:filecoin'))['coins']['coingecko:filecoin']['price'];
 
   const tvlUsd = totalLockedFIL * filecoinPrice;
 
@@ -45,6 +45,7 @@ const getApy = async () => {
 }
  
 module.exports = {
+  protocolId: '2876',
   timetravel: false,
   apy: getApy,
   url: 'https://sft.network/#/stake',

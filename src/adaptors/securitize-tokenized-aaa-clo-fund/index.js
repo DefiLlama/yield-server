@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const project = 'securitize-tokenized-aaa-clo-fund';
 
@@ -9,7 +10,7 @@ const ORACLE = '0xEdC6287D3D41b322AF600317628D7E226DD3add4';
 
 const getBlock = (timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/ethereum/${timestamp}`)
+    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`))
     .then((r) => r.data.height);
 
 const getOraclePrice = (block) =>
@@ -73,6 +74,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7196',
   timetravel: false,
   apy,
   url: 'https://securitize.io/primary-market/Securitize-BNY-CLO-Fund',

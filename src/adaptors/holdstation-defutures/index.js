@@ -77,6 +77,7 @@ const usd1Pool = async () => {
 };
 
 module.exports = {
+  protocolId: '2959',
   timetravel: true,
   apy: async () => {
     return [await usd1Pool(), await wldPool()];

@@ -54,13 +54,9 @@ const getRewards = async (markets, isBorrow, chain) => {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -117,6 +113,30 @@ const lendingApy = async (chain) => {
         params: market,
       })),
       abi: comptrollerAbi.find(({ name }) => name === 'markets'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
+  const borrowCaps = (
+    await sdk.api.abi.multiCall({
+      chain,
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowCaps'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
+  const isBorrowPaused = (
+    await sdk.api.abi.multiCall({
+      chain,
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'borrowGuardianPaused'),
       permitFailure: true,
     })
   ).output.map(({ output }) => output);
@@ -206,6 +226,15 @@ const lendingApy = async (chain) => {
 
     const totalBorrowUsd = (Number(totalBorrows[i]) / 10 ** decimals) * price;
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Math.min(
+        Number(marketsCash[i]),
+        Number(borrowCaps[i]) > 0
+          ? Math.max(Number(borrowCaps[i]) - Number(totalBorrows[i]), 0)
+          : Number(marketsCash[i])
+      ) /
+        10 ** decimals) *
+      price;
 
     const apyBase = calculateApy(supplyRewards[i] / 10 ** 18);
     const apyBaseBorrow = calculateApy(borrowRewards[i] / 10 ** 18);
@@ -238,6 +267,8 @@ const lendingApy = async (chain) => {
       rewardTokens: [apyReward > 0 ? SONNE : null].filter(Boolean),
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
+      borrowable: isBorrowPaused[i] === false,
       apyBaseBorrow,
       apyRewardBorrow,
       ltv: marketsInfo[i].collateralFactorMantissa / 10 ** 18,
@@ -255,6 +286,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '2142',
   timetravel: false,
   apy,
   url: 'https://sonne.finance/',

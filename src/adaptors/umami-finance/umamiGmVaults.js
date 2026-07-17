@@ -1,11 +1,11 @@
 const axios = require('axios');
-const { Web3 } = require('web3');
 const sdk = require('@defillama/sdk');
 
 const arbitrumConstants = require('./arbitrum/umamiConstants.js');
 const avalancheConstants = require('./avalanche/umamiConstants.js');
 
 const { getIncentivesAprForVault } = require('./umamiIncentivesHelper.js');
+const { getPriceApiUrl } = require('../utils');
 const {
   getUmamiContractsForChain,
   getAggregateVaultContractForVault,
@@ -49,7 +49,7 @@ const getUmamiGmVaultsYield = async (chain, gmMarketsInfos) => {
         .getVaultTVL(vault.address.toLowerCase(), false)
         .call(),
       axios.get(
-        `https://coins.llama.fi/prices/current/${underlyingTokenPriceKey}`
+        getPriceApiUrl(`/prices/current/${underlyingTokenPriceKey}`)
       ),
       ,
     ]);

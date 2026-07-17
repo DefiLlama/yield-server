@@ -1,6 +1,5 @@
 // Llama
 const sdk = require('@defillama/sdk');
-const fetch = require('node-fetch');
 const { request } = require('graphql-request');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
@@ -244,7 +243,7 @@ const getPriceFromDefiLlama = async (chain, tokenAddresses) => {
       const chainTokens = maxTokens.map((address) => `${chain}:${address}`);
 
       const { coins } = await fetch(
-        `https://coins.llama.fi/prices/current/${chainTokens.join(',')}`
+        utils.getPriceApiUrl(`/prices/current/${chainTokens.join(',')}`)
       ).then((i) => i.json());
 
       maxTokens.forEach((token) => {
@@ -480,6 +479,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5981',
   timetravel: false,
   apy: main,
 };

@@ -68,7 +68,7 @@ const calculateApr = (currentRate, pastRate, days) => {
 const getBlock = async (timestamp, chain = 'ethereum') => {
   try {
     const response = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`
+      utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
     );
     return response.data.height;
   } catch (e) {
@@ -146,7 +146,7 @@ const getTvl = async (vault, totalSupply, currentRate) => {
   const token0 = vault.underlyingTokens[0];
   const underlyingKey = token0.includes(':') ? token0 : `${vault.chain}:${token0}`;
   const priceRes = await axios.get(
-    `https://coins.llama.fi/prices/current/${vaultKey},${underlyingKey}`
+    utils.getPriceApiUrl(`/prices/current/${vaultKey},${underlyingKey}`)
   );
 
   if (priceRes.data.coins[vaultKey]?.price) {
@@ -242,6 +242,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5825',
   timetravel: false,
   apy,
   url: 'https://veda.tech/',

@@ -24,6 +24,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '5333',
     apy: getApy,
     url: 'https://use.deficarrot.com/',
 };

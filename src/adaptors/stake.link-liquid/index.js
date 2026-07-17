@@ -1,77 +1,21 @@
-const { ethers } = require('ethers');
 const axios = require('axios');
-
-const getData = async (url, query = null) => {
-  let res;
-  if (query !== null) {
-    res = await axios.post(url, query);
-  } else {
-    res = await axios.get(url);
-  }
-  return res.data;
-};
+const { getPriceApiData } = require('../utils');
 
 const SUBGRAPH_URL =
-  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-production';
+  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-staging-2';
 
-const linkQuery = `
+const poolsQuery = `
   {
-    totalRewardAmounts {
-      totalRewardSTLINK
-      __typename
-    }
-    totalCounts {
-      linkStakingDistributionCount
-      __typename
-    }
-    linkStakingDistributions(
-      first: 1
-      skip: 0
-      orderBy: ts
-      orderDirection: desc
-    ) {
-      reward_rate
-      reward_amount
+    linkPool: priorityStakingPool(id: "LINKPool", subgraphError: allow) {
       total_staked
-      fees
-      fee_percentage
-      tx_hash
-      ts
-      __typename
+      reward_rate
+    }
+    polPool: priorityStakingPool(id: "POLPool", subgraphError: allow) {
+      total_staked
+      reward_rate
     }
   }
   `;
-
-const polQuery = `
- {
-    totalRewardAmounts {
-      totalRewardSTPOL
-      __typename
-    }
-    totalCounts {
-      polStakingDistributionCount
-      __typename
-    }
-    polStakingDistributions(
-      first: 1
-      skip: 0
-      orderBy: ts
-      orderDirection: desc
-      where: {isUpdatedWithBurnAmount: true}
-    ) {
-      reward_rate
-      reward_amount
-      total_staked
-      fees
-      fee_percentage
-      tx_hash
-      ts
-      __typename
-    }
-  }
-  `;
-
-const API_URL = 'https://stake.link/v1/metrics/staking';
 
 const pools = [
   {
@@ -80,6 +24,8 @@ const pools = [
     priceId: 'chainlink',
     chain: 'Ethereum',
     underlying: '0x514910771AF9Ca656af840dff83E8264EcF986CA', // LINK
+    poolField: 'linkPool',
+    url: 'https://stake.link/link/stake',
   },
   {
     symbol: 'stPOL',
@@ -87,72 +33,52 @@ const pools = [
     priceId: 'polygon-ecosystem-token',
     chain: 'Ethereum',
     underlying: '0x455e53CBB86018Ac2B8092FdCd39d8444aFFC3F6', // POL
+    poolField: 'polPool',
+    url: 'https://stake.link/pol/stake',
   },
 ];
 
-const fetchPrice = async (tokenId) => {
-  const priceKey = `coingecko:${tokenId}`;
-  const data = await getData(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
-  return data.coins[priceKey].price;
-};
-
-const fetchPool = async (pool) => {
-  try {
-    const { symbol, address, priceId, chain, underlying } = pool;
-    const price = await fetchPrice(priceId);
-
-    // Use appropriate query and field names based on the token
-    const query = symbol === 'stPOL' ? polQuery : linkQuery;
-    const distributionField =
-      symbol === 'stPOL'
-        ? 'polStakingDistributions'
-        : 'linkStakingDistributions';
-
-    const response = await getData(SUBGRAPH_URL, JSON.stringify({ query }));
-
-    if (
-      !response ||
-      !response.data ||
-      !response.data[distributionField] ||
-      !response.data[distributionField][0]
-    ) {
-      throw new Error(
-        `Invalid data structure received from subgraph for ${symbol}`
-      );
-    }
-
-    const distribution = response.data[distributionField][0];
-    const apy = parseFloat(distribution.reward_rate);
-    const totalStakedInWei = distribution.total_staked;
-    const totalStaked = parseFloat(ethers.utils.formatEther(totalStakedInWei));
-    const tvl = totalStaked * price;
-
-    return {
-      pool: `${address}-${chain}`.toLowerCase(),
-      chain: chain,
-      project: 'stake.link-liquid',
-      symbol,
-      tvlUsd: tvl,
-      apyBase: apy,
-      underlyingTokens: [underlying],
-    };
-  } catch (error) {
-    console.error(
-      `Error fetching pool data for ${pool.symbol}:`,
-      error.message
-    );
-    return null;
-  }
+const fetchPrices = async () => {
+  const priceKeys = pools.map((pool) => `coingecko:${pool.priceId}`);
+  const data = await getPriceApiData(`/prices/current/${priceKeys.join(',')}`);
+  return data.coins;
 };
 
 const fetchPools = async () => {
-  const poolsData = await Promise.all(pools.map(fetchPool));
-  return poolsData.filter(Boolean);
+  const [prices, response] = await Promise.all([
+    fetchPrices(),
+    axios.post(SUBGRAPH_URL, JSON.stringify({ query: poolsQuery })),
+  ]);
+
+  return pools
+    .map((pool) => {
+      const poolData = response.data?.data?.[pool.poolField];
+      const price = prices[`coingecko:${pool.priceId}`]?.price;
+      if (!poolData || price === undefined) {
+        console.error(`Missing subgraph or price data for ${pool.symbol}`);
+        return null;
+      }
+
+      const totalStaked = Number(poolData.total_staked) / 1e18;
+
+      return {
+        pool: `${pool.address}-${pool.chain}`.toLowerCase(),
+        chain: pool.chain,
+        project: 'stake.link-liquid',
+        symbol: pool.symbol,
+        tvlUsd: totalStaked * price,
+        apyBase: parseFloat(poolData.reward_rate),
+        underlyingTokens: [pool.underlying],
+        searchTokenOverride: pool.address,
+        isIntrinsicSource: true,
+        url: pool.url,
+      };
+    })
+    .filter(Boolean);
 };
 
 module.exports = {
+  protocolId: '2378',
   timetravel: false,
   apy: fetchPools,
   url: 'https://stake.link/',

@@ -4,8 +4,7 @@ const { getBunniVaultsForPool, getPricePerFullShare, getProtocolFee, getPoolData
 const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const bn = require('bignumber.js');
-const fetch = require('node-fetch');
-const { fetchPoolAvgInfo, fetchPoolsFromSubgraph, fetchTokenPricesFromSubgraph } = require('./subgraphCalls');
+const { fetchPoolsFromSubgraph, fetchTokenPricesFromSubgraph } = require('./subgraphCalls');
 
 const ALB = {
   base: '0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4',
@@ -61,7 +60,15 @@ const calculateApyBase = (avgVolume, liquidity, totalSupply, poolLiquidity, fee,
   );
 };
 
-const processPoolInfos = async (poolInfos) => {
+const mapInBatches = async (items, batchSize, fn) => {
+  const results = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    results.push(...(await Promise.all(items.slice(i, i + batchSize).map(fn))));
+  }
+  return results;
+};
+
+const processPoolInfos = async (poolInfos, volumeUsd7dByPool) => {
   const pools = await fetchPoolsFromSubgraph();
   const {protocolFee, newProtocolFee} = await getProtocolFee();
 
@@ -72,43 +79,59 @@ const processPoolInfos = async (poolInfos) => {
   const { albPrice, prices } = await getBaseTokensPrice(allTokens, 'base');
   const subgraphPrices = await fetchTokenPricesFromSubgraph();
 
-  const results = [];
+  const poolsWithVaults = (
+    await mapInBatches(pools, 10, async (pool) => ({
+      pool,
+      bunniVaults: await getBunniVaultsForPool(pool.id),
+    }))
+  ).filter(({ bunniVaults }) => bunniVaults.length);
 
-  for (const pool of pools) {
-    const bunniVaults = await getBunniVaultsForPool(pool.id);
-    const avgInfo = await fetchPoolAvgInfo(pool.id);
+  const results = await mapInBatches(poolsWithVaults, 5, async ({ pool, bunniVaults }) => {
+    const avgVolumeUsd =
+      (volumeUsd7dByPool[pool.id.toLowerCase()] ?? 0) / 7;
 
-    for (const bunniVault of bunniVaults) {
-      const tokens = await getTokensForPool(bunniVault.poolAddress, 'base');
-      if (!tokens) {
-        console.log(`Could not find tokens for pool ${bunniVault.poolAddress}`);
-        continue;
-      };
+    const [tokens, poolData] = await Promise.all([
+      getTokensForPool(pool.id, 'base'),
+      getPoolData(pool.id, 'base'),
+    ]);
 
-      const matchingPoolInfo = poolInfos.find((info) => info.lpToken === bunniVault.bunniToken);
-      
-      const poolData = await getPoolData(bunniVault.poolAddress, 'base');
-      if (!poolData) {
-        console.log(`Could not find pool data for pool ${bunniVault.poolAddress}`);
-        continue
-      }
+    if (!tokens) {
+      console.log(`Could not find tokens for pool ${pool.id}`);
+      return [];
+    }
 
-      const { slot0, fee, liquidity } = poolData;
+    if (!poolData) {
+      console.log(`Could not find pool data for pool ${pool.id}`);
+      return [];
+    }
 
-      const pricePerShare = await getPricePerFullShare(bunniVault);
+    const { slot0, fee, liquidity } = poolData;
+
+    const token0Price = prices[`base:${tokens.token0.address?.toLowerCase()}`]?.price || subgraphPrices[tokens.token0.address?.toLowerCase()]?.derivedUSD || 0;
+    const token1Price = prices[`base:${tokens.token1.address?.toLowerCase()}`]?.price || subgraphPrices[tokens.token1.address?.toLowerCase()]?.derivedUSD || 0;
+    const symbol = prices[`base:${tokens.token0.address?.toLowerCase()}`]?.symbol + '-' + prices[`base:${tokens.token1.address?.toLowerCase()}`]?.symbol;
+
+    const poolResults = await Promise.all(
+      bunniVaults.map(async (bunniVault) => {
+        const matchingPoolInfo = poolInfos.find((info) => info.lpToken === bunniVault.bunniToken);
+        const [pricePerShare, totalSupply, reserves] = await Promise.all([
+          getPricePerFullShare(bunniVault),
+          getTotalSupply(bunniVault.bunniToken, 'base'),
+          getReservesForBunniVault(bunniVault, tokens.token0.decimals, tokens.token1.decimals),
+        ]);
+
       if (!pricePerShare) {
         console.log(`Could not find price per share for pool ${bunniVault.poolAddress}`);
-        continue;
+        return null;
       }
 
-      const totalSupply = await getTotalSupply(bunniVault.bunniToken, 'base');
-      const reserves = await getReservesForBunniVault(bunniVault, tokens.token0.decimals, tokens.token1.decimals);
+      if (!reserves) {
+        console.log(`Could not find reserves for pool ${bunniVault.poolAddress}`);
+        return null;
+      }
 
       const currentTick = slot0.tick;
       const isInRange = (Number(currentTick) >= Number(bunniVault.tickLower)) && (Number(currentTick) <= Number(bunniVault.tickUpper));
-
-      const token0Price = prices[`base:${tokens.token0.address?.toLowerCase()}`]?.price || subgraphPrices[tokens.token0.address?.toLowerCase()]?.derivedUSD || 0;
-      const token1Price = prices[`base:${tokens.token1.address?.toLowerCase()}`]?.price || subgraphPrices[tokens.token1.address?.toLowerCase()]?.derivedUSD || 0;
 
       const token0USDValue = reserves.reserve0 * token0Price;
       const token1USDValue = reserves.reserve1 * token1Price;
@@ -116,7 +139,7 @@ const processPoolInfos = async (poolInfos) => {
 
       const apyBase = isInRange
         ? calculateApyBase(
-            avgInfo.volumeUSD,
+            avgVolumeUsd,
             Number(pricePerShare.liquidity),
             Number(totalSupply),
             Number(liquidity),
@@ -154,11 +177,13 @@ const processPoolInfos = async (poolInfos) => {
         poolMeta = 'Ultra Narrow';
       }
 
-      if (totalUSDValue > 0) results.push({
+      if (totalUSDValue <= 0) return null;
+
+      return {
         pool: bunniVault.poolAddress,
         bunniToken: bunniVault.bunniToken,
         chain: 'base',
-        symbol: prices[`base:${tokens.token0.address?.toLowerCase()}`]?.symbol + '-' + prices[`base:${tokens.token1.address?.toLowerCase()}`]?.symbol,
+        symbol,
         project: 'alien-base-v3',
         apyBase,
         apyReward: extraApy,
@@ -167,19 +192,22 @@ const processPoolInfos = async (poolInfos) => {
         url: `https://app.alienbase.xyz/add/${tokens.token0.address}/${tokens.token1.address}`,
         tvlUsd: totalUSDValue,
         poolMeta,
-      });
+      };
       // console.log(`For the bunni token ${bunniVault.bunniToken}, APY: ${apyBase.toFixed(2)}%`);
       // if (matchingPoolInfo?.rewards) {
       //   console.log(`For the bunni token ${bunniVault.bunniToken}, EXTRA APY Reward: ${extraApy?.toFixed(2)}%`);
       // }
-    }
-  }
+      })
+    );
 
-  return results;
+    return poolResults.filter(Boolean);
+  });
+
+  return results.flat();
 };
 
 
-const getAlbAprs = async (chain) => {
+const getAlbAprs = async (chain, volumeUsd7dByPool = {}) => {
   if (chainIds[chain] === undefined) return [];
 
   const masterChef = chainIds[chain].mchef;
@@ -264,24 +292,35 @@ const getAlbAprs = async (chain) => {
     };
   });
   
-  const processedInfo = await processPoolInfos(mergedPools);
+  const processedInfo = await processPoolInfos(mergedPools, volumeUsd7dByPool);
 
   return processedInfo;
 };
 
 const getBaseTokensPrice = async (allTokens, chain) => {
-  let priceKeys = {
+  const priceKeys = {
     alb: '0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4',
   };
 
-  let prices = (
-    await utils.getData(
-      `https://coins.llama.fi/prices/current/${Object.values(priceKeys)
-        .map((t) => `base:${t}`)
-        .concat(allTokens.map((t) => `${chain}:${t.id}`))
-        .join(',')}`
-    )
-  ).coins;
+  const tokenIds = [
+    ...Object.values(priceKeys).map((t) => `base:${t}`),
+    ...allTokens.map((t) => t?.id && `${chain}:${t.id}`),
+  ]
+    .filter(Boolean)
+    .map((id) => id.toLowerCase());
+
+  const uniqueTokenIds = [...new Set(tokenIds)];
+  const prices = {};
+  const maxSize = 50;
+
+  for (let i = 0; i < uniqueTokenIds.length; i += maxSize) {
+    const ids = uniqueTokenIds
+      .slice(i, i + maxSize)
+      .join(',')
+      .replaceAll('/', '');
+    const { coins } = await utils.getPriceApiData(`/prices/current/${ids}`);
+    Object.assign(prices, coins);
+  }
 
   const albriceData = prices[`base:${priceKeys.alb}`];
 

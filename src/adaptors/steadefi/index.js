@@ -150,6 +150,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2972',
   timetravel: false,
   apy: main,
   url: 'https://steadefi.com/vaults',

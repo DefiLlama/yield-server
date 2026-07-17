@@ -112,6 +112,7 @@ const verseYield = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '1732',
   timetravel: false,
   apy: verseYield,
 };

@@ -1,4 +1,4 @@
-const { parseAddress } = require('../../helper/starknet');
+const { parseAddress } = require('../utils');
 const axios = require('axios');
 
 
@@ -45,6 +45,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '4646',
   apy,
   url: 'https://app.nimbora.io/',
 };

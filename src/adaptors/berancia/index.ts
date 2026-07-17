@@ -199,6 +199,7 @@ const getPools = async (): Promise<Pool[]> => {
 };
 
 module.exports = {
+  protocolId: '6162',
   timetravel: false,
   apy: getPools,
   url: CONFIG.appUrl,

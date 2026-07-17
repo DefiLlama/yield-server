@@ -20,7 +20,7 @@ const SCALE  = BigInt('1000000000000')
 
 async function getBlockAt(ts, chain = CHAIN) {
   const { data } = await utils.withRetry(() =>
-    axios.get(`https://coins.llama.fi/block/${chain}/${ts}`)
+    axios.get(utils.getPriceApiUrl(`/block/${chain}/${ts}`))
   )
   return { block: data.height || data.number, ts: data.timestamp || ts }
 }
@@ -76,7 +76,7 @@ async function getData(vault, underlying) {
   const priceKey = `${CHAIN}:${underlying}`
   let price = 1
   try {
-    const { data } = await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
+    const data = await utils.getPriceApiData(`/prices/current/${priceKey}`)
     price = data.coins?.[priceKey]?.price ?? 1
   } catch (_) {}
 
@@ -132,6 +132,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '6790',
   timetravel: false,
   apy,
   url: 'https://app.falcon.finance/earn/classic',

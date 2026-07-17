@@ -127,6 +127,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6758',
   timetravel: false,
   apy,
   url: 'https://app.maxshot.ai',

@@ -1,7 +1,7 @@
 const utils = require('../utils');
 
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const COINS_LLAMA_PRICE_URL = 'https://coins.llama.fi/prices/current/';
+const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
 
 const FARMING_TYPE = "0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3::reserve_config::DepositFarming";
 const APT_ADDR = "0x1::aptos_coin::AptosCoin";
@@ -149,6 +149,7 @@ function calcAptRewardApy(rewardPerDay, aptPrice, tvlWithBorrow) {
 }
 
 module.exports = {
+  protocolId: '2228',
   timetravel: false,
   apy: main,
   url: 'https://app.ariesmarkets.xyz',

@@ -124,9 +124,7 @@ const getErc20TotalSupply = async (target, chain) =>
 
 const getTokenPrice = async (tokenAddress, chain) => {
   const priceKey = `${chain}:${tokenAddress.toLowerCase()}`;
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
   return data.coins?.[priceKey]?.price ?? 0;
 };
 
@@ -548,6 +546,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '7055',
   timetravel: false,
   apy,
   url: 'https://mudigital.net/',

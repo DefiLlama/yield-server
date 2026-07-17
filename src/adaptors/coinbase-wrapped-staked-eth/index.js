@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abi = require('./abi.js');
+const { getPriceApiData } = require('../utils');
 
 const token = '0xBe9895146f7AF43049ca1c1AE358B0541Ea49704';
 
@@ -11,9 +12,7 @@ const getApy = async () => {
 
   const timestamp1dayAgo = Math.floor(Date.now() / 1000) - 86400;
   const duration = 1; // day
-  const block1dayAgo = (
-    await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp1dayAgo}`)
-  ).data.height;
+  const block1dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp1dayAgo}`)).height;
 
   const exchangeRates = await Promise.all([
     sdk.api.abi.call({
@@ -35,9 +34,7 @@ const getApy = async () => {
     100;
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   return [
     {
@@ -56,6 +53,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3594',
   timetravel: false,
   apy: getApy,
   url: 'https://coinbase.com',

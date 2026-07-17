@@ -102,6 +102,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7254',
   timetravel: false,
   apy,
   url: 'https://getlazy.xyz',

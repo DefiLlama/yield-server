@@ -17,9 +17,7 @@ const getApy = async () => {
   ]
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: prices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: prices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const vDOT = {
     pool: 'polkadot-vdot',
@@ -130,6 +128,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '1738',
   timetravel: false,
   apy: getApy,
   url: 'https://bifrost.app/vstaking',

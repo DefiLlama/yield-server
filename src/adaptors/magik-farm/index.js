@@ -191,6 +191,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1968',
   timetravel: false,
   apy: main,
   url: 'https://magik.farm/#/fantom',

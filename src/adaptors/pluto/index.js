@@ -45,6 +45,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '5388',
   timetravel: false,
   apy: getApy,
   url: 'https://pluto.so/',

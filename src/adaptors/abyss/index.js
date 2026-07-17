@@ -63,7 +63,7 @@ async function fetchObjects(ids) {
 async function getTokenPrices(coinTypes) {
   const keys = coinTypes.map((c) => `sui:${c}`).join(',');
   const data = await sdk.util.fetchJson(
-    `https://coins.llama.fi/prices/current/${keys}`
+    utils.getPriceApiUrl(`/prices/current/${keys}`)
   );
   return coinTypes.map((c) => data.coins[`sui:${c}`]);
 }
@@ -227,6 +227,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '7390',
   timetravel: false,
   apy: main,
   url: 'https://beta.abyssprotocol.xyz/vaults',

@@ -27,13 +27,22 @@ const chains = {
   ),
 };
 
+// Chains where the only allocated indexer prunes historical state, which
+// breaks the block-offset queries used by topLvl. Volume for these chains
+// comes from poolDayDatas at the latest block instead.
+const dayDataChains = {
+  monad: sdk.graph.modifyEndpoint(
+    '6CQtx9W4b9Kn9cjznXJNLeTvLV1hbpxkaJZkbyXirJuz'
+  ),
+};
+
 const DYNAMIC_FEE_FLAG = 0x800000;
 const PAGE_SIZE = 1000;
 const TVL_MIN = 50000;
+const SUSPECT_TVL_USD = 1e8;
+const MIN_VOLUME_TO_TVL_RATIO = 1e-5;
 
-const queryWithSkip = (skip) => gql`
-  {
-    pools(first: ${PAGE_SIZE}, skip: ${skip}, orderBy: totalValueLockedUSD, orderDirection: desc, where: {totalValueLockedUSD_gte: ${TVL_MIN}}, block: {number: <PLACEHOLDER>}) {
+const POOL_FIELDS = `
       id
       feeTier
       totalValueLockedUSD
@@ -49,7 +58,11 @@ const queryWithSkip = (skip) => gql`
         symbol
         decimals
         id
-      }
+      }`;
+
+const queryWithSkip = (skip) => gql`
+  {
+    pools(first: ${PAGE_SIZE}, skip: ${skip}, orderBy: totalValueLockedUSD, orderDirection: desc, where: {totalValueLockedUSD_gte: ${TVL_MIN}}, block: {number: <PLACEHOLDER>}) {${POOL_FIELDS}
     }
   }
 `;
@@ -72,26 +85,67 @@ const fetchAllPools = async (url, block) => {
 
 const isDynamicFeePool = (feeTier) => Number(feeTier) === DYNAMIC_FEE_FLAG;
 
+const formatPool = (chainString, p) => {
+  const isDynamic = isDynamicFeePool(p.feeTier);
+
+  let poolMeta;
+  if (isDynamic) {
+    poolMeta = 'Dynamic fee (hook)';
+  } else {
+    const feePercent = (Number(p.feeTier) / 1e4).toFixed(2);
+    poolMeta = `${feePercent}%`;
+  }
+
+  const underlyingTokens = [p.token0.id, p.token1.id];
+  const chain = chainString === 'avax' ? 'avalanche' : chainString;
+
+  return {
+    pool: `${p.id}-${chainString}-uniswap-v4`,
+    chain: utils.formatChain(chainString),
+    project: 'uniswap-v4',
+    token: null,
+    poolMeta,
+    symbol: `${p.token0.symbol}-${p.token1.symbol}`,
+    tvlUsd: p.totalValueLockedUSD,
+    apyBase: p.apyBase,
+    underlyingTokens,
+    url: `https://app.uniswap.org/explore/pools/${chain}/${p.id}`,
+    volumeUsd1d: p.volumeUsd1d,
+  };
+};
+
+const hasInvalidTokenTvl = (pool) =>
+  Number(pool.totalValueLockedToken0) < 0 ||
+  Number(pool.totalValueLockedToken1) < 0;
+
+const hasSuspiciousTvlVolume = (pool) =>
+  pool.tvlUsd > SUSPECT_TVL_USD &&
+  Number(pool.volumeUsd1d || 0) / pool.tvlUsd < MIN_VOLUME_TO_TVL_RATIO;
+
 const topLvl = async (chainString, url, timestamp) => {
   try {
     const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
       url,
     ]);
 
-    let dataNow = await fetchAllPools(url, block);
-
-    let dataPrior = await fetchAllPools(url, blockPrior);
+    let [dataNow, dataPrior] = await Promise.all([
+      fetchAllPools(url, block),
+      fetchAllPools(url, blockPrior),
+    ]);
 
     dataNow = dataNow.map((p) => ({
       ...p,
       reserve0: p.totalValueLockedToken0,
       reserve1: p.totalValueLockedToken1,
     }));
+    dataNow = dataNow.filter((p) => !hasInvalidTokenTvl(p));
 
     dataNow = await utils.tvl(dataNow, chainString);
 
+    const dataPriorByPool = new Map(dataPrior.map((p) => [p.id, p]));
+
     dataNow = dataNow.map((pool) => {
-      const poolPrior = dataPrior.find((p) => p.id === pool.id);
+      const poolPrior = dataPriorByPool.get(pool.id);
       const isDynamic = isDynamicFeePool(pool.feeTier);
 
       const volumeUSD1d =
@@ -114,32 +168,151 @@ const topLvl = async (chainString, url, timestamp) => {
       };
     });
 
-    return dataNow.map((p) => {
-      const isDynamic = isDynamicFeePool(p.feeTier);
+    return dataNow.map((p) => formatPool(chainString, p));
+  } catch (e) {
+    console.log(chainString, e);
+    return [];
+  }
+};
 
-      let poolMeta;
-      if (isDynamic) {
-        poolMeta = 'Dynamic fee (hook)';
-      } else {
-        const feePercent = (Number(p.feeTier) / 1e4).toFixed(2);
-        poolMeta = `${feePercent}%`;
+const latestPoolsQuery = (idCursor) => gql`
+  {
+    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${TVL_MIN}, id_gt: "${idCursor}"}) {${POOL_FIELDS}
+    }
+  }
+`;
+
+const poolsByIdQuery = (ids) => gql`
+  {
+    pools(first: ${PAGE_SIZE}, where: {id_in: ${JSON.stringify(ids)}}) {${POOL_FIELDS}
+    }
+  }
+`;
+
+const dayVolumesQuery = (dateGte, dateLte, idCursor) => gql`
+  {
+    poolDayDatas(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {date_gte: ${dateGte}, date_lte: ${dateLte}, id_gt: "${idCursor}"}) {
+      id
+      date
+      volumeUSD
+      pool {
+        id
+      }
+    }
+  }
+`;
+
+const fetchLatestPools = async (url) => {
+  const allPools = [];
+  let idCursor = '';
+
+  while (true) {
+    const data = await request(url, latestPoolsQuery(idCursor));
+    const page = data.pools ?? [];
+    allPools.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    idCursor = page[page.length - 1].id;
+  }
+
+  return allPools;
+};
+
+// returns { poolId: { volumeUSD1d, volumeUSD7d } } built from the last 7 full
+// days of poolDayDatas; the most recent full day supplies volumeUSD1d
+const fetchDayVolumes = async (url, previousDay) => {
+  const volumesByPoolId = {};
+  const firstDay = previousDay - 6 * 86400;
+  let idCursor = '';
+
+  while (true) {
+    const data = await request(
+      url,
+      dayVolumesQuery(firstDay, previousDay, idCursor)
+    );
+    const page = data.poolDayDatas ?? [];
+
+    for (const dayData of page) {
+      const poolId = dayData.pool.id;
+      const volumes = volumesByPoolId[poolId] ?? {
+        volumeUSD1d: 0,
+        volumeUSD7d: 0,
+      };
+
+      volumes.volumeUSD7d += Number(dayData.volumeUSD);
+      if (Number(dayData.date) === previousDay) {
+        volumes.volumeUSD1d += Number(dayData.volumeUSD);
       }
 
-      const underlyingTokens = [p.token0.id, p.token1.id];
-      const chain = chainString === 'avax' ? 'avalanche' : chainString;
+      volumesByPoolId[poolId] = volumes;
+    }
+
+    if (page.length < PAGE_SIZE) break;
+    idCursor = page[page.length - 1].id;
+  }
+
+  return volumesByPoolId;
+};
+
+const topLvlDayData = async (chainString, url) => {
+  try {
+    // freshness assertion only; throws when the subgraph lags the chain
+    await utils.getBlocks(chainString, null, [url]);
+
+    const previousDay = (Math.floor(Date.now() / 1000 / 86400) - 1) * 86400;
+    const [tvlPools, volumesByPoolId] = await Promise.all([
+      fetchLatestPools(url),
+      fetchDayVolumes(url, previousDay),
+    ]);
+
+    const knownPoolIds = new Set(tvlPools.map((pool) => pool.id));
+    const missingPoolIds = Object.keys(volumesByPoolId).filter(
+      (poolId) => !knownPoolIds.has(poolId)
+    );
+
+    let dataNow = [...tvlPools];
+    for (let start = 0; start < missingPoolIds.length; start += 100) {
+      const data = await request(
+        url,
+        poolsByIdQuery(missingPoolIds.slice(start, start + 100))
+      );
+      dataNow = dataNow.concat(data.pools ?? []);
+    }
+
+    dataNow = dataNow
+      .filter((pool) => !hasInvalidTokenTvl(pool))
+      .map((pool) => ({
+        ...pool,
+        reserve0: pool.totalValueLockedToken0,
+        reserve1: pool.totalValueLockedToken1,
+      }));
+
+    dataNow = await utils.tvl(dataNow, chainString);
+    dataNow = dataNow.filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+
+    return dataNow.map((pool) => {
+      const volumes = volumesByPoolId[pool.id];
+      const volumeUSD1d = volumes?.volumeUSD1d ?? 0;
+      const volumeUSD7d = volumes?.volumeUSD7d ?? 0;
+
+      const feeRate = isDynamicFeePool(pool.feeTier)
+        ? 0
+        : Number(pool.feeTier) / 1e6;
+      const feeUSD1d = volumeUSD1d * feeRate;
+      const feeUSD7d = volumeUSD7d * feeRate;
+
+      const toApy = (annualFeesUsd) =>
+        pool.totalValueLockedUSD > 0 && annualFeesUsd > 0
+          ? (annualFeesUsd * 100) / pool.totalValueLockedUSD
+          : 0;
 
       return {
-        pool: `${p.id}-${chainString}-uniswap-v4`,
-        chain: utils.formatChain(chainString),
-        project: 'uniswap-v4',
-        token: null,
-        poolMeta,
-        symbol: `${p.token0.symbol}-${p.token1.symbol}`,
-        tvlUsd: p.totalValueLockedUSD,
-        apyBase: p.apyBase,
-        underlyingTokens,
-        url: `https://app.uniswap.org/explore/pools/${chain}/${p.id}`,
-        volumeUsd1d: p.volumeUsd1d,
+        ...formatPool(chainString, {
+          ...pool,
+          apyBase: toApy(feeUSD1d * 365),
+          volumeUsd1d: volumeUSD1d,
+        }),
+        apyBase7d: toApy(feeUSD7d * 52),
+        volumeUsd7d: volumeUSD7d,
       };
     });
   } catch (e) {
@@ -149,16 +322,22 @@ const topLvl = async (chainString, url, timestamp) => {
 };
 
 const main = async (timestamp = null) => {
-  const data = [];
-  for (const [chain, url] of Object.entries(chains)) {
-    data.push(await topLvl(chain, url, timestamp));
-  }
+  const data = await Promise.all([
+    ...Object.entries(chains).map(([chain, url]) =>
+      topLvl(chain, url, timestamp)
+    ),
+    ...Object.entries(dayDataChains).map(([chain, url]) =>
+      topLvlDayData(chain, url)
+    ),
+  ]);
+
   return data
     .flat()
     .filter((p) => utils.keepFinite(p))
-    .filter((p) => !(p.tvlUsd > 1e7 && p.volumeUsd1d < 10));
+    .filter((p) => !hasSuspiciousTvlVolume(p));
 };
 
 module.exports = {
+  protocolId: '5690',
   apy: main,
 };

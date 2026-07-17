@@ -72,9 +72,17 @@ const CONFIG = {
       rateType: 'fixed',
     },
   ],
+  fixedMarketsByLoanToken: {
+    '0x33fd40ed7744c961b61a086a87f83787bd9606ee':
+      '0x400922e37d608620672dc1f1b7a25ecbaabb57f8',
+  },
   sisuVaults: [
     {
       address: '0x50791a5cA041b9D6Dd03e64E3Fa0e34a376759AC',
+      rateType: 'variable',
+    },
+    {
+      address: '0xf12d8e85c387e259c1bad1cb571dade0a99c0a21',
       rateType: 'variable',
     },
   ],
@@ -103,6 +111,12 @@ const preferOnchainApy = (onchainApy, apiApy) => {
 };
 
 const mapSymbolAlias = (symbol) => API_ALIASES[symbol] || symbol;
+const formatRateTypePoolMeta = (rateType) =>
+  rateType === 'fixed'
+    ? 'Fixed Rate'
+    : rateType === 'variable'
+      ? 'Variable Rate'
+      : rateType;
 const getBtBaseTokenSymbol = (symbol = '') => {
   const match = String(symbol).match(/^BT-([^-]+)/i);
   return match ? match[1].toUpperCase() : null;
@@ -124,9 +138,7 @@ const getPrices = async (addresses) => {
   const keys = [
     ...new Set(addresses.map((a) => `${CHAIN}:${a.toLowerCase()}`)),
   ];
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${keys.join(',')}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${keys.join(',')}`);
   return data.coins || {};
 };
 
@@ -154,12 +166,20 @@ const getUzrPool = async (prices) => {
       ? (roi * SECONDS_PER_YEAR) / secondsToMaturity
       : 0;
 
-  const marketData = await sdk.api.abi.call({
-    target: UZRLendingMarket,
-    abi: marketAbi,
-    params: [UZRLendingMarketId],
-    chain: CHAIN,
-  });
+  const [marketData, collateralBalanceRes] = await Promise.all([
+    sdk.api.abi.call({
+      target: UZRLendingMarket,
+      abi: marketAbi,
+      params: [UZRLendingMarketId],
+      chain: CHAIN,
+    }),
+    sdk.api.abi.call({
+      target: USD0PP,
+      abi: 'erc20:balanceOf',
+      params: [UZRLendingMarket],
+      chain: CHAIN,
+    }),
+  ]);
 
   const totalSupplyAssets = toNumber(
     marketData.output.totalSupplyAssets ?? marketData.output[0],
@@ -169,12 +189,21 @@ const getUzrPool = async (prices) => {
     marketData.output.totalBorrowAssets ?? marketData.output[2],
     18
   );
-  const totalSupplyUsd = totalSupplyAssets * USD0price;
+  const totalLoanSupplyUsd = totalSupplyAssets * USD0price;
+  const totalSupplyUsd = toNumber(collateralBalanceRes.output, 18) * bUSD0price;
   const totalBorrowUsd = totalBorrowAssets * USD0price;
-  const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+  let availableBorrowUsd = Math.max(totalLoanSupplyUsd - totalBorrowUsd, 0);
+  const tvlUsd = availableBorrowUsd;
   const denom = 1 - LTV / (bUSD0price || 1);
   const maxLeverage = denom > 0 && Number.isFinite(denom) ? 1 / denom : 1;
 
+  // TODO: decide final UZR shape. Docs describe UZR as an isolated borrow
+  // market: users deposit bUSD0 as collateral and borrow USD0 against it, while
+  // the Usual DAO is the sole lender supplying USD0 liquidity. That means users
+  // cannot lend into this market for Fira supply yield. The displayed yield is
+  // bUSD0's implied discount-to-maturity carry from holding/looping bUSD0, not
+  // Fira paying supply-side APY. For now, preserve this adapter's prior UZR
+  // output shape and keep the maturity carry on apyBase.
   return {
     pool: UZRLendingMarket.toLowerCase(),
     chain: utils.formatChain(CHAIN),
@@ -185,8 +214,11 @@ const getUzrPool = async (prices) => {
     apyBaseBorrow: 0,
     totalSupplyUsd,
     totalBorrowUsd,
+    availableBorrowUsd,
     underlyingTokens: [USD0PP],
+    borrowToken: USD0,
     rewardTokens: [],
+    borrowable: availableBorrowUsd > 0,
     ltv: LTV,
     poolMeta: `Max leverage ~${maxLeverage.toFixed(2)}x`,
     url: URLS.DAPP,
@@ -298,6 +330,7 @@ const buildPool = ({
   collateralUnderlyingByToken,
   fixedMarketStateByPool,
   aprPoolData,
+  collateralBalance,
 }) => {
   const loanToken = marketParams.loanToken.toLowerCase();
   const collateralToken = marketParams.collateralToken.toLowerCase();
@@ -323,10 +356,13 @@ const buildPool = ({
   );
   const totalSupplyUsd = totalSupplyAssets * loanTokenPrice;
   const totalBorrowUsd = totalBorrowAssets * loanTokenPrice;
-  const tvlUsd = totalSupplyUsd - totalBorrowUsd;
-  const utilization =
-    totalSupplyAssets > 0 ? totalBorrowAssets / totalSupplyAssets : 0;
-  const fee = Number(marketState.fee ?? marketState[5] ?? 0) / 1e18;
+  let availableBorrowUsd = Math.max(totalSupplyUsd - totalBorrowUsd, 0);
+  const collateralDecimals = tokenMeta[collateralToken]?.decimals;
+  const collateralSupplyUsd = Number.isFinite(collateralDecimals)
+    ? toNumber(collateralBalance || 0, collateralDecimals) *
+      (prices[`${CHAIN}:${collateralToken}`]?.price ?? 0)
+    : 0;
+  const poolTotalSupplyUsd = collateralSupplyUsd;
 
   let borrowRatePerSecond = 0;
   let maturity = null;
@@ -335,6 +371,14 @@ const buildPool = ({
     maturity = fixedRateInfo?.expiry ?? null;
     const poolKey = `${lendingMarket.toLowerCase()}-${marketId}`;
     const marketState = fixedMarketStateByPool[poolKey];
+    if (maturity && maturity < Math.floor(Date.now() / 1000)) return null;
+    const totalFw = Number(
+      marketState?.totalFw ??
+        marketState?.[1] ??
+        marketState?.market?.totalFw ??
+        0
+    );
+    availableBorrowUsd = Math.max(toNumber(totalFw, 6) * loanTokenPrice, 0);
     const lastLnImpliedRate = Number(
       marketState?.lastLnImpliedRate ??
         marketState?.[8] ??
@@ -350,36 +394,33 @@ const buildPool = ({
     borrowRatePerSecond = marketState.borrowRatePerSecond || 0;
   }
 
-  const supplyRatePerSecond = borrowRatePerSecond * utilization * (1 - fee);
   const computedApyBaseBorrow = toApyPercent(borrowRatePerSecond);
-  const computedApyBase = toApyPercent(supplyRatePerSecond);
-
-  const metadata = [];
-  metadata.push(rateType);
-  if (rateType === 'fixed' && maturity) {
-    const btBaseTokenSymbol = getBtBaseTokenSymbol(loanSymbolRaw);
-    metadata.push(`${collateralSymbolRaw}-${btBaseTokenSymbol}`);
-  }
+  const tvlUsd = availableBorrowUsd;
 
   return {
     pool: `${lendingMarket.toLowerCase()}-${marketId}`,
     chain: utils.formatChain(CHAIN),
     project: PROJECT,
-    symbol: `${collateralSymbol}-${loanSymbol}`,
+    symbol: collateralSymbol,
     tvlUsd,
-    apyBase: preferOnchainApy(computedApyBase, aprPoolData?.apyBase),
+    apyBase: 0,
     apyBaseBorrow: preferOnchainApy(
       computedApyBaseBorrow,
       aprPoolData?.apyBaseBorrow
     ),
-    totalSupplyUsd,
+    totalSupplyUsd: poolTotalSupplyUsd,
     totalBorrowUsd,
-    underlyingTokens: [loanToken],
-    borrowable: true,
+    availableBorrowUsd,
+    underlyingTokens: [collateralToken],
+    borrowable: availableBorrowUsd > 0,
     ltv: Number(marketParams.lltv) / 1e18,
-    mintedCoin: utils.formatSymbol(loanSymbol),
+    mintedCoin: utils.formatSymbol(
+      fixedRateInfo?.underlyingToken
+        ? tokenMeta[fixedRateInfo.underlyingToken]?.symbol || loanSymbol
+        : loanSymbol
+    ),
     borrowToken: fixedRateInfo?.underlyingToken || loanToken,
-    poolMeta: metadata.join(' | '),
+    poolMeta: formatRateTypePoolMeta(rateType),
     url: URLS.DAPP,
   };
 };
@@ -473,12 +514,25 @@ const apy = async () => {
         permitFailure: true,
       })
     : { output: [] };
+  const fwTotalSupplyRes = fwTokens.length
+    ? await sdk.api.abi.multiCall({
+        chain: CHAIN,
+        abi: 'erc20:totalSupply',
+        calls: fwTokens.map((fw) => ({ target: fw })),
+        permitFailure: true,
+      })
+    : { output: [] };
 
   const fwToUnderlying = {};
   fwAssetInfoRes.output.forEach((res) => {
     const fw = res.input.target.toLowerCase();
     const assetAddress = res?.output?.assetAddress ?? res?.output?.[1];
     if (assetAddress) fwToUnderlying[fw] = assetAddress.toLowerCase();
+  });
+  const fwTotalSupplyByToken = {};
+  fwTotalSupplyRes.output.forEach((res) => {
+    if (!res.success || !res.output) return;
+    fwTotalSupplyByToken[res.input.target.toLowerCase()] = res.output;
   });
 
   Object.values(fixedRateInfoByLoanToken).forEach((info) => {
@@ -488,14 +542,18 @@ const apy = async () => {
 
   const fixedPools = allMarkets.filter((m) => m.rateType === 'fixed');
   const fixedMarketStateByPool = {};
+  let fixedPoolToMarket = {};
   if (fixedPools.length) {
-    const fixedPoolToMarket = await getFixedPoolToFiraMarket(fixedPools);
+    fixedPoolToMarket = await getFixedPoolToFiraMarket(fixedPools);
     const fixedReadStateRes = await sdk.api.abi.multiCall({
       chain: CHAIN,
       abi: FIRA_MARKET_ABI.readState,
       calls: fixedPools.map((m) => ({
         target:
           fixedPoolToMarket[`${m.lendingMarket.toLowerCase()}-${m.marketId}`] ||
+          CONFIG.fixedMarketsByLoanToken[
+            m.marketParams.loanToken.toLowerCase()
+          ] ||
           '0x0000000000000000000000000000000000000000',
         params: [BCLP_ORACLE],
       })),
@@ -623,8 +681,18 @@ const apy = async () => {
       : null;
   });
 
+  const collateralBalanceRes = await sdk.api.abi.multiCall({
+    chain: CHAIN,
+    abi: 'erc20:balanceOf',
+    calls: allMarkets.map((market) => ({
+      target: market.marketParams.collateralToken.toLowerCase(),
+      params: [market.lendingMarket],
+    })),
+    permitFailure: true,
+  });
+
   const marketPools = allMarkets
-    .map((market) =>
+    .map((market, index) =>
       buildPool({
         ...market,
         tokenMeta,
@@ -639,30 +707,94 @@ const apy = async () => {
               market.marketId
             }`.toLowerCase()
           ],
+        collateralBalance: collateralBalanceRes.output[index]?.output,
       })
     )
     .filter(Boolean)
     .filter((pool) => utils.keepFinite(pool));
+
+  const fixedLendPools = Object.values(
+    fixedPools.reduce((acc, market) => {
+      const poolKey = `${market.lendingMarket.toLowerCase()}-${market.marketId}`;
+      const fixedRateInfo =
+        fixedRateInfoByLoanToken[market.marketParams.loanToken.toLowerCase()];
+      const maturity = fixedRateInfo?.expiry ?? null;
+      if (!maturity || maturity < Math.floor(Date.now() / 1000)) return acc;
+      const fixedMarket =
+        fixedPoolToMarket[poolKey] ||
+        CONFIG.fixedMarketsByLoanToken[
+          market.marketParams.loanToken.toLowerCase()
+        ];
+      const marketState = fixedMarketStateByPool[poolKey];
+      const underlyingToken = fixedRateInfo?.underlyingToken;
+      const underlyingPrice = fixedRateInfo?.underlyingPrice ?? 0;
+      if (!fixedMarket || !marketState || !underlyingToken) return acc;
+      const lastLnImpliedRate = Number(
+        marketState?.lastLnImpliedRate ??
+          marketState?.[8] ??
+          marketState?.market?.lastLnImpliedRate ??
+          0
+      );
+      const btApr =
+        lastLnImpliedRate > 0 ? Math.exp(lastLnImpliedRate / WAD) - 1 : 0;
+      const apyBase = toApyPercent(btApr / SECONDS_PER_YEAR);
+      const decimals =
+        tokenMeta[market.marketParams.loanToken.toLowerCase()]?.decimals ?? 6;
+      const tvlUsd =
+        toNumber(fwTotalSupplyByToken[fixedRateInfo.fw] || 0, decimals) *
+        underlyingPrice;
+      acc[fixedMarket] = {
+        pool: fixedMarket,
+        chain: utils.formatChain(CHAIN),
+        project: PROJECT,
+        symbol: utils.formatSymbol(tokenMeta[underlyingToken]?.symbol || 'USDC'),
+        tvlUsd,
+        apyBase,
+        underlyingTokens: [underlyingToken],
+        poolMeta: formatRateTypePoolMeta(market.rateType),
+        url: URLS.DAPP,
+      };
+      return acc;
+    }, {})
+  ).filter((pool) => utils.keepFinite(pool));
 
   const sisuPools = CONFIG.sisuVaults
     .map((vault) => {
       const poolKey = vault.address.toLowerCase();
       const aprPoolData = aprPoolMap[poolKey];
       if (!aprPoolData) return null;
+      const {
+        apyBaseBorrow,
+        totalBorrowUsd,
+        borrowable,
+        ltv,
+        mintedCoin,
+        borrowToken,
+        poolMeta,
+        rewardTokens,
+        totalSupplyUsd,
+        ...pool
+      } = aprPoolData;
+      const [underlyingToken] = pool.underlyingTokens || [];
       return {
-        ...aprPoolData,
+        ...pool,
         pool: poolKey,
-        url: aprPoolData.url || URLS.DAPP,
+        symbol: utils.formatSymbol(
+          tokenMeta[underlyingToken?.toLowerCase()]?.symbol || pool.symbol
+        ),
+        poolMeta: formatRateTypePoolMeta(vault.rateType),
+        url: pool.url || URLS.DAPP,
       };
     })
     .filter(Boolean)
     .filter((pool) => utils.keepFinite(pool));
 
   const uzrPool = await getUzrPool(prices);
-  return [uzrPool, ...marketPools, ...sisuPools];
+  return [uzrPool, ...marketPools, ...fixedLendPools, ...sisuPools];
 };
 
 module.exports = {
+  protocolId: '7329',
   apy,
   url: URLS.DAPP,
   timetravel: false,

@@ -75,6 +75,7 @@ const getPoolsApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4140',
   timetravel: false,
   apy: getPoolsApy,
   url: POOLS_PAGE,

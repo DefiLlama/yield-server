@@ -29,9 +29,7 @@ const poolsFunction = async () => {
   );
 
   const key = 'arbitrum:0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins[key].price;
+  const price = (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key].price;
 
   const tvl = await bankTvl();
 
@@ -49,6 +47,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3381',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://thegoblins.finance',

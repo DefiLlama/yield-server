@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { ethers } = require('ethers');
+const { getPriceApiData } = require('../utils');
 
 const BOLD_TOKEN = '0x6440f144b7e50d6a8439336510312d2f54beb01d';
 const DAY_IN_SECONDS = 24 * 60 * 60;
@@ -101,6 +102,20 @@ const ABIS = {
       inputs: [],
       name: 'MCR',
       outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    getCCR: {
+      inputs: [],
+      name: 'CCR',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    hasBeenShutDown: {
+      inputs: [],
+      name: 'hasBeenShutDown',
+      outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
       stateMutability: 'view',
       type: 'function',
     },
@@ -331,7 +346,7 @@ const ABIS = {
 
   const getPrices = async (addresses) => {
     const req = addresses.map((address) => `ethereum:${address}`).join(',').toLowerCase();
-    const prices = (await axios.get(`https://coins.llama.fi/prices/current/${req}`)).data.coins;
+    const prices = (await getPriceApiData(`/prices/current/${req}`)).coins;
 
     const pricesObj = Object.fromEntries(
       Object.entries(prices).map(([address, priceData]) => [address.split(':')[1].toLowerCase(), priceData.price])
@@ -377,6 +392,26 @@ const ABIS = {
     );
 
     return 1 / (res.output / 1e18);
+  }
+  const getCCR = async (borrowerOpsAddr) =>{
+    const res = (await sdk.api.abi.call({
+        target: borrowerOpsAddr,
+        abi: ABIS.getCCR,
+        chain: 'ethereum',
+      })
+    );
+
+    return res.output / 1e18;
+  }
+  const getBranchShutdown = async (borrowerOpsAddr) =>{
+    const res = (await sdk.api.abi.call({
+        target: borrowerOpsAddr,
+        abi: ABIS.hasBeenShutDown,
+        chain: 'ethereum',
+      })
+    );
+
+    return res.output;
   }
   const getNewApproxAvgInterestRateFromTroveChange = async(activePoolAddr) => {
     const res = await sdk.api.abi.call({
@@ -427,10 +462,15 @@ const ABIS = {
       const totalCollUsd = totalColl * branch.price
 
       const ltv = await getLTV(branch.borrowerOperations);
+      const ccr = await getCCR(branch.borrowerOperations);
+      const isShutDown = await getBranchShutdown(branch.borrowerOperations);
       const borrowApy = await getNewApproxAvgInterestRateFromTroveChange(branch.activePool);
       
       const totalDebt = await getBranchDebt(collPools);
       const totalDebtUsd = totalDebt * prices[BOLD_TOKEN];
+      const availableBorrowUsd = isShutDown
+        ? 0
+        : Math.max(totalCollUsd / ccr - totalDebtUsd, 0);
 
       const [spSupply, spApy] = await getSPSupplyAndApy(branch.stabilityPool, borrowApy, totalDebt);
       const spSupplyUsd = spSupply * prices[BOLD_TOKEN];
@@ -467,9 +507,11 @@ const ABIS = {
           apyBaseBorrow: borrowApy,
           totalSupplyUsd: totalCollUsd,
           totalBorrowUsd: totalDebtUsd,
+          availableBorrowUsd,
           ltv: ltv,
           mintedCoin: 'BOLD',
           borrowToken: BOLD_TOKEN,
+          borrowable: !isShutDown,
           underlyingTokens: [branch.collToken], 
         }
 
@@ -480,6 +522,7 @@ const ABIS = {
   }
 
 module.exports = {
+  protocolId: '5656',
   timetravel: false,
   apy: main,
   url: 'https://www.liquity.org/',

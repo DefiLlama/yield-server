@@ -153,6 +153,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '249',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://stakedao.org',

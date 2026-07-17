@@ -77,6 +77,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6023',
   timetravel: false,
   apy,
   url: 'https://brunch.finance/stake',

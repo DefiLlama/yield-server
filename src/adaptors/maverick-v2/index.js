@@ -128,7 +128,7 @@ const main = async (unixTimestamp) => {
 
     // get token price from llama coins api
     const coinLists = Object.keys(allTokens).map(token => `${chain}:${token}`);
-    const coinPrices = (await axios.get(`https://coins.llama.fi/prices/current/${coinLists.toString()}`)).data.coins;
+    const coinPrices = (await utils.getPriceApiData(`/prices/current/${coinLists.toString()}`)).coins;
     for (const [coinId, coinPrice] of Object.entries(coinPrices)) {
       allTokens[utils.formatAddress(coinId.split(':')[1])].price = Number(coinPrice.price);
     }
@@ -213,6 +213,7 @@ const main = async (unixTimestamp) => {
 };
 
 module.exports = {
+  protocolId: '4752',
   timetravel: true,
   apy: main,
 };

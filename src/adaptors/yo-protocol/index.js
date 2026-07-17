@@ -1,12 +1,9 @@
 const axios = require('axios');
 const { formatChain, getPrices, getERC4626Info } = require('../utils');
-const { getVaultReward } = require('./services');
 
 const PROJECT_NAME = 'yo-protocol';
 const API_URL = 'https://api.yo.xyz/api/v1/vault/stats?secondary=true';
 const SOLANA_API_URL = 'https://api.yo.xyz/api/v1/solana/vault/stats';
-const MERKL_API_URL =
-  'https://api.merkl.fr/v4/campaigns?creatorAddress=0x8C9200d94Cf7A1B201068c4deDa6239F15FED480&status=LIVE&withOpportunity=true';
 
 const getEvmPools = async () => {
   const response = await axios.get(API_URL);
@@ -55,15 +52,6 @@ const getEvmPools = async () => {
     }
   });
 
-  // Fetch vault rewards from Merkl — keyed by vault address (not chain)
-  // so all chains for the same vault share the reward APY
-  let vaultRewardMap;
-  try {
-    vaultRewardMap = await getVaultReward(MERKL_API_URL);
-  } catch {
-    vaultRewardMap = new Map();
-  }
-
   const pools = [];
   for (const vault of vaults) {
     const key =
@@ -77,10 +65,6 @@ const getEvmPools = async () => {
       tvlByKey[key] / 10 ** vault.asset.decimals;
 
     const tvlUsd = normalizedTvl * Number(price);
-
-    const vaultReward = vaultRewardMap.get(
-      vault.contracts.vaultAddress.toLowerCase()
-    );
 
     // Preserve original pool IDs for existing primary pools to avoid losing historical data
     const poolId = vault.type === 'Deposit'
@@ -98,10 +82,6 @@ const getEvmPools = async () => {
       pricePerShare: pricePerShareByKey[key],
       underlyingTokens: [vault.asset.address],
       url: `https://app.yo.xyz/vault/${vault.chain.name}/${vault.contracts.vaultAddress}`,
-      ...(vaultReward && {
-        apyReward: Number(vaultReward.apr),
-        rewardTokens: ['0x1925450f5e5fb974b0aae1f3408cf5286fbd1a72'],
-      }),
     };
 
     pools.push(pool);
@@ -132,7 +112,6 @@ const getSolanaPools = async () => {
     const tvlUsd = normalizedTvl * Number(price);
 
     const apyBase = vault.yield?.['1d'] != null ? Number(vault.yield['1d']) : null;
-    const rewardYield = vault.rewardYield != null ? Number(vault.rewardYield) : null;
 
     const shareTokenAddress = vault.shareAsset?.address || vault.contracts.vaultAddress;
     const pool = {
@@ -145,11 +124,7 @@ const getSolanaPools = async () => {
       apyBase,
       underlyingTokens: [vault.asset.address],
       token: shareTokenAddress,
-      url: `https://app.yo.xyz/vault/Solana/${vault.id.toLowerCase()}`,
-      ...(rewardYield && rewardYield > 0 && {
-        apyReward: rewardYield,
-        rewardTokens: ['0x1925450f5e5fb974b0aae1f3408cf5286fbd1a72'],
-      }),
+      url: `https://app.yo.xyz/vault/solana/${vault.id.toLowerCase()}`,
     };
 
     pools.push(pool);
@@ -167,4 +142,4 @@ const apy = async () => {
   return [...evmPools, ...solanaPools];
 };
 
-module.exports = { apy };
+module.exports = { protocolId: '5915', apy };

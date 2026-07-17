@@ -107,6 +107,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '2476',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://www.dontdiememe.com/pina',

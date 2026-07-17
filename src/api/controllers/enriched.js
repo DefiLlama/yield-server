@@ -81,9 +81,11 @@ const getPoolsEnrichedPro = async (req, res) => {
 
 const getPoolsBorrow = async (req, res) => {
   const data = await Promise.all(
-    ['pools', 'lendBorrow'].map((p) =>
-      readFromS3('defillama-datasets', `yield-api/${p}`)
-    )
+    ['pools', 'lendBorrow'].map(async (p) => {
+      const r = await fetch(`https://defillama-datasets.llama.fi/yield-api/${p}`);
+      if (!r.ok) throw new Error(`failed to fetch yield-api/${p}: ${r.status}`);
+      return r.json();
+    })
   );
 
   if (!data) {
@@ -96,9 +98,10 @@ const getPoolsBorrow = async (req, res) => {
   const lendBorrow = data[1];
 
   // join supply side fields (all enriched fields) onto borrow object
+  const poolsMap = new Map(pools.map((i) => [i.pool, i]));
   const poolsBorrow = lendBorrow
     .map((p) => {
-      const poolSupplySide = pools.find((i) => i.pool === p.pool);
+      const poolSupplySide = poolsMap.get(p.pool);
       if (poolSupplySide === undefined) return null;
 
       return {

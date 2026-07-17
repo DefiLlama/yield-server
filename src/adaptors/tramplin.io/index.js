@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const VOTE_ACCOUNT = 'TRAMp1Z9EXyWQQNwNjjoNvVksMUHKioVU7ky61yNsEq';
 const SOL = 'So11111111111111111111111111111111111111112';
@@ -20,7 +21,7 @@ const rpc = (method, params = []) =>
 const apy = async () => {
   const [voteRes, priceRes, epochRes] = await Promise.all([
     rpc('getVoteAccounts', [{ votePubkey: VOTE_ACCOUNT }]),
-    axios.get(`https://coins.llama.fi/prices/current/${solKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${solKey}`)),
     rpc('getEpochInfo'),
   ]);
 
@@ -69,6 +70,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7414',
   timetravel: false,
   apy,
   url: 'https://tramplin.io',

@@ -13,6 +13,9 @@ const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
 const { getExcludedAdaptors } = require('../utils/exclude');
+const { checkStablecoin } = require('../adaptors/checkStablecoin');
+
+const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -25,7 +28,7 @@ const main = async () => {
     await axios.get('https://api.llama.fi/config/yields?a=1')
   ).data.protocols;
   const lendingProjects = Object.entries(config)
-    .filter(([, protocol]) => protocol?.category === 'Lending')
+    .filter(([, protocol]) => ZERO_TVL_CATEGORIES.includes(protocol?.category))
     .map(([project]) => project);
 
   // ---------- get lastet unique pool
@@ -116,6 +119,7 @@ const main = async () => {
   if (!stablecoins.includes('ustb')) stablecoins.push('ustb');
   if (!stablecoins.includes('usdn')) stablecoins.push('usdn');
   if (!stablecoins.includes('aiusd')) stablecoins.push('aiusd');
+  if (!stablecoins.includes('usdm')) stablecoins.push('usdm');
 
   // get catgory data (we hardcode IL to true for options protocols)
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
@@ -365,80 +369,6 @@ const enrich = (pool, days, offsets) => {
   return poolC;
 };
 
-const checkStablecoin = (el, stablecoins) => {
-  let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
-  const symbolLC = el.symbol.toLowerCase();
-
-  let stable;
-  if (
-    el.project === 'curve' &&
-    symbolLC.includes('3crv') &&
-    !symbolLC.includes('btc')
-  ) {
-    stable = true;
-  } else if (el.project === 'curve-dex' && symbolLC.includes('xstable')) {
-    stable = true;
-  } else if (el.project === 'convex-finance' && symbolLC.includes('3crv')) {
-    stable = true;
-  } else if (el.project === 'aave-v2' && symbolLC.includes('amm')) {
-    tok = tokens[0].split('weth');
-    stable = tok[0].includes('wbtc') ? false : tok.length > 1 ? false : true;
-  } else if (tokens[0].includes('torn')) {
-    stable = false;
-  } else if (el.project === 'hermes-protocol' && symbolLC.includes('maia')) {
-    stable = false;
-  } else if (el.project === 'sideshift' && symbolLC.includes('xai')) {
-    stable = false;
-  } else if (el.project === 'archimedes-finance' && symbolLC.includes('usd')) {
-    stable = true;
-  } else if (
-    el.project === 'aura' &&
-    [
-      '0xa13a9247ea42d743238089903570127dda72fe44',
-      '0x99c88ad7dc566616548adde8ed3effa730eb6c34',
-      '0xf3aeb3abba741f0eece8a1b1d2f11b85899951cb',
-    ].includes(el.pool)
-  ) {
-    stable = true;
-  } else if (
-    tokens.some((t) => t.includes('sushi')) ||
-    tokens.some((t) => t.includes('dusk')) ||
-    tokens.some((t) => t.includes('fpis')) ||
-    tokens.some((t) => t.includes('emaid')) ||
-    tokens.some((t) => t.includes('grail')) ||
-    tokens.some((t) => t.includes('oxai')) ||
-    tokens.some((t) => t.includes('crv') && !t.includes('crvusd')) ||
-    tokens.some((t) => t.includes('wbai')) ||
-    tokens.some((t) => t.includes('move'))
-  ) {
-    stable = false;
-  } else if (tokens.length === 1) {
-    const tokenClean = tokens[0].replace(/\s*\(.*?\)\s*/g, '');
-    stable = stablecoins.some((x) => {
-      if (!x || x.trim().length === 0) return false;
-      if (x.length === 1) {
-        return tokenClean === x;
-      }
-      return tokenClean.includes(x);
-    });
-  } else if (tokens.length > 1) {
-    let x = 0;
-    for (const t of tokens) {
-      const tokenClean = t.replace(/\s*\(.*?\)\s*/g, '');
-      x += stablecoins.some((sc) => {
-        if (!sc || sc.trim().length === 0) return false;
-        if (sc.length === 1) {
-          return tokenClean === sc;
-        }
-        return tokenClean.includes(sc);
-      });
-    }
-    stable = x === tokens.length;
-  }
-
-  return stable;
-};
-
 // no IL in case of:
 // 1: - stablecoin
 // 2: - 1 asset
@@ -545,5 +475,3 @@ const addPoolInfo = (el, stablecoins, config) => {
 
   return el;
 };
-
-module.exports.checkStablecoin = checkStablecoin;

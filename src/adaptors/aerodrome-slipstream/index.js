@@ -19,6 +19,47 @@ const SUBGRAPH = sdk.graph.modifyEndpoint(
 
 const tickWidthMappings = { 1: 5, 50: 5, 100: 15, 200: 10, 2000: 2 };
 
+const gaugeFeesAbi = {
+  name: 'gaugeFees',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [],
+  outputs: [
+    { name: 'token0', type: 'uint128' },
+    { name: 'token1', type: 'uint128' },
+  ],
+};
+
+// Same counters sugar.all exposes, read per-pool. Used for pools the
+// subgraph doesn't index (newer CL factories) — three multicalls over
+// ~100 addresses instead of paginating ~12k sugar entries per block.
+async function fetchPoolFeesTargeted(blockNumber, lps) {
+  const calls = lps.map((target) => ({ target }));
+  const opts = { calls, chain: CHAIN, block: blockNumber, permitFailure: true };
+  const [feesRes, liqRes, stakedRes] = await Promise.all([
+    sdk.api.abi.multiCall({ abi: gaugeFeesAbi, ...opts }),
+    sdk.api.abi.multiCall({ abi: 'uint128:liquidity', ...opts }),
+    sdk.api.abi.multiCall({ abi: 'uint128:stakedLiquidity', ...opts }),
+  ]);
+  const fees = {};
+  lps.forEach((lp, i) => {
+    const f = feesRes.output[i];
+    const l = liqRes.output[i];
+    const s = stakedRes.output[i];
+    if (!f?.success || !l?.success || !s?.success || f.output == null) return;
+    // sugar zeroes gauge fees when nothing is staked (stale unclaimed
+    // counters would otherwise be misattributed to the current epoch)
+    const hasStaked = Number(s.output) > 0;
+    fees[lp] = {
+      token0_fees: hasStaked ? f.output.token0 ?? f.output[0] : '0',
+      token1_fees: hasStaked ? f.output.token1 ?? f.output[1] : '0',
+      liquidity: l.output,
+      gauge_liquidity: s.output,
+    };
+  });
+  return fees;
+}
+
 // Fetch gauge fees for all CL pools at a historical block, keyed by lp address.
 // Reuses the shared pagination helper defined below.
 async function fetchPoolFeesAtBlock(blockNumber) {
@@ -101,36 +142,29 @@ async function getPoolVolumes(timestamp = null) {
     }
   }
 
-  let [block, blockPrior] = await utils.getBlocks(CHAIN, timestamp, [SUBGRAPH]);
+  let [[block, blockPrior], [, blockPrior7d]] = await Promise.all([
+    utils.getBlocks(CHAIN, timestamp, [SUBGRAPH]),
+    utils.getBlocks(CHAIN, timestamp, [SUBGRAPH], WEEK),
+  ]);
   // buffer so data indexers behind the _meta endpoint can still serve the query
   block -= 100;
 
-  const [_, blockPrior7d] = await utils.getBlocks(
-    CHAIN,
-    timestamp,
-    [SUBGRAPH],
-    604800
-  );
-
   // retry transient TLS drops so one blip doesn't force the slow archive path
-  let dataNow = await utils.withRetry(() =>
-    request(SUBGRAPH, query.replace('<PLACEHOLDER>', block))
-  );
-  dataNow = dataNow.pools;
-
-  // pull 24h offset data to calculate fees from swap volume
-  let queryPriorC = queryPrior;
-  let dataPrior = await utils.withRetry(() =>
-    request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior))
-  );
-  dataPrior = dataPrior.pools;
-
-  // 7d offset
-  const dataPrior7d = (
-    await utils.withRetry(() =>
+  const queryPriorC = queryPrior;
+  let [dataNow, dataPrior, dataPrior7d] = await Promise.all([
+    utils.withRetry(() =>
+      request(SUBGRAPH, query.replace('<PLACEHOLDER>', block))
+    ),
+    utils.withRetry(() =>
+      request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior))
+    ),
+    utils.withRetry(() =>
       request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
-    )
-  ).pools;
+    ),
+  ]);
+  dataNow = dataNow.pools;
+  dataPrior = dataPrior.pools;
+  dataPrior7d = dataPrior7d.pools;
 
   // calculate tvl
   dataNow = await utils.tvl(dataNow, CHAIN);
@@ -267,7 +301,10 @@ async function fetchTokenMetadata(addresses) {
   return map;
 }
 
-const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
+const getGaugeApy = async ({
+  skipHistoricalFees = false,
+  subgraphCoveredPools = null,
+} = {}) => {
   const allPoolsRaw = await paginatePools();
   const allPoolsData = allPoolsRaw.filter(
     (t) => Number(t.type) > 0 && t.gauge != nullAddress
@@ -295,7 +332,7 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
         .map((i) => `base:${i}`)
         .join(',');
       return axios
-        .get(`https://coins.llama.fi/prices/current/${x}`)
+        .get(utils.getPriceApiUrl(`/prices/current/${x}`))
         .then((r) => r.data.coins);
     })
   );
@@ -375,14 +412,29 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
     if (out?.success && out.output) allStakedData[activeIdx[j]] = out.output;
   }
 
-  // archive-state fee fallback; skipped when subgraph is healthy
+  // on-chain fee snapshots: full sugar pagination when the subgraph is
+  // unhealthy, targeted per-pool multicalls for pools it doesn't index
   const now = Math.floor(Date.now() / 1000);
   const epochStart = Math.floor(now / WEEK) * WEEK;
   const elapsedSeconds = now - epochStart;
 
   let prevEpochFees = {};
   let fees24hAgo = null;
+  let fetchFeesAtBlock = null;
   if (!skipHistoricalFees) {
+    fetchFeesAtBlock = fetchPoolFeesAtBlock;
+  } else if (subgraphCoveredPools) {
+    const missingLps = allPoolsData
+      .map((p) => p.lp.toLowerCase())
+      .filter((lp) => !subgraphCoveredPools.has(lp));
+    if (missingLps.length) {
+      console.log(
+        `aerodrome-slipstream: targeted fee snapshots for ${missingLps.length} pools missing from subgraph`
+      );
+      fetchFeesAtBlock = (block) => fetchPoolFeesTargeted(block, missingLps);
+    }
+  }
+  if (fetchFeesAtBlock) {
     // bounded timeout so a stuck archive RPC can't eat the 900s budget
     const HISTORICAL_FETCH_TIMEOUT_MS = 180_000;
     const withTimeout = (promise, ms, label) => {
@@ -404,7 +456,7 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
       const historicalBlocks = await utils.getBlocksByTime(timestamps, CHAIN);
       const fetches = [
         withTimeout(
-          fetchPoolFeesAtBlock(historicalBlocks[0]),
+          fetchFeesAtBlock(historicalBlocks[0]),
           HISTORICAL_FETCH_TIMEOUT_MS,
           'prev-epoch fee snapshot'
         ),
@@ -412,7 +464,7 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
       if (elapsedSeconds > 86400) {
         fetches.push(
           withTimeout(
-            fetchPoolFeesAtBlock(historicalBlocks[1]),
+            fetchFeesAtBlock(historicalBlocks[1]),
             HISTORICAL_FETCH_TIMEOUT_MS,
             '24h fee snapshot'
           )
@@ -523,7 +575,7 @@ const getGaugeApy = async ({ skipHistoricalFees = false } = {}) => {
         apyBase = ((totalFeeDelta * 365) / tvlUsd) * 100;
         if (p.pool_fee > 0) volumeUsd1d = totalFeeDelta / (p.pool_fee / 1e6);
       }
-    } else if (!skipHistoricalFees && prev && elapsedSeconds > 6 * 3600) {
+    } else if (prev && elapsedSeconds > 6 * 3600) {
       // <24h into epoch: extrapolate. Needs `prev` to subtract pre-distribute
       // residue from cumulative gauge fees; without it we'd overestimate APY.
       const currentFeeUsd = calcFeeUsd(p);
@@ -605,7 +657,12 @@ async function main(timestamp = null) {
         `aerodrome-slipstream: subgraph unhealthy (${reasons.join(', ')}); falling back to archive-state path`
       );
   }
-  const poolsApy = await getGaugeApy({ skipHistoricalFees: subgraphHealthy });
+  const poolsApy = await getGaugeApy({
+    skipHistoricalFees: subgraphHealthy,
+    subgraphCoveredPools: subgraphHealthy
+      ? new Set(Object.keys(poolsVolumes))
+      : null,
+  });
 
   // left-join volumes onto APY output to avoid filtering out pools
   return Object.values(poolsApy).map((pool) => {
@@ -623,6 +680,7 @@ async function main(timestamp = null) {
 }
 
 module.exports = {
+  protocolId: '4524',
   timetravel: false,
   apy: main,
 };

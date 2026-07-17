@@ -98,6 +98,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '6878',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://coinhain.fi/pools',

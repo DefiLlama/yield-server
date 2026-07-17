@@ -296,6 +296,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '183',
   timetravel: false,
   apy,
   url: 'https://flash.wing.finance/',

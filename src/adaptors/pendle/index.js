@@ -74,6 +74,12 @@ const chains = {
     PENDLE: '0x17Bac5F906c9A0282aC06a59958D85796c831f24',
     ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
   },
+  143: {
+    chainName: 'monad',
+    chainSlug: 'monad',
+    PENDLE: '0x5E49E1f85813F2B65858860A3FA231b4186f2e0E',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+  }
 };
 
 function splitId(id) {
@@ -210,7 +216,7 @@ async function fetchPoolsVolumes(chain, pools, routers) {
 
   // get token price from llama coins api
   const coinLists = Object.keys(tokens).map(token => `${chain}:${token}`);
-  const coinPrices = (await axios.get(`https://coins.llama.fi/prices/current/${coinLists.toString()}`)).data.coins;
+  const coinPrices = (await utils.getPriceApiData(`/prices/current/${coinLists.toString()}`)).coins;
   for (const [coinId, coinPrice] of Object.entries(coinPrices)) {
     tokens[utils.formatAddress(coinId.split(':')[1])].price = Number(coinPrice.price);
   }
@@ -260,6 +266,7 @@ async function poolApys(chainId, pools) {
         rewardTokens: [chains[chainId].PENDLE],
       }),
       underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address].map(resolveToken),
+      searchTokenOverride: resolveToken(splitId(p.underlyingAsset).address),
       volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
       volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
       poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
@@ -313,6 +320,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '382',
   timetravel: false,
   apy,
 };

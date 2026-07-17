@@ -28,9 +28,7 @@ const getFilecoinPool = async () => {
 
   // <- Filecoin ->
   const filPriceKey = `coingecko:filecoin`;
-  const filPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${filPriceKey}`)
-  ).data.coins[filPriceKey]?.price;
+  const filPrice = (await utils.getPriceApiData(`/prices/current/${filPriceKey}`)).coins[filPriceKey]?.price;
 
   return {
     pool: '0xe764Acf02D8B7c21d2B6A8f0a96C78541e0DC3fd-filecoin',
@@ -124,7 +122,7 @@ const getICNTPool = async () => {
     try {
       const icntPriceKey = `coingecko:impossible-cloud-network-token`;
       const priceResponse = await axios.get(
-        `https://coins.llama.fi/prices/current/${icntPriceKey}`,
+        utils.getPriceApiUrl(`/prices/current/${icntPriceKey}`),
         {
           timeout: 10000, // 10 second timeout
         }
@@ -144,6 +142,7 @@ const getICNTPool = async () => {
 };
 
 module.exports = {
+  protocolId: '2858',
   timetravel: false,
   apy: fetchApy,
   url: 'https://www.glif.io',

@@ -32,9 +32,7 @@ const apy = async () => {
   ]);
 
   const priceKeys = underlying.map((i) => `${CHAIN}:${i}`).join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return fTokensEntireData
     .map((token, i) => {
@@ -62,6 +60,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7496',
   timetravel: false,
   apy,
 };

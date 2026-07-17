@@ -60,6 +60,7 @@ const fractalMetrics = async () => {
 };
 
 module.exports = {
+  protocolId: '1856',
   timetravel: false,
   apy: fractalMetrics,
   url: 'https://app.fractalprotocol.org/',

@@ -49,6 +49,7 @@ async function sDAIPool() {
   return [sDAIPoolData];
 }
 module.exports = {
+  protocolId: '3603',
   timetravel: false,
   apy: sDAIPool,
   url: 'https://agave.finance/sdai/',

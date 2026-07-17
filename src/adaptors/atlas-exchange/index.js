@@ -89,6 +89,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '5924',
   apy: main,
   timetravel: false,
   url: 'https://atlasexchange.xyz/pools',

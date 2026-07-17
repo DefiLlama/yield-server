@@ -69,9 +69,7 @@ const apy = async () => {
     const tokenPrices = {};
     for (const token of REWARD_TOKENS[chain]) {
       const priceKey = `${chain}:${token}`;
-      tokenPrices[token] = (
-        await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-      ).data.coins[priceKey]?.price; 
+      tokenPrices[token] = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
     }
     console.log(`Token Prices for ${chain}: `, tokenPrices);
 
@@ -167,5 +165,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '5540',
   apy
 };

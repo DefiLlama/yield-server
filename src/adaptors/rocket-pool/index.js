@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abi = require('./abi.js');
 const rethAbi = require('./rethAbi.js');
+const { getPriceApiData } = require('../utils');
 
 const rocketMinipoolManager = '0x6293B8abC1F36aFB22406Be5f96D893072A8cF3a';
 const rocketVault = '0x3bDC69C4E5e13E52A65f5583c23EFB9636b469d6';
@@ -72,9 +73,7 @@ const getApy = async () => {
   const apyData = (await axios.get('https://api.rocketpool.net/api/apr')).data;
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   return [
     {
@@ -92,6 +91,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '900',
   timetravel: false,
   apy: getApy,
   url: 'https://stake.rocketpool.net/',

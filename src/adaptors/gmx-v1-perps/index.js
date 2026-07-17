@@ -149,9 +149,7 @@ const getPools = async () => {
   const priceKeys = ['gmx', 'ethereum', 'avalanche-2']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const { coins: priceData } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  const { coins: priceData } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   const arbitrumStakedGmx = await getAdjustedAmount(
     arbitrumFeeGmxTrackerAddress,
@@ -263,6 +261,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '337',
   timetravel: false,
   apy: getPools,
   url: 'https://app.gmx.io/#/earn',

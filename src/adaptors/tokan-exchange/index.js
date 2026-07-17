@@ -209,6 +209,7 @@ function formatPool(p) {
 }
 
 module.exports = {
+  protocolId: '4581',
   timetravel: false,
   apy: getAPY,
   url: 'https://app.tokan.exchange/liquidity',

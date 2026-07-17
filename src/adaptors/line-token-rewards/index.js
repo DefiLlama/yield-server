@@ -7,6 +7,7 @@ const { ethers } = require('ethers');
 const { startOfMonth, endOfMonth } = require('date-fns');
 
 const { LLAMA_API_URL, BACKEND_API_URL, CHAIN, REWARD_TOKEN, MONTHLY_TOTAL_REWARDS_IN_KAVA, DISTRIBUTION_SHARE, PROJECT } = require('./config.js');
+const { getPriceApiData } = require('../utils');
 
 const apy = async () => {
     const period = Date.now();
@@ -31,9 +32,7 @@ const apy = async () => {
     const totalTvlInUsd = lineAvgTvlInUSD + csAvgTvlInUsd;
     const projectsTvlShare = totalTvlInUsd / kavaAvgTvlInUsd;
 
-    const prices = (
-        await axios.get(`https://coins.llama.fi/prices/current/Kava:${ethers.constants.AddressZero}`)
-    ).data.coins;
+    const prices = (await getPriceApiData(`/prices/current/Kava:${ethers.constants.AddressZero}`)).coins;
 
     const kavaPriceInUsd = prices[`Kava:${ethers.constants.AddressZero}`]?.price;
 
@@ -71,6 +70,7 @@ const apy = async () => {
 }
 
 module.exports = {
+  protocolId: '4953',
     timetravel: false,
     url: 'https://kava.obyte.org',
     apy,

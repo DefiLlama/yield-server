@@ -28,6 +28,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1669',
   timetravel: false,
   apy,
   url: 'https://tokensfarm.com/',

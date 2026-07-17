@@ -1,11 +1,8 @@
 const utils = require('../utils');
-const axios = require('axios');
-const { ethers } = require('ethers');
+const sdk = require('@defillama/sdk');
 
-const provider = new ethers.providers.JsonRpcProvider(
-  'https://api.avax.network/ext/bc/C/rpc'
-);
 const GGAVAX_CONTRACT = '0xA25EaF2906FA1a3a13EdAc9B9657108Af7B703e3';
+const WAVAX_CONTRACT = '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7';
 
 const totalAssetsAbi = [
   {
@@ -24,29 +21,18 @@ const totalAssetsAbi = [
 ];
 
 async function fetchTotalAssets() {
-  try {
-    const contract = new ethers.Contract(
-      GGAVAX_CONTRACT,
-      totalAssetsAbi,
-      provider
-    );
-    const totalAssets = await contract.totalAssets();
-    return ethers.utils.formatUnits(totalAssets, 18);
-  } catch (error) {
-    console.error('Error in fetching total assets:', error);
-  }
+  const { output } = await sdk.api.abi.call({
+    target: GGAVAX_CONTRACT,
+    abi: totalAssetsAbi[0],
+    chain: 'avax',
+  });
+  return Number(output) / 1e18;
 }
 
 const avaxPrice = async () => {
-  try {
-    const response = await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd'
-    );
-    return response.data['avalanche-2'].usd;
-  } catch (error) {
-    console.error('Error fetching price data', error);
-    return null;
-  }
+  const priceKey = `avax:${WAVAX_CONTRACT}`;
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
+  return data.coins[priceKey]?.price;
 };
 
 const fetchData = async () => {
@@ -73,8 +59,6 @@ const topLvl = async () => {
     symbol: 'ggAVAX',
     tvlUsd: tvlUsd,
     apyBase: apyBase,
-    apyReward: 0,
-    rewardTokens: [],
     underlyingTokens: ['0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7'],
   };
 };
@@ -84,6 +68,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3179',
   timetravel: false,
   apy: main,
   url: 'https://www.gogopool.com',

@@ -1,5 +1,6 @@
 const axios = require('axios');
 const ethers = require('ethers');
+const { getPriceApiUrl } = require('../utils');
 const {
   chainSupported,
   ethereumRefUnderlyingTokenAddress,
@@ -35,7 +36,7 @@ const main = async () => {
     const refAddr = ethereumRefUnderlyingTokenAddress(symbol);
     const key = `ethereum:${refAddr}`;
     const priceRes = await axios.get(
-      `https://coins.llama.fi/prices/current/${key}`
+      getPriceApiUrl(`/prices/current/${key}`)
     );
     const tokenPrice = priceRes.data.coins[key].price;
     for (const chainId of vaultInfo.supportedChains) {
@@ -84,6 +85,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1885',
   timetravel: false,
   apy: main,
   url: 'https://app.xy.finance/pools',

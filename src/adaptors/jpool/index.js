@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { getTotalSupply, getSanctumLstApy } = require('../utils');
+const { getTotalSupply, getSanctumLstApy, getPriceApiUrl } = require('../utils');
 
 const JSOL_MINT = '7Q2afV64in6N6SeZsAAB81TJzwDoD6zpqmHkzi9Dcavn';
 const priceKey = `solana:${JSOL_MINT}`;
@@ -8,7 +8,7 @@ const SOL = 'So11111111111111111111111111111111111111112';
 const apy = async () => {
   const [totalSupply, priceRes, apyBase] = await Promise.all([
     getTotalSupply(JSOL_MINT),
-    axios.get(`https://coins.llama.fi/prices/current/${priceKey}`),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
     getSanctumLstApy(JSOL_MINT),
   ]);
 
@@ -35,6 +35,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '1173',
   timetravel: false,
   apy,
   url: 'https://app.jpool.one/',

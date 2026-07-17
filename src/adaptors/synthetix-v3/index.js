@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 const sdk = require('@defillama/sdk');
+const { getPriceApiData } = require('../utils');
 
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const SNX = '0x22e6966B799c4D5B13BE962E1D117b56327FDa66';
@@ -21,9 +22,7 @@ const apy = async () => {
     ).output / 1e6;
 
   const key = `base:${USDC}`;
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins[key].price;
+  const price = (await getPriceApiData(`/prices/current/${key}`)).coins[key].price;
 
   return [
     {
@@ -39,6 +38,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4446',
   apy,
   url: 'https://liquidity.synthetix.eth.limo/',
 };

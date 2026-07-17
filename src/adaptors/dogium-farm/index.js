@@ -90,9 +90,7 @@ const getPrices = async (addresses) => {
     .join(',')
     .toLowerCase();
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${coins}`)).coins;
   const pricesObj = Object.entries(prices).reduce(
     (acc, [address, price]) => ({
       ...acc,
@@ -263,6 +261,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2029',
   timetravel: false,
   apy: getApy,
   url: 'https://lithium.dog/',

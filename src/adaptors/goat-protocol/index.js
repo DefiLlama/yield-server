@@ -48,6 +48,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '4162',
     timetravel: false,
     apy: main,
     url: 'https://goat.fi/',

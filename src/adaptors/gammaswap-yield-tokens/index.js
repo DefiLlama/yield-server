@@ -488,6 +488,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6569',
   timetravel: false,
   apy: apy,
   url: "https://app.gammaswap.com/yield-tokens",

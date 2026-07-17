@@ -3,6 +3,7 @@ const abi = require('./abi.json');
 const BigNumber = require('bignumber.js');
 const ethers = require('ethers');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const facades = {
   polygon: '0x0708542D895C2559001Fa9e4Bc49C3343735e6e2',
@@ -72,9 +73,7 @@ const getChainPools = async (chain, facade) => {
 
   // -----====== Get Prices ======----- //
   const priceKeysQ = priceKeys.join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeysQ}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${priceKeysQ}`)).coins;
 
   const apys = aprs.map((apr, index) => {
     const aprBN = ethersBNToBN(apr.output, 4);
@@ -128,6 +127,7 @@ const getPools = async () => {
 };
 
 module.exports = {
+  protocolId: '2938',
   timetravel: false,
   apy: getPools,
   url: 'https://app.luxs.fi',

@@ -11,7 +11,7 @@
 
 var sdk = require('@defillama/sdk');
 var utils = require('../utils');
-const fetch = require('node-fetch');
+const { merklGet } = require('../merkl/merkl-client');
 
 // src/yield-server/index.ts
 
@@ -579,8 +579,9 @@ async function getMerklRewards(chain) {
       if (!poolId) return;
 
       try {
-        const response = await fetch(`https://api.merkl.xyz/v4/opportunities/?chainId=${config.chainId}&identifier=${poolId}`);
-        const data = await response.json();
+        const data = await merklGet('/v4/opportunities', {
+          params: { chainId: config.chainId, identifier: poolId },
+        });
 
         if (!data || !Array.isArray(data) || data.length === 0) {
           console.log(`⚠️  No Merkl rewards data found for ${chain} pool ${poolId}`);
@@ -625,7 +626,7 @@ async function multiCall(...args) {
 }
 async function fetchLLamaPrices(chain, addresses) {
   const coins = addresses.map((address) => `${chain}:${address}`).join(',');
-  const resp = await fetch(`https://coins.llama.fi/prices/current/${coins}`);
+  const resp = await fetch(utils.getPriceApiUrl(`/prices/current/${coins}`));
   const data = await resp.json();
   const prices = {};
   for (const [coin, info] of Object.entries(data.coins)) {
@@ -1146,6 +1147,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
           (Number(pool.baseInterestRate) / 1e27)) /
         100,
       apyRewardBorrow: 0,
+      borrowToken: pool.underlying,
       totalSupplyUsd: Number(totalSupplyUsd) || 0,
       totalBorrowUsd: Number(totalBorrowUsd) || 0,
       ltv: 0,
@@ -1187,9 +1189,8 @@ async function getApy() {
   console.log(`🎉 Total pools fetched: ${allPools.length}`);
   return allPools.filter((pool) => utils.keepFinite(pool));
 }
-var yield_server_default = {
+module.exports = {
+  protocolId: '1108',
   timetravel: false,
   apy: getApy,
 };
-
-module.exports = yield_server_default;

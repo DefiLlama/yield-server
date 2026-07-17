@@ -46,6 +46,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '751',
   timetravel: false,
   apy: main,
   url: 'https://umami.finance/',

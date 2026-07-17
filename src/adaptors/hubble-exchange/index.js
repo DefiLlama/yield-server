@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const VAMM_ABI_JSON = require('./vamm.abi.json');
 const { BigNumber } = require('ethers');
+const { getPriceApiData } = require('../utils');
 
 const API_BASE = 'https://mainnet-efb9f.web.app/apy';
 const HIF = '0x870850A72490379f60A4924Ca64BcA89a6D53a9d';
@@ -16,9 +17,7 @@ const main = async () => {
   } = await axios.get(`${API_BASE}/maker/AVAX-PERP`);
 
   const priceKey = `avax:${WAVAX}`;
-  const { data: prices } = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
+  const prices = await getPriceApiData(`/prices/current/${priceKey}`);
   const avaxPrice = prices.coins[priceKey].price;
   const TEN = BigNumber.from(10);
 
@@ -83,6 +82,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1959',
   timetravel: false,
   apy: main,
   url: 'https://app.hubble.exchange',

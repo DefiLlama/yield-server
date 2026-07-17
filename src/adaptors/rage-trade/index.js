@@ -105,6 +105,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '4447',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.rage.trade/vaults',

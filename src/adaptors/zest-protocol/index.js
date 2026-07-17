@@ -5,7 +5,6 @@ const { request, gql } = require('graphql-request');
 
 const { masterChefABI, lpTokenABI, stakeABI, oracleAbi } = require('./abis');
 const utils = require('../utils');
-const { fetchURL } = require('../../helper/utils');
 
 const RPC_URL = 'https://rpc.ftm.tools/';
 const API_URL = 'https://api.fura.org/subgraphs/name/spookyswap';
@@ -252,6 +251,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1889',
   timetravel: false,
   apy: main,
   url: 'https://zestprotocol.fi/dashboard',

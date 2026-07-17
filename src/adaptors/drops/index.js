@@ -39,13 +39,9 @@ const PROTOCOL_TOKEN = {
 };
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -188,7 +184,7 @@ const main = async () => {
 
     const priceKey = 'coingecko:drops-ownership-power';
     const protocolTokenPrice = (
-      await utils.getData(`https://coins.llama.fi/prices/current/${priceKey}`)
+      await utils.getPriceApiData(`/prices/current/${priceKey}`)
     ).coins[priceKey]?.price;
 
     prices[PROTOCOL_TOKEN.address] = protocolTokenPrice;
@@ -268,6 +264,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '995',
   timetravel: false,
   apy: main,
   url: 'https://drops.co/',

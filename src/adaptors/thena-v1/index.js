@@ -76,9 +76,7 @@ const getApy = async () => {
   for (let i = 0; i < alreadySeen.length; i += chunkSize) {
     const chunk = alreadySeen.slice(i, i + chunkSize);
 
-    const { coins } = await utils.getData(
-      `https://coins.llama.fi/prices/current/${chunk.join(',')}?searchWidth=4h`
-    );
+    const { coins } = await utils.getPriceApiData(`/prices/current/${chunk.join(',')}?searchWidth=4h`);
     fullCoin = { ...fullCoin, ...coins };
   }
 
@@ -120,6 +118,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2417',
   timetravel: false,
   apy: getApy,
   url: 'https://thena.fi/liquidity',

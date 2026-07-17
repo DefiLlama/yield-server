@@ -41,6 +41,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '4221',
   timetravel: false,
   apy: getApy,
   url: 'https://bfx.trade/vaults',

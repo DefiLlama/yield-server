@@ -97,7 +97,7 @@ const getApy = async () => {
       .replaceAll('/', '');
     pricesA = [
       ...pricesA,
-      (await axios.get(`https://coins.llama.fi/prices/current/${keys}`)).data
+      (await utils.getPriceApiData(`/prices/current/${keys}`))
         .coins,
     ];
   }
@@ -138,6 +138,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3575',
   timetravel: false,
   apy: getApy,
   url: 'https://base.equalizer.exchange/liquidity',

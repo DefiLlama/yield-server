@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { ethers } = require('ethers');
+const { getPriceApiData } = require('../utils');
 
 function sumValuesWithDifferentDecimals(
   amount0,
@@ -150,11 +151,7 @@ const getPools = async (pools) => {
         lpToken1Decimals
       );
 
-      const rewardsTokenPrice = (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${pool.chain}:${rewardsToken}`
-        )
-      ).data;
+      const rewardsTokenPrice = (await getPriceApiData(`/prices/current/${pool.chain}:${rewardsToken}`));
 
       const rewardsTokenUsd =
         rewardsTokenPrice.coins[`${pool.chain}:${rewardsToken}`].price;
@@ -210,6 +207,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '3395',
   timetravel: false,
   apy: main,
   url: 'https://onering.tools',

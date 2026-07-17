@@ -91,6 +91,7 @@ async function aptosView({ functionStr, type_arguments = [], args = [], ledgerVe
 }
 
 module.exports = {
+  protocolId: '6013',
     timetravel: true,
     apy: apy,
     url: `${MOAR_APP_URL}/lend`,

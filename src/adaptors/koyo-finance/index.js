@@ -54,6 +54,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1766',
   timetravel: false,
   apy: main,
   url: 'https://koyo.finance/kyo/farms',

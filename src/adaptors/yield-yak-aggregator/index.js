@@ -1,12 +1,14 @@
 const axios = require('axios');
 const { get } = require('lodash');
 const sdk = require('@defillama/sdk');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 // Helper for chain ids
 const CHAIN_CONFIG = {
   '43114': { chain: 'avax', chainName: 'Avalanche' },
   '42161': { chain: 'arbitrum', chainName: 'Arbitrum' },
   '5000': { chain: 'mantle', chainName: 'Mantle' },
+  '8453': { chain: 'base', chainName: 'Base', noFarms: true },
 }
 
 // Yield Yak vaults configuration
@@ -67,6 +69,14 @@ const VAULTS = [
     symbol: 'sSUZ',
     underlyingToken: '0x451532F1C9eb7E4Dc2d493dB52b682C0Acf6F5EF',
     rateDecimals: 18,
+  },
+  {
+    chainId: '8453',
+    address: '0xB5803023B8fa8BFe7d64E373297dFaA24e3B5962',
+    accountant: '0x0D7e98D765E19760499670ba674079442451eeb8',
+    symbol: 'yiUSD',
+    underlyingToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    rateDecimals: 6,
   }
 ];
 
@@ -82,7 +92,7 @@ const getPrices = async (chain, addresses) => {
 
   const priceKeys = addresses.map((address) => `${chain}:${address}`).join(',');
   const response = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKeys.toLowerCase()}`
+    getPriceApiUrl(`/prices/current/${priceKeys.toLowerCase()}`)
   );
 
   const prices = response.data.coins || {};
@@ -124,8 +134,8 @@ const getVaultData = async (vaultConfig) => {
   // Get block numbers for historical data
   const chain = CHAIN_CONFIG[vaultConfig.chainId].chain;
   const [block1dayAgo, block7dayAgo] = await Promise.all([
-    axios.get(`https://coins.llama.fi/block/${chain}/${timestamp1dayAgo}`),
-    axios.get(`https://coins.llama.fi/block/${chain}/${timestamp7dayAgo}`)
+    axios.get(getPriceApiUrl(`/block/${chain}/${timestamp1dayAgo}`)),
+    axios.get(getPriceApiUrl(`/block/${chain}/${timestamp7dayAgo}`))
   ]);
 
   // Get exchange rates from accountant
@@ -163,9 +173,7 @@ const getVaultData = async (vaultConfig) => {
 
   // Get underlying token price
   const priceKey = `${chain}:${vaultConfig.underlyingToken}`;
-  const underlyingPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const underlyingPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   if (!underlyingPrice) {
     console.log(`Underlying token price not found, skipping ${vaultConfig.symbol} vault`);
@@ -310,7 +318,9 @@ const getFarms = async (chainId) => {
 }
 
 const getAllFarmData = async () => {
-  const farmPromises = Object.keys(CHAIN_CONFIG).map(chainId => getFarms(chainId));
+  const farmPromises = Object.keys(CHAIN_CONFIG)
+    .filter(chainId => !CHAIN_CONFIG[chainId].noFarms)
+    .map(chainId => getFarms(chainId));
   const farmResults = await Promise.all(farmPromises);
   return farmResults.flat();
 }
@@ -325,6 +335,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '475',
   timetravel: false,
   apy: main,
   url: 'https://yieldyak.com/',

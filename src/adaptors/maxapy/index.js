@@ -112,6 +112,7 @@ class MaxApyAdapter {
 }
 
 module.exports = {
+  protocolId: '5306',
   timetravel: false,
   apy: () => new MaxApyAdapter().getApy(),
   url: 'https://app.maxapy.io/vaults'

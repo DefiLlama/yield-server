@@ -104,9 +104,13 @@ async function getPoolsData() {
       ? tokenAddresses.map((address) => `${chain}:${address}`)
       : tokenAddresses;
 
-    const prices = (
-      await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-    ).data.coins;
+    const prices = {};
+    for (const coinsChunk of utils.chunkArray(coins, 50)) {
+      const { coins: chunkPrices } = await utils.getPriceApiData(
+        `/prices/current/${coinsChunk.join(',')}`
+      );
+      Object.assign(prices, chunkPrices);
+    }
 
     function addLendPools() {
       const formattedLendingPools = formatLendingPoolwithRewards(
@@ -187,5 +191,6 @@ async function getPoolsData() {
 }
 
 module.exports = {
+  protocolId: '2974',
   apy: getPoolsData,
 };

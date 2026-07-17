@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 
 const utils = require('../utils');
 
@@ -86,6 +85,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2866',
   timetravel: false,
   apy: getApy,
   url: 'https://ghost.kujira.network/lend',

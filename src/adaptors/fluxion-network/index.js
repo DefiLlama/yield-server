@@ -99,6 +99,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '7212',
   timetravel: false,
   apy,
   url: 'https://app.fluxion.network',

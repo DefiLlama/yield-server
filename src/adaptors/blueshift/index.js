@@ -46,9 +46,7 @@ async function getFees(chain, portfolios) {
 
 async function getTokenVsUsdPrice(token) {
   const priceKey = `coingecko:${token}`;
-  const { coins: bluesPrice } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKey}`
-  );
+  const { coins: bluesPrice } = await utils.getPriceApiData(`/prices/current/${priceKey}`);
 
   const [i, f] = bluesPrice[priceKey].price.toString().split('.');
 
@@ -351,6 +349,7 @@ async function poolsApy(chain) {
 }
 
 module.exports = {
+  protocolId: '1665',
   timetravel: false,
   apy: async () =>
     (

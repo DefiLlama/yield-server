@@ -4,9 +4,7 @@ const utils = require('../utils');
 const abi = require('./abi');
 
 async function getBlockByEpoch(epochSecs, chain) {
-  const data = await utils.getData(
-    `https://coins.llama.fi/block/${chain}/${epochSecs}`,
-  );
+  const data = await utils.getPriceApiData(`/block/${chain}/${epochSecs}`);
   return data.height;
 }
 

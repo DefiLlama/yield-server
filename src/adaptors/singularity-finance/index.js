@@ -92,7 +92,7 @@ async function multiGetERC4626Infos(
   const [blockNow, blockYesterday] = await Promise.all(
     [timestamp, timestamp - DAY].map((time) =>
       axios
-        .get(`https://coins.llama.fi/block/${chain}/${time}`)
+        .get(utils.getPriceApiUrl(`/block/${chain}/${time}`))
         .then((r) => r.data.height)
     )
   );
@@ -159,6 +159,7 @@ async function multiGetERC4626Infos(
 };
 
 module.exports = {
+  protocolId: '6670',
   timetravel: false,
   apy: getApy,
 };

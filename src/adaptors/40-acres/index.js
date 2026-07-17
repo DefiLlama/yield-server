@@ -51,6 +51,7 @@ const apy = async (timestamp) => {
 };
 
 module.exports = {
+  protocolId: '6061',
     timetravel: true,
     apy,
     url: 'https://www.40acres.finance/',

@@ -105,9 +105,7 @@ const getApy = async () => {
   ];
   const priceKeys = tokens.map((i) => `bsc:${i}`).join(',');
 
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   const pools = allPairs.map((p, i) => {
     const poolMeta = metaData[i];
@@ -152,6 +150,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3166',
   timetravel: false,
   apy: getApy,
   url: 'https://app.veplus.io/pools',

@@ -26,6 +26,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2583',
   apy: getApy,
   url: 'https://nerve.network/info/pools',
 };

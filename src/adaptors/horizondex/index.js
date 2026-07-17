@@ -92,6 +92,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '3255',
   apy: main,
   timetravel: false,
   url: 'https://app.horizondex.io/pools',

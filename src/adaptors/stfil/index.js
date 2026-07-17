@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const abiStakingPool = require('./abiStakingPool');
+const { getPriceApiData } = require('../utils');
 
 const stakingPool = '0xC8E4EF1148D11F8C557f677eE3C73901CD796Bf6';
 const variableDebtTokenAddress = '0x0B24190702018C93E09A55F958D6485Ae31b62A1';
@@ -12,9 +13,7 @@ const FIL = '0x0000000000000000000000000000000000000000';
 
 const getApy = async () => {
   const priceKey = `coingecko:filecoin`;
-  const price = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const price = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   const reserveData = (
     await sdk.api.abi.call({
@@ -72,5 +71,6 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2819',
   apy: getApy,
 };

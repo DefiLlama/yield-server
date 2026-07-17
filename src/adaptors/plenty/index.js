@@ -1,4 +1,4 @@
-const { fetchURL } = require('../../helper/utils');
+const { getData } = require('../utils');
 
 const convertToMap = (arr, key) => {
   const res = {};
@@ -10,13 +10,11 @@ const convertToMap = (arr, key) => {
 
 const apy = async () => {
   const aprData = convertToMap(
-    (await fetchURL('https://ply-indexer.mainnet.plenty.network/v1/pools'))
-      .data,
+    await getData('https://ply-indexer.mainnet.plenty.network/v1/pools'),
     'pool'
   );
   const analyticsData = convertToMap(
-    (await fetchURL('https://api.analytics.plenty.network/analytics/pools'))
-      .data,
+    await getData('https://api.analytics.plenty.network/analytics/pools'),
     'pool'
   );
 
@@ -41,6 +39,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '490',
   timetravel: false,
   apy: apy,
   url: 'https://app.plenty.network/pools',

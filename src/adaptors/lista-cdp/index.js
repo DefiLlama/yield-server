@@ -223,6 +223,7 @@ const getApy = async () => {
           });
 
           const debtCeiling = Number(vatIlksRes.output.line) / 1e45; // line is in RAD (45 decimals)
+          const availableBorrowUsd = Math.max(debtCeiling - debt, 0);
           return {
             pool: `${collateral.address}-bsc`.toLowerCase(),
             chain: 'bsc',
@@ -233,9 +234,11 @@ const getApy = async () => {
 
             totalSupplyUsd: Number(tvl) / 1e18,
             totalBorrowUsd: debt,
+            availableBorrowUsd,
             debtCeilingUsd: debtCeiling,
             mintedCoin: 'lisUSD',
             borrowToken: LISUSD,
+            borrowable: debtCeiling > 0,
             ltv: collateralRate,
             apyBaseBorrow: aprRates || 0,
             underlyingTokens: [(collateral.originAddress || collateral.address).toLowerCase()],
@@ -255,6 +258,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2038',
   timetravel: false,
   apy: getApy,
   url: 'https://lista.org/',

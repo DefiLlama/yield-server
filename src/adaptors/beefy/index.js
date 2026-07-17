@@ -13,6 +13,11 @@ const urlAddressbook = `${url}/tokens`;
 
 const urlVaultsStatus = `${url}/vaults`;
 
+const retiredStatuses = ['eol', 'paused'];
+
+const isRetiredVault = (vault) =>
+  retiredStatuses.includes(vault?.status?.toLowerCase());
+
 const networkMapping = {
   1: 'ethereum',
   10: 'optimism',
@@ -85,12 +90,13 @@ const main = async () => {
       const s = vaultStatus.find(
         (i) => i.id.toLowerCase() === vaultId.toLowerCase()
       );
-      if (s && ['eol', 'paused'].includes(s.status.toLowerCase())) continue;
 
       let vault = vaults.find((v) => v.id === vaultId);
       if (vault === undefined) {
         vault = govVaults.find((v) => v.id === vaultId);
       }
+
+      if (isRetiredVault(s) || isRetiredVault(vault)) continue;
 
       if (vault === undefined) {
         // console.debug(`Skipping vault ${vaultId}, no vault data`);
@@ -168,6 +174,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '326',
   timetravel: false,
   apy: main,
 };

@@ -11,6 +11,7 @@ const SECONDS_PER_YEAR = 31536000;
 
 type MultiRewardFarm = {
   stakingTokenPool?: string;
+  stakingTokenPriceFunction?: string;
   pool: {
     pool?: string;
     project: string;
@@ -19,6 +20,7 @@ type MultiRewardFarm = {
     underlyingTokens?: string[];
     poolMeta?: string;
     url?: string;
+    apyBase?: number;
   };
 };
 
@@ -190,8 +192,12 @@ async function multiRewardFarmsApy(farms: MultiRewardFarms) {
       const tvlUsdChainFarms = Object.fromEntries(
         await Promise.all(
           Object.entries(chainFarms).map(
-            async ([farmAddress, { stakingTokenPool, pool }]) => {
-              const stakingTokenDecimals = stakingTokensDecimals[farmAddress];
+            async ([
+              farmAddress,
+              { stakingTokenPool, stakingTokenPriceFunction, pool },
+            ]) => {
+              const stakingTokenDecimals =
+                stakingTokensDecimals[stakingTokens[farmAddress]];
               const totalSupply = Number(
                 formatUnits(
                   totalSupplyResults[farmAddress].output,
@@ -202,6 +208,21 @@ async function multiRewardFarmsApy(farms: MultiRewardFarms) {
                 prices.pricesByAddress[
                   stakingTokens[farmAddress].toLowerCase()
                 ];
+
+              if (
+                stakingTokenPrice === undefined &&
+                stakingTokenPriceFunction !== undefined
+              ) {
+                stakingTokenPrice = await sdk.api.abi
+                  .call({
+                    abi: `function ${stakingTokenPriceFunction}() view returns (uint256)`,
+                    target: stakingTokens[farmAddress],
+                    chain,
+                  })
+                  .then((call) =>
+                    Number(formatUnits(call.output, stakingTokenDecimals))
+                  );
+              }
 
               // If the staking token price is not available, try to calculate it from the underlying tokens
               if (stakingTokenPrice === undefined) {

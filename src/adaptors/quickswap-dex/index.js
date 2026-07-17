@@ -106,6 +106,7 @@ const main = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '306',
   timetravel: true,
   apy: main,
   url: 'https://quickswap.exchange/#/pool',

@@ -8,116 +8,75 @@ const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 
 const USD3 = '0x056B269Eb1f75477a8666ae8C7fE01b64dD55eCc';
 const sUSD3 = '0xf689555121e529Ff0463e191F9Bd9d1E496164a7';
-const waUSDC = '0xD4fa2D31b7968E448877f69A96DE69f5de8cD23E';
-const MORPHO_CREDIT = '0xDe6e08ac208088cc62812Ba30608D852c6B0EcBc';
-const MARKET_ID =
-  '0xc2c3e4b656f4b82649c8adbe82b3284c85cc7dc57c6dc8df6ca3dad7d2740d75';
 
 const SECONDS_PER_DAY = 86400;
-const MARKET_ABI =
-  'function market(bytes32) view returns (uint128 totalSupplyAssets, uint128 totalSupplyShares, uint128 totalBorrowAssets, uint128 totalBorrowShares, uint128 lastUpdate, uint128 fee)';
-const CONVERT_ABI =
-  'function convertToAssets(uint256 shares) view returns (uint256)';
+const WINDOW_DAYS = 7;
+const PPS_ABI = 'function pricePerShare() view returns (uint256)';
+const TOTAL_ASSETS_ABI = 'function totalAssets() view returns (uint256)';
 
 const getBlock = async (timestamp) => {
   const res = await axios.get(
-    `https://coins.llama.fi/block/${CHAIN}/${timestamp}`
+    utils.getPriceApiUrl(`/block/${CHAIN}/${timestamp}`)
   );
   return res.data.height;
 };
 
+const getUsdcPrice = async () => {
+  const key = `${CHAIN}:${USDC.toLowerCase()}`;
+  const data = await utils.getPriceApiData(`/prices/current/${key}`);
+  return data?.coins?.[key]?.price ?? 1;
+};
+
+const annualize = (now, then, days) =>
+  Number.isFinite(now) && Number.isFinite(then) && then > 0
+    ? (Math.pow(now / then, 365 / days) - 1) * 100
+    : null;
+
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
-  const block7d = await getBlock(now - 7 * SECONDS_PER_DAY);
+  const blockPast = await getBlock(now - WINDOW_DAYS * SECONDS_PER_DAY);
 
-  // --- TVL ---
-  const [usd3TotalAssets, susd3TotalAssets, usd3Pps] = await Promise.all([
-    sdk.api.abi.call({
-      target: USD3,
-      abi: 'function totalAssets() view returns (uint256)',
-      chain: CHAIN,
-    }),
-    sdk.api.abi.call({
-      target: sUSD3,
-      abi: 'function totalAssets() view returns (uint256)',
-      chain: CHAIN,
-    }),
-    sdk.api.abi.call({
-      target: USD3,
-      abi: 'function pricePerShare() view returns (uint256)',
-      chain: CHAIN,
-    }),
+  const call = (target, abi, block) =>
+    sdk.api.abi
+      .call({ target, abi, chain: CHAIN, block })
+      .then((r) => Number(r.output));
+
+  const [
+    usd3PpsNow,
+    susd3PpsNow,
+    usd3TotalAssets,
+    susd3TotalAssets,
+    usd3PpsPast,
+    susd3PpsPast,
+    usdcPrice,
+  ] = await Promise.all([
+    call(USD3, PPS_ABI),
+    call(sUSD3, PPS_ABI),
+    call(USD3, TOTAL_ASSETS_ABI),
+    call(sUSD3, TOTAL_ASSETS_ABI),
+    call(USD3, PPS_ABI, blockPast),
+    call(sUSD3, PPS_ABI, blockPast),
+    getUsdcPrice(),
   ]);
 
-  const usd3TvlUsd = Number(usd3TotalAssets.output) / 1e6;
-  const susd3TvlUsd =
-    (Number(susd3TotalAssets.output) / 1e6) *
-    (Number(usd3Pps.output) / 1e6);
+  // USD3 (ERC4626 over USDC): realized yield = pricePerShare growth.
+  const usd3Apy = annualize(usd3PpsNow, usd3PpsPast, WINDOW_DAYS);
 
-  // --- APY ---
-  // USD3 APY = Aave supply rate (from waUSDC rate growth)
-  // sUSD3 APY = (credit market supply rate + Aave rate) * leverage
-  //   where leverage = USD3 TVL / sUSD3 TVL
-  //   because 100% performance fee redirects all USD3 vault yield to sUSD3
+  // sUSD3 (ERC4626 over USD3): a holder earns the staking boost (sUSD3->USD3
+  // rate growth) AND the underlying USD3 appreciation (USD3->USDC growth), so
+  // the USD yield compounds both rates.
+  const susd3Apy = annualize(
+    susd3PpsNow * usd3PpsNow,
+    susd3PpsPast * usd3PpsPast,
+    WINDOW_DAYS
+  );
 
-  // Fetch waUSDC rates and MorphoCredit market data at current + 7d ago
-  const [waRateNow, waRate7d, marketNow, market7d] = await Promise.all([
-    sdk.api.abi.call({
-      target: waUSDC,
-      abi: CONVERT_ABI,
-      params: [1e6],
-      chain: CHAIN,
-    }),
-    sdk.api.abi.call({
-      target: waUSDC,
-      abi: CONVERT_ABI,
-      params: [1e6],
-      chain: CHAIN,
-      block: block7d,
-    }),
-    sdk.api.abi.call({
-      target: MORPHO_CREDIT,
-      abi: MARKET_ABI,
-      params: [MARKET_ID],
-      chain: CHAIN,
-    }),
-    sdk.api.abi.call({
-      target: MORPHO_CREDIT,
-      abi: MARKET_ABI,
-      params: [MARKET_ID],
-      chain: CHAIN,
-      block: block7d,
-    }),
-  ]);
-
-  // Aave APY from waUSDC rate growth (7d)
-  const aaveApy =
-    Number(waRate7d.output) > 0
-      ? (Math.pow(Number(waRateNow.output) / Number(waRate7d.output), 365 / 7) - 1) * 100
-      : null;
-
-  // MorphoCredit supply APY from supply share price growth (7d)
-  // supply share price = totalSupplyAssets / totalSupplyShares
-  const sharesNow = Number(marketNow.output.totalSupplyShares);
-  const shares7d = Number(market7d.output.totalSupplyShares);
-  const sppNow =
-    sharesNow > 0
-      ? Number(marketNow.output.totalSupplyAssets) / sharesNow
-      : null;
-  const spp7d =
-    shares7d > 0
-      ? Number(market7d.output.totalSupplyAssets) / shares7d
-      : null;
-  const creditApy =
-    Number.isFinite(sppNow) && Number.isFinite(spp7d) && spp7d > 0
-      ? (Math.pow(sppNow / spp7d, 365 / 7) - 1) * 100
-      : null;
-
-  // sUSD3 gets ALL yield (Aave + credit) from USD3 vault via 100% performance fee
-  // Levered by the ratio of USD3 TVL to sUSD3 TVL
-  const leverage = susd3TvlUsd > 0 ? usd3TvlUsd / susd3TvlUsd : 0;
-  const totalVaultYield = (creditApy != null ? creditApy : 0) + (aaveApy != null ? aaveApy : 0);
-  const susd3Apy = creditApy != null || aaveApy != null ? totalVaultYield * leverage : null;
+  // sUSD3 holds USD3 (valued in USDC via USD3's pricePerShare). That USD3 is
+  // already part of USD3's totalAssets, so exclude the staked portion from the
+  // USD3 pool to avoid double-counting it across both pools.
+  const susd3Usdc = (susd3TotalAssets / 1e6) * (usd3PpsNow / 1e6);
+  const susd3TvlUsd = susd3Usdc * usdcPrice;
+  const usd3TvlUsd = (usd3TotalAssets / 1e6 - susd3Usdc) * usdcPrice;
 
   return [
     {
@@ -126,8 +85,8 @@ const apy = async () => {
       project: PROJECT,
       symbol: 'USD3',
       tvlUsd: usd3TvlUsd,
-      apyBase: aaveApy,
-      pricePerShare: Number(usd3Pps.output) / 1e6,
+      apyBase: usd3Apy,
+      pricePerShare: usd3PpsNow / 1e6,
       underlyingTokens: [USDC],
       url: 'https://app.3jane.xyz/supply',
     },
@@ -138,8 +97,7 @@ const apy = async () => {
       symbol: 'sUSD3',
       tvlUsd: susd3TvlUsd,
       apyBase: susd3Apy,
-      // Morpho Blue virtual-share offset = +6; scale to normalize.
-      pricePerShare: Number.isFinite(sppNow) ? sppNow * 1e6 : null,
+      pricePerShare: susd3PpsNow / 1e6,
       underlyingTokens: [USD3],
       url: 'https://app.3jane.xyz/supply',
     },
@@ -147,6 +105,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6659',
   timetravel: false,
   apy,
   url: 'https://app.3jane.xyz/supply',

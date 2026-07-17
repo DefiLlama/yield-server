@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const wbeth = '0xa2E3356610840701BDf5611a53974510Ae27E2e1';
 const project = 'binance-staked-eth';
@@ -22,9 +23,7 @@ const apy = async () => {
   const wbethExchangeRate = wbethExchangeRateRaw.output / 1e18;
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/${priceKey}`)
-  ).data.coins[priceKey]?.price;
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
   const apr =
     (
@@ -58,4 +57,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://www.binance.com/en/eth2' };
+module.exports = { protocolId: '2914', apy, url: 'https://www.binance.com/en/eth2' };

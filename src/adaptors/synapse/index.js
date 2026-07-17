@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const abi = require('./abis.json');
-const { formatChain, getData } = require('../utils');
+const { formatChain, getData, getPriceApiData } = require('../utils');
 const _ = require('lodash');
 
 // Pools are the treasurys that hold the underlying assets
@@ -74,11 +74,9 @@ const calcApy = (
 
 const getPrices = async (chain, addresses) => {
   const prices = (
-    await getData(
-      `https://coins.llama.fi/prices/current/${addresses.map(
+    await getPriceApiData(`/prices/current/${addresses.map(
         (address) => `${chain}:${address}`
-      )}`
-    )
+      )}`)
   ).coins;
 
   const pricesObj = Object.entries(prices).reduce(
@@ -302,6 +300,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '657',
   url: 'https://synapseprotocol.com/pools',
   timetravel: false,
   apy: main,

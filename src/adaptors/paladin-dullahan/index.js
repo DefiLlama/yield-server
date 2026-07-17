@@ -2,6 +2,7 @@ const ethers = require('ethers');
 const abi = require('./abi');
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 /////////////////////////// Constants ///////////////////////////
 
@@ -60,9 +61,7 @@ function binomialApproximatedRayPow(base, exp) {
 
 const getPrices = async (address) => {
   const token = `ethereum:${address.toLowerCase()}`;
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${token}`)
-  ).data.coins[token];
+  const prices = (await getPriceApiData(`/prices/current/${token}`)).coins[token];
 
   return {
     price: prices.price,
@@ -378,6 +377,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '3352',
   timetravel: false,
   apy: getApy,
   url: 'https://dullahan.paladin.vote/',

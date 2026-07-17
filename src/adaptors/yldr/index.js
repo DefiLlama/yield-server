@@ -31,6 +31,13 @@ async function apy() {
                         .shiftedBy(-(27 + Number(reserve.decimals) + 8))
                         .toNumber();
                     const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+                    const borrowCapUsd = new BigNumber(reserve.borrowCap)
+                        .multipliedBy(reserve.priceInMarketReferenceCurrency)
+                        .shiftedBy(-8)
+                        .toNumber();
+                    const availableBorrowUsd = Number(reserve.borrowCap)
+                        ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
+                        : tvlUsd;
                     return {
                         pool: `${reserve.yTokenAddress}-${chain}`.toLowerCase(),
                         chain: utils.formatChain(chain),
@@ -41,8 +48,10 @@ async function apy() {
                         underlyingTokens: [reserve.underlyingAsset],
                         totalSupplyUsd,
                         totalBorrowUsd,
+                        availableBorrowUsd,
                         apyBaseBorrow:
                             calculateAPY(reserve.variableBorrowRate).toNumber() * 100,
+                        borrowToken: reserve.underlyingAsset,
                         ltv: reserve.baseLTVasCollateral / 10000,
                         url: `https://yldr.com/lending`,
                         borrowable: reserve.borrowingEnabled,
@@ -56,6 +65,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '3941',
     timetravel: true,
     apy: apy,
 };

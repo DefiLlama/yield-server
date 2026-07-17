@@ -15,7 +15,7 @@ const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
   const [blockNow, blockYesterday, blockWeekAgo] = await Promise.all(
     [timestamp, timestamp - DAY, timestamp - WEEK].map((t) =>
       axios
-        .get(`https://coins.llama.fi/block/${CHAIN}/${t}`)
+        .get(utils.getPriceApiUrl(`/block/${CHAIN}/${t}`))
         .then((r) => r.data.height)
     )
   );
@@ -30,7 +30,7 @@ const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
       call(CONVERT_ABI, blockYesterday, [UNIT]),
       call(CONVERT_ABI, blockWeekAgo, [UNIT]),
       axios
-        .get(`https://coins.llama.fi/prices/current/${CHAIN}:${USDm}`)
+        .get(utils.getPriceApiUrl(`/prices/current/${CHAIN}:${USDm}`))
         .then((r) => r.data.coins[`${CHAIN}:${USDm}`].price),
     ]);
 
@@ -56,6 +56,7 @@ const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
 };
 
 module.exports = {
+  protocolId: '7372',
   timetravel: false,
   apy,
   url: 'https://bootstrap.avon.xyz/megavault/4326',

@@ -12,6 +12,7 @@ const TON_COINGECKO = {
   tston: 'coingecko:the-open-network',
   stton: 'coingecko:the-open-network',
   ton: 'coingecko:the-open-network',
+  gram: 'coingecko:the-open-network',
   usdt: 'coingecko:tether',
   'usd₮': 'coingecko:tether',
   eusdt: 'coingecko:tether',
@@ -19,6 +20,7 @@ const TON_COINGECKO = {
   stgusd: 'coingecko:usd-coin',
 };
 const resolveTonToken = (symbol, address) => TON_COINGECKO[symbol?.toLowerCase()] || address;
+const renameNativeTon = (symbol) => (symbol === 'TON' ? 'GRAM' : symbol);
 
 function expiryToText(dateIso) {
   return new Date(dateIso)
@@ -38,7 +40,7 @@ function createLpPools(assets) {
       pool: asset.jettons.lp.master_address.toLowerCase(),
       chain: utils.formatChain(TON_CHAIN.chainName),
       project: 'fiva',
-      symbol: asset.jettons.lp.symbol.replace('LP ', ''),
+      symbol: renameNativeTon(asset.jettons.lp.symbol.replace('LP ', '')),
       tvlUsd: asset.pool_liquidity_usd, // Use pool liquidity for LP pools
       apyBase: asset.pool_apr_7d, // Prefer 7-day APR
       apyReward: 0, // No separate reward system visible in API
@@ -56,7 +58,7 @@ function createPtPools(assets) {
       pool: asset.jettons.pt.master_address.toLowerCase(),
       chain: utils.formatChain(TON_CHAIN.chainName),
       project: 'fiva',
-      symbol: asset.jettons.pt.symbol.replace('PT ', ''),
+      symbol: renameNativeTon(asset.jettons.pt.symbol.replace('PT ', '')),
       tvlUsd: asset.asset_tvl_usd,
       apyBase: asset.fixed_apr,
       underlyingTokens: [resolveTonToken(asset.jettons.underlying_jetton.symbol, asset.jettons.underlying_jetton.master_address)],
@@ -96,6 +98,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '5568',
   timetravel: false,
   apy,
   url: 'https://www.thefiva.com',

@@ -8,8 +8,15 @@ const poolsFunction = async () => {
 
   Object.keys(data).forEach((key) => {
     const pool = data[key];
-    const supplyUsd = parseFloat(pool.total_supply) * parseFloat(pool.tokenPrice);
-    const borrowUsd = parseFloat(pool.total_borrow) * parseFloat(pool.tokenPrice);
+    const price = parseFloat(pool.tokenPrice);
+    const totalSupply = parseFloat(pool.total_supply);
+    const totalBorrow = parseFloat(pool.total_borrow);
+    const supplyUsd = totalSupply * price;
+    const borrowUsd = totalBorrow * price;
+    const availableBorrowUsd = Math.max(
+      Math.min(totalSupply - totalBorrow, pool.borrow_cap_ceiling - totalBorrow),
+      0
+    ) * price;
     arr.push({
       chain: 'Sui',
       project: 'navi-lending',
@@ -21,7 +28,11 @@ const poolsFunction = async () => {
       rewardTokens: pool.rewardTokenAddress ? pool.rewardTokenAddress : [],
       totalSupplyUsd: supplyUsd,
       totalBorrowUsd: borrowUsd,
+      availableBorrowUsd,
       apyBaseBorrow: parseFloat(pool.base_borrow_rate),
+      ...(pool.coin_type && { borrowToken: pool.coin_type }),
+      ltv: parseFloat(pool.max_ltv),
+      borrowable: availableBorrowUsd > 0,
       underlyingTokens: pool.coin_type ? [pool.coin_type] : undefined,
     });
   });
@@ -30,6 +41,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '3323',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.naviprotocol.io/',

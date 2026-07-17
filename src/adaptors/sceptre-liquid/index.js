@@ -1,13 +1,13 @@
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
-const { formatChain } = require('../utils');
+const { formatChain, getPriceApiUrl } = require('../utils');
 const axios = require('axios');
 
 const CONFIG = {
   SFLR_ADDRESS: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
   WFLR_ADDRESS: '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d',
   FLARE_CHAIN: 'flare',
-  PRICE_API: 'https://coins.llama.fi/prices/current',
+  PRICE_API: getPriceApiUrl('/prices/current'),
   REWARDS_API: 'https://rewards.sceptre.fi/v1/flare',
   TIMEOUT_MS: 10000,
   RETRY_ATTEMPTS: 3,
@@ -90,6 +90,7 @@ async function main() {
 }
 
 module.exports = {
+  protocolId: '4724',
   timetravel: false,
   apy: main,
   url: 'https://flare.sceptre.fi/',

@@ -1,6 +1,5 @@
 const { gql } = require('graphql-request');
 const utils = require('../utils');
-const fetch = require('node-fetch');
 
 const USDX = '0xf3527ef8dE265eAa3716FB312c12847bFBA66Cef';
 
@@ -73,6 +72,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '5234',
   apy: main,
   url: 'https://app.usdx.money/',
 };

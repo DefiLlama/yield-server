@@ -70,9 +70,7 @@ const troveManagerTVL = async () => {
   ).output;
 
   const key = `ethereum:${LUSD_ADDRESS}`.toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins;
+  const prices = (await utils.getPriceApiData(`/prices/current/${key}`)).coins;
 
   const totalSupplyUsd = (Number(lusdTotalSupply) / 1e18) * prices[key].price;
 
@@ -121,6 +119,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '1475',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://farming.mahadao.com?utm_source=defillama&utm_medium=listing&utm_campaign=external',

@@ -112,11 +112,7 @@ const getApy = async () => {
       });
 
       const priceKeys = uniqueTokens.map((t) => `${chain}:${t.toLowerCase()}`);
-      const prices = (
-        await axios.get(
-          `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
-        )
-      ).data.coins;
+      const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys.join(',')}`)).coins;
 
       for (let i = 0; i < vaultAddresses.length; i++) {
         const vault = vaultAddresses[i];
@@ -164,6 +160,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '641',
   timetravel: false,
   url: 'https://palm.arrakis.finance/vaults',
   apy: getApy,

@@ -69,6 +69,7 @@ const poolsFunction = async () => {
   return Pool
 }
 module.exports = {
+  protocolId: '423',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://deri.io',

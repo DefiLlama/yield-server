@@ -60,9 +60,7 @@ const getApy = async () => {
       ).output;
 
       const key = `${adaptedChain}:${tokenAddress}`;
-      const price = (
-        await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-      ).data.coins[key]?.price;
+      const price = (await utils.getPriceApiData(`/prices/current/${key}`)).coins[key]?.price;
 
       const totalBalance = new BigNumber(tokenBalance)
         .plus(new BigNumber(hopTokenBalance))
@@ -109,6 +107,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '435',
   timetravel: false,
   apy: getApy,
 };

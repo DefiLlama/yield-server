@@ -1,6 +1,7 @@
 const { default: BigNumber } = require('bignumber.js');
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
+const { getPriceApiData } = require('../utils');
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
 const SECONDS_PER_YEAR = 365 * DAY;
@@ -148,9 +149,7 @@ const getApy = async () => {
   ]
     .join(',')
     .toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${coins}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${coins}`)).coins;
 
   const davosPrice = prices[`polygon:${DAVOS.toLowerCase()}`]?.price;
   const wmaticPrice = prices[`polygon:${WMATIC.toLowerCase()}`]?.price;
@@ -202,6 +201,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '2683',
   timetravel: false,
   apy: getApy,
   url: 'https://davos.xyz/',

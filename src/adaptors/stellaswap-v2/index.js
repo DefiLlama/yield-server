@@ -259,9 +259,7 @@ const getApy = async (timestamp = null) => {
     })
   ).output;
 
-  const stellaPrice = (
-    await axios.get(`https://coins.llama.fi/prices/current/moonbeam:${STELLA}`)
-  ).data.coins[`moonbeam:${STELLA}`].price;
+  const stellaPrice = (await utils.getPriceApiData(`/prices/current/moonbeam:${STELLA}`)).coins[`moonbeam:${STELLA}`].price;
 
   const [supplyRes, masterChefBalancesRes] = await Promise.all(
     ['totalSupply', 'balanceOf'].map((method) =>
@@ -282,9 +280,7 @@ const getApy = async (timestamp = null) => {
   const tokenKeys = Object.values(rewardTokenMapping)
     .map((t) => `coingecko:${t}`)
     .join(',');
-  const extrRewardTokenPrices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${tokenKeys}`)
-  ).data.coins;
+  const extrRewardTokenPrices = (await utils.getPriceApiData(`/prices/current/${tokenKeys}`)).coins;
 
   const dataRewards = poolInfo.map((p, i) => {
     const pool = dataFee.find((d) => d.pool === p.lpToken.toLowerCase());
@@ -352,6 +348,7 @@ const getApy = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '1274',
   timetravel: false,
   apy: getApy,
   url: 'https://app.stellaswap.com/farm',

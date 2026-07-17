@@ -65,6 +65,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '4503',
   timetravel: false,
   apy,
   url: 'https://flat.money/flatcoin',

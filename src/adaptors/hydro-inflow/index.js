@@ -3,7 +3,7 @@ const BigNumber = require('bignumber.js');
 const axios = require('axios');
 
 const chainId = 'neutron';
-const restEndpoint = 'https://rest-lb.neutron.org';
+const restEndpoint = 'https://neutron-api.polkachu.com';
 
 const vaults = [
   // ATOM vault
@@ -103,6 +103,7 @@ async function getVaultAPYs(vault_apy_endpoint) {
 }
 
 module.exports = {
+  protocolId: '7262',
   apy,
   timetravel: false,
   url: 'https://hydro.markets/',

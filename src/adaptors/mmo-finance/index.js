@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const mEtherABI = require('./MEtherInterfaceFull.json');
 const axios = require('axios');
+const { getPriceApiData } = require('../utils');
 
 const mEtherAddresses = {
   Glasses: '0xDdf26F3529CA4dC30f484b4F9d3A7ce0b7BD1562',
@@ -72,9 +73,7 @@ const getApy = async (block) => {
 
   // pull token prices
   const key = `ethereum:${ETHAddr}`.toLowerCase();
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${key}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${key}`)).coins;
 
   const ETHPrice = Number(prices[key].price);
 
@@ -122,6 +121,7 @@ const getApy = async (block) => {
 };
 
 module.exports = {
+  protocolId: '1904',
   timetravel: false,
   apy: getApy,
   url: 'https://mmo.finance/supply',

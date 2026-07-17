@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
+const { getPriceApiUrl } = require('../utils');
 
 const project = 'blockchain-capital';
 
@@ -9,7 +10,7 @@ const ORACLE = '0x0eF2418216476Ab5264821070B8c24b6B458F796';
 
 const getBlock = (timestamp) =>
   axios
-    .get(`https://coins.llama.fi/block/era/${timestamp}`)
+    .get(getPriceApiUrl(`/block/era/${timestamp}`))
     .then((r) => r.data.height);
 
 const getOraclePrice = (block) =>
@@ -73,6 +74,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6692',
   timetravel: false,
   apy,
   url: 'https://bcap.invest.securitize.io/',

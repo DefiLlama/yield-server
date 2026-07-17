@@ -2,8 +2,10 @@ const axios = require('axios');
 
 const API_URL = 'https://api.lista.org/api/moolah/vault/list';
 const CHAINS = ['bsc', 'ethereum'];
+const LISTA_TOKEN = '0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46';
 const LISTA_REWARD_TOKEN = {
-  bsc: '0xFceB31A79F71AC9CBDCF853519c1b12D379EdC46',
+  bsc: LISTA_TOKEN,
+  ethereum: 'coingecko:lista',
 };
 
 const apy = async () => {
@@ -21,6 +23,7 @@ const apy = async () => {
     const earnPools = data.data.list.map((vault) => {
       const baseApy = parseFloat(vault.apy);
       const emissionApy = parseFloat(vault.emissionApy);
+      const rewardToken = LISTA_REWARD_TOKEN[chain];
 
       return {
         pool: `lista-lending-${vault.address}-${chain}`,
@@ -33,8 +36,8 @@ const apy = async () => {
         url: `https://lista.org/lending/vault/${chain}/${vault.address}?tab=vault`,
         apyReward: emissionApy * 100,
         rewardTokens:
-          vault.emissionEnabled && LISTA_REWARD_TOKEN[chain]
-            ? [LISTA_REWARD_TOKEN[chain]]
+          vault.emissionEnabled && emissionApy > 0 && rewardToken
+            ? [rewardToken]
             : [], // LISTA
       };
     });
@@ -46,5 +49,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6056',
   apy,
 };

@@ -19,9 +19,7 @@ const poolsFunction = async () => {
   const priceKeys = ['celo', 'celo-dollar', 'celo-euro', 'moola-market']
     .map((t) => `coingecko:${t}`)
     .join(',');
-  let { coins: coinprices } = await utils.getData(
-    `https://coins.llama.fi/prices/current/${priceKeys}`
-  );
+  let { coins: coinprices } = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
   // Moola-Market API for cREAL price.
   let mooPrices = await utils.getData(
@@ -91,6 +89,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '489',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.moola.market/',

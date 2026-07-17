@@ -1,9 +1,6 @@
 const utils = require('../utils');
 const { BigNumber, utils: ethersUtils } = require('ethers');
-const axios = require('axios');
 const SDK = require('@defillama/sdk');
-
-const GQL_URL = 'https://api.goldsky.com/api/public/project_clzibgddg2epg01ze4lq55scx/subgraphs/loan_router_arbitrum/0.0.3/gn';
 
 // PayPal Incentives and T-bill Yield
 
@@ -11,6 +8,10 @@ const USDAI = '0x0a1a1a107e45b7ced86833863f482bc5f4ed82ef'; // contract holding 
 const PYUSD_ADDRESS = '0x46850aD61C2B7d64d08c9C754F45254596696984';
 const PYUSD_DECIMALS = 6;
 const SECONDS_PER_YEAR = 365 * 24 * 3600;
+
+// baseYieldAdminFeeRate and loanRouterAdminFeeRate are both 1000 bps, set as
+// internal immutables in the StakedUSDai constructor (no on-chain getter)
+const ADMIN_FEE_RATE = 0.1;
 
 // BaseYieldAccrual struct is stored at BASE_YIELD_ACCRUAL_STORAGE_LOCATION:
 //   slot +0: accrued (uint256)
@@ -23,9 +24,9 @@ const BASE_YIELD_ACCRUAL_STORAGE_LOCATION =
 // SDK doesn't expose eth_getStorageAt; access underlying JSON-RPC provider
 const getRpcProvider = () => SDK.getProvider('arbitrum').rpcs[0].provider;
 
-const getStorageAt = async (slot: BigNumber): Promise<BigNumber> => {
+const getStorageAt = async (target: string, slot: BigNumber): Promise<BigNumber> => {
   const result = await getRpcProvider().send('eth_getStorageAt', [
-    USDAI,
+    target,
     ethersUtils.hexZeroPad(slot.toHexString(), 32),
     'latest',
   ]);
@@ -38,7 +39,7 @@ const getRateTiersFromStorage = async () => {
   // RateTier struct layout: { uint256 rate; uint256 threshold; }
   const base = BigNumber.from(BASE_YIELD_ACCRUAL_STORAGE_LOCATION);
 
-  const length = await getStorageAt(base);
+  const length = await getStorageAt(USDAI, base);
   if (length.isZero()) throw new Error('rateTiers array is empty');
 
   const arrayDataStart = BigNumber.from(
@@ -48,8 +49,8 @@ const getRateTiersFromStorage = async () => {
   const tiers = await Promise.all(
     Array.from({ length: length.toNumber() }, (_, i) =>
       Promise.all([
-        getStorageAt(arrayDataStart.add(i * 2)),
-        getStorageAt(arrayDataStart.add(i * 2 + 1)),
+        getStorageAt(USDAI, arrayDataStart.add(i * 2)),
+        getStorageAt(USDAI, arrayDataStart.add(i * 2 + 1)),
       ]).then(([rate, threshold]) => ({ rate, threshold }))
     )
   );
@@ -106,216 +107,134 @@ const REDEMPTION_SHARE_PRICE_ABI = {
   type: 'function',
 };
 
-const LOAN_ROUTER_ADDRESS = '0x0C2ED170F2bB1DF1a44292Ad621B577b3C9597D1';
+// Loan and escrow interest accrue continuously at a blended per-second rate.
+// StakedUSDai's LoanRouterPositionManager tracks one rate per currency in its
+// interestAccruals mapping, which already folds in every loan across loan router
+// v1, v2. The escrow timelock keeps its own rate for the
+// USDai it holds. Reading these rates gives the instantaneous interest the vault
+// earns without walking the loan routers.
+const STAKED_USDAI_DEPLOY_TIMESTAMP = 1747128556;
+const ESCROW_TIMELOCK_DEPLOY_TIMESTAMP = 1782483721;
 
-const LOAN_STATE_ABI = {
-  inputs: [{ name: 'loanTermsHash', type: 'bytes32' }],
-  name: 'loanState',
-  outputs: [
-    { name: 'status', type: 'uint8' },
-    { name: 'maturity', type: 'uint64' },
-    { name: 'repaymentDeadline', type: 'uint64' },
-    { name: 'scaledBalance', type: 'uint256' },
-  ],
-  stateMutability: 'view',
-  type: 'function',
-};
+const ESCROW_TIMELOCK_ADDRESS = '0x1E710CC0b64E1D7572d35E43AD261587789B6438';
 
-const BORROW_ABI = [
-  {
-    name: 'borrow',
-    type: 'function',
-    inputs: [
-      {
-        name: 'loanTerms',
-        type: 'tuple',
-        components: [
-          { name: 'expiration', type: 'uint64' },
-          { name: 'borrower', type: 'address' },
-          { name: 'currencyToken', type: 'address' },
-          { name: 'collateralToken', type: 'address' },
-          { name: 'collateralTokenId', type: 'uint256' },
-          { name: 'duration', type: 'uint64' },
-          { name: 'repaymentInterval', type: 'uint64' },
-          { name: 'interestRateModel', type: 'address' },
-          { name: 'gracePeriodRate', type: 'uint256' },
-          { name: 'gracePeriodDuration', type: 'uint256' },
-          {
-            name: 'feeSpec',
-            type: 'tuple',
-            components: [
-              { name: 'originationFee', type: 'uint256' },
-              { name: 'exitFee', type: 'uint256' },
-            ],
-          },
-          {
-            name: 'trancheSpecs',
-            type: 'tuple[]',
-            components: [
-              { name: 'lender', type: 'address' },
-              { name: 'amount', type: 'uint256' },
-              { name: 'rate', type: 'uint256' },
-            ],
-          },
-          { name: 'collateralWrapperContext', type: 'bytes' },
-          { name: 'options', type: 'bytes' },
-        ],
-      },
-      {
-        name: 'lenderDepositInfos',
-        type: 'tuple[]',
-        components: [
-          { name: 'depositType', type: 'uint8' },
-          { name: 'data', type: 'bytes' },
-        ],
-      },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-];
+// erc7201:stakedUSDai.loans. Loans struct field order:
+//   slot +0/+1: currencyTokens (EnumerableSet.AddressSet)
+//   slot +2: repaymentBalances
+//   slot +3: pendingBalances
+//   slot +4: interestAccruals  (mapping(address => Accrual))
+//   slot +5: loan
+const LOANS_STORAGE_LOCATION =
+  '0xeedf9bea8709bd441d5da250df505e80fc82bec74f9f1df28edf19fa1ed4bd00';
+const INTEREST_ACCRUALS_FIELD_OFFSET = 4;
 
-const iface = new ethersUtils.Interface(BORROW_ABI);
-const BORROW_SELECTOR = iface.getSighash('borrow');
+// erc7201:escrowTimelock.accrual
+const ESCROW_ACCRUAL_STORAGE_LOCATION =
+  '0xd0ce944f67547cded3d5848ee065c96cab977ea6922f5f134a261a7de7bf4b00';
 
-function tryDecodeBorrowFromInput(rawHex: string) {
-  const sel = BORROW_SELECTOR.slice(2);
-  const idx = rawHex.indexOf(sel);
-  if (idx === -1) return null;
-  try {
-    return iface.parseTransaction({ data: '0x' + rawHex.slice(idx) });
-  } catch {
-    return null;
-  }
-}
+// Accrual struct is { uint256 accrued; uint256 rate; uint64 timestamp; }, so the
+// per-second rate sits one slot past the struct base. The rate is scaled by 1e18.
+const ACCRUAL_RATE_SLOT_OFFSET = 1;
+const FIXED_POINT_SCALE = 10n ** 18n;
 
-const GQL_QUERY = `
-  query GetLoanHashes($first: Int!, $skip: Int!) {
-    loanRouterEvents(
-      where: {
-        type: LoanOriginated,
-        timestamp_gte: "0"
-      }
-      orderBy: timestamp
-      orderDirection: asc
-      first: $first
-      skip: $skip
-    ) {
-      loanTermsHash
-      loanOriginated {
-        currencyToken {
-          id
-        }
-      }
-      txHash
-    }
-  }
-`;
+// Annualize a per-second accrual rate into native token base units.
+const annualInterestBaseUnits = (rate: BigNumber): bigint =>
+  (BigInt(rate.toString()) * BigInt(SECONDS_PER_YEAR)) / FIXED_POINT_SCALE;
 
-const GQL_PAGE_SIZE = 1000;
+const getLoanAccrualInterestUsd = async (timestamp: number): Promise<number> => {
+  let interestUsd = 0;
 
-const getLoanPools = async (): Promise<{ tvlUsd: number; apyBase: number }[]> => {
-  // 1. Paginate through all LoanOriginated events
-  const allEvents: any[] = [];
-  let skip = 0;
-  while (true) {
-    const response = await axios.post(GQL_URL, {
-      query: GQL_QUERY,
-      variables: { first: GQL_PAGE_SIZE, skip },
-    });
-    if (response.data.errors || !response.data.data) {
-      console.error('GQL error fetching loanRouterEvents:', response.data.errors ?? response.data);
-      break;
-    }
-    const page: any[] = response.data.data.loanRouterEvents;
-    allEvents.push(...page);
-    if (page.length < GQL_PAGE_SIZE) break;
-    skip += GQL_PAGE_SIZE;
-  }
+  // Loan interest: one blended rate per currency on the sUSDai proxy
+  if (timestamp >= STAKED_USDAI_DEPLOY_TIMESTAMP) {
+    const loansBase = BigNumber.from(LOANS_STORAGE_LOCATION);
 
-  if (!allEvents.length) return [];
-
-  // 2. Unique currency token addresses
-  const uniqueTokens: string[] = [
-    ...new Set(
-      allEvents.map((e) => e.loanOriginated.currencyToken.id.toLowerCase())
-    ),
-  ];
-
-  // 3. Parallel: loanState multicall + prices
-  const [loanStates, prices] = await Promise.all([
-    SDK.api.abi.multiCall({
-      abi: LOAN_STATE_ABI,
-      calls: allEvents.map((e) => ({
-        target: LOAN_ROUTER_ADDRESS,
-        params: [e.loanTermsHash],
-      })),
-      chain: 'arbitrum',
-    }),
-    utils.getPrices(uniqueTokens, 'arbitrum'),
-  ]);
-
-  // 4. Annotate events with loanState output, filter to active only
-  const activeEvents = allEvents
-    .map((event, i) => ({
-      event,
-      status: Number(loanStates.output[i].output.status),
-      scaledBalance: BigInt(loanStates.output[i].output.scaledBalance),
-    }))
-    .filter(({ status }) => status === 1); // LoanStatus.Active = 1
-
-  // 5. For each active loan: fetch tx, decode LoanTerms, extract tvlUsd + apyBase
-  const provider = SDK.getProvider('arbitrum');
-  const poolGroups = await Promise.all(
-    activeEvents.map(async ({ event, scaledBalance }) => {
-      const tx = await provider.getTransaction(event.txHash);
-      if (!tx) return [];
-
-      const decoded = tryDecodeBorrowFromInput(tx.data.slice(2));
-      if (!decoded) return [];
-
-      const loanTerms = decoded.args.loanTerms;
-      const currencyToken = event.loanOriginated.currencyToken.id.toLowerCase();
-      const price = prices.pricesByAddress[currencyToken] ?? 1;
-
-      // scaledBalance is 1e18-scaled; divide as BigInt first to avoid precision loss
-      const loanBalanceUsd = Number(scaledBalance / 10n ** 18n) * price;
-
-      const totalTrancheAmount = loanTerms.trancheSpecs.reduce(
-        (sum: number, t: any) => sum + Number(t.amount),
-        0
+    // currencyTokens is an EnumerableSet: _values array length at the base slot,
+    // elements packed from keccak256(base)
+    const setLength = (await getStorageAt(SUSDAI_ADDRESS, loansBase)).toNumber();
+    if (setLength > 0) {
+      const valuesStart = BigNumber.from(
+        ethersUtils.keccak256(ethersUtils.hexZeroPad(loansBase.toHexString(), 32))
       );
-      if (!loanTerms.trancheSpecs.length || totalTrancheAmount === 0) return [];
-      const tranche0 = loanTerms.trancheSpecs[0];
-      const tvlUsd = loanBalanceUsd * (Number(tranche0.amount) / totalTrancheAmount);
-      const apyBase = Math.round(Number(tranche0.rate) * SECONDS_PER_YEAR * 100 * 100 / 1e18) / 100;
+      const accrualsSlot = loansBase.add(INTEREST_ACCRUALS_FIELD_OFFSET);
 
-      return [{ tvlUsd, apyBase }];
-    })
-  );
+      const tokenWords = await Promise.all(
+        Array.from({ length: setLength }, (_, i) =>
+          getStorageAt(SUSDAI_ADDRESS, valuesStart.add(i))
+        )
+      );
+      const tokens = tokenWords.map((word) =>
+        ethersUtils.getAddress(
+          ethersUtils.hexDataSlice(ethersUtils.hexZeroPad(word.toHexString(), 32), 12)
+        )
+      );
 
-  return poolGroups.flat();
+      // interestAccruals[token] lives at keccak256(abi.encode(token, accrualsSlot))
+      const rates = await Promise.all(
+        tokens.map((token) => {
+          const accrualBase = BigNumber.from(
+            ethersUtils.keccak256(
+              ethersUtils.defaultAbiCoder.encode(['address', 'uint256'], [token, accrualsSlot])
+            )
+          );
+          return getStorageAt(SUSDAI_ADDRESS, accrualBase.add(ACCRUAL_RATE_SLOT_OFFSET));
+        })
+      );
+
+      const [decimals, prices] = await Promise.all([
+        SDK.api.abi.multiCall({
+          abi: 'erc20:decimals',
+          calls: tokens.map((token) => ({ target: token })),
+          chain: 'arbitrum',
+        }),
+        utils.getPrices(tokens, 'arbitrum'),
+      ]);
+
+      tokens.forEach((token, i) => {
+        const annual = annualInterestBaseUnits(rates[i]);
+        const tokenDecimals = Number(decimals.output[i].output);
+        const price = prices.pricesByAddress[token.toLowerCase()] ?? 1;
+        interestUsd += (Number(annual) / 10 ** tokenDecimals) * price;
+      });
+    }
+  }
+
+  // Escrow interest: a single blended rate for the USDai held in escrow
+  if (timestamp >= ESCROW_TIMELOCK_DEPLOY_TIMESTAMP) {
+    const escrowRate = await getStorageAt(
+      ESCROW_TIMELOCK_ADDRESS,
+      BigNumber.from(ESCROW_ACCRUAL_STORAGE_LOCATION).add(ACCRUAL_RATE_SLOT_OFFSET)
+    );
+    const prices = await utils.getPrices([USDAI], 'arbitrum');
+    const usdaiPrice = prices.pricesByAddress[USDAI.toLowerCase()] ?? 1;
+    // USDai has 18 decimals
+    interestUsd += (Number(annualInterestBaseUnits(escrowRate)) / 1e18) * usdaiPrice;
+  }
+
+  return interestUsd;
 };
 
 // --- Entry point ---
 
-const apy = async () => {
+const apy = async (timestamp: number) => {
   try {
-    const [fixedPools, loanPools, prices, totalSharesResult, pricePerShareResult] = await Promise.all([
-      getUnderlyingYields(),
-      getLoanPools(),
-      utils.getPrices([PYUSD_ADDRESS], 'arbitrum'),
-      SDK.api.abi.call({
-        abi: TOTAL_SHARES_ABI,
-        target: SUSDAI_ADDRESS,
-        chain: 'arbitrum',
-      }),
-      SDK.api.abi.call({
-        abi: REDEMPTION_SHARE_PRICE_ABI,
-        target: SUSDAI_ADDRESS,
-        chain: 'arbitrum',
-      }),
-    ]);
+    const ts = timestamp || Math.floor(Date.now() / 1000);
+
+    const [fixedPools, loanInterestPerYear, prices, totalSharesResult, pricePerShareResult] =
+      await Promise.all([
+        getUnderlyingYields(),
+        getLoanAccrualInterestUsd(ts),
+        utils.getPrices([PYUSD_ADDRESS], 'arbitrum'),
+        SDK.api.abi.call({
+          abi: TOTAL_SHARES_ABI,
+          target: SUSDAI_ADDRESS,
+          chain: 'arbitrum',
+        }),
+        SDK.api.abi.call({
+          abi: REDEMPTION_SHARE_PRICE_ABI,
+          target: SUSDAI_ADDRESS,
+          chain: 'arbitrum',
+        }),
+      ]);
 
     const pyusdPrice = prices.pricesByAddress[PYUSD_ADDRESS.toLowerCase()] ?? 1;
 
@@ -325,17 +244,17 @@ const apy = async () => {
     // TVL and APY denominator are both the on-chain redemption value
     const redemptionValueUsd = Number(totalSharesResult.output) * sUSDaiPrice / 1e18;
 
-    const allPools = [...fixedPools, ...loanPools].filter((p) => p.tvlUsd > 0);
-    if (!allPools.length || redemptionValueUsd === 0) return [];
+    if (redemptionValueUsd === 0) return [];
 
-    // Total interest earned per year across all deployed assets
-    const totalInterestPerYear = allPools.reduce(
-      (sum, p) => sum + (p.tvlUsd * p.apyBase) / 100,
-      0
-    );
+    // Total interest earned per year: fixed (T-bill) pools plus loan and escrow accrual
+    const fixedInterestPerYear = fixedPools
+      .filter((p) => p.tvlUsd > 0)
+      .reduce((sum, p) => sum + (p.tvlUsd * p.apyBase) / 100, 0);
+    const totalInterestPerYear = fixedInterestPerYear + loanInterestPerYear;
+    const netInterestPerYear = totalInterestPerYear * (1 - ADMIN_FEE_RATE);
 
-    // APY to sUSDai holders = all interest earned / on-chain redemption value
-    const apyBase = Math.round((totalInterestPerYear / redemptionValueUsd) * 100 * 100) / 100;
+    // APY to sUSDai holders = interest earned net of admin fees / on-chain redemption value
+    const apyBase = Math.round((netInterestPerYear / redemptionValueUsd) * 100 * 100) / 100;
 
     return [
       {
@@ -346,7 +265,7 @@ const apy = async () => {
         tvlUsd: redemptionValueUsd,
         apyBase,
         ...(Number(pricePerShareResult.output) / 1e18 > 0 && { pricePerShare: Number(pricePerShareResult.output) / 1e18 }),
-        underlyingTokens: [PYUSD_ADDRESS],
+        underlyingTokens: [PYUSD_ADDRESS, USDAI],
         poolMeta: '30d unlock',
         url: 'https://app.usd.ai',
         isIntrinsicSource: true,
@@ -359,6 +278,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '6190',
   timetravel: false,
   apy,
   url: 'https://app.usd.ai',

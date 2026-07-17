@@ -272,7 +272,7 @@ const apy = async (chain) => {
     const priceKeys = underlying.map((t) => `${chain}:${t}`).join(',');
     let prices = {};
     try {
-      const pricesResponse = await axios.get(`https://coins.llama.fi/prices/current/${priceKeys}`);
+      const pricesResponse = await axios.get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`));
       prices = pricesResponse.data.coins;
     } catch (error) {
       console.error(`Error fetching prices for chain ${chain}:`, error);
@@ -484,6 +484,7 @@ const main = async () => {
 };
 // Export the module
 module.exports = {
+  protocolId: '4070',
   apy: main,
   url: 'https://app.ionic.money/',
 };

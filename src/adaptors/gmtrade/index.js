@@ -44,7 +44,8 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '7297',
   timetravel: false,
   apy,
-  url: 'https://gmtrade.xyz',
+  url: 'https://gmtrade.xyz/pools',
 };

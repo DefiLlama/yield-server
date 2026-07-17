@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const fetch = require('node-fetch')
 
 const utils = require('../utils');
 const getPoolDepositRateAbi = {
@@ -97,9 +96,7 @@ const getPoolTVL = async (poolAddress, chain = 'avax') => {
 }
 
 const getTokenPrice = async (tokenAddress, chain='avax') => {
-  const data = await utils.getData(
-      `https://coins.llama.fi/prices/current/${chain}:${tokenAddress}`
-  );
+  const data = await utils.getPriceApiData(`/prices/current/${chain}:${tokenAddress}`);
   return data.coins[Object.keys(data.coins)[0]].price
 }
 
@@ -341,6 +338,7 @@ const getPoolsAPYs = async () => {
 };
 
 module.exports = {
+  protocolId: '2479',
   timetravel: false,
   start: 1673346953,
   apy: getPoolsAPYs,

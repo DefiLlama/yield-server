@@ -76,6 +76,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1662',
     timetravel: false,
     apy: main,
     url: 'https://app.yeti.finance/'

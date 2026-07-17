@@ -5,7 +5,7 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const PROJECT = 'satsuma';
 const CHAIN = 'citrea';
 const SUBGRAPH =
-  'https://api.goldsky.com/api/public/project_cmamb6kkls0v2010932jjhxj4/subgraphs/analytics-mainnet/v1.0.1/gn';
+  'https://api.goldsky.com/api/public/project_cmamb6kkls0v2010932jjhxj4/subgraphs/analytics-mainnet/v1.0.3/gn';
 
 // Current snapshot: TVL + cumulative fees for APY calculation
 const query = gql`
@@ -78,6 +78,7 @@ const apy = async (timestamp = null) => {
         url: `https://www.satsuma.exchange/pool/${pool.id}`,
       };
     })
+    .filter((p) => Number.isFinite(p.tvlUsd) && p.tvlUsd > 0)
     .filter((p) => utils.keepFinite(p));
 
   return addMerklRewardApy(
@@ -88,6 +89,7 @@ const apy = async (timestamp = null) => {
 };
 
 module.exports = {
+  protocolId: '7336',
   timetravel: false,
   apy,
   url: 'https://www.satsuma.exchange/pools',

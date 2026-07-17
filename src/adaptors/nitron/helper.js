@@ -1,6 +1,7 @@
 const BigNumber = require('bignumber.js');
 const { default: axios } = require('axios');
 const dayjs = require('dayjs');
+const { getPriceApiData } = require('../utils');
 
 const BN_ZERO = new BigNumber(0);
 const BN_ONE = new BigNumber(1);
@@ -170,11 +171,7 @@ module.exports.getUSDValues = async (assets, denomToGeckoIdMap) => {
     ...new Set(assets.map((a) => `coingecko:${denomToGeckoIdMap[a.denom]}`)),
   ].filter((i) => i !== undefined);
 
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${priceKeys.join(',')}`
-    )
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys.join(',')}`)).coins;
 
   const pricingsFromOracle = (
     await axios.get('https://api.carbon.network/carbon/pricing/v1/token_price')

@@ -1,6 +1,5 @@
 const axios = require('axios');
 const { request, gql } = require('graphql-request');
-const { Web3, eth } = require('web3');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
@@ -49,13 +48,9 @@ const REWARD_TYPES = {
 const SECONDS_PER_DAY = 86400;
 
 const getPrices = async (addresses) => {
-  const prices = (
-    await axios.get(
-      `https://coins.llama.fi/prices/current/${addresses
+  const prices = (await utils.getPriceApiData(`/prices/current/${addresses
         .join(',')
-        .toLowerCase()}`
-    )
-  ).data.coins;
+        .toLowerCase()}`)).coins;
 
   const pricesByAddress = Object.entries(prices).reduce(
     (acc, [name, price]) => ({
@@ -219,6 +214,8 @@ const getApy = async (comptroller) => {
     const totalBorrowUsd =
       (Number(totalBorrows[i]) / 10 ** decimals) * prices[token.toLowerCase()];
     const tvlUsd = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Number(marketsCash[i]) / 10 ** decimals) * prices[token.toLowerCase()];
 
     const apyBase = calculateApy(supplyRatePerTimestamp[i]);
     const apyBaseBorrow = calculateApy(borrowRatePerTimestamp[i]);
@@ -308,7 +305,10 @@ const getApy = async (comptroller) => {
       ].filter(Boolean),
       totalSupplyUsd,
       totalBorrowUsd,
+      availableBorrowUsd,
+      borrowable: marketsInfo[i].isListed,
       apyBaseBorrow,
+      borrowToken: token,
       apyRewardBorrow: Number.isFinite(apyRewardBorrow) ? apyRewardBorrow : 0,
       ltv: marketsInfo[i].collateralFactorMantissa / 10 ** 18,
     };
@@ -324,6 +324,7 @@ const getAPys = async() => {
 }
 
 module.exports = {
+  protocolId: '4915',
   timetravel: false,
   apy: getAPys,
   url: 'https://app.kinetic.market/dashboard',

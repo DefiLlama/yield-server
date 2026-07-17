@@ -10,7 +10,7 @@ const apy = async () => {
   const totalSupply = await getTotalSupply(BBSOL_ADDRESS);
 
   const priceResponse = await axios.get(
-    `https://coins.llama.fi/prices/current/${priceKey}`
+    utils.getPriceApiUrl(`/prices/current/${priceKey}`)
   );
   const currentPrice = priceResponse.data.coins[priceKey].price;
 
@@ -35,4 +35,4 @@ const apy = async () => {
   ];
 };
 
-module.exports = { apy, url: 'https://www.bybit.com/en/web3/staking/BybitSOL' };
+module.exports = { protocolId: '5179', apy, url: 'https://www.bybit.com/en/web3/staking/BybitSOL' };

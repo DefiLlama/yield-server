@@ -276,6 +276,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '1544',
   timetravel: false,
   apy: main,
   url: 'https://concentrator.aladdin.club/#/vault',

@@ -82,6 +82,7 @@ const fetch = async () => {
 };
 
 module.exports = {
+  protocolId: '4430',
   timetravel: false,
   apy: fetch,
   url: 'https://web3.world',

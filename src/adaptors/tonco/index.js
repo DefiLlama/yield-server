@@ -32,7 +32,7 @@ const getApy = async () => {
         const tvl = pool.totalValueLockedUsd;
 
         poolsInfo[pool.address] = {
-            symbol: pool.name.replace('wTTon', 'TON'),
+            symbol: pool.name.replace('wTTon', 'GRAM'),
             tvl: tvl,
             apyBase: pool.apr,
             underlyingTokens: [Address.parse(pool.jetton0.address).toString(), Address.parse(pool.jetton1.address).toString()]
@@ -59,6 +59,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '5363',
     timetravel: false,
     apy: getApy,
     url: 'https://tonco.io/',

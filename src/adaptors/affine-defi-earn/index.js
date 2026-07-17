@@ -1,6 +1,7 @@
 const { api } = require('@defillama/sdk');
 const axios = require('axios');
 const ABI = require('./abi.json');
+const { getPriceApiData } = require('../utils');
 
 const API_URL = 'https://api.affinedefi.com';
 
@@ -45,9 +46,7 @@ const getTVLInUsdByBasketDenomination = async (
       tvlUsd: tvl ?? 0,
     };
   }
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/coingecko:${SUPPORTED_CHAINS[chainId]}`
-  );
+  const data = await getPriceApiData(`/prices/current/coingecko:${SUPPORTED_CHAINS[chainId]}`);
 
   if (
     data &&
@@ -213,6 +212,7 @@ const main = async () => {
 };
 
 module.exports = {
+  protocolId: '2956',
   timetravel: false,
   apy: main,
   url: 'https://app.affinedefi.com/',

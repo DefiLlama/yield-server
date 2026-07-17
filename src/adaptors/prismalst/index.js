@@ -3,6 +3,7 @@ const sdk = require('@defillama/sdk');
 
 const factoryAbi = require('./factoryAbi.json');
 const troveManagerAbi = require('./troveManagerAbi.json');
+const { getPriceApiData } = require('../utils');
 
 const mkUsd = '0x4591DBfF62656E7859Afe5e45f6f47D3669fBB28'; // debt token
 const prisma = '0xda47862a83dac0c112ba89c6abc2159b95afd71c'; // reward token
@@ -88,9 +89,7 @@ const apy = async () => {
   const keys = [...collateralTokens, prisma]
     .map((i) => `ethereum:${i}`)
     .join(',');
-  const prices = (
-    await axios.get(`https://coins.llama.fi/prices/current/${keys}`)
-  ).data.coins;
+  const prices = (await getPriceApiData(`/prices/current/${keys}`)).coins;
 
   return troveManagers.map((t, i) => {
     const priceDetails = prices[`ethereum:${collateralTokens[i]}`];
@@ -129,5 +128,6 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3473',
   apy,
 };

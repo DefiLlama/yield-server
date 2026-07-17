@@ -1,5 +1,6 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
+const { getPriceApiUrl } = require('../utils');
 
 const STAKING_CONTRACT = '0x1adB950d8bB3dA4bE104211D5AB038628e477fE6';
 const SLISBNB = '0xB0b84D294e0C75A6abe60171b70edEb2EFd14A1B';
@@ -24,7 +25,7 @@ const apy = async () => {
     }),
     axios.get('https://api.lista.org/v1/stakes/latest-apr'),
     axios.get(
-      'https://coins.llama.fi/prices/current/bsc:0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'
+      getPriceApiUrl('/prices/current/bsc:0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c')
     ),
   ]);
 
@@ -53,6 +54,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '3354',
   apy,
   url: 'https://lista.org/liquid-staking/BNB',
 };
