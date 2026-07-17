@@ -1,3 +1,8 @@
+// StakeWise — Ethereum liquid staking (V3). Returns two pools:
+//   1. osETH        — the liquid staking token; yield osETH holders accrue.
+//   2. Genesis Vault — direct ETH staking in the protocol's main vault.
+// Same protocol; the `stakewise-v2` slug is legacy — V3 has been the live
+// mainnet protocol since 2023-11-28 (a rename to stakewise-v3 is requested).
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const axios = require('axios');
@@ -40,6 +45,7 @@ const getOsTokenPool = async (osTokenPrice) => {
 
   // get last 14 events (1-week average)
   const lastWeekLogs = logs.slice(-14);
+  // no rate events in the window → APY would be NaN; fail instead of emitting it
   if (!lastWeekLogs.length) {
     throw new Error('no AvgRewardPerSecondUpdated events in the last week');
   }
@@ -63,8 +69,10 @@ const getOsTokenPool = async (osTokenPrice) => {
     chain,
     project: 'stakewise-v2',
     symbol: 'osETH',
-    // osETH is an appreciating token — price it directly, not with the ETH price
+    // osETH accrues value vs ETH (trades at a premium), so pricing its supply
+    // with the ETH price understated TVL — use the osETH feed (ETH fallback).
     tvlUsd: tvl * osTokenPrice,
+    // 1-week average of the on-chain osETH reward rate holders realize
     apyBase: Number(apyBN) / 100,
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],
     searchTokenOverride: osTokenAddress,
@@ -72,7 +80,9 @@ const getOsTokenPool = async (osTokenPrice) => {
   };
 };
 
-// Direct staking in the Genesis Vault — net, unboosted (lower bound) APY
+// Direct ETH staking in the Genesis Vault. Distinct product from the osETH pool
+// above — osETH is the token optionally minted against a vault deposit — so
+// listing both is intentional, not a double-count.
 const getGenesisPool = async (ethPrice) => {
   const query = `{
     vault(id: "${genesisVaultAddress}") {
@@ -82,7 +92,10 @@ const getGenesisPool = async (ethPrice) => {
   }`;
   const { data } = await axios.post(subgraphUrl, { query });
   if (data?.errors) {
-    console.error('stakewise-v2: subgraph errors —', JSON.stringify(data.errors));
+    console.error(
+      'stakewise-v2: subgraph errors —',
+      JSON.stringify(data.errors)
+    );
     return null;
   }
   const vault = data?.data?.vault;
@@ -97,8 +110,11 @@ const getGenesisPool = async (ethPrice) => {
     pool: `${genesisVaultAddress}-${chain}`,
     chain,
     project: 'stakewise-v2',
+    // stakers deposit native ETH; the vault position is ETH-denominated
     symbol: 'ETH',
-    tvlUsd: tvl * ethPrice,
+    tvlUsd: tvl * ethPrice, // vault assets are native ETH
+    // subgraph `apy`: percent units, net of the vault fee, unboosted —
+    // the minimum-attainable yield (per DefiLlama methodology)
     apyBase: Number(vault.apy),
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],
     poolMeta: 'Genesis Vault',
