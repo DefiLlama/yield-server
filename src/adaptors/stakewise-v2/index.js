@@ -132,6 +132,11 @@ const getApy = async () => {
     `/prices/current/${ethKey},${osTokenKey}`
   );
   const ethPrice = coins[ethKey]?.price;
+  // without the base ETH price both pools would compute NaN TVL and get
+  // silently dropped — fail loudly and let the next run retry instead
+  if (!ethPrice) {
+    throw new Error('missing ETH price');
+  }
   const osTokenPrice = coins[osTokenKey]?.price || ethPrice;
 
   // osETH pool is the intrinsic source consumed by other adaptors — it must
