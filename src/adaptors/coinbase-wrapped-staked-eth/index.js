@@ -35,6 +35,7 @@ const getApy = async () => {
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
+  const exchangeRate = Number(exchangeRates[0].output) / 1e18;
 
   return [
     {
@@ -42,9 +43,9 @@ const getApy = async () => {
       chain: 'ethereum',
       project: 'coinbase-wrapped-staked-eth',
       symbol: 'cbeth',
-      tvlUsd: tvl * ethPrice,
+      tvlUsd: tvl * exchangeRate * ethPrice,
       apyBase: apr,
-      ...(Number(exchangeRates[0].output) / 1e18 > 0 && { pricePerShare: Number(exchangeRates[0].output) / 1e18 }),
+      ...(exchangeRate > 0 && { pricePerShare: exchangeRate }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
       searchTokenOverride: token,
       isIntrinsicSource: true,
