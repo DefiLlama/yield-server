@@ -48,7 +48,94 @@ const pairsQuery = gql`
   }
 `;
 
-const main = async () => {
+// 0.3% swap fee of which 0.2% goes to LPs (0.1% is protocol revenue)
+const LP_FEE_TIER = 2000;
+
+const allPairsQuery = gql`
+  query allPairsQuery($block: Int!) {
+    pairs(
+      first: 1000
+      orderBy: volumeUSD
+      orderDirection: desc
+      block: { number: $block }
+    ) {
+      id
+      name
+      volumeUSD
+      reserve0
+      reserve1
+      token0 {
+        symbol
+        id
+        decimals
+      }
+      token1 {
+        symbol
+        id
+        decimals
+      }
+    }
+  }
+`;
+
+const allPairsPriorQuery = gql`
+  query allPairsPriorQuery($block: Int!) {
+    pairs(
+      first: 1000
+      orderBy: volumeUSD
+      orderDirection: desc
+      block: { number: $block }
+    ) {
+      id
+      volumeUSD
+    }
+  }
+`;
+
+// fee apy for every pair with real tvl, not just the ones with an active farm
+const pairPools = async (timestamp, farmLps) => {
+  const ts =
+    timestamp != null ? Number(timestamp) : Math.floor(Date.now() / 1000);
+  const [[block, blockPrior], [blockPrior7d]] = await Promise.all([
+    utils.getBlocks('cronos', timestamp, [SUBGRAPH]),
+    utils.getBlocksByTime([ts - 604800], 'cronos'),
+  ]);
+
+  const [dataNow, dataPrior, dataPrior7d] = await Promise.all([
+    request(SUBGRAPH, allPairsQuery, { block }),
+    request(SUBGRAPH, allPairsPriorQuery, { block: blockPrior }),
+    request(SUBGRAPH, allPairsPriorQuery, { block: blockPrior7d }),
+  ]);
+
+  // reprice reserves via the price api, subgraph derived usd values include
+  // pairs with junk pricing
+  let pairs = await utils.tvl(dataNow.pairs, 'cronos');
+
+  return pairs
+    .filter((p) => p.totalValueLockedUSD >= utils.MIN_TVL_USD)
+    .filter((p) => !farmLps.has(p.id.toLowerCase()))
+    .map((p) =>
+      utils.apy(
+        { ...p, feeTier: LP_FEE_TIER },
+        dataPrior.pairs,
+        dataPrior7d.pairs
+      )
+    )
+    .map((p) => ({
+      pool: p.id,
+      chain: utils.formatChain('cronos'),
+      project: 'vvs-standard',
+      symbol: p.name,
+      tvlUsd: p.totalValueLockedUSD,
+      apyBase: p.apy1d,
+      apyBase7d: p.apy7d,
+      underlyingTokens: [p.token0.id, p.token1.id],
+      volumeUsd1d: p.volumeUSD1d,
+      volumeUsd7d: p.volumeUSD7d,
+    }));
+};
+
+const farmPools = async () => {
   const [farms, farmAprs] = await Promise.all([
     utils.getData(FARMS_API),
     utils.getData(FARM_APRS_API),
@@ -131,12 +218,20 @@ const main = async () => {
     };
   });
 
-  return pools.filter(Boolean).filter((p) => utils.keepFinite(p));
+  return pools.filter(Boolean);
+};
+
+const main = async (timestamp = null) => {
+  const farms = await farmPools();
+  const farmLps = new Set(farms.map((p) => p.pool.toLowerCase()));
+  const pairs = await pairPools(timestamp, farmLps);
+
+  return [...farms, ...pairs].filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
   protocolId: '831',
   timetravel: false,
   apy: main,
-  url: 'https://vvs.finance/farms',
+  url: 'https://vvs.finance/earn/pools',
 };

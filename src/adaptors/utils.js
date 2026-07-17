@@ -282,6 +282,7 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('metis-graph.maiadao.io') ||
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
+    url.includes('graph-v2.cronoslabs.com') ||
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
     url.includes('metisapi.0xgraph.xyz/subgraphs/name') ||
     url.includes(
