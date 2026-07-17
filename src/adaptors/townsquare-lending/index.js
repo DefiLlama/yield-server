@@ -119,7 +119,7 @@ const apy = async () => {
       return {
         pool: `${poolAddr}-${chain}`.toLowerCase(),
         chain: utils.formatChain(chain),
-        project: 'townsquare',
+        project: 'townsquare-lending',
         symbol: symbol,
         tvlUsd,
         apyBase,
