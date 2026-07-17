@@ -23,8 +23,8 @@ const EVENTS = {
     'event AvgRewardPerSecondUpdated(uint256 avgRewardPerSecond)',
 };
 
-// osETH holder yield — the liquid staking token (unchanged, intrinsic source)
-const getOsTokenPool = async (ethPrice) => {
+// osETH holder yield — the liquid staking token (intrinsic source)
+const getOsTokenPool = async (osTokenPrice) => {
   const currentBlock = await sdk.api.util.getLatestBlock(chain);
   const toBlock = currentBlock.number;
   const timestampWeekAgo = currentBlock.timestamp - secondsInWeek;
@@ -40,6 +40,9 @@ const getOsTokenPool = async (ethPrice) => {
 
   // get last 14 events (1-week average)
   const lastWeekLogs = logs.slice(-14);
+  if (!lastWeekLogs.length) {
+    throw new Error('no AvgRewardPerSecondUpdated events in the last week');
+  }
   const osEthRewardPerSecondSum = lastWeekLogs
     .map((log) => {
       return new BigNumber(log.args.avgRewardPerSecond.toString());
@@ -60,7 +63,8 @@ const getOsTokenPool = async (ethPrice) => {
     chain,
     project: 'stakewise-v2',
     symbol: 'osETH',
-    tvlUsd: tvl * ethPrice,
+    // osETH is an appreciating token — price it directly, not with the ETH price
+    tvlUsd: tvl * osTokenPrice,
     apyBase: Number(apyBN) / 100,
     underlyingTokens: ['0x0000000000000000000000000000000000000000'],
     searchTokenOverride: osTokenAddress,
@@ -77,8 +81,15 @@ const getGenesisPool = async (ethPrice) => {
     }
   }`;
   const { data } = await axios.post(subgraphUrl, { query });
+  if (data?.errors) {
+    console.error('stakewise-v2: subgraph errors —', JSON.stringify(data.errors));
+    return null;
+  }
   const vault = data?.data?.vault;
-  if (!vault) return null;
+  if (!vault) {
+    console.error('stakewise-v2: Genesis vault missing from subgraph response');
+    return null;
+  }
 
   const tvl = Number(vault.totalAssets) / wad;
 
@@ -96,14 +107,18 @@ const getGenesisPool = async (ethPrice) => {
 };
 
 const getApy = async () => {
-  // fetch ETH price
-  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
-  const ethPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`))
-    .coins[priceKey]?.price;
+  // fetch ETH price (Genesis vault assets) and osETH price (appreciating token)
+  const ethKey = 'ethereum:0x0000000000000000000000000000000000000000';
+  const osTokenKey = `ethereum:${osTokenAddress.toLowerCase()}`;
+  const { coins } = await utils.getPriceApiData(
+    `/prices/current/${ethKey},${osTokenKey}`
+  );
+  const ethPrice = coins[ethKey]?.price;
+  const osTokenPrice = coins[osTokenKey]?.price || ethPrice;
 
   // osETH pool is the intrinsic source consumed by other adaptors — it must
   // not be dropped if the vault subgraph hiccups, so isolate the Genesis pool.
-  const osTokenPool = await getOsTokenPool(ethPrice);
+  const osTokenPool = await getOsTokenPool(osTokenPrice);
 
   let genesisPool = null;
   try {
