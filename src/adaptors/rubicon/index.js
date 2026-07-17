@@ -109,7 +109,7 @@ const bnToFloat = (value, decimals) => {
 const swapValueUsd = (legsIn, legsOut) => {
   const valueIn = legsIn.reduce((a, x) => a + x, 0);
   const valueOut = legsOut.reduce((a, x) => a + x, 0);
-  return Math.max(valueIn, valueOut);
+  return valueIn > 0 ? valueIn : valueOut;
 };
 
 const getTokenMeta = async (api, tokens) => {
