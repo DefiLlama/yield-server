@@ -29,7 +29,7 @@ const getApy = async () => {
   ]);
 
   const apr =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18 / duration) *
+    ((exchangeRates[0].output - exchangeRates[1].output) / exchangeRates[1].output / duration) *
     365 *
     100;
 
