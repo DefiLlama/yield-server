@@ -27,6 +27,7 @@ const yuzuConfig = {
     syzUSD: { address: '0x6DFF69eb720986E98Bb3E8b26cb9E02Ec1a35D12', unit: UNIT },
     yzPP: { address: '0xB2429bA2cfa6387C9A336Da127d34480C069F851', unit: UNIT },
     yzCash: { address: '0x224e90591A2d63fb66E677D0561Ea4A6Ad1F098D', unit: UNIT },
+    yzSyrup: { address: '0xC9854f2AF89d4d26837004d1e154Bd3C3C1009b1', unit: UNIT },
   },
   monad: {
     usdt: '0xe7cd86e13ac4309349f30b3435a9d337750fc82d',
@@ -74,6 +75,11 @@ const TOKEN_META = {
   yzCash: {
     symbol: 'yzCash',
     url: 'https://app.yuzu.money/marketplace/cash',
+    getUnderlyingTokens: () => [yuzuConfig.ethereum.usdc],
+  },
+  yzSyrup: {
+    symbol: 'yzSyrup',
+    url: 'https://app.yuzu.money/marketplace/syrup',
     getUnderlyingTokens: () => [yuzuConfig.ethereum.usdc],
   },
 };
@@ -241,14 +247,16 @@ const fetchSingleChainUsdcVaultPool = async (chain, tokenKey) => {
 };
 
 const apy = async () => {
-  const [syzUSDPools, yzPPPools, yzPrimePool, yzCashPool] = await Promise.all([
-    fetchPoolsForToken('syzUSD', UNIT),
-    fetchPoolsForToken('yzPP', USDT_UNIT),
-    fetchSingleChainUsdcVaultPool('monad', 'yzPrime'),
-    fetchSingleChainUsdcVaultPool('ethereum', 'yzCash'),
-  ]);
+  const [syzUSDPools, yzPPPools, yzPrimePool, yzCashPool, yzSyrupPool] =
+    await Promise.all([
+      fetchPoolsForToken('syzUSD', UNIT),
+      fetchPoolsForToken('yzPP', USDT_UNIT),
+      fetchSingleChainUsdcVaultPool('monad', 'yzPrime'),
+      fetchSingleChainUsdcVaultPool('ethereum', 'yzCash'),
+      fetchSingleChainUsdcVaultPool('ethereum', 'yzSyrup'),
+    ]);
 
-  return [...syzUSDPools, ...yzPPPools, yzPrimePool, yzCashPool];
+  return [...syzUSDPools, ...yzPPPools, yzPrimePool, yzCashPool, yzSyrupPool];
 };
 
 module.exports = {
