@@ -48,10 +48,10 @@ const apy = async () => {
   ]);
 
   const apyBase =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18) * 365 * 100;
+    ((exchangeRates[0].output - exchangeRates[1].output) / exchangeRates[1].output) * 365 * 100;
 
   const apyBase7d =
-    ((exchangeRates[0].output - exchangeRates[2].output) / 1e18 / 7) *
+    ((exchangeRates[0].output - exchangeRates[2].output) / exchangeRates[2].output / 7) *
     365 *
     100;
 
