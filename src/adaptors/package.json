@@ -9,7 +9,7 @@
   "dependencies": {
     "@aave/aave-v3-aptos-ts-sdk": "^0.0.61",
     "@blend-capital/blend-sdk": "3.0.1",
-    "@defillama/sdk": "^5.0.207",
+    "@defillama/sdk": "^5.0.219",
     "@solana/spl-stake-pool": "^1.1.8",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.15.0",
