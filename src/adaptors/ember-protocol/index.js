@@ -5,7 +5,7 @@ const utils = require('../utils');
 const PROJECT = 'ember-protocol';
 const BASE_URL = 'https://ember.so/';
 const EARN_URL = 'https://ember.so/earn';
-const VAULTS_URL = 'https://vaults.api.sui-prod.bluefin.io/api/v2/vaults';
+const VAULTS_URL = 'https://vaults.api.prod.ember.so/api/v2/vaults';
 
 const poolUrl = (receiptSymbol) =>
   receiptSymbol ? `${EARN_URL}/${receiptSymbol}` : BASE_URL;
@@ -66,7 +66,6 @@ const rewardTokenAddresses = (vault, apyReward) => {
 const collectVaultEntries = (vaults, chainKey) => {
   const out = [];
   for (const vault of vaults) {
-    if (vault.isPrivate) continue;
     const details = vault.detailsByChain?.[chainKey];
     if (!details?.address) continue;
     if (BLACKLISTED_VAULTS.has(details.address.toLowerCase())) continue;
