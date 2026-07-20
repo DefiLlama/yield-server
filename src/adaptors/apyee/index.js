@@ -61,7 +61,7 @@ const apy = async (timestamp) => {
   for (let i = 0; i < VAULTS.length; i++) {
     const v = VAULTS[i];
     const r = results[i];
-    if (r.status !== 'fulfilled') continue;
+    if (r.status !== 'fulfilled' || !r.value) continue;
     const { tvl, apyBase, pricePerShare } = r.value;
     // USDC is a $1-pegged stablecoin — normalise by asset decimals and use
     // direct token amount as USD proxy (avoids stale price feed edge cases).
