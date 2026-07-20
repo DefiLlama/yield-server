@@ -2,12 +2,6 @@ const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 
-// STRATO is BlockApps' institutional L1. It is served over a public,
-// unauthenticated JSON-RPC node that the DefiLlama TVL adapter already uses.
-// @defillama/sdk resolves the RPC for chain `strato` from the STRATO_RPC env var.
-const RPC_URL = 'https://noderpc.strato.nexus/rpc';
-if (!process.env.STRATO_RPC) process.env.STRATO_RPC = RPC_URL;
-
 const CHAIN = 'strato';
 const PROJECT = 'strato';
 const URL = 'https://app.strato.nexus';
@@ -106,7 +100,8 @@ async function saveVaultPool() {
   ];
 }
 
-// USDST lending pool. Supply APY = borrowApr * utilization * (1 - reserveFactor).
+// USDST lending pool. Supply rate = borrow rate * utilization * (1 - reserveFactor),
+// compounded per-second before annualizing. TVL is available cash (liquidity).
 async function lendingPool() {
   const prices = await getPrices([USDST]);
   const usdstPrice = prices[USDST.toLowerCase()];
@@ -134,7 +129,16 @@ async function lendingPool() {
 
   const reserveFactor = Number(cfg.reserveFactor ?? cfg[4]) / 1e4;
   const ltv = Number(cfg.ltv ?? cfg[0]) / 1e4;
-  const borrowApr = rayPerSecondToApy(cfg.perSecondFactorRAY ?? cfg[5]); // percent
+  // Derive the supply per-second rate before annualizing; compounding the
+  // borrow APY first would overstate the supply APY.
+  const borrowRatePerSecond =
+    Number(BigInt(cfg.perSecondFactorRAY ?? cfg[5]) - RAY) / 1e27;
+  const borrowApy =
+    (Math.pow(1 + borrowRatePerSecond, SECONDS_PER_YEAR) - 1) * 100;
+  const supplyRatePerSecond =
+    borrowRatePerSecond * utilization * (1 - reserveFactor);
+  const supplyApy =
+    (Math.pow(1 + supplyRatePerSecond, SECONDS_PER_YEAR) - 1) * 100;
 
   return [
     {
@@ -142,9 +146,9 @@ async function lendingPool() {
       chain: utils.formatChain(CHAIN),
       project: PROJECT,
       symbol: 'USDST',
-      tvlUsd: totalSupplied * usdstPrice,
-      apyBase: (borrowApr / 100) * utilization * (1 - reserveFactor) * 100,
-      apyBaseBorrow: borrowApr,
+      tvlUsd: (Number(cash) / 1e18) * usdstPrice,
+      apyBase: supplyApy,
+      apyBaseBorrow: borrowApy,
       totalSupplyUsd: totalSupplied * usdstPrice,
       totalBorrowUsd: totalBorrows * usdstPrice,
       ltv,
@@ -177,7 +181,11 @@ async function stakingPool() {
   const duration = Number(periodFinish) - Number(periodStart);
 
   let apyReward = 0;
-  if (Number(periodFinish) > now && duration > 0) {
+  if (
+    Number(periodStart) <= now &&
+    Number(periodFinish) > now &&
+    duration > 0
+  ) {
     const annualReward =
       (Number(BigInt(rewardAmount)) / 1e18) * (SECONDS_PER_YEAR / duration);
     const stakedTokens = Number(totalStakeBI) / 1e18;
@@ -306,7 +314,12 @@ const apy = async () => {
   return groups
     .flat()
     .filter(Boolean)
-    .filter((p) => Number.isFinite(p.tvlUsd) && p.tvlUsd >= utils.MIN_TVL_USD);
+    .filter((p) => {
+      // Lending pools report available liquidity as tvlUsd but are sized by
+      // gross supply downstream, so gate them on totalSupplyUsd to match.
+      const size = p.totalSupplyUsd ?? p.tvlUsd;
+      return Number.isFinite(size) && size >= utils.MIN_TVL_USD;
+    });
 };
 
 module.exports = {
