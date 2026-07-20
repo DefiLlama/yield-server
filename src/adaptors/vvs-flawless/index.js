@@ -102,6 +102,7 @@ const main = async (timestamp = null) => {
       chain: utils.formatChain(chain),
       project: 'vvs-flawless',
       poolMeta: `${p.feeTierFull / 1e4}%`,
+      url: `https://vvs.finance/pool/${p.id}`,
       symbol: `${p.token0.symbol}-${p.token1.symbol}`,
       tvlUsd: p.totalValueLockedUSD,
       apyBase: p.apy1d,
