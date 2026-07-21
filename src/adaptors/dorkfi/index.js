@@ -79,6 +79,42 @@ const MARKET_SYMBOLS = {
   3211740909: 'FINITE',
 };
 
+const MARKET_COINGECKO_IDS = {
+  41877720: 'coingecko:voi-network',
+  395614:   'coingecko:aave-v3-usdc',
+  413153:   'coingecko:algorand',
+  40153308: 'coingecko:ethereum',
+  40153368: 'coingecko:wrapped-bitcoin',
+  40153415: 'coingecko:coinbase-wrapped-btc',
+  300279:   'coingecko:usd-coin',
+  412682:   'coingecko:algorand',
+  410111:   'coingecko:tether',
+  419744:   'coingecko:avalanche-2',
+  302222:   'coingecko:binancecoin',
+  410811:   'coingecko:wrapped-bitcoin',
+  798968:   'coingecko:matic-network',
+  420024:   'coingecko:chainlink',
+  8471125:  'coingecko:solana',
+  8324600:  'coingecko:polkadot',
+  828295:   'coingecko:cardano',
+  770561:   'coingecko:dogecoin',
+  3207744109: 'coingecko:algorand',
+  3211820549: 'coingecko:bitcoin',
+  3210682240: 'coingecko:usd-coin',
+  3210709899: 'coingecko:voi-network',
+  3211827406: 'coingecko:wrapped-bitcoin',
+  3211806149: 'coingecko:ethereum',
+  3211811648: 'coingecko:weth',
+  3211838479: 'coingecko:chainlink',
+  3211883276: 'coingecko:solana',
+  3211885849: 'coingecko:dogecoin',
+  3346185062: 'coingecko:folks',
+  3212524778: 'coingecko:coop-coin',
+  3212531816: 'coingecko:solana',
+  3212534634: 'coingecko:chainlink',
+  3212771255: 'coingecko:folks',
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function fetchMarketData(chain) {
@@ -146,7 +182,20 @@ function computeRates(market) {
 }
 
 function getUnderlyingTokens(market) {
-  return [String(market.marketId)];
+  return [MARKET_COINGECKO_IDS[market.marketId] || String(market.marketId)];
+}
+
+function getUsdValues(market, totalSupplyUsd) {
+  const totalDep = Number(market.totalScaledDeposits || 0);
+  const totalBor = Number(market.totalScaledBorrows  || 0);
+  const utilization = totalDep === 0 ? 0 : totalBor / totalDep;
+  const totalBorrowUsd = totalSupplyUsd * utilization;
+
+  return {
+    totalSupplyUsd,
+    totalBorrowUsd,
+    availableLiquidityUsd: Math.max(totalSupplyUsd - totalBorrowUsd, 0),
+  };
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -161,6 +210,8 @@ const apy = async () => {
     ]);
 
     for (const market of dedup(markets)) {
+      if (market.paused) continue;
+
       const key    = `${market.appId}:${market.marketId}`;
       const hasTvl = Object.prototype.hasOwnProperty.call(tvlMap, key);
       if (!hasTvl) {
@@ -168,11 +219,14 @@ const apy = async () => {
         continue;
       }
 
-      const tvlUsd = tvlMap[key] || 0;
+      const totalSupplyUsd = Number(tvlMap[key]) || 0;
+      const { totalBorrowUsd, availableLiquidityUsd } = getUsdValues(market, totalSupplyUsd);
+      const tvlUsd = availableLiquidityUsd;
       if (tvlUsd < 1) continue;
 
       const { borrowApy, supplyApy } = computeRates(market);
       const symbol = MARKET_SYMBOLS[market.marketId] || `ASA-${market.marketId}`;
+      const ltv = Number(market.collateralFactor || 0) / 10000;
 
       results.push({
         pool:          `dorkfi-${chain}-${market.appId}-${market.marketId}`,
@@ -182,6 +236,9 @@ const apy = async () => {
         tvlUsd,
         apyBase:       supplyApy,
         apyBaseBorrow: borrowApy,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        ltv,
         underlyingTokens: getUnderlyingTokens(market),
         poolMeta:      `Pool ${market.appId}`,
         url:           'https://dork.fi',
@@ -192,4 +249,4 @@ const apy = async () => {
   return results;
 };
 
-module.exports = { apy, timeTravel: false, url: 'https://dork.fi' };
+module.exports = { apy, timetravel: false, url: 'https://dork.fi', protocolId: 7531 };
