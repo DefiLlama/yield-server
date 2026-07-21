@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const CHAIN = 'ethereum';
-const PROJECT = '1inch';
+const PROJECT = '1inch-swap';
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
 
 const CONTRACTS = {
