@@ -35,7 +35,7 @@ const PRODUCTS = [
   },
   {
     symbol: 'xBTC',
-    poolMeta: 'Delta-neutral BTC yield',
+    poolMeta: 'Delta-neutral yield',
     deployments: {
       hyperliquidL1: {
         address: '0x97df58CE4489896F4eC7D16B59B64aD0a56243a8',
