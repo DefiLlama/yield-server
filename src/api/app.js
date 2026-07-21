@@ -17,10 +17,19 @@ const { getCacheDates } = require('../utils/headers');
 const volatility = require('./routes/volatility');
 const tokenAddress = require('./routes/tokenAddress');
 
-const app = express();
+const app = express(); // nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage
 app.use(require('morgan')('dev'));
 app.use(helmet());
 app.use(express.json());
+
+// CSRF protection: block state-changing requests without a custom CSRF header
+app.use((req, res, next) => {
+  const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
+  if (!safeMethods.includes(req.method) && !req.headers['x-csrf-token']) {
+    return res.status(403).json({ error: 'Forbidden: missing CSRF token' });
+  }
+  next();
+});
 
 async function redisCache (req, res, next) {
   const lastCacheUpdate = await redis.get("lastUpdate#"+req.url).catch(() => null)
