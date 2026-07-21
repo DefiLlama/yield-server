@@ -17,19 +17,17 @@ const { getCacheDates } = require('../utils/headers');
 const volatility = require('./routes/volatility');
 const tokenAddress = require('./routes/tokenAddress');
 
-const app = express(); // nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage
+// nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage
+// CSRF protection is not applicable to this service: the API is stateless and does
+// not use cookie-based authentication. Browsers do not automatically attach credentials
+// (cookies/sessions) to cross-origin requests against this endpoint, so the CSRF
+// threat model does not apply. If cookie-based auth is introduced in the future,
+// integrate `csrf-csrf` (double-submit cookie) or `csrf-sync` (synchronizer token)
+// instead of a custom header-presence check.
+const app = express();
 app.use(require('morgan')('dev'));
 app.use(helmet());
 app.use(express.json());
-
-// CSRF protection: block state-changing requests without a custom CSRF header
-app.use((req, res, next) => {
-  const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
-  if (!safeMethods.includes(req.method) && !req.headers['x-csrf-token']) {
-    return res.status(403).json({ error: 'Forbidden: missing CSRF token' });
-  }
-  next();
-});
 
 async function redisCache (req, res, next) {
   const lastCacheUpdate = await redis.get("lastUpdate#"+req.url).catch(() => null)
