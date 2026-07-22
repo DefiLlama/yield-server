@@ -2,195 +2,159 @@ const utils = require('../utils');
 const sdk = require('@defillama/sdk');
 const { poolABI } = require('./abi');
 
-const assets = {
-  USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-  wETH: '0x4200000000000000000000000000000000000006',
-  DAI: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',
-  cbETH: '0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22',
-  USDbC: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
-  wstETH: '0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452',
-  cbBTC: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+const riskFactorsAbi =
+  'function getRiskFactors(address creditor, address asset, uint256 assetId) external view returns (uint16 collateralFactor, uint16 liquidationFactor)';
+
+// deployed at the same address on all chains
+const erc20AssetModule = '0xfBecEaFC96ed6fc800753d3eE6782b6F9a60Eed7';
+
+const config = {
+  base: {
+    chainId: 8453,
+    assets: {
+      USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      wETH: '0x4200000000000000000000000000000000000006',
+      DAI: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',
+      cbETH: '0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22',
+      USDbC: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+      wstETH: '0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452',
+      cbBTC: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+    },
+    pools: [
+      {
+        symbol: 'wETH',
+        address: '0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2',
+        underlying: '0x4200000000000000000000000000000000000006',
+        decimals: 18,
+        poolMeta: 'Arcadia V2 WETH Pool',
+      },
+      {
+        symbol: 'USDC',
+        address: '0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1',
+        underlying: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        decimals: 6,
+        poolMeta: 'Arcadia V2 USDC Pool',
+      },
+      {
+        symbol: 'cbBTC',
+        address: '0xa37E9b4369dc20940009030BfbC2088F09645e3B',
+        underlying: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf',
+        decimals: 8,
+        poolMeta: 'Arcadia V2 cbBTC Pool',
+      },
+    ],
+  },
+  optimism: {
+    chainId: 10,
+    assets: {
+      USDC: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+      wETH: '0x4200000000000000000000000000000000000006',
+    },
+    pools: [
+      {
+        symbol: 'wETH',
+        address: '0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2',
+        underlying: '0x4200000000000000000000000000000000000006',
+        decimals: 18,
+        poolMeta: 'Arcadia V2 WETH Pool',
+      },
+      {
+        symbol: 'USDC',
+        address: '0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1',
+        underlying: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+        decimals: 6,
+        poolMeta: 'Arcadia V2 USDC Pool',
+      },
+    ],
+  },
 };
 
-const pools = {
-  USDC: '0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1',
-  wETH: '0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2',
-  cbBTC: '0xa37E9b4369dc20940009030BfbC2088F09645e3B',
-};
-
-const getCollfactors = async () => {
-  const erc20AssetModule = '0xfBecEaFC96ed6fc800753d3eE6782b6F9a60Eed7';
-
-  const callsWeth = Object.values(assets).map((assetAddress) => ({
-    target: erc20AssetModule,
-    params: [pools.wETH, assetAddress, 0], //[creditor, asset, assetId=0 for erc20]
-  }));
-
-  const callsUsdc = Object.values(assets).map((assetAddress) => ({
-    target: erc20AssetModule,
-    params: [pools.USDC, assetAddress, 0], //[creditor, asset, assetId=0 for erc20]
-  }));
-
-  const callsCbbtc = Object.values(assets).map((assetAddress) => ({
-    target: erc20AssetModule,
-    params: [pools.cbBTC, assetAddress, 0], //[creditor, asset, assetId=0 for erc20]
-  }));
-
-  const collFactorsWeth = await sdk.api.abi.multiCall({
-    abi: 'function getRiskFactors(address creditor, address asset, uint256 assetId) external view returns (uint16 collateralFactor, uint16 liquidationFactor)',
-    calls: callsWeth,
-    chain: 'base',
-  });
-  const collFactorsUsdc = await sdk.api.abi.multiCall({
-    abi: 'function getRiskFactors(address creditor, address asset, uint256 assetId) external view returns (uint16 collateralFactor, uint16 liquidationFactor)',
-    calls: callsUsdc,
-    chain: 'base',
-  });
-  const collFactorCbbtc = await sdk.api.abi.multiCall({
-    abi: 'function getRiskFactors(address creditor, address asset, uint256 assetId) external view returns (uint16 collateralFactor, uint16 liquidationFactor)',
-    calls: callsCbbtc,
-    chain: 'base',
+const getMaxCollFactor = async (chain, creditor, assets) => {
+  const collFactors = await sdk.api.abi.multiCall({
+    abi: riskFactorsAbi,
+    calls: Object.values(assets).map((assetAddress) => ({
+      target: erc20AssetModule,
+      params: [creditor, assetAddress, 0], //[creditor, asset, assetId=0 for erc20]
+    })),
+    chain,
   });
 
-  const extractCollateralFactor = (factors) =>
-    factors.map((factor) => parseInt(factor.output.collateralFactor));
-
-  const wethFactors = extractCollateralFactor(collFactorsWeth.output);
-  const usdcFactors = extractCollateralFactor(collFactorsUsdc.output);
-  const cbbtcFactors = extractCollateralFactor(collFactorCbbtc.output);
-
-  const maxWethFactor = Math.max(...wethFactors);
-  const maxUsdcFactor = Math.max(...usdcFactors);
-  const maxCbbtcFactor = Math.max(...cbbtcFactors);
-
-  return { maxWethFactor, maxUsdcFactor, maxCbbtcFactor };
+  return Math.max(
+    ...collFactors.output.map((factor) =>
+      parseInt(factor.output.collateralFactor)
+    )
+  );
 };
 
 const getApy = async () => {
-  const coinPrices = await utils.getPriceApiData('/prices/current/base:0x4200000000000000000000000000000000000006,base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,base:0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf');
+  const priceKeys = Object.entries(config)
+    .flatMap(([chain, { pools }]) =>
+      pools.map((pool) => `${chain}:${pool.underlying}`)
+    )
+    .join(',');
+  const coinPrices = await utils.getPriceApiData(`/prices/current/${priceKeys}`);
 
-  const wethPrice =
-    coinPrices['coins']['base:0x4200000000000000000000000000000000000006']
-      .price;
-  const usdcPrice =
-    coinPrices['coins']['base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913']
-      .price;
-  const cbbtcPrice =
-    coinPrices['coins']['base:0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf']
-      .price
+  const results = [];
+  for (const [chain, chainConfig] of Object.entries(config)) {
+    for (const pool of chainConfig.pools) {
+      const totalDebt = (
+        await sdk.api.abi.call({
+          target: pool.address,
+          abi: poolABI.filter(({ name }) => name === 'totalAssets')[0],
+          chain,
+        })
+      ).output;
+      const totalLiquidity = (
+        await sdk.api.abi.call({
+          target: pool.address,
+          abi: poolABI.filter(({ name }) => name === 'totalLiquidity')[0],
+          chain,
+        })
+      ).output;
+      const interestRate = (
+        await sdk.api.abi.call({
+          target: pool.address,
+          abi: poolABI.filter(({ name }) => name === 'interestRate')[0],
+          chain,
+        })
+      ).output;
 
-  const totalDebtWeth = await sdk.api.abi.call({
-    target: pools.wETH,
-    abi: poolABI.filter(({ name }) => name === 'totalAssets')[0],
-    chain: 'base',
-  });
-  const totalLiquidityWeth = await sdk.api.abi.call({
-    target: pools.wETH,
-    abi: poolABI.filter(({ name }) => name === 'totalLiquidity')[0],
-    chain: 'base',
-  });
-  const interestRateWeth = await sdk.api.abi.call({
-    target: pools.wETH,
-    abi: poolABI.filter(({ name }) => name === 'interestRate')[0],
-    chain: 'base',
-  });
-  const apyWeth = (totalDebtWeth.output * interestRateWeth.output) / totalLiquidityWeth.output / 1e18;
-  const tvlUsdWeth = ((totalLiquidityWeth.output - totalDebtWeth.output) * wethPrice) / 1e18;
-  const totalSupplyUsdWeth = (totalLiquidityWeth.output * wethPrice) / 1e18;
-  const totalBorrowUsdWeth = (totalDebtWeth.output * wethPrice) / 1e18;
-  const borrowApyWeth = (interestRateWeth.output * 100) / 1e18; //interestRateWeth is in 18 decimals, times 100 for pct
+      const price = coinPrices['coins'][`${chain}:${pool.underlying}`].price;
+      const scale = 10 ** pool.decimals;
 
-  const totalDebtUsdc = await sdk.api.abi.call({
-    target: pools.USDC,
-    abi: poolABI.filter(({ name }) => name === 'totalAssets')[0],
-    chain: 'base',
-  });
-  const totalLiquidityUsdc = await sdk.api.abi.call({
-    target: pools.USDC,
-    abi: poolABI.filter(({ name }) => name === 'totalLiquidity')[0],
-    chain: 'base',
-  });
-  const interestRateUsdc = await sdk.api.abi.call({
-    target: pools.USDC,
-    abi: poolABI.filter(({ name }) => name === 'interestRate')[0],
-    chain: 'base',
-  });
-  const apyUsdc = (totalDebtUsdc.output * interestRateUsdc.output) / totalLiquidityUsdc.output / 1e18;
-  const tvlUsdUsdc = ((totalLiquidityUsdc.output - totalDebtUsdc.output) * usdcPrice) / 1e6;
-  const totalSupplyUsdUsdc = (totalLiquidityUsdc.output * usdcPrice) / 1e6;
-  const totalBorrowUsdUsdc = (totalDebtUsdc.output * usdcPrice) / 1e6;
-  const borrowApyUsdc = (interestRateUsdc.output * 100) / 1e18; //interestRateUsdc is in 18 decimals, times 100 for pct
+      const apy = (totalDebt * interestRate) / totalLiquidity / 1e18;
+      const tvlUsd = ((totalLiquidity - totalDebt) * price) / scale;
+      const totalSupplyUsd = (totalLiquidity * price) / scale;
+      const totalBorrowUsd = (totalDebt * price) / scale;
+      const borrowApy = (interestRate * 100) / 1e18; //interestRate is in 18 decimals, times 100 for pct
 
-  const totalDebtCbbtc = await sdk.api.abi.call({
-    target: pools.cbBTC,
-    abi: poolABI.filter(({ name }) => name === 'totalAssets')[0],
-    chain: 'base',
-  });
-  const totalLiquidityCbbtc = await sdk.api.abi.call({
-    target: pools.cbBTC,
-    abi: poolABI.filter(({ name }) => name === 'totalLiquidity')[0],
-    chain: 'base',
-  });
-  const interestRateCbbtc = await sdk.api.abi.call({
-    target: pools.cbBTC,
-    abi: poolABI.filter(({ name }) => name === 'interestRate')[0],
-    chain: 'base',
-  });
-  const apyCbbtc = (totalDebtCbbtc.output * interestRateCbbtc.output) / totalLiquidityCbbtc.output / 1e18;
-  const tvlUsdCbbtc = ((totalLiquidityCbbtc.output - totalDebtCbbtc.output) * cbbtcPrice) / 1e8;
-  const totalSupplyUsdCbbtc = (totalLiquidityCbbtc.output * cbbtcPrice) / 1e8;
-  const totalBorrowUsdCbbtc = (totalDebtCbbtc.output * cbbtcPrice) / 1e8;
-  const borrowApyCbbtc = (interestRateCbbtc.output * 100) / 1e18; //interestRateCbbtc is in 18 decimals, times 100 for pct
+      const maxCollFactor = await getMaxCollFactor(
+        chain,
+        pool.address,
+        chainConfig.assets
+      );
 
-  const maxCollFactors = await getCollfactors();
+      results.push({
+        // pools share the same address on all chains; base pool ids predate the
+        // multichain deployment and must stay the bare address
+        pool: chain === 'base' ? pool.address : `${pool.address}-${chain}`,
+        chain: utils.formatChain(chain),
+        project: 'arcadia-v2',
+        symbol: pool.symbol,
+        tvlUsd,
+        apyBase: apy * 100,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        apyBaseBorrow: borrowApy,
+        ltv: maxCollFactor / 10_000, // 4 decimal precision
+        poolMeta: pool.poolMeta,
+        underlyingTokens: [pool.underlying],
+        url: `https://arcadia.finance/pool/${chainConfig.chainId}/${pool.address}`,
+      });
+    }
+  }
 
-  return [
-    {
-      pool: pools.wETH,
-      chain: utils.formatChain('base'),
-      project: 'arcadia-v2',
-      symbol: 'wETH',
-      tvlUsd: tvlUsdWeth,
-      apyBase: apyWeth * 100,
-      totalSupplyUsd: totalSupplyUsdWeth,
-      totalBorrowUsd: totalBorrowUsdWeth,
-      apyBaseBorrow: borrowApyWeth,
-      ltv: maxCollFactors.maxWethFactor / 10_000, // 4 decimal precision
-      poolMeta: 'Arcadia V2 WETH Pool',
-      underlyingTokens: ['0x4200000000000000000000000000000000000006'], // WETH
-      url: 'https://arcadia.finance/pool/8453/0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2',
-    },
-    {
-      pool: pools.USDC,
-      chain: utils.formatChain('base'),
-      project: 'arcadia-v2',
-      symbol: 'USDC',
-      tvlUsd: tvlUsdUsdc,
-      apyBase: apyUsdc * 100,
-      totalSupplyUsd: totalSupplyUsdUsdc,
-      totalBorrowUsd: totalBorrowUsdUsdc,
-      apyBaseBorrow: borrowApyUsdc,
-      ltv: maxCollFactors.maxUsdcFactor / 10_000, // 4 decimal precision
-      poolMeta: 'Arcadia V2 USDC Pool',
-      underlyingTokens: ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'], // USDC
-      url: 'https://arcadia.finance/pool/8453/0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1',
-    },
-    {
-      pool: pools.cbBTC,
-      chain: utils.formatChain('base'),
-      project: 'arcadia-v2',
-      symbol: 'cbBTC',
-      tvlUsd: tvlUsdCbbtc,
-      apyBase: apyCbbtc * 100,
-      totalSupplyUsd: totalSupplyUsdCbbtc,
-      totalBorrowUsd: totalBorrowUsdCbbtc,
-      apyBaseBorrow: borrowApyCbbtc,
-      ltv: maxCollFactors.maxCbbtcFactor / 10_000, // 4 decimal precision
-      poolMeta: 'Arcadia V2 cbBTC Pool',
-      underlyingTokens: ['0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf'], // cbBTC
-      url: 'https://arcadia.finance/pool/8453/0xa37E9b4369dc20940009030BfbC2088F09645e3B',
-    },
-  ];
+  return results;
 };
 
 module.exports = {
