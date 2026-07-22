@@ -30,6 +30,7 @@ const CHAIN_IDS = {
   berachain: 80094,
   polygon_zkevm: 1101,
   hyperevm: 999,
+  robinhood: 4663,
 };
 
 /**
