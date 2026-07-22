@@ -119,7 +119,9 @@ const getApy = async () => {
         })
       ).output;
 
-      const price = coinPrices['coins'][`${chain}:${pool.underlying}`].price;
+      const priceData = coinPrices['coins'][`${chain}:${pool.underlying}`];
+      if (!priceData) continue;
+      const price = priceData.price;
       const scale = 10 ** pool.decimals;
 
       const apy = (totalDebt * interestRate) / totalLiquidity / 1e18;
