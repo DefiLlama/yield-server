@@ -491,7 +491,6 @@ const excludedProtocols = [
   { id: '2417', slug: 'thena-v1' },
   { id: '2743', slug: 'yama-finance' },
   { id: '686', slug: 'yel-finance' },
-  { id: '5588', slug: 'yieldfi' },
   { id: '3941', slug: 'yldr' },
   { id: '2143', slug: 'zircon-gamma' },
   { id: '1229', slug: 'looksrare' },
