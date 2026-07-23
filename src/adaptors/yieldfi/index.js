@@ -282,9 +282,10 @@ const poolsFunction = async () => {
   // duplicate call flaked
   const symbols = ['yUSD', 'vyUSD', 'yETH', 'vyETH', 'yBTC', 'vyBTC', 'yPrism', 'yHLP', 'yValos', 'yPYMN'];
   const apys = {};
-  for (const symbol of symbols) {
-    apys[symbol] = await fetchLatestAPY(symbol);
-  }
+  const apyValues = await Promise.all(symbols.map((symbol) => fetchLatestAPY(symbol)));
+  symbols.forEach((symbol, i) => {
+    apys[symbol] = apyValues[i];
+  });
 
   // Process all chains in parallel
   const chainPromises = SUPPORTED_CHAINS.map(async (chain) => {
