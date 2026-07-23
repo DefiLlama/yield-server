@@ -6,7 +6,6 @@ const VAULTS = [
   // ETHEREUM — Lagoon
   { sdkChain: 'ethereum', address: '0xdae854d0896ad2fee335689a3f7b4a95fd1a3e46', name: 'Gami USDC', url: 'https://gamilabs.io/vaults/1/0xdae854d0896ad2fee335689a3f7b4a95fd1a3e46' },
   { sdkChain: 'ethereum', address: '0x33e1339567c183fbadcb43f72d11c47229d468ab', name: 'Gami Stake DAO USDC', url: 'https://gamilabs.io/vaults/1/0x33e1339567c183fbadcb43f72d11c47229d468ab' },
-  { sdkChain: 'ethereum', address: '0x414070fb9e64fd69160d75da57e75ba11f9f605a', name: 'Gami WBTC', url: 'https://gamilabs.io/vaults/1/0x414070fb9e64fd69160d75da57e75ba11f9f605a' },
   { sdkChain: 'ethereum', address: '0x57e6824a8b15b709cefb4ccef644ba1349057e77', name: 'xBTCY', url: 'https://gamilabs.io/vaults/1/0x57e6824a8b15b709cefb4ccef644ba1349057e77' },
   { sdkChain: 'ethereum', address: '0x2a676c2744421b4fae65ce86b47adacb620047d4', name: 'Gami hemiBTC', url: 'https://gamilabs.io/vaults/1/0x2a676c2744421b4fae65ce86b47adacb620047d4' },
   { sdkChain: 'ethereum', address: '0x2031eceec018549a2c729cacd6c0bfc4be2524ed', name: 'Gami ETH', url: 'https://gamilabs.io/vaults/1/0x2031eceec018549a2c729cacd6c0bfc4be2524ed' },
@@ -14,6 +13,9 @@ const VAULTS = [
   { sdkChain: 'ethereum', address: '0x09252d2c4afca9b1479efdd39faa53de9ff23114', name: 'Coinshift USPC High Yield', url: 'https://gamilabs.io/vaults/1/0x09252d2c4afca9b1479efdd39faa53de9ff23114' },
   // ETHEREUM — Gearbox
   { sdkChain: 'ethereum', address: '0x683faf5bafd88d4c383ccaf3d61c26af2e164409', name: 'Gami Gearbox WBTC', url: 'https://gamilabs.io/vaults/1/0x683faf5bafd88d4c383ccaf3d61c26af2e164409' },
+  // ETHEREUM — Midas (turtlePST, co-curated with Turtle). Not ERC-4626: priced via its
+  // getDataInBase18() data feed (USD per share, 1e18). See processMidas below.
+  { sdkChain: 'ethereum', address: '0xc462f87f78abdd27b1e41c9ede862275d2c7f36b', name: 'turtlePST', url: 'https://gamilabs.io/vaults/1/0xc462f87f78abdd27b1e41c9ede862275d2c7f36b', isMidas: true, feed: '0xbd5BaeD1424EC9EF76b7924bFB9342078f5817E6' },
   // BASE — Spectra (TVL/APY sourced from the Spectra API by MetaVault address; the
   // on-chain wrapper's totalAssets() undercounts capital deployed into Spectra positions)
   { sdkChain: 'base', address: '0x776f95321a0285f8bcde149e3264d16dc08da69a', name: 'Gami Spectra USDC', url: 'https://gamilabs.io/vaults/8453/0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a', isSpectra: true, spectraMetavault: '0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a' },
@@ -31,6 +33,10 @@ const VAULTS = [
   // regardless of decimal offset and works for all ERC-4626 vaults in this adapter.
   { sdkChain: 'avax', address: '0x1F0570a081FeE0e4dF6eAC470f9d2D53CDEDa1c5', name: 'Gami Silo USDC', url: 'https://gamilabs.io/vaults/43114/0x1F0570a081FeE0e4dF6eAC470f9d2D53CDEDa1c5' },
   { sdkChain: 'avax', address: '0x0F78Ea587D8E2950319e0b467c665bD2CB73051B', name: 'Gami Silo AVAX', url: 'https://gamilabs.io/vaults/43114/0x0F78Ea587D8E2950319e0b467c665bD2CB73051B' },
+  // ROBINHOOD CHAIN — T3tris (migrated Gami WBTC vault; standard ERC-4626).
+  // Underlying WBTC on robinhoodchain is not yet priced by the DefiLlama price API, so this
+  // pool is omitted until a price is available (processChain drops entries with no price).
+  { sdkChain: 'robinhoodchain', address: '0xd5c6c79692715145098a65d1eb1f2a10c524f8e8', name: 'Gami WBTC', url: 'https://gamilabs.io/vaults/4663/0xd5c6c79692715145098a65d1eb1f2a10c524f8e8' },
 ];
 
 const ABI = {
@@ -40,6 +46,7 @@ const ABI = {
   decimals: 'uint8:decimals',
   symbol: 'string:symbol',
   convertToAssets: 'function convertToAssets(uint256 shares) view returns (uint256)',
+  getDataInBase18: 'uint256:getDataInBase18',
 };
 
 const ONE_DAY = 86400;
@@ -254,6 +261,66 @@ async function processChain(sdkChain, vaults) {
   }).filter(Boolean);
 }
 
+// Midas mTokens (e.g. turtlePST, co-curated with Turtle): plain ERC20 share tokens, NOT
+// ERC-4626 (no asset()/convertToAssets()). Their own getDataInBase18() data feed returns the
+// USD price per share (scaled 1e18); TVL = totalSupply * price, APY = feed price growth.
+async function processMidas(sdkChain, vaults) {
+  const tokenTargets = vaults.map(v => ({ target: v.address }));
+  const feedTargets = vaults.map(v => ({ target: v.feed }));
+
+  const [supplies, shareDecimals, symbols, priceNow] = await Promise.all([
+    multi(sdkChain, ABI.totalSupply, tokenTargets),
+    multi(sdkChain, ABI.decimals, tokenTargets),
+    multi(sdkChain, ABI.symbol, tokenTargets),
+    multi(sdkChain, ABI.getDataInBase18, feedTargets),
+  ]);
+
+  const now = Math.floor(Date.now() / 1000);
+  let price7d = vaults.map(() => null);
+  let price30d = vaults.map(() => null);
+  try {
+    const [b7Resp, b30Resp] = await Promise.all([
+      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - ONE_WEEK}`)),
+      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - THIRTY_DAYS}`)),
+    ]);
+    if (b7Resp?.height > 0) price7d = await multi(sdkChain, ABI.getDataInBase18, feedTargets, b7Resp.height);
+    if (b30Resp?.height > 0) price30d = await multi(sdkChain, ABI.getDataInBase18, feedTargets, b30Resp.height);
+  } catch (e) {
+    // Historical feed reads unavailable; APY fields fall back to 0
+  }
+
+  return vaults.map((v, i) => {
+    const supply = supplies[i];
+    const shareDec = shareDecimals[i] != null ? Number(shareDecimals[i]) : null;
+    const pNow = priceNow[i];
+    if (supply == null || shareDec == null || pNow == null) return null;
+
+    const priceUsd = Number(pNow) / 1e18;
+    const tvlUsd = (Number(supply) / 10 ** shareDec) * priceUsd;
+
+    const p7 = price7d[i] != null ? Number(price7d[i]) / 1e18 : null;
+    const p30 = price30d[i] != null ? Number(price30d[i]) / 1e18 : null;
+    const apyBase7d = annualizedApy(priceUsd, p7, 7);
+    const apyBase30d = annualizedApy(priceUsd, p30, 30);
+    let apyBase = apyBase30d;
+    if (apyBase === 0 && apyBase7d > 0) apyBase = apyBase7d;
+
+    return {
+      pool: `${v.address.toLowerCase()}-${sdkChain}`,
+      chain: sdkChain,
+      project: 'gami-labs',
+      symbol: symbols[i] || v.name,
+      tvlUsd,
+      apyBase,
+      apyBase7d,
+      pricePerShare: priceUsd,
+      underlyingTokens: [v.address.toLowerCase()],
+      poolMeta: v.name,
+      url: v.url,
+    };
+  }).filter(Boolean);
+}
+
 // Spectra vaults: pull authoritative TVL and APY from the Spectra API, matched by the
 // underlying MetaVault address. Reported under the gami-labs project with Gami branding.
 async function processSpectra(sdkChain, vaults) {
@@ -385,13 +452,19 @@ const apy = async () => {
     return acc;
   }, {});
 
-  const onchainByChain = groupByChain(VAULTS.filter(v => !v.isSpectra));
+  const onchainByChain = groupByChain(VAULTS.filter(v => !v.isSpectra && !v.isMidas));
   const spectraByChain = groupByChain(VAULTS.filter(v => v.isSpectra));
+  const midasByChain = groupByChain(VAULTS.filter(v => v.isMidas));
+
+  // Isolate failures per source so one unreachable chain/API can't drop the whole adapter
+  // (e.g. a chain not yet in the installed SDK, or a temporarily down external API).
+  const safe = (p) => p.catch(() => []);
 
   const results = await Promise.all([
-    ...Object.entries(onchainByChain).map(([chain, vaults]) => processChain(chain, vaults)),
-    ...Object.entries(spectraByChain).map(([chain, vaults]) => processSpectra(chain, vaults)),
-    processStellar(),
+    ...Object.entries(onchainByChain).map(([chain, vaults]) => safe(processChain(chain, vaults))),
+    ...Object.entries(spectraByChain).map(([chain, vaults]) => safe(processSpectra(chain, vaults))),
+    ...Object.entries(midasByChain).map(([chain, vaults]) => safe(processMidas(chain, vaults))),
+    safe(processStellar()),
   ]);
 
   return results.flat();
