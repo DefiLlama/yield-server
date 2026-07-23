@@ -17,6 +17,13 @@ const { getCacheDates } = require('../utils/headers');
 const volatility = require('./routes/volatility');
 const tokenAddress = require('./routes/tokenAddress');
 
+// nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage
+// CSRF protection is not applicable to this service: the API is stateless and does
+// not use cookie-based authentication. Browsers do not automatically attach credentials
+// (cookies/sessions) to cross-origin requests against this endpoint, so the CSRF
+// threat model does not apply. If cookie-based auth is introduced in the future,
+// integrate `csrf-csrf` (double-submit cookie) or `csrf-sync` (synchronizer token)
+// instead of a custom header-presence check.
 const app = express();
 app.use(require('morgan')('dev'));
 app.use(helmet());
