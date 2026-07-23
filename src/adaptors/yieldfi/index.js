@@ -255,18 +255,14 @@ const createPool = (tokenAddress, symbol, chain, tvl, apy) => {
  * @param {string} chain - Blockchain name
  * @returns {Promise<Object|null>} Pool object or null if error
  */
-const processToken = async (tokenAddress, symbol, chain) => {
+const processToken = async (tokenAddress, symbol, chain, apy) => {
   try {
-    const [tvl, apy] = await Promise.all([
-      getTVL(tokenAddress, chain),
-      fetchLatestAPY(symbol)
-    ]);
-
     if (apy === 0) {
       console.log(`No APY data available for ${symbol} on ${chain}`);
       return null;
     }
 
+    const tvl = await getTVL(tokenAddress, chain);
     return createPool(tokenAddress, symbol, chain, tvl, apy);
   } catch (error) {
     console.error(`Error processing ${symbol} on ${chain}:`, error);
@@ -281,42 +277,52 @@ const processToken = async (tokenAddress, symbol, chain) => {
 const poolsFunction = async () => {
   const allPools = [];
 
+  // Fetch each symbol's APY once up front - the same endpoint used to be hit
+  // once per (symbol, chain) in parallel and randomly dropped pools when a
+  // duplicate call flaked
+  const symbols = ['yUSD', 'vyUSD', 'yETH', 'vyETH', 'yBTC', 'vyBTC', 'yPrism', 'yHLP', 'yValos', 'yPYMN'];
+  const apys = {};
+  const apyValues = await Promise.all(symbols.map((symbol) => fetchLatestAPY(symbol)));
+  symbols.forEach((symbol, i) => {
+    apys[symbol] = apyValues[i];
+  });
+
   // Process all chains in parallel
   const chainPromises = SUPPORTED_CHAINS.map(async (chain) => {
     const tokenPromises = [
-      processToken(YUSD_CONTRACTS[chain], 'yUSD', chain),
-      processToken(VYUSD_CONTRACTS[chain], 'vyUSD', chain),
+      processToken(YUSD_CONTRACTS[chain], 'yUSD', chain, apys['yUSD']),
+      processToken(VYUSD_CONTRACTS[chain], 'vyUSD', chain, apys['vyUSD']),
     ];
 
     // Only process yETH, vyETH, yBTC, vyBTC on Ethereum
     if (chain === 'ethereum') {
       tokenPromises.push(
-        processToken(YETH_CONTRACTS[chain], 'yETH', chain),
-        processToken(VYETH_CONTRACTS[chain], 'vyETH', chain),
-        processToken(YBTC_CONTRACTS[chain], 'yBTC', chain),
-        processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain),
-        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain),
-        processToken(YHLP_CONTRACTS[chain], 'yHLP', chain),
-        processToken(YVALOS_CONTRACTS[chain], 'yValos', chain),
-        processToken(YPYMN_CONTRACTS[chain], 'yPYMN', chain)
+        processToken(YETH_CONTRACTS[chain], 'yETH', chain, apys['yETH']),
+        processToken(VYETH_CONTRACTS[chain], 'vyETH', chain, apys['vyETH']),
+        processToken(YBTC_CONTRACTS[chain], 'yBTC', chain, apys['yBTC']),
+        processToken(VYBTC_CONTRACTS[chain], 'vyBTC', chain, apys['vyBTC']),
+        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain, apys['yPrism']),
+        processToken(YHLP_CONTRACTS[chain], 'yHLP', chain, apys['yHLP']),
+        processToken(YVALOS_CONTRACTS[chain], 'yValos', chain, apys['yValos']),
+        processToken(YPYMN_CONTRACTS[chain], 'yPYMN', chain, apys['yPYMN'])
       );
     }
     if (chain === 'arbitrum' || chain === 'base') {
       tokenPromises.push(
-        processToken(YETH_CONTRACTS[chain], 'yETH', chain),
-        processToken(VYETH_CONTRACTS[chain], 'vyETH', chain)
+        processToken(YETH_CONTRACTS[chain], 'yETH', chain, apys['yETH']),
+        processToken(VYETH_CONTRACTS[chain], 'vyETH', chain, apys['vyETH'])
       );
     }
 
     // Process yETH for saga chain (vyETH not available on saga)
     if (chain === 'saga') {
-      tokenPromises.push(processToken(YETH_CONTRACTS[chain], 'yETH', chain));
+      tokenPromises.push(processToken(YETH_CONTRACTS[chain], 'yETH', chain, apys['yETH']));
       // Note: vyETH is not supported on saga chain - VYETH_CONTRACTS has no saga entry
     }
 
     if (chain === 'bsc') {
       tokenPromises.push(
-        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain)
+        processToken(YPRISM_CONTRACTS[chain], 'yPrism', chain, apys['yPrism'])
       );
     }
 
