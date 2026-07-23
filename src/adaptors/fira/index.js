@@ -219,6 +219,7 @@ const getUzrPool = async (prices) => {
     borrowToken: USD0,
     rewardTokens: [],
     borrowable: availableBorrowUsd > 0,
+    borrowMarketOnly: true,
     ltv: LTV,
     poolMeta: `Max leverage ~${maxLeverage.toFixed(2)}x`,
     url: URLS.DAPP,
@@ -413,6 +414,7 @@ const buildPool = ({
     availableBorrowUsd,
     underlyingTokens: [collateralToken],
     borrowable: availableBorrowUsd > 0,
+    borrowMarketOnly: true,
     ltv: Number(marketParams.lltv) / 1e18,
     mintedCoin: utils.formatSymbol(
       fixedRateInfo?.underlyingToken
