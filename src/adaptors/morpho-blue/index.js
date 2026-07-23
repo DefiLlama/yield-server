@@ -516,6 +516,7 @@ const apy = async () => {
         mintedCoin: market.loanAsset?.symbol,
         borrowToken: market.loanAsset?.address,
         borrowable: market.lltv > 0,
+        borrowMarketOnly: true,
         url: `https://app.morpho.org/${getChainSlug(chain)}/market/${market.uniqueKey}`,
         apyRewardBorrow,
         rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],

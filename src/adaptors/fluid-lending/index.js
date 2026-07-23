@@ -342,6 +342,7 @@ const calculateVaultPoolData = (
       borrowToken: vaultDetails.borrowTokens[index],
       borrowable:
         !vaultDetails.borrowPaused[index],
+      borrowMarketOnly: true,
       url: `https://fluid.io/vaults/${CONSTANTS.CHAIN_ID_MAPPING[chain]}/${vault.VaultId}`,
     };
   });
