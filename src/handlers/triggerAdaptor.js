@@ -95,7 +95,9 @@ const main = async (body) => {
   data = data.filter((p) => p);
 
   // Skip routing-only rows in the legacy DB.
-  if (['euler-v2', 'aave-v4', 'exactly'].includes(body.adaptor)) {
+  if (
+    ['euler-v2', 'aave-v4', 'exactly', 'xoxno-lending'].includes(body.adaptor)
+  ) {
     data = data.filter((p) => p.poolKind !== 'routing_collateral');
     data = data.filter((p) => p.poolKind !== 'routing_reserve');
   }
