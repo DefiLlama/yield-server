@@ -2,6 +2,9 @@ const utils = require('../utils');
 
 const address = 'EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ';
 
+// hGRAM launched at an exchange rate of 1.0 GRAM
+const launchTimestamp = 1698685200;
+
 module.exports = {
   protocolId: '3722',
   timetravel: false,
@@ -42,22 +45,36 @@ module.exports = {
       );
     }
 
-    const lastStaked = Number(getTreasuryState.stack[11].value);
-    const lastRecovered = Number(getTreasuryState.stack[12].value);
+    // The treasury stores the hGRAM/GRAM exchange rate before and after the
+    // latest round's loan repayments (fixed-point, 1e9 = 1.0). The rate is
+    // updated once per validation round, so the growth between the two rates
+    // accrued over a single round duration.
+    const previousRate = Number(getTreasuryState.stack[11].value);
+    const currentRate = Number(getTreasuryState.stack[12].value);
 
     const currentRoundSince = Number(getTimes.stack[0].value);
     const nextRoundSince = Number(getTimes.stack[3].value);
 
-    const duration = 2 * (nextRoundSince - currentRoundSince);
+    if (!Number.isFinite(previousRate) || previousRate <= 0) {
+      throw new Error('Invalid previous rate: ' + previousRate);
+    }
+    if (!Number.isFinite(currentRate) || currentRate <= 0) {
+      throw new Error('Invalid current rate: ' + currentRate);
+    }
+
+    const roundDuration = nextRoundSince - currentRoundSince;
+    if (!Number.isFinite(roundDuration) || roundDuration <= 0) {
+      throw new Error('Invalid round duration: ' + roundDuration);
+    }
+
     const year = 365 * 24 * 60 * 60;
-    const compoundingFrequency = year / duration;
+    const compoundingFrequency = year / roundDuration;
     const apyBase =
-      (Math.pow(
-        lastRecovered / lastStaked || 1,
-        compoundingFrequency
-      ) -
-        1) *
-      100;
+      (Math.pow(currentRate / previousRate, compoundingFrequency) - 1) * 100;
+
+    const yearsSinceLaunch = (Date.now() / 1000 - launchTimestamp) / year;
+    const apyBaseInception =
+      (Math.pow(currentRate / 1e9, 1 / yearsSinceLaunch) - 1) * 100;
 
     return [
       {
@@ -67,6 +84,7 @@ module.exports = {
         symbol: 'hGRAM',
         tvlUsd,
         apyBase,
+        apyBaseInception,
         underlyingTokens: ['EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c'], // native TON
       },
     ];
