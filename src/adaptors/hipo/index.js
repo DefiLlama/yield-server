@@ -55,12 +55,22 @@ module.exports = {
     const currentRoundSince = Number(getTimes.stack[0].value);
     const nextRoundSince = Number(getTimes.stack[3].value);
 
+    if (!Number.isFinite(previousRate) || previousRate <= 0) {
+      throw new Error('Invalid previous rate: ' + previousRate);
+    }
+    if (!Number.isFinite(currentRate) || currentRate <= 0) {
+      throw new Error('Invalid current rate: ' + currentRate);
+    }
+
     const roundDuration = nextRoundSince - currentRoundSince;
+    if (!Number.isFinite(roundDuration) || roundDuration <= 0) {
+      throw new Error('Invalid round duration: ' + roundDuration);
+    }
+
     const year = 365 * 24 * 60 * 60;
     const compoundingFrequency = year / roundDuration;
     const apyBase =
-      (Math.pow(currentRate / previousRate || 1, compoundingFrequency) - 1) *
-      100;
+      (Math.pow(currentRate / previousRate, compoundingFrequency) - 1) * 100;
 
     const yearsSinceLaunch = (Date.now() / 1000 - launchTimestamp) / year;
     const apyBaseInception =
