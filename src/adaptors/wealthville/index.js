@@ -14,7 +14,9 @@ const poolsFunction = async () => {
   const list = Array.isArray(vaults) ? vaults : (vaults && vaults.data) || [];
 
   return list
-    .filter((v) => v && v.status === 'active' && Number(v.tvl_usd) > 0)
+    // `vault_pubkey` guards the pool id — a vault missing it is skipped rather than
+    // emitting a malformed `undefined-solana` pool.
+    .filter((v) => v && v.status === 'active' && v.vault_pubkey && Number(v.tvl_usd) > 0)
     .map((v) => {
       // Underlying tokens = the distinct mints the vault actually holds value in.
       const mints = [
