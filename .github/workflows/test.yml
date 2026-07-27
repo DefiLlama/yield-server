@@ -1,6 +1,18 @@
 name: Test_Change
 on: pull_request
 jobs:
+  lockfile-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Validate root lockfile
+        run: npm ci --dry-run --no-audit --no-fund
+      - name: Validate adapters lockfile
+        run: npm ci --dry-run --no-audit --no-fund
+        working-directory: src/adaptors
   test:
     runs-on: ubuntu-latest
     steps:
