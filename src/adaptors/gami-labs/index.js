@@ -434,7 +434,7 @@ async function processStellar() {
       pool: `${addr}-stellar`.toLowerCase(),
       chain: formatChain('stellar'),
       project: 'gami-labs',
-      symbol: meta.deposit_token_symbol || v.receipt_token_symbol,
+      symbol: v.receipt_token_symbol || meta.deposit_token_symbol,
       tvlUsd,
       apyBase: (reportedApy != null ? reportedApy : 0) * 100,
       pricePerShare,
