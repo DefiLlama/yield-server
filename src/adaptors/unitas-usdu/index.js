@@ -3,7 +3,7 @@ const {aprToApy} = require("../utils");
 const sdk = require("@defillama/sdk");
 const utils = require("../utils");
 
-const project = 'unitas';
+const project = 'unitas-usdu';
 const symbol = 'sUSDu';
 const STAKE_POOL = 'CFgrWjb9DYKVqf7QyQfmwjboDDkXpFHQ6292rnYxrjsa';
 const DISTRIBUTE_ACCOUNT = "AmAcmYeJgxdHfoMSb3zwWFFPwWivADiyMozHwg5WyTtW"
