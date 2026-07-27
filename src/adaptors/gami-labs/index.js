@@ -15,7 +15,7 @@ const VAULTS = [
   { sdkChain: 'ethereum', address: '0x683faf5bafd88d4c383ccaf3d61c26af2e164409', name: 'Gami Gearbox WBTC', url: 'https://gamilabs.io/vaults/1/0x683faf5bafd88d4c383ccaf3d61c26af2e164409' },
   // ETHEREUM — Midas (turtlePST, co-curated with Turtle). Not ERC-4626: priced via its
   // getDataInBase18() data feed (USD per share, 1e18). See processMidas below.
-  { sdkChain: 'ethereum', address: '0xc462f87f78abdd27b1e41c9ede862275d2c7f36b', name: 'turtlePST', url: 'https://gamilabs.io/vaults/1/0xc462f87f78abdd27b1e41c9ede862275d2c7f36b', isMidas: true, feed: '0xbd5BaeD1424EC9EF76b7924bFB9342078f5817E6' },
+  { sdkChain: 'ethereum', address: '0xc462f87f78abdd27b1e41c9ede862275d2c7f36b', name: 'turtlePST', url: 'https://gamilabs.io/vaults/1/0xc462f87f78abdd27b1e41c9ede862275d2c7f36b', isMidas: true, feed: '0xbd5BaeD1424EC9EF76b7924bFB9342078f5817E6', underlying: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' },
   // BASE — Spectra (TVL/APY sourced from the Spectra API by MetaVault address; the
   // on-chain wrapper's totalAssets() undercounts capital deployed into Spectra positions)
   { sdkChain: 'base', address: '0x776f95321a0285f8bcde149e3264d16dc08da69a', name: 'Gami Spectra USDC', url: 'https://gamilabs.io/vaults/8453/0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a', isSpectra: true, spectraMetavault: '0x5e93e1193a5e297cba0856e9b3f22b6e05429b9a' },
@@ -34,9 +34,10 @@ const VAULTS = [
   { sdkChain: 'avax', address: '0x1F0570a081FeE0e4dF6eAC470f9d2D53CDEDa1c5', name: 'Gami Silo USDC', url: 'https://gamilabs.io/vaults/43114/0x1F0570a081FeE0e4dF6eAC470f9d2D53CDEDa1c5' },
   { sdkChain: 'avax', address: '0x0F78Ea587D8E2950319e0b467c665bD2CB73051B', name: 'Gami Silo AVAX', url: 'https://gamilabs.io/vaults/43114/0x0F78Ea587D8E2950319e0b467c665bD2CB73051B' },
   // ROBINHOOD CHAIN — T3tris (migrated Gami WBTC vault; standard ERC-4626).
-  // Underlying WBTC on robinhoodchain is not yet priced by the DefiLlama price API, so this
+  // sdkChain 'robinhood' matches DefiLlama's chain id (formatChain -> 'Robinhood Chain').
+  // Underlying WBTC on robinhood is not yet priced by the DefiLlama price API, so this
   // pool is omitted until a price is available (processChain drops entries with no price).
-  { sdkChain: 'robinhoodchain', address: '0xd5c6c79692715145098a65d1eb1f2a10c524f8e8', name: 'Gami WBTC', url: 'https://gamilabs.io/vaults/4663/0xd5c6c79692715145098a65d1eb1f2a10c524f8e8' },
+  { sdkChain: 'robinhood', address: '0xd5c6c79692715145098a65d1eb1f2a10c524f8e8', name: 'Gami WBTC', url: 'https://gamilabs.io/vaults/4663/0xd5c6c79692715145098a65d1eb1f2a10c524f8e8' },
 ];
 
 const ABI = {
@@ -314,7 +315,7 @@ async function processMidas(sdkChain, vaults) {
       apyBase,
       apyBase7d,
       pricePerShare: priceUsd,
-      underlyingTokens: [v.address.toLowerCase()],
+      underlyingTokens: [(v.underlying || v.address).toLowerCase()],
       poolMeta: v.name,
       url: v.url,
     };
