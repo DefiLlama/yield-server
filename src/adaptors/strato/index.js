@@ -4,7 +4,12 @@ const utils = require('../utils');
 
 const CHAIN = 'strato';
 const PROJECT = 'strato';
-const URL = 'https://app.strato.nexus';
+const APP = 'https://app.strato.nexus';
+
+// Per-pool pages in the STRATO app.
+const SAVE_URL = `${APP}/dashboard/earn-save`;
+const LENDING_URL = `${APP}/dashboard/earn-lending`;
+const STAKING_URL = `${APP}/dashboard/earn-staking`;
 
 const RAY = 10n ** 27n;
 const SECONDS_PER_YEAR = 31_536_000;
@@ -13,13 +18,10 @@ const SECONDS_PER_YEAR = 31_536_000;
 const PRICE_ORACLE = '0x0000000000000000000000000000000000001002';
 const LENDING_REGISTRY = '0x0000000000000000000000000000000000001007';
 const LENDING_POOL = '0x0000000000000000000000000000000000001005';
-const POOL_FACTORY = '0x000000000000000000000000000000000000100a';
 const SAVE_USDST_VAULT = '0x22550671fcad04a213697ac7ae4f4366e96446ed';
 const STAKING = '0xf30a022ce83bed7adeafc286c719388dcc3b3988';
 const USDST = '0x937efa7e3a77e20bbdbd7c0d32b6514f368c1010';
 const STRATO = '0x2ca3e170e6714282da77815f7864b17f612f5f83';
-
-const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // ---- helpers ---------------------------------------------------------------
 
@@ -73,12 +75,14 @@ const getPrices = async (tokens) => {
 
 // saveUSDST savings vault: USDST in, share token appreciates at the savings rate.
 async function saveVaultPool() {
-  const [totalAssets, savingsRate] = await Promise.all([
+  const [totalAssets, savingsRate, exchangeRate] = await Promise.all([
     call(SAVE_USDST_VAULT, 'function totalAssets() view returns (uint256)'),
     call(
       SAVE_USDST_VAULT,
       'function perSecondSavingsRate() view returns (uint256)'
     ),
+    // USDST redeemable per saveUSDST share, 1e18-scaled.
+    call(SAVE_USDST_VAULT, 'function exchangeRate() view returns (uint256)'),
   ]);
 
   const prices = await getPrices([USDST]);
@@ -94,8 +98,9 @@ async function saveVaultPool() {
       tvlUsd: (Number(BigInt(totalAssets)) / 1e18) * usdstPrice,
       apyBase: rayPerSecondToApy(savingsRate),
       underlyingTokens: [USDST],
+      pricePerShare: Number(BigInt(exchangeRate)) / 1e18,
       poolMeta: 'saveUSDST savings vault',
-      url: URL,
+      url: SAVE_URL,
     },
   ];
 }
@@ -107,16 +112,22 @@ async function lendingPool() {
   const usdstPrice = prices[USDST.toLowerCase()];
   if (!usdstPrice) return [];
 
-  const [borrowIndex, totalScaledDebt, cfg, liquidityPool] = await Promise.all([
-    call(LENDING_POOL, 'function previewBorrowIndex() view returns (uint256)'),
-    call(LENDING_POOL, 'function totalScaledDebt() view returns (uint256)'),
-    call(
-      LENDING_POOL,
-      'function getAssetConfig(address) view returns (uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus, uint256 interestRate, uint256 reserveFactor, uint256 perSecondFactorRAY)',
-      USDST
-    ),
-    call(LENDING_REGISTRY, 'function liquidityPool() view returns (address)'),
-  ]);
+  const [borrowIndex, totalScaledDebt, cfg, liquidityPool, mTokenRate] =
+    await Promise.all([
+      call(
+        LENDING_POOL,
+        'function previewBorrowIndex() view returns (uint256)'
+      ),
+      call(LENDING_POOL, 'function totalScaledDebt() view returns (uint256)'),
+      call(
+        LENDING_POOL,
+        'function getAssetConfig(address) view returns (uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus, uint256 interestRate, uint256 reserveFactor, uint256 perSecondFactorRAY)',
+        USDST
+      ),
+      call(LENDING_REGISTRY, 'function liquidityPool() view returns (address)'),
+      // USDST redeemable per mUSDST supply receipt, 1e18-scaled.
+      call(LENDING_POOL, 'function getExchangeRate() view returns (uint256)'),
+    ]);
 
   const cash = BigInt(await call(USDST, 'erc20:balanceOf', liquidityPool));
   const borrows = (BigInt(totalScaledDebt) * BigInt(borrowIndex)) / RAY;
@@ -154,13 +165,16 @@ async function lendingPool() {
       ltv,
       borrowable: true,
       underlyingTokens: [USDST],
+      pricePerShare: Number(BigInt(mTokenRate)) / 1e18,
       poolMeta: 'lendUSDST lending',
-      url: URL,
+      url: LENDING_URL,
     },
   ];
 }
 
 // STRATO staking. Rewards are paid in STRATO, so apyReward is price-independent.
+// Phase 1 staking is reward accounting only — there is no transferable receipt
+// token, so no pricePerShare.
 async function stakingPool() {
   const [totalStake, rewardAmount, periodStart, periodFinish] =
     await Promise.all([
@@ -203,128 +217,28 @@ async function stakingPool() {
       rewardTokens: [STRATO],
       underlyingTokens: [STRATO],
       poolMeta: 'STRATO staking',
-      url: URL,
+      url: STAKING_URL,
     },
   ];
 }
 
-async function enumeratePools() {
-  const pools = [];
-  for (let i = 0; i < 500; i++) {
-    let addr;
-    try {
-      addr = await call(
-        POOL_FACTORY,
-        'function allPools(uint256) view returns (address)',
-        i
-      );
-    } catch (e) {
-      break; // out of bounds -> reverts
-    }
-    if (!addr || addr.toLowerCase() === NULL_ADDRESS) break;
-    pools.push(addr.toLowerCase());
-  }
-  return pools;
-}
-
-// AMM LP pools. TVL is read from on-chain reserves. Swap fees are not reported:
-// the pool fee rate has no public getter over eth_call, and the active pools have
-// no swap volume in a trailing window, so base APY would be 0 regardless. Pools are
-// reported TVL-only (apyBase 0); fee APY can be added if a fee getter is exposed.
-async function ammPools() {
-  const poolAddrs = await enumeratePools();
-  if (!poolAddrs.length) return [];
-
-  const metas = [];
-  for (const pool of poolAddrs) {
-    try {
-      const [tokenA, tokenB] = await Promise.all([
-        call(pool, 'function tokenA() view returns (address)'),
-        call(pool, 'function tokenB() view returns (address)'),
-      ]);
-      const [balA, balB] = await Promise.all([
-        call(tokenA, 'erc20:balanceOf', pool),
-        call(tokenB, 'erc20:balanceOf', pool),
-      ]);
-      metas.push({
-        pool,
-        tokenA: tokenA.toLowerCase(),
-        tokenB: tokenB.toLowerCase(),
-        balA: BigInt(balA),
-        balB: BigInt(balB),
-      });
-    } catch (e) {
-      // not a readable 2-token pool -> skip
-    }
-  }
-
-  const active = metas.filter((m) => m.balA > 0n || m.balB > 0n);
-  if (!active.length) return [];
-
-  const tokens = [...new Set(active.flatMap((m) => [m.tokenA, m.tokenB]))];
-  const [prices, symbols] = await Promise.all([
-    getPrices(tokens),
-    (async () => {
-      const s = {};
-      for (const t of tokens) {
-        try {
-          s[t] = await call(t, 'erc20:symbol');
-        } catch (e) {
-          s[t] = '?';
-        }
-      }
-      return s;
-    })(),
-  ]);
-
-  const pools = [];
-  for (const m of active) {
-    const priceA = prices[m.tokenA];
-    const priceB = prices[m.tokenB];
-    if (!priceA || !priceB) continue; // avoid mispriced TVL
-
-    const tvlUsd =
-      (Number(m.balA) / 1e18) * priceA + (Number(m.balB) / 1e18) * priceB;
-    if (!Number.isFinite(tvlUsd) || tvlUsd <= 0) continue;
-
-    pools.push({
-      pool: `${m.pool}-strato`.toLowerCase(),
-      chain: utils.formatChain(CHAIN),
-      project: PROJECT,
-      symbol: utils.formatSymbol(`${symbols[m.tokenA]}-${symbols[m.tokenB]}`),
-      tvlUsd,
-      apyBase: 0,
-      underlyingTokens: [m.tokenA, m.tokenB],
-      poolMeta: 'AMM LP',
-      url: URL,
-    });
-  }
-
-  return pools;
-}
+// Note: the AMM LP pools (GOLDST/USDST, ETH/USDST, ...) are intentionally not
+// reported. The pool swap-fee rate has no public getter over eth_call, so fee
+// APY cannot be computed; they will be added once a fee getter is exposed.
 
 const apy = async () => {
   const groups = await Promise.all([
     saveVaultPool().catch(() => []),
     lendingPool().catch(() => []),
     stakingPool().catch(() => []),
-    ammPools().catch(() => []),
   ]);
 
-  return groups
-    .flat()
-    .filter(Boolean)
-    .filter((p) => {
-      // Lending pools report available liquidity as tvlUsd but are sized by
-      // gross supply downstream, so gate them on totalSupplyUsd to match.
-      const size = p.totalSupplyUsd ?? p.tvlUsd;
-      return Number.isFinite(size) && size >= utils.MIN_TVL_USD;
-    });
+  return groups.flat().filter(Boolean);
 };
 
 module.exports = {
   protocolId: '7862',
   timetravel: false,
   apy,
-  url: `${URL}/pools`,
+  url: `${APP}/dashboard/earn`,
 };
