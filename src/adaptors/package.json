@@ -6,6 +6,9 @@
   },
   "author": "",
   "license": "ISC",
+  "engines": {
+    "npm": ">=11"
+  },
   "dependencies": {
     "@aave/aave-v3-aptos-ts-sdk": "^0.0.61",
     "@blend-capital/blend-sdk": "3.0.1",

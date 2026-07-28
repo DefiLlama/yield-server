@@ -18,6 +18,9 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
       - id: file_changes
         uses: tj-actions/changed-files@v44
 
