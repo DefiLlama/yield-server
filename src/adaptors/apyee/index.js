@@ -1,4 +1,4 @@
-const { formatChain, getERC4626Info } = require('../utils');
+const { formatChain, getERC4626Info, getPrices } = require('../utils');
 
 const PROJECT = 'apyee';
 
@@ -57,15 +57,20 @@ const apy = async (timestamp) => {
   const results = await Promise.allSettled(
     VAULTS.map((v) => getERC4626Info(v.address, v.chain, timestamp))
   );
+  // Price the underlying (USDC) via the DefiLlama price helper instead of assuming
+  // a hardcoded $1 — this reflects any depeg in the reported TVL.
+  const { pricesByAddress } = await getPrices(
+    VAULTS.map((v) => `${v.chain}:${v.underlyingToken}`)
+  );
   const pools = [];
   for (let i = 0; i < VAULTS.length; i++) {
     const v = VAULTS[i];
     const r = results[i];
     if (r.status !== 'fulfilled' || !r.value) continue;
+    const price = pricesByAddress[v.underlyingToken.toLowerCase()];
+    if (price === undefined) continue;
     const { tvl, apyBase, pricePerShare } = r.value;
-    // USDC is a $1-pegged stablecoin — normalise by asset decimals and use
-    // direct token amount as USD proxy (avoids stale price feed edge cases).
-    const tvlUsd = Number(tvl) / 10 ** v.underlyingDecimals;
+    const tvlUsd = (Number(tvl) / 10 ** v.underlyingDecimals) * price;
     pools.push({
       pool: `${v.address}-${v.chain}`.toLowerCase(),
       chain: formatChain(v.chain),
