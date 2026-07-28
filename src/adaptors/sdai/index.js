@@ -52,5 +52,5 @@ module.exports = {
   protocolId: '3603',
   timetravel: false,
   apy: sDAIPool,
-  url: 'https://agave.finance/sdai/',
+  url: 'https://www.gnosis.io/',
 };

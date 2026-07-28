@@ -503,7 +503,7 @@ const apy = async () => {
         project: 'morpho-blue',
         symbol: market.collateralAsset?.symbol,
         token: null,
-        apy: 0,
+        apyBase: 0,
         tvlUsd: market.state.collateralAssetsUsd || 0,
         underlyingTokens: [market.collateralAsset.address],
         apyBaseBorrow: market.state.borrowApy * 100,
@@ -516,6 +516,7 @@ const apy = async () => {
         mintedCoin: market.loanAsset?.symbol,
         borrowToken: market.loanAsset?.address,
         borrowable: market.lltv > 0,
+        borrowMarketOnly: true,
         url: `https://app.morpho.org/${getChainSlug(chain)}/market/${market.uniqueKey}`,
         apyRewardBorrow,
         rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],
@@ -545,7 +546,7 @@ const apy = async () => {
     filteredPools,
     'morpho',
     (p) => {
-      const match = p.pool.match(/0x[a-fA-F0-9]{40,}/);
+      const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
       return match ? match[0] : p.pool;
     }
   );

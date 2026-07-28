@@ -55,10 +55,10 @@ const apy = async () => {
   ]);
 
   const apr1d =
-    ((weETHRates[0].output - weETHRates[1].output) / 1e18) * 365 * 100;
+    ((weETHRates[0].output - weETHRates[1].output) / weETHRates[1].output) * 365 * 100;
 
   const apr7d =
-    ((weETHRates[0].output - weETHRates[2].output) / 1e18 / 7) * 365 * 100;
+    ((weETHRates[0].output - weETHRates[2].output) / weETHRates[2].output / 7) * 365 * 100;
 
   const eBTCRateCurrent = Number(eBTCRates[0].output);
   const eBTCRate1dAgo = Number(eBTCRates[1].output);

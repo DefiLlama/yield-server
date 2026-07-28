@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci --omit=optional
+      - name: Validate adapters lockfile
+        run: npm ci --dry-run --no-audit --no-fund
+        working-directory: src/adaptors
       - run: node scripts/checkAdaptors.js
       - run: node scripts/createAdapterList.js
       - name: Run database migrations

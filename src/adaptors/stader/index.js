@@ -44,7 +44,7 @@ const getApy = async () => {
   ]);
 
   const apyBase7d =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18 / 7) *
+    ((exchangeRates[0].output - exchangeRates[1].output) / exchangeRates[1].output / 7) *
     365 *
     100;
 
@@ -71,7 +71,7 @@ const getApy = async () => {
 
   const apyBase7dPolygon =
     ((exchangeRatesPolygon[0].output[0] - exchangeRatesPolygon[1].output[0]) /
-      1e18 /
+      exchangeRatesPolygon[1].output[0] /
       7) *
     365 *
     100;

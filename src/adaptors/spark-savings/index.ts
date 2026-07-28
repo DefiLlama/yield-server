@@ -148,6 +148,7 @@ async function getPools() {
             .times(prices[`${chain}:${vaultConfig.address.toLowerCase()}`].price)
             .toNumber(),
           underlyingTokens: [assets[i]],
+          isIntrinsicSource: true,
         }),
       ),
     )

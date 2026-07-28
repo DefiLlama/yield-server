@@ -489,7 +489,6 @@ const excludedProtocols = [
   { id: '2251', slug: 'stride' },
   { id: '4446', slug: 'synthetix-v3' },
   { id: '2417', slug: 'thena-v1' },
-  { id: '831', slug: 'vvs-standard' },
   { id: '2743', slug: 'yama-finance' },
   { id: '686', slug: 'yel-finance' },
   { id: '5588', slug: 'yieldfi' },
@@ -503,6 +502,10 @@ const excludedProtocols = [
   { id: '5306', slug: 'maxapy' },
   { id: '126', slug: 'loopring' },
   { id: '657', slug: 'synapse' },
+  { id: '2539', slug: 'unsheth' },
+  { id: '5333', slug: 'carrot-liquidity' },
+  { id: '1669', slug: 'tokensfarm' },
+  { id: '3912', slug: 'dinero-(pxeth)' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
