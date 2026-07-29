@@ -166,6 +166,10 @@ const getApy = async (market) => {
         (isGho ? ghoPrice : undefined);
       const decimals = Number(underlyingDecimals[i]);
 
+      // totalSupplyUsd is the claims side (aToken supply). On reserves carrying
+      // a v3.3 bad-debt deficit (pool.getReserveDeficit) it exceeds cash+debt,
+      // which is what the Aave UI shows as "total supplied". Kept as claims on
+      // purpose: it is the quantity the on-chain supply cap validates against.
       const supply = isGho ? p.totalAToken : totalSupply[i];
       const totalSupplyUsd = (supply / 10 ** decimals) * price;
 
