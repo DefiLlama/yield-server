@@ -55,8 +55,6 @@ jobs:
           PLASMA_RPC: ${{ secrets.PLASMA_RPC }}
           STARKNET_RPC: ${{ secrets.STARKNET_RPC }}
           MONAD_RPC: ${{ secrets.MONAD_RPC }}
-          LLAMA_INDEXER_V2_ENDPOINT: ${{ secrets.LLAMA_INDEXER_V2_ENDPOINT }}
-          LLAMA_INDEXER_V2_API_KEY: ${{ secrets.LLAMA_INDEXER_V2_API_KEY }}
           PROJECT_0_API_KEY: ${{ secrets.PROJECT_0_API_KEY }}
           SANCTUM_API_KEY: ${{ secrets.SANCTUM_API_KEY }}
           MERKL_API_KEY: ${{ secrets.MERKL_API_KEY }}

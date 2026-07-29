@@ -9,8 +9,7 @@
     "build": "sls package",
     "test": "jest",
     "migrate": "node-pg-migrate",
-    "start:api": "node src/api/server",
-    "start:holder-daily": "node src/scheduled/holderDaily.js"
+    "start:api": "node src/api/server"
   },
   "author": "",
   "license": "ISC",

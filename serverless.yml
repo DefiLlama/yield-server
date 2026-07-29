@@ -85,8 +85,6 @@ functions:
       PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
       STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
       MONAD_RPC: ${file(./env.js):MONAD_RPC}
-      LLAMA_INDEXER_V2_ENDPOINT: ${env:LLAMA_INDEXER_V2_ENDPOINT}
-      LLAMA_INDEXER_V2_API_KEY: ${env:LLAMA_INDEXER_V2_API_KEY}
       PROJECT_0_API_KEY: ${env:PROJECT_0_API_KEY}
       SANCTUM_API_KEY: ${env:SANCTUM_API_KEY}
 
