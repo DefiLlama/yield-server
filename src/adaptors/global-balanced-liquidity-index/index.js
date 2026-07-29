@@ -106,7 +106,7 @@ const getApy = async () => {
       {
         pool: `${GBLIN_V6}-base`.toLowerCase(),
         chain: utils.formatChain('base'),
-        project: 'gblin',
+        project: 'global-balanced-liquidity-index',
         symbol: 'GBLIN',
         tvlUsd,
         apyBase,
@@ -123,6 +123,7 @@ const getApy = async () => {
 };
 
 module.exports = {
+  protocolId: '7577',
   timetravel: false,
   apy: getApy,
   url: 'https://gblin.digital/',
