@@ -90,11 +90,14 @@ const getApy = async () => {
     throw new Error('Invalid Nawa USDC vault price-per-share data');
   }
 
-  return (Math.pow(currentPps / historicalPps, 365 / days) - 1) * 100;
+  return {
+    apyBase: (Math.pow(currentPps / historicalPps, 365 / days) - 1) * 100,
+    pricePerShare: currentPps,
+  };
 };
 
 const apy = async () => {
-  const [{ aum }, prices, apyBase] = await Promise.all([
+  const [{ aum }, prices, { apyBase, pricePerShare }] = await Promise.all([
     queryContract(USDC_VAULT, { aum: {} }),
     utils.getPriceApiData(`/prices/current/${USDC_PRICE_KEY}`),
     getApy(),
@@ -112,6 +115,7 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       apyBase7d: apyBase,
+      pricePerShare,
       underlyingTokens: [USDC_DENOM],
       searchTokenOverride: SHARE_DENOM,
       poolMeta: 'n1USDC Vault',
