@@ -114,7 +114,7 @@ const getTokenPriceFrom1inch = async (tokenAddress, tokenDecimals, network) => {
 
 const getTokenPrice = async (token, network) => {
   const tokenKey = `${network.toLowerCase()}:${token.address}`;
-  let price = (await axios.get(`${constants.COINS_PRICES_URL}/${tokenKey}`))
+  let price = (await axios.get(constants.coinsPriceUrl(tokenKey)))
     .data.coins[tokenKey]?.price;
 
   if (!!price) {
