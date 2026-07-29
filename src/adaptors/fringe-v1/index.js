@@ -19,7 +19,7 @@ const getPrices = async (chain, addresses) => {
     const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
 
     try {
-        const res = await axios.get(getPriceApiUrl('/prices/current/') + uri);
+        const res = await axios.get(getPriceApiUrl(`/prices/current/${uri}`));
 
         const prices = res.data.coins;
         const pricesObj = Object.entries(prices).reduce(

@@ -506,6 +506,7 @@ const excludedProtocols = [
   { id: '5333', slug: 'carrot-liquidity' },
   { id: '1669', slug: 'tokensfarm' },
   { id: '3912', slug: 'dinero-(pxeth)' },
+  { id: '7300', slug: 'altura' }, // deposits closed and sus activity
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);

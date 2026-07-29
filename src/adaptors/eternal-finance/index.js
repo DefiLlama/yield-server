@@ -4,7 +4,7 @@ const utils = require('../utils');
 const MODULE_ADDRESS = '0x25a64579760a4c64be0d692327786a6375ec80740152851490cfd0b53604cf95';
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
 const RESOURCE_URL = `${NODE_URL}/accounts/${MODULE_ADDRESS}/resources`;
-const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
+const priceUrl = (keys) => utils.getPriceApiUrl(`/prices/current/${keys}`);
 const VAULT_MODULE_ADDRESS = `${MODULE_ADDRESS}::vault::Vaults`;
 const VAULT_CONFIG_MODULE_ADDRESS = `${MODULE_ADDRESS}::vault_config::VaultConfigStore`;
 const METADATA_MODULE_ADDRESS = `${MODULE_ADDRESS}::bank::MetaData`;
@@ -85,7 +85,7 @@ async function main() {
     } = await getAllResources();
 
     const tokenPrices = await Promise.all(metadata.banks_arr.map((tokenAddr) => {
-        return utils.getData(`${COINS_LLAMA_PRICE_URL}aptos:${tokenAddr}`)
+        return utils.getData(priceUrl(`aptos:${tokenAddr}`))
     }))
 
     const apy = metadata.banks_arr.map((lendingToken, idx) => {
