@@ -16,18 +16,26 @@ exports.MIN_TVL_USD = 1_000;
 const getPriceApiUrl = (path) => {
   const p = path.startsWith('/') ? path : `/${path}`;
   const key = process.env.DL_API_KEY;
-  if (!key) return `https://coins.llama.fi${p}`;
 
-  // TODO: temporary cache-bypass; remove once coins-api caps staleness
-  // (Cache-Control) -- edge colos were replaying expired /prices/current copies.
-  const bust = `${p.includes('?') ? '&' : '?'}cachebust=${Date.now()}`;
-  return `https://pro-api.llama.fi/${key}/coins${p}${bust}`;
+  return key
+    ? `https://pro-api.llama.fi/${key}/coins${p}`
+    : `https://coins.llama.fi${p}`;
 };
 
 exports.getPriceApiUrl = getPriceApiUrl;
 
+// TODO: temporary cache-bypass on pro requests; remove once coins-api caps
+// staleness (Cache-Control) -- edge colos were replaying expired
+// /prices/current copies. Applied at request time, not in getPriceApiUrl:
+// adapters compose on top of that URL, so a query param baked into it would
+// corrupt their appended paths.
+const withCacheBust = (path) =>
+  process.env.DL_API_KEY
+    ? `${path}${path.includes('?') ? '&' : '?'}cachebust=${Date.now()}`
+    : path;
+
 const getPriceApiData = async (path) =>
-  (await axios.get(getPriceApiUrl(path))).data;
+  (await axios.get(getPriceApiUrl(withCacheBust(path)))).data;
 
 exports.getPriceApiData = getPriceApiData;
 
