@@ -351,14 +351,7 @@ async function processCampaign(
           poolMeta: humanizeTargetProtocol('Pool on', asset.details.dex),
         };
 
-      return {
-        symbol: asset.symbol,
-        underlyingTokens: [asset.address],
-        poolMeta: humanizeTargetProtocol(
-          'Hold',
-          asset.details?.type === 'protocol' ? asset.details.slug : undefined
-        ),
-      };
+      return null;
     }
     case 'erc4626-vault': {
       return {
