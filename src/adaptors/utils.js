@@ -16,10 +16,12 @@ exports.MIN_TVL_USD = 1_000;
 const getPriceApiUrl = (path) => {
   const p = path.startsWith('/') ? path : `/${path}`;
   const key = process.env.DL_API_KEY;
+  if (!key) return `https://coins.llama.fi${p}`;
 
-  return key
-    ? `https://pro-api.llama.fi/${key}/coins${p}`
-    : `https://coins.llama.fi${p}`;
+  // TODO: temporary cache-bypass; remove once coins-api caps staleness
+  // (Cache-Control) -- edge colos were replaying expired /prices/current copies.
+  const bust = `${p.includes('?') ? '&' : '?'}cachebust=${Date.now()}`;
+  return `https://pro-api.llama.fi/${key}/coins${p}${bust}`;
 };
 
 exports.getPriceApiUrl = getPriceApiUrl;
