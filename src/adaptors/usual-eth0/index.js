@@ -14,7 +14,6 @@ const CONFIG = {
   USUAL_SYMBOL: 'USUAL',
   URLS: {
     REWARD_APR_RATE: 'https://app.usual.money/api/tokens/yields',
-    LLAMA_PRICE: utils.getPriceApiUrl('/prices/current/'),
   },
   SCALAR: 1e18,
   WEEKS_PER_YEAR: 52,
@@ -32,7 +31,9 @@ async function getTokenSupply(chain, address) {
 
 async function getTokenPrice(chain, address) {
   const priceKey = `${chain.toLowerCase()}:${address}`;
-  const { data } = await axios.get(`${CONFIG.URLS.LLAMA_PRICE}${priceKey}`);
+  const { data } = await axios.get(
+    utils.getPriceApiUrl(`/prices/current/${priceKey}`)
+  );
   const entry = data.coins[priceKey] || data.coins[priceKey.toLowerCase()];
   return entry ? entry.price : null;
 }

@@ -4,7 +4,7 @@ const utils = require('../utils');
 
 const AMNIS_RESOURCE_ACCOUNT ='0x111ae3e5bc816a5e63c2da97d0aa3886519e0cd5e4b046659fa35796bd11542a';
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
+const priceUrl = (keys) => utils.getPriceApiUrl(`/prices/current/${keys}`);
 const AMNIS_API_URL = 'https://api.amnis.finance/api/v1/stake/info';
 const DECIMALS = 1e8;
 const axios = require('axios');
@@ -25,7 +25,7 @@ async function main() {
 
     //calculate tvlUsd
     let tvlUsd = 0
-    const aptPrice = await utils.getData(`${COINS_LLAMA_PRICE_URL}${aptosCoinName}`)
+    const aptPrice = await utils.getData(priceUrl(aptosCoinName))
     const { data: { supply } } = await utils.getData(`${NODE_URL}/accounts/${AMNIS_RESOURCE_ACCOUNT}/resource/0x1::coin::CoinInfo%3C${AMNIS_RESOURCE_ACCOUNT}::amapt_token::AmnisApt%3E`)
     tvlUsd = supply.vec[0].integer.vec[0].value/1e8 * aptPrice.coins[aptosCoinName].price
 
