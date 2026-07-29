@@ -40,6 +40,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'apyBaseBorrow',
       'apyRewardBorrow',
       'totalSupplyUsd',
+      'supplyCapUsd',
       'totalBorrowUsd',
       'ltv',
       'borrowable',
@@ -209,6 +210,11 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     let additionalFieldRules = {
       totalSupplyUsd: {
         type: 'number',
+      },
+      // supply cap in USD; omitted when uncapped (never 0)
+      supplyCapUsd: {
+        type: 'number',
+        min: 0,
       },
       totalBorrowUsd: {
         type: 'number',
