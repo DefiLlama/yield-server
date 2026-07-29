@@ -60,6 +60,7 @@ const poolsFunction = async () => {
 };
 
 module.exports = {
+  protocolId: '7790',
   timetravel: false,
   apy: poolsFunction,
   url: 'https://app.hypezion.com',
