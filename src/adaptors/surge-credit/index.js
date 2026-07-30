@@ -16,7 +16,7 @@ const abi = {
   marketCount: 'function marketCount() view returns (uint256)',
   getMarketBorrowRate: 'function getMarketBorrowRate(uint256) view returns (uint256)',
   getUtilization: 'function getUtilization(uint256) view returns (uint256)',
-  getAvailableLiquidity: 'function getAvailableLiquidity(uint256) view returns (uint256)',
+  getMaxBorrowAmount: 'function getMaxBorrowAmount(uint256) view returns (uint256)',
   markets:
     'function markets(uint256) view returns (address provider, address token, bool active, uint256 totalSupplyShares, uint256 totalSupplyAssets, uint256 totalPhysicalSupply, uint256 totalBorrowShares, uint256 totalBorrowAssets, uint256 totalPhysicalBorrow, uint256 supplyExchangeRate, uint256 borrowExchangeRate, uint256 protocolEarnings, uint256 protocolEarningsAvailable, uint256 originationFeeBps, uint256 reserveRateBps, uint256 maxLtvBps, uint256 liquidationThresholdBps, uint256 lastAccrueTime, uint256 protocolSupplyShares)',
 }
@@ -41,8 +41,13 @@ async function apy() {
       const utilBps = Number(
         await api.call({ target: LIQUIDITY_POOL, abi: abi.getUtilization, params: [m] })
       )
-      const availableBorrowUsd =
-        Number(await api.call({ target: LIQUIDITY_POOL, abi: abi.getAvailableLiquidity, params: [m] })) / 1e6
+      // Max borrowable now, from the contract. For the variable market this is the
+      // idle pool liquidity; for the fixed market getMaxBorrowAmount walks the
+      // opted-in market-0 lenders (setExposure) and returns the exposure-derived
+      // capacity that a fixed borrow can pull, not the fixed book's ~$0 idle cash.
+      // Used for both tvlUsd and availableBorrowUsd so the two agree.
+      const maxBorrowUsd =
+        Number(await api.call({ target: LIQUIDITY_POOL, abi: abi.getMaxBorrowAmount, params: [m] })) / 1e6
 
       // Lender APR (bps) = borrowRate * utilization * (1 - reserveRate).
       // reserveRateBps is read live per market (2000 = 20% on both today, not the
@@ -58,20 +63,18 @@ async function apy() {
         chain: utils.formatChain(CHAIN),
         project: 'surge-credit',
         symbol: 'USDC',
-        // Lending TVL is net supplied liquidity (supplied - borrowed); available
-        // borrow liquidity is exposed separately below.
-        tvlUsd: totalSupplyUsd - totalBorrowUsd,
+        tvlUsd: maxBorrowUsd,
         apyBase: aprBpsToApy(supplyAprBps), // supply APY, continuously compounded
         apyReward: null,
         apyBaseBorrow: aprBpsToApy(borrowRateBps), // borrow APY, same compounding as supply
         totalSupplyUsd,
         totalBorrowUsd,
-        availableBorrowUsd,
+        availableBorrowUsd: maxBorrowUsd,
         ltv: Number(market.maxLtvBps) / 1e4,
         borrowable: true,
         underlyingTokens: [USDC],
         poolMeta: m === 0 ? 'Variable Market' : 'Fixed Market',
-        url: 'https://surge.credit',
+        url: `https://earn.surge.credit/#/market/${m}`,
       })
     } catch {
       // Skip a market that fails to read rather than dropping the whole adapter.
@@ -84,7 +87,7 @@ async function apy() {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://surge.credit',
+  url: 'https://earn.surge.credit/#/markets',
   // DeFiLlama protocol id for surge-credit (defillama.com/protocol/surge-credit).
   protocolId: '8328',
 }
