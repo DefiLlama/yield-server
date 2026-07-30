@@ -93,12 +93,17 @@ const apy = async (timestamp) => {
 
     const unit = 10 ** v.decimals;
     const current = Number(ppsNow.output[i]?.output);
+    // Without a current share price there is no APY to report. Drop the pool
+    // rather than publishing apyBase: 0, which would overwrite the last good
+    // value with a rate the vault never paid.
+    if (!(current > 0)) return null;
 
-    // Annualized share-price growth over `days`, or null when either endpoint
-    // is missing — a vault deployed inside the window, or a failed archive call.
+    // Annualized share-price growth over `days`, or null when the historical
+    // endpoint is missing — a vault deployed inside the window, or a failed
+    // archive call. Then apyBase: 0 is correct: no growth has been observed.
     const growth = (pastRes, days) => {
       const past = Number(pastRes.output[i]?.output);
-      if (!(current > 0) || !(past > 0)) return null;
+      if (!(past > 0)) return null;
       const value = ((current / past) ** (365 / days) - 1) * 100;
       return Number.isFinite(value) ? value : null;
     };
@@ -114,7 +119,7 @@ const apy = async (timestamp) => {
       tvlUsd: (total / unit) * price,
       apyBase: apyBase7d ?? apyBase1d ?? 0,
       ...(apyBase7d !== null && { apyBase7d }),
-      ...(current > 0 && { pricePerShare: current / unit }),
+      pricePerShare: current / unit,
       underlyingTokens: [v.underlyingToken],
       token: v.address,
       poolMeta: v.poolMeta,
