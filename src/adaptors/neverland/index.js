@@ -122,22 +122,29 @@ const getEmissions = async (assets) => {
   }, {});
 };
 
-const emissionRewardTokens = (emissions) =>
-  uniq(Object.values(emissions).flatMap((e) => e.map((r) => r.rewardToken)));
+// emissionPerSecond stays set after distributionEnd; expired streams must not
+// affect APY or reward-token metadata.
+const liveEmissions = (emissions, timestamp) =>
+  (emissions || []).filter(
+    ({ distributionEnd }) => timestamp < Number(distributionEnd)
+  );
 
-// Annualize against supplied/borrowed USD; incomplete streams contribute zero.
-// The controller does not zero emissionPerSecond once a distribution ends, so
-// an expired stream would otherwise keep paying out indefinitely.
-const rewardApy = (emissions, rewardDecimals, prices, baseUsd) => {
+const emissionRewardTokens = (emissions, timestamp) =>
+  uniq(
+    Object.values(emissions).flatMap((streams) =>
+      liveEmissions(streams, timestamp).map((r) => r.rewardToken)
+    )
+  );
+
+// Accept raw streams; expired or incomplete streams contribute zero.
+const rewardApy = (emissions, rewardDecimals, prices, baseUsd, timestamp) => {
   if (!(baseUsd > 0)) return 0;
-  const now = Math.floor(Date.now() / 1000);
-  return emissions.reduce(
-    (acc, { rewardToken, emissionPerSecond, distributionEnd }) => {
+  return liveEmissions(emissions, timestamp).reduce(
+    (acc, { rewardToken, emissionPerSecond }) => {
       const emission = Number(emissionPerSecond);
       const rewardPrice = prices[priceKey(rewardToken)]?.price;
       const decimals = rewardDecimals[rewardToken];
       if (!(emission > 0) || !rewardPrice || !decimals) return acc;
-      if (now >= Number(distributionEnd)) return acc;
       const emissionUsdPerYear =
         (emission / 10 ** decimals) * SECONDS_PER_YEAR * rewardPrice;
       return acc + (emissionUsdPerYear / baseUsd) * 100;
@@ -202,7 +209,7 @@ const getMarketData = async ({ protocolDataProvider }) => {
 };
 
 // One pool per active, unfrozen reserve with complete USD data.
-const buildMarketPools = (market, data, prices, rewardDecimals) =>
+const buildMarketPools = (market, data, prices, rewardDecimals, timestamp) =>
   data.reserveTokens
     .map((reserve, i) => {
       const config = data.configurationData[i];
@@ -232,10 +239,10 @@ const buildMarketPools = (market, data, prices, rewardDecimals) =>
 
       const supplyEmissions = data.emissions[data.aTokens[i]];
       const borrowEmissions = data.emissions[data.variableDebtTokens[i]];
+      const liveSupply = liveEmissions(supplyEmissions, timestamp);
+      const liveBorrow = liveEmissions(borrowEmissions, timestamp);
       const rewardTokens = uniq(
-        [...(supplyEmissions || []), ...(borrowEmissions || [])].map(
-          (r) => r.rewardToken
-        )
+        [...liveSupply, ...liveBorrow].map((r) => r.rewardToken)
       );
 
       // aToken IDs stay unique across providers; reward denominators follow the
@@ -249,7 +256,13 @@ const buildMarketPools = (market, data, prices, rewardDecimals) =>
         tvlUsd,
         apyBase: rayToPct(reserveData.liquidityRate),
         apyReward: supplyEmissions
-          ? rewardApy(supplyEmissions, rewardDecimals, prices, totalSupplyUsd)
+          ? rewardApy(
+              supplyEmissions,
+              rewardDecimals,
+              prices,
+              totalSupplyUsd,
+              timestamp
+            )
           : null,
         rewardTokens: rewardTokens.length > 0 ? rewardTokens : null,
         underlyingTokens: [reserve.tokenAddress],
@@ -262,7 +275,13 @@ const buildMarketPools = (market, data, prices, rewardDecimals) =>
         availableBorrowUsd,
         apyBaseBorrow: rayToPct(reserveData.variableBorrowRate),
         apyRewardBorrow: borrowEmissions
-          ? rewardApy(borrowEmissions, rewardDecimals, prices, totalBorrowUsd)
+          ? rewardApy(
+              borrowEmissions,
+              rewardDecimals,
+              prices,
+              totalBorrowUsd,
+              timestamp
+            )
           : null,
         ltv: Number(config.ltv) / 10000,
         url: market.getUrl(reserve.symbol),
@@ -407,9 +426,13 @@ const apy = async () => {
     getVeDustPool(),
   ]);
   const marketsData = marketResults.filter(Boolean);
+  // Use one timestamp for token discovery and pool output.
+  const rewardTimestamp = Math.floor(Date.now() / 1000);
 
   const rewardTokens = uniq(
-    marketsData.flatMap(({ data }) => emissionRewardTokens(data.emissions))
+    marketsData.flatMap(({ data }) =>
+      emissionRewardTokens(data.emissions, rewardTimestamp)
+    )
   );
 
   // Dedupe market lookups after provider isolation. A market-pricing outage
@@ -428,7 +451,7 @@ const apy = async () => {
 
   const pools = [
     ...marketsData.flatMap(({ market, data }) =>
-      buildMarketPools(market, data, prices, rewardDecimals)
+      buildMarketPools(market, data, prices, rewardDecimals, rewardTimestamp)
     ),
     ...(veDustPool ? [veDustPool] : []),
   ].filter(Boolean);
