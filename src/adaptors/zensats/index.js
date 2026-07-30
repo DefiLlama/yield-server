@@ -77,8 +77,15 @@ const apy = async (timestamp) => {
 
   return VAULTS.map((v, i) => {
     const price = pricesByAddress[v.underlyingToken.toLowerCase()];
-    const total = Number(totalAssets.output[i]?.output);
-    if (!price || !Number.isFinite(total)) return null;
+    const totalRes = totalAssets.output[i];
+    const total = Number(totalRes?.output);
+    if (
+      !price ||
+      totalRes?.success === false ||
+      !Number.isFinite(total) ||
+      total <= 0
+    )
+      return null;
 
     const unit = 10 ** v.decimals;
     const current = Number(ppsNow.output[i]?.output);
