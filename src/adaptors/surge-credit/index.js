@@ -50,17 +50,22 @@ async function apy() {
       const reserveBps = Number(market.reserveRateBps)
       const supplyAprBps = (borrowRateBps * utilBps * (1e4 - reserveBps)) / (1e4 * 1e4)
 
+      const totalSupplyUsd = Number(market.totalSupplyAssets) / 1e6
+      const totalBorrowUsd = Number(market.totalBorrowAssets) / 1e6
+
       pools.push({
         pool: `surge-credit-${m}-${CHAIN}`,
         chain: utils.formatChain(CHAIN),
         project: 'surge-credit',
         symbol: 'USDC',
-        tvlUsd: availableBorrowUsd, // available (unborrowed) liquidity, USDC ~ $1
+        // Lending TVL is net supplied liquidity (supplied - borrowed); available
+        // borrow liquidity is exposed separately below.
+        tvlUsd: totalSupplyUsd - totalBorrowUsd,
         apyBase: aprBpsToApy(supplyAprBps), // supply APY, continuously compounded
         apyReward: null,
-        apyBaseBorrow: borrowRateBps / 100, // capped borrow APR (1800 bps = 18.00%)
-        totalSupplyUsd: Number(market.totalSupplyAssets) / 1e6,
-        totalBorrowUsd: Number(market.totalBorrowAssets) / 1e6,
+        apyBaseBorrow: aprBpsToApy(borrowRateBps), // borrow APY, same compounding as supply
+        totalSupplyUsd,
+        totalBorrowUsd,
         availableBorrowUsd,
         ltv: Number(market.maxLtvBps) / 1e4,
         borrowable: true,
