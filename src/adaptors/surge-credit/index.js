@@ -65,7 +65,7 @@ async function apy() {
         ltv: Number(market.maxLtvBps) / 1e4,
         borrowable: true,
         underlyingTokens: [USDC],
-        poolMeta: m === 0 ? 'Market 0, variable' : `Market ${m}, fixed`,
+        poolMeta: m === 0 ? 'Variable Market' : 'Fixed Market',
         url: 'https://surge.credit',
       })
     } catch {
