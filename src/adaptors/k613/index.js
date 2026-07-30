@@ -181,8 +181,8 @@ const apy = async () => {
         symbol: pool.symbol,
         tvlUsd,
         apyBase: (Number(p.liquidityRate) / 10 ** 27) * 100,
-        ...(apyReward != null && {
-          apyReward,
+        ...(apyReward != null && { apyReward }),
+        ...((apyReward != null || apyRewardBorrow != null) && {
           rewardTokens: [XK613],
         }),
         underlyingTokens: [pool.tokenAddress],
