@@ -956,10 +956,7 @@ exports.getSanctumLstApy = async (
   return (nonzero.reduce((s, a) => s + a, 0) / nonzero.length) * 100;
 };
 
-// Sui JSON-RPC. The public fullnode dropped JSON-RPC support, so calls go to
-// community fullnodes instead. All of these serve the indexer-backed suix_*
-// methods and survive concurrent bursts; endpoints that rate limit or omit
-// suix_queryEvents are deliberately excluded.
+
 const SUI_RPC_URLS = [
   'https://sui-rpc.publicnode.com',
   'https://mainnet.sui.rpcpool.com',
