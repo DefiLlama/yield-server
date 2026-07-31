@@ -216,6 +216,7 @@ const apy = async() => {
 
             return {
                 pool: `${item.loan_address}-${chainName}`.toLowerCase(),
+                token: vaultAddress ?? null,
                 chain: utils.formatChain(chainName),
                 project: 'accountable',
                 symbol: item.asset_symbol,
