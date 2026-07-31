@@ -1,36 +1,40 @@
 const axios = require('axios');
+const utils = require('../utils');
 
-const apyDataUrl =
-  'https://swap.api.sui-prod.bluefin.io/api/v1/pools/apy/stats';
+const poolsUrl =
+  'https://swap.api.sui-prod.bluefin.io/api/v1/pools/info?limit=500';
+
+const withPrefix = (coinType) =>
+  coinType.startsWith('0x') ? coinType : `0x${coinType}`;
 
 const apy = async () => {
-  const response = await axios.get(apyDataUrl);
-  const pools = response.data.data;
+  const { data } = await axios.get(poolsUrl);
 
-  return pools
+  return Object.values(data)
     .map((p) => {
-      const stats = p.apyStats[0];
-      const apyBase = Number(stats.aprFee);
-      const apyReward = Number(stats.aprRewards);
-      // Extract reward token addresses from rewards array
-      const rewardTokens = p.rewards?.map((reward) => reward.symbol) || [];
+      const rewardTokens = [
+        ...new Set((p.rewards ?? []).map((r) => withPrefix(r.token.address))),
+      ];
+
       return {
-        pool: p.pool,
+        pool: p.address,
         chain: 'Sui',
         project: 'bluefin-spot',
-        symbol: `${p.coinA.symbol}-${p.coinB.symbol}`,
+        symbol: `${p.tokenA.info.symbol}-${p.tokenB.info.symbol}`,
         underlyingTokens: [
-          p.coinA.coinType.startsWith('0x') ? p.coinA.coinType : `0x${p.coinA.coinType}`,
-          p.coinB.coinType.startsWith('0x') ? p.coinB.coinType : `0x${p.coinB.coinType}`,
+          withPrefix(p.tokenA.info.address),
+          withPrefix(p.tokenB.info.address),
         ],
         rewardTokens,
-        tvlUsd: Number(stats.tvlUsd),
-        apyBase,
-        apyReward: apyReward > 0 ? apyReward : 0,
+        tvlUsd: Number(p.tvl),
+        apyBase: Number(p.day?.apr?.feeApr) || 0,
+        apyReward: Number(p.day?.apr?.rewardApr) || 0,
+        apyBase7d: Number(p.week?.apr?.feeApr) || 0,
         poolMeta: `${Number(p.feeRate)}%`,
-        url: `https://trade.bluefin.io/deposit/${p.pool}`,
+        url: `https://trade.bluefin.io/deposit/${p.address}`,
       };
     })
+    .filter((p) => utils.keepFinite(p))
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
 };
 
