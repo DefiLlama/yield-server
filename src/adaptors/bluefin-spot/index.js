@@ -27,9 +27,8 @@ const apy = async () => {
         ],
         rewardTokens,
         tvlUsd: Number(p.tvl),
-        apyBase: Number(p.day?.apr?.feeApr) || 0,
-        apyReward: Number(p.day?.apr?.rewardApr) || 0,
-        apyBase7d: Number(p.week?.apr?.feeApr) || 0,
+        apyBase: Number(p.day?.apr?.feeApr),
+        apyReward: Number(p.day?.apr?.rewardApr),
         poolMeta: `${Number(p.feeRate)}%`,
         url: `https://trade.bluefin.io/deposit/${p.address}`,
       };
