@@ -955,3 +955,38 @@ exports.getSanctumLstApy = async (
   if (nonzero.length < minNonZero) return null;
   return (nonzero.reduce((s, a) => s + a, 0) / nonzero.length) * 100;
 };
+
+// Sui JSON-RPC. The public fullnode dropped JSON-RPC support, so calls go to
+// community fullnodes instead. All of these serve the indexer-backed suix_*
+// methods and survive concurrent bursts; endpoints that rate limit or omit
+// suix_queryEvents are deliberately excluded.
+const SUI_RPC_URLS = [
+  'https://sui-rpc.publicnode.com',
+  'https://mainnet.sui.rpcpool.com',
+  'https://rpc-mainnet.suiscan.xyz',
+  'https://sui.api.onfinality.io/public',
+];
+
+// Sticky preferred endpoint so a degraded primary is not retried on every call
+// of a paginated walk
+let suiRpcPreferred = 0;
+
+exports.suiRpc = async (method, params) => {
+  let lastError;
+  for (let i = 0; i < SUI_RPC_URLS.length; i++) {
+    const index = (suiRpcPreferred + i) % SUI_RPC_URLS.length;
+    try {
+      const { data } = await axios.post(
+        SUI_RPC_URLS[index],
+        { jsonrpc: '2.0', id: 1, method, params },
+        { timeout: 30000 }
+      );
+      if (data.error) throw new Error(data.error.message);
+      suiRpcPreferred = index;
+      return data.result;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw new Error(`Sui RPC ${method} failed: ${lastError?.message}`);
+};

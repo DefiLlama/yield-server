@@ -1,8 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-const RPC_URL = 'https://fullnode.mainnet.sui.io';
-
 const VAULT_PACKAGE =
   '0x90a75f641859f4d77a4349d67e518e1dd9ecb4fac079e220fa46b7a7f164e0a5';
 
@@ -46,18 +44,8 @@ const VAULTS = [
 
 const WINDOW_DAYS = 7;
 
-async function suiRpc(method, params) {
-  const { result } = await sdk.util.postJson(RPC_URL, {
-    jsonrpc: '2.0',
-    id: 1,
-    method,
-    params,
-  });
-  return result;
-}
-
 async function fetchObjects(ids) {
-  return suiRpc('sui_multiGetObjects', [ids, { showContent: true }]);
+  return utils.suiRpc('sui_multiGetObjects', [ids, { showContent: true }]);
 }
 
 async function getTokenPrices(coinTypes) {
@@ -100,7 +88,7 @@ async function paginateEvents(eventType, targetTs, vaultSet) {
 
   // Query descending (recent first), stop when past target window
   while (true) {
-    const result = await suiRpc('suix_queryEvents', [
+    const result = await utils.suiRpc('suix_queryEvents', [
       { MoveEventType: eventType },
       cursor,
       50,

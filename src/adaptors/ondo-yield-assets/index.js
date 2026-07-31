@@ -341,14 +341,11 @@ const getPoolsForChain = async (chain, sharedData) => {
 // Get Sui USDY supply via RPC
 const getSuiUsdySupply = async () => {
   try {
-    const response = await axios.post('https://fullnode.mainnet.sui.io', {
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'suix_getTotalSupply',
-      params: [suiConfig.usdy.coinType],
-    });
-    if (response.data?.result?.value) {
-      return Number(response.data.result.value) / 10 ** suiConfig.usdy.decimals;
+    const result = await utils.suiRpc('suix_getTotalSupply', [
+      suiConfig.usdy.coinType,
+    ]);
+    if (result?.value) {
+      return Number(result.value) / 10 ** suiConfig.usdy.decimals;
     }
     return 0;
   } catch (error) {
