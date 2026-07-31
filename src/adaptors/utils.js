@@ -976,13 +976,6 @@ const getSuiGraphqlEndpoints = () => {
   return endpoints;
 };
 
-// A configured endpoint may embed credentials, so keep URLs out of thrown messages
-const redactUrls = (message = '') =>
-  message.replace(
-    /https?:\/\/\S+/g,
-    (url) => `${url.split('/').slice(0, 3).join('/')}/...`
-  );
-
 // Sticky so a degraded endpoint is not retried on every call of a paginated walk
 let suiEndpointPreferred = 0;
 
@@ -1019,7 +1012,7 @@ const suiGraphql = async (query, variables) => {
     return data.data;
   }
 
-  throw new Error(`Sui GraphQL unreachable: ${redactUrls(lastError?.message)}`);
+  throw new Error(`Sui GraphQL: ${lastError?.message}`);
 };
 
 exports.suiGraphql = suiGraphql;
