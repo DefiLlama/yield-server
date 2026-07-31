@@ -341,11 +341,9 @@ const getPoolsForChain = async (chain, sharedData) => {
 // Get Sui USDY supply via RPC
 const getSuiUsdySupply = async () => {
   try {
-    const result = await utils.suiRpc('suix_getTotalSupply', [
-      suiConfig.usdy.coinType,
-    ]);
-    if (result?.value) {
-      return Number(result.value) / 10 ** suiConfig.usdy.decimals;
+    const metadata = await utils.suiCoinSupply(suiConfig.usdy.coinType);
+    if (metadata?.supply) {
+      return Number(metadata.supply) / 10 ** suiConfig.usdy.decimals;
     }
     return 0;
   } catch (error) {

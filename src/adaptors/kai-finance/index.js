@@ -61,7 +61,7 @@ async function getApyData() {
   const coinTypes = VAULTS.map(vault => vault.coinType);
 
   const [vaults, coinInfos] = await Promise.all([
-    utils.suiRpc('sui_multiGetObjects', [vaultIds, { showContent: true }]),
+    utils.suiObjectFields(vaultIds),
     getCoinInfos(coinTypes)
   ]);
 
@@ -70,13 +70,13 @@ async function getApyData() {
     const vaultInfo = VAULTS[i];
     const coinInfo = coinInfos[i]
 
-    const vaultData = vaults[i]?.data?.content?.fields;
+    const vaultData = vaults[i];
     if (!vaultData || !coinInfo) continue;
-    const tlp = vaultData.time_locked_profit.fields;
+    const tlp = vaultData.time_locked_profit;
 
     let tvl = BigNumber(vaultData.free_balance)
-    for (const strategy of vaultData.strategies.fields.contents) {
-      tvl = tvl.plus(BigNumber(strategy.fields.value.fields.borrowed))
+    for (const strategy of vaultData.strategies.contents) {
+      tvl = tvl.plus(BigNumber(strategy.value.borrowed))
     }
     const tvlUsd = tvl.div(10 ** coinInfo.decimals).times(coinInfo.price).toNumber();
 
