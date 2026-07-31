@@ -6,7 +6,9 @@ const main = async () => {
       project: 'plus-staking',
       symbol: 'PLUS',
       tvlUsd: 21370000,
-      apy: 342.8,
+      apyBase: 342.8,
+      apyReward: 0,
+      rewardTokens: [],
       underlyingTokens: ['0x5cfea22674e2e7d251deb693c0490b6389334f0f'],
       url: 'https://plusmain.net'
     }
