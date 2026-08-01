@@ -1,14 +1,21 @@
 const axios = require('axios');
 const utils = require('../utils');
 
-// Sentora's own canonical vault registry (Smart Vaults + curated Morpho/Euler/
-// Kamino vaults). Each vault carries an `analytics` block with tvlUsd and
-// apy7d/apy30d. TVL is verifiable on-chain (erc4626 totalAssets / upshift
+// Sentora's own canonical vault registry. Each vault carries an `analytics`
+// block with tvlUsd and apy7d/apy30d. TVL is verifiable on-chain (upshift
 // getTotalAssets / kamino api), spot-checked and matches. Reshaping this means
-// new vaults (e.g. the mWIN Morpho vault) appear automatically once Sentora
-// adds them to their API, no code change needed.
+// new vaults appear automatically once Sentora adds them to their API.
 const API = 'https://services.vaults.sentora.com/vaults';
 const MIN_TVL_USD = 1000; // drop dust/seed vaults
+
+// Host protocols already tracked by their own adapter (morpho-blue, euler-v2).
+// Listing their vaults here too would duplicate data, so we skip them and only
+// surface the genuinely-new pools (Kamino kvaults, Upshift-tech Smart Vaults)
+// that have no host adapter today.
+// Open question (Felix / slasher): a per-pool `curator` field would let a
+// morpho/euler pool show on Sentora's page without duplicating the row. Until
+// that exists, those pools stay under their host protocol only.
+const HOST_TRACKED = new Set(['morpho', 'eulerv2']);
 
 const apy = async () => {
   const { data } = await axios.get(API);
@@ -19,7 +26,12 @@ const apy = async () => {
       const a = v.analytics;
       const dt = v.depositToken;
       const tvlUsd = Number(a?.tvlUsd);
-      if (v.status !== 'ACTIVE' || !dt?.address || !(tvlUsd >= MIN_TVL_USD))
+      if (
+        v.status !== 'ACTIVE' ||
+        HOST_TRACKED.has(v.protocol) ||
+        !dt?.address ||
+        !(tvlUsd >= MIN_TVL_USD)
+      )
         return null;
 
       const chain = utils.formatChain(v.blockchain?.name?.toLowerCase());
