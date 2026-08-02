@@ -6,7 +6,11 @@ const poolAbi = require('../aave-v3/poolAbi');
 const PROTOCOL_DATA_PROVIDER = '0xfc87bE7f3657AAD69baDb6247A88E924D1F8bc53';
 const REWARDS_CONTROLLER = '0xe1d8B642c83587Df813a36F361C682C0475c4ea4';
 const XK613 = '0x9064d55A8A8473fA39c41A16492Fa1094Eb4E8b5';
-const K613 = '0xb09582631336068d4B0089d943f40CbF46dE5189';
+// K613 is not listed on the price API, so its price comes from this on-chain
+// oracle: a 30 minute TWAP of the K613/USDC pool, quoted with 8 decimals.
+const K613_ORACLE = '0x83002fe57364DEf515B5BBa326484bE2E220255e';
+const K613_ORACLE_DECIMALS = 8;
+const USDC = '0x754704Bc059F8C67012fEd69BC8A327a5aafb603';
 const CHAIN = 'monad';
 const PROJECT = 'k613';
 const APP_URL = 'https://k613.net';
@@ -122,15 +126,28 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
+  // The oracle quotes K613 against USDC, so its answer is scaled by the USDC
+  // price to end up in USD. A failed call leaves the reward apy unset.
+  const k613UsdcPrice = await sdk.api.abi
+    .call({
+      target: K613_ORACLE,
+      abi: 'int256:latestAnswer',
+      chain: CHAIN,
+    })
+    .then((r) => Number(r.output) / 10 ** K613_ORACLE_DECIMALS)
+    .catch(() => null);
+
   const priceKeys = reserveTokens
     .map((t) => `${CHAIN}:${t.tokenAddress}`)
-    .concat(`${CHAIN}:${K613}`)
     .join(',');
   const prices = (
     await utils.getPriceApiData(`/prices/current/${priceKeys}`)
   ).coins;
+
   // xK613 is backed 1:1 by K613, so K613's price is used for reward emissions
-  const k613Price = prices[`${CHAIN}:${K613}`]?.price;
+  const usdcPrice = prices[`${CHAIN}:${USDC}`]?.price;
+  const k613Price =
+    k613UsdcPrice > 0 && usdcPrice > 0 ? k613UsdcPrice * usdcPrice : null;
 
   const now = Math.floor(Date.now() / 1000);
   // getRewardsData -> [index, emissionPerSecond, lastUpdateTimestamp, distributionEnd]
