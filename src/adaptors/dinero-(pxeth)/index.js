@@ -34,7 +34,12 @@ const getOnChainApy = async () => {
     pricePerShareAt(blockNow),
     pricePerShareAt(blockThen),
   ]);
-  if (!priceThen || !Number.isFinite(priceNow) || !Number.isFinite(priceThen))
+  if (
+    !priceNow ||
+    !priceThen ||
+    !Number.isFinite(priceNow) ||
+    !Number.isFinite(priceThen)
+  )
     return null;
 
   return ((priceNow / priceThen) ** (365 / LOOKBACK_DAYS) - 1) * 100;
@@ -48,7 +53,11 @@ const getApy = async () => {
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
-  let apyBase = Number(apyData.apxEth);
+  const reportedApy = apyData?.apxEth;
+  let apyBase =
+    reportedApy == null || String(reportedApy).trim() === ''
+      ? NaN
+      : Number(reportedApy);
   if (!Number.isFinite(apyBase)) apyBase = await getOnChainApy();
   if (!Number.isFinite(apyBase))
     throw new Error(
