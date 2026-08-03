@@ -295,37 +295,49 @@ function buildCampaignRewards(campaigns, tokenByKey) {
 async function getVe33Data(normalizedChainId) {
   if (normalizedChainId !== normalizeChainId(ROBINHOOD_CHAIN_ID)) return null;
 
+  let poolsResponse;
   try {
-    const [poolsResponse, emissionState] = await Promise.all([
-      utils.getData(
-        `${API_URL}/ve33/${VE33_ADDRESS}/pools?chainId=${normalizedChainId}&pageSize=200`
-      ),
-      new ethers.Contract(
-        VE33_DATA_FETCHER_ADDRESS,
-        VE33_DATA_FETCHER_ABI,
-        new ethers.providers.StaticJsonRpcProvider(ROBINHOOD_RPC_URL, 4663)
-      ).getEmissionState(),
-    ]);
-
-    const poolsById = new Map(
-      poolsResponse.data.map((pool) => [BigInt(pool.pool_id).toString(), pool])
+    poolsResponse = await utils.getData(
+      `${API_URL}/ve33/${VE33_ADDRESS}/pools?chainId=${normalizedChainId}&pageSize=200`
     );
-
-    return {
-      poolsById,
-      totalVoteWeight: BigInt(poolsResponse.total_vote_weight),
-      currentEmissionRate: BigInt(emissionState.currentEmissionRate.toString()),
-    };
   } catch (error) {
     console.error(
-      `Ekubo ve33 data fetch failed for chain ${normalizedChainId}: ${error.message}`
+      `Ekubo ve33 pool fetch failed for chain ${normalizedChainId}: ${error.message}`
     );
     return null;
   }
+
+  let currentEmissionRate = null;
+  try {
+    const emissionState = await new ethers.Contract(
+      VE33_DATA_FETCHER_ADDRESS,
+      VE33_DATA_FETCHER_ABI,
+      new ethers.providers.StaticJsonRpcProvider(ROBINHOOD_RPC_URL, 4663)
+    ).getEmissionState();
+    currentEmissionRate = BigInt(emissionState.currentEmissionRate.toString());
+  } catch (error) {
+    console.error(
+      `Ekubo ve33 emission-state fetch failed for chain ${normalizedChainId}: ${error.message}`
+    );
+  }
+
+  return {
+    poolsById: new Map(
+      poolsResponse.data.map((pool) => [BigInt(pool.pool_id).toString(), pool])
+    ),
+    totalVoteWeight: BigInt(poolsResponse.total_vote_weight),
+    currentEmissionRate,
+  };
 }
 
 function getVe33Reward(ve33Data, poolInfo, stonxToken, tvlUsd) {
-  if (!ve33Data || !stonxToken?.usd_price || !tvlUsd) return null;
+  if (
+    !ve33Data ||
+    ve33Data.currentEmissionRate === null ||
+    !stonxToken?.usd_price ||
+    !tvlUsd
+  )
+    return null;
 
   const ve33Pool = ve33Data.poolsById.get(BigInt(poolInfo.pool_id).toString());
   if (!ve33Pool) return null;
