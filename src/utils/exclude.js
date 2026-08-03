@@ -505,7 +505,6 @@ const excludedProtocols = [
   { id: '2539', slug: 'unsheth' },
   { id: '5333', slug: 'carrot-liquidity' },
   { id: '1669', slug: 'tokensfarm' },
-  { id: '3912', slug: 'dinero-(pxeth)' },
   { id: '7300', slug: 'altura' }, // deposits closed and sus activity
   { id: '1653', slug: 'comb-financial' }, // winding down ops
   { id: '2319', slug: 'gmd-protocol' },
