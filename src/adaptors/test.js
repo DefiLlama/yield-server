@@ -47,6 +47,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'borrowFactor',
       'debtCeilingUsd',
       'availableBorrowUsd',
+      'borrowMarketOnly',
       'mintedCoin',
       'borrowToken',
       'apyBase7d',
