@@ -3,7 +3,6 @@ const utils = require('../utils');
 
 const CHAIN = 'base';
 const PROJECT = 'peer';
-const PROTOCOL_ID = '6390';
 const LOOKBACK_SECONDS = 7 * 24 * 60 * 60;
 const SIGNAL_LOOKBACK_SECONDS = 5 * 24 * 60 * 60;
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
@@ -631,5 +630,5 @@ module.exports = {
   timetravel: false,
   apy,
   url: 'https://www.peer.xyz/',
-  protocolId: PROTOCOL_ID,
+  protocolId: '6390',
 };

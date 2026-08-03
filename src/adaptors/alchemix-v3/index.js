@@ -1,6 +1,5 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const PROTOCOL_ID = '7749';
 
 const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
@@ -243,7 +242,7 @@ const apy = async () => {
 };
 
 module.exports = {
-  protocolId: PROTOCOL_ID,
+  protocolId: '7749',
   timetravel: false,
   apy,
   url: 'https://alchemix.fi',
