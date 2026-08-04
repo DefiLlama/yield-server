@@ -294,11 +294,16 @@ function buildCampaignRewards(campaigns, tokenByKey) {
 async function getVe33Data(normalizedChainId) {
   if (normalizedChainId !== normalizeChainId(ROBINHOOD_CHAIN_ID)) return null;
 
-  let poolsResponse;
+  let poolsById;
+  let totalVoteWeight;
   try {
-    poolsResponse = await utils.getData(
+    const poolsResponse = await utils.getData(
       `${API_URL}/ve33/${VE33_ADDRESS}/pools?chainId=${normalizedChainId}&pageSize=200`
     );
+    poolsById = new Map(
+      poolsResponse.data.map((pool) => [BigInt(pool.pool_id).toString(), pool])
+    );
+    totalVoteWeight = BigInt(poolsResponse.total_vote_weight);
   } catch (error) {
     console.error(
       `Ekubo ve33 pool fetch failed for chain ${normalizedChainId}: ${error.message}`
@@ -320,13 +325,7 @@ async function getVe33Data(normalizedChainId) {
     );
   }
 
-  return {
-    poolsById: new Map(
-      poolsResponse.data.map((pool) => [BigInt(pool.pool_id).toString(), pool])
-    ),
-    totalVoteWeight: BigInt(poolsResponse.total_vote_weight),
-    currentEmissionRate,
-  };
+  return { poolsById, totalVoteWeight, currentEmissionRate };
 }
 
 function getVe33Reward(ve33Data, poolInfo, stonxToken, tvlUsd) {
