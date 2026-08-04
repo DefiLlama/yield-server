@@ -1,8 +1,10 @@
+const utils = require('../utils');
+
 const main = async () => {
   return [
     {
-      pool: '0x5Cfea22674e2e7D251Deb693C0490b6389334F0F-plus-staking',
-      chain: 'Ethereum',
+      pool: '0x5cfea22674e2e7d251deb693c0490b6389334f0f-plus-staking',
+      chain: utils.formatChain('Ethereum'),
       project: 'plus-staking',
       symbol: 'PLUS',
       tvlUsd: 21370000,
