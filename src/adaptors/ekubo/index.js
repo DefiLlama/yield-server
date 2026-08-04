@@ -1,12 +1,12 @@
 const utils = require('../utils');
 const { chunk } = require('lodash');
-const ethers = require('ethers');
+const sdk = require('@defillama/sdk');
 
 const API_URL = 'https://prod-api.ekubo.org';
 const ETHEREUM_CHAIN_ID = '0x1';
 const STARKNET_CHAIN_ID = '0x534e5f4d41494e';
 const ROBINHOOD_CHAIN_ID = '0x1237';
-const ROBINHOOD_RPC_URL = 'https://rpc.mainnet.chain.robinhood.com';
+const ROBINHOOD_SDK_CHAIN = 'robinhood';
 const VE33_ADDRESS = '0xd18685a514e59b06d59824e16db07e73345d9953';
 const VE33_DATA_FETCHER_ADDRESS = '0x61f03754b1c7a7f0e584fd8869c00ba898ab888d';
 const STONX_ADDRESS = '0x570c5aa79c798e7a418412cc8399ae5bcce570c5';
@@ -18,9 +18,8 @@ const Q64 = 1n << 64n;
 const Q32 = 1n << 32n;
 const SECONDS_PER_DAY = 86400n;
 
-const VE33_DATA_FETCHER_ABI = [
-  'function getEmissionState() view returns (tuple(uint64 currentTimestamp, uint160 currentEmissionRate, uint256 totalRemainingEmissions, tuple(uint64 time, int256 emissionRateDelta, uint160 emissionRateAfter)[] futureEmissionRateChanges) state)',
-];
+const GET_EMISSION_STATE_ABI =
+  'function getEmissionState() view returns (tuple(uint64 currentTimestamp, uint160 currentEmissionRate, uint256 totalRemainingEmissions, tuple(uint64 time, int256 emissionRateDelta, uint160 emissionRateAfter)[] futureEmissionRateChanges) state)';
 
 const LEGACY_STARKNET_POOL_IDS_BY_CANONICAL_ID = {
   'ekubo-0x534e5f4d41494e-0x5dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b-0x01002120c2f49c83a9d777123a4061cd371cfc24fb40cddd9bd8450ce3f464ac':
@@ -309,12 +308,12 @@ async function getVe33Data(normalizedChainId) {
 
   let currentEmissionRate = null;
   try {
-    const emissionState = await new ethers.Contract(
-      VE33_DATA_FETCHER_ADDRESS,
-      VE33_DATA_FETCHER_ABI,
-      new ethers.providers.StaticJsonRpcProvider(ROBINHOOD_RPC_URL, 4663)
-    ).getEmissionState();
-    currentEmissionRate = BigInt(emissionState.currentEmissionRate.toString());
+    const { output: emissionState } = await sdk.api.abi.call({
+      target: VE33_DATA_FETCHER_ADDRESS,
+      abi: GET_EMISSION_STATE_ABI,
+      chain: ROBINHOOD_SDK_CHAIN,
+    });
+    currentEmissionRate = BigInt(emissionState.currentEmissionRate);
   } catch (error) {
     console.error(
       `Ekubo ve33 emission-state fetch failed for chain ${normalizedChainId}: ${error.message}`
