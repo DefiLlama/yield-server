@@ -182,7 +182,6 @@ const excludedProtocols = [
   { id: '2760', slug: 'maia-cl' },
   { id: '6888', slug: 'molecular' },
   { id: '1433', slug: 'jones-dao' }, //disabled deposits
-  { id: '6390', slug: 'zkp2p' }, // current slug: peer
   { id: '2506', slug: 'dyson' },
   { id: '2399', slug: 'opyn-squeeth' },
   { id: '345', slug: 'alpaca-leveraged-yield-farming' },
