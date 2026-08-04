@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const PROTOCOL_ID = '7749';
 
 const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
@@ -147,8 +148,7 @@ const getMytPool = async (deployment, prices, blocksBack) => {
   if (!Number(ppsThen)) return null;
 
   const growth = Number(ppsNow) / Number(ppsThen);
-  const apyBase =
-    (growth ** (DAYS_PER_YEAR / APY_LOOKBACK_DAYS) - 1) * 100;
+  const apyBase = (growth ** (DAYS_PER_YEAR / APY_LOOKBACK_DAYS) - 1) * 100;
 
   const tvlUsd = (Number(totalAssets) / 10 ** price.decimals) * price.price;
 
@@ -173,7 +173,8 @@ const getMytPool = async (deployment, prices, blocksBack) => {
 // at 0 rather than reporting a negative rate.
 const getTransmuterPool = async (deployment, prices) => {
   const synthPrice = prices[`${deployment.chain}:${deployment.synth}`];
-  const underlyingPrice = prices[`${deployment.chain}:${deployment.underlying}`];
+  const underlyingPrice =
+    prices[`${deployment.chain}:${deployment.underlying}`];
   if (!synthPrice || !underlyingPrice || !synthPrice.price) return null;
 
   const [totalActiveLocked, timeToTransmute] = await Promise.all([
@@ -242,7 +243,7 @@ const apy = async () => {
 };
 
 module.exports = {
-  protocolId: '7749',
+  protocolId: PROTOCOL_ID,
   timetravel: false,
   apy,
   url: 'https://alchemix.fi',
