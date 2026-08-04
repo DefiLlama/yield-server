@@ -6,7 +6,7 @@ const token = '0x9ba021b0a9b958b5e75ce9f6dff97c7ee52cb3e6';
 const convertToAssetsAbi =
   'function convertToAssets(uint256 shares) external view returns (uint256)';
 const SHARE_UNIT = '1000000000000000000';
-const LOOKBACK_DAYS = 30;
+const LOOKBACK_DAYS = 180;
 
 const getBlock = async (timestamp) =>
   (await axios.get(getPriceApiUrl(`/block/ethereum/${timestamp}`))).data.height;
@@ -40,7 +40,14 @@ const getOnChainApy = async () => {
     !Number.isFinite(priceNow) ||
     !Number.isFinite(priceThen)
   )
-    return null;
+    throw new Error(
+      `dinero: bad apxETH convertToAssets reads (${priceThen} -> ${priceNow})`
+    );
+
+  if (priceNow <= priceThen)
+    throw new Error(
+      `dinero: apxETH share price hasnt moved in ${LOOKBACK_DAYS}d (${priceThen} -> ${priceNow}), no harvest to measure`
+    );
 
   return ((priceNow / priceThen) ** (365 / LOOKBACK_DAYS) - 1) * 100;
 };
@@ -49,20 +56,10 @@ const getApy = async () => {
   const tvl =
     (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
 
-  const apyData = (await axios.get('https://dinero.xyz/api/apr')).data;
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
 
-  const reportedApy = apyData?.apxEth;
-  let apyBase =
-    reportedApy == null || String(reportedApy).trim() === ''
-      ? NaN
-      : Number(reportedApy);
-  if (!Number.isFinite(apyBase)) apyBase = await getOnChainApy();
-  if (!Number.isFinite(apyBase))
-    throw new Error(
-      'dinero: apxETH apy unavailable from dinero.xyz/api/apr and from on-chain pricePerShare'
-    );
+  const apyBase = await getOnChainApy();
 
   return [
     {
