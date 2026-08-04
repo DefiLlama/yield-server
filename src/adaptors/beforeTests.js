@@ -60,6 +60,7 @@ module.exports = async function () {
   const module = require(resolvedAdapterPath);
 
   global.adapter = adapter;
+  global.adapterPath = resolvedAdapterPath;
   global.protocolId = module.protocolId;
   global.apy = (await module.apy(timestamp)).sort(
     (a, b) => b.tvlUsd - a.tvlUsd
