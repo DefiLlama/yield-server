@@ -8,10 +8,28 @@ function main() {
   const passed = /PASS\s+.*test\.js/.test(file);
   const failed = /FAIL\s+.*test\.js/.test(file);
 
-  // Everything from "Test Suites:" onward (includes pool output from afterTests.js)
+  const MAX_FAILURE_DETAIL_CHARS = 20000;
+
+  // On success: everything from "Test Suites:" onward (includes pool output from
+  // afterTests.js). On failure: the jest failure blocks too, capped, so the
+  // reason is visible in the comment and not just the counts.
   const summaryIndex = file.indexOf('Test Suites:');
   if (summaryIndex === -1) return;
-  const output = file.substring(summaryIndex);
+
+  const failureIndex = file.indexOf('●');
+  const hasFailureDetail =
+    failed && failureIndex !== -1 && failureIndex < summaryIndex;
+
+  let output = file.substring(summaryIndex);
+  if (hasFailureDetail) {
+    let detail = file.substring(failureIndex, summaryIndex);
+    if (detail.length > MAX_FAILURE_DETAIL_CHARS) {
+      detail =
+        detail.substring(0, MAX_FAILURE_DETAIL_CHARS) +
+        '\n\n... failure output truncated ...\n\n';
+    }
+    output = detail + output;
+  }
 
   let body;
   if (passed && !failed) {
