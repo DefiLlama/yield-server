@@ -215,13 +215,20 @@ const getPrices = async (chain, addresses) => {
   }, {});
 };
 
-function calculateApy(rate, price = 1, tvl = 1) {
-  // supply rate per block * number of blocks per year
+function calculateApy(rate) {
   const BLOCK_TIME = 6;
   const YEARLY_BLOCKS = (365 * 24 * 60 * 60) / BLOCK_TIME;
-  const safeTvl = tvl === 0 ? 1 : tvl;
-  const apy = (((rate / 1e18) * YEARLY_BLOCKS * price) / safeTvl) * 100;
-  return apy;
+
+  return (Math.pow(rate / 1e18 + 1, YEARLY_BLOCKS) - 1) * 100;
+}
+
+function calculateRewardApy(speed, rewardPrice, totalUsd) {
+  const BLOCK_TIME = 6;
+  const YEARLY_BLOCKS = (365 * 24 * 60 * 60) / BLOCK_TIME;
+
+  if (!Number.isFinite(totalUsd) || totalUsd <= 0) return null;
+
+  return (((speed / 1e18) * YEARLY_BLOCKS * rewardPrice) / totalUsd) * 100;
 }
 
 function calculateTvl(cash, borrows, reserves, price, decimals) {
@@ -231,6 +238,10 @@ function calculateTvl(cash, borrows, reserves, price, decimals) {
       decimals) *
     price;
   return tvl;
+}
+
+function calculateAvailableTvl(cash, price, decimals) {
+  return (parseFloat(cash) / decimals) * price;
 }
 
 const getApy = async () => {
@@ -253,16 +264,19 @@ const getApy = async () => {
       pool.price,
       pool.underlyingTokenDecimals
     );
-    const tvlUsd = totalSupplyUsd - totalBorrowUsd;
-    const availableBorrowUsd =
-      (parseFloat(pool.getCash) / pool.underlyingTokenDecimals) * pool.price;
+    const tvlUsd = calculateAvailableTvl(
+      pool.getCash,
+      pool.price,
+      pool.underlyingTokenDecimals
+    );
+    const availableBorrowUsd = tvlUsd;
     const apyBase = calculateApy(pool.supplyRate);
     const apyReward = Number.isFinite(wCantoUsd)
-      ? calculateApy(pool.compSupplySpeeds, wCantoUsd, totalSupplyUsd)
+      ? calculateRewardApy(pool.compSupplySpeeds, wCantoUsd, totalSupplyUsd)
       : null;
     const apyBaseBorrow = calculateApy(pool.borrowRate);
     const apyRewardBorrow = Number.isFinite(wCantoUsd)
-      ? calculateApy(pool.compBorrowSpeeds, wCantoUsd, totalBorrowUsd)
+      ? calculateRewardApy(pool.compBorrowSpeeds, wCantoUsd, totalBorrowUsd)
       : null;
     const ltv = parseInt(pool.collateralFactor) / 1e18;
 
