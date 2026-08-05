@@ -6,7 +6,7 @@ const token = '0x9ba021b0a9b958b5e75ce9f6dff97c7ee52cb3e6';
 const convertToAssetsAbi =
   'function convertToAssets(uint256 shares) external view returns (uint256)';
 const SHARE_UNIT = '1000000000000000000';
-const LOOKBACK_DAYS = 180;
+const LOOKBACK_DAYS = 30;
 
 const getBlock = async (timestamp) =>
   (await axios.get(getPriceApiUrl(`/block/ethereum/${timestamp}`))).data.height;
