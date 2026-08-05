@@ -167,6 +167,8 @@ async function getPools(product, nav, supplies) {
       key === 'hyperliquidL1' ? total : total.plus(supplies[key]),
     new BigNumber(0)
   );
+  if (bridgedSupply.gt(hubSupply)) return [];
+
   const shareValue = new BigNumber(nav).div(hubSupply);
 
   return deployments.map(([key, config]) => {
