@@ -42,24 +42,25 @@ async function apy() {
       )
 
       // Lender APR (bps) = borrowRate * utilization * (1 - reserveRate).
-      // reserveRateBps is read live per market (2000 = 20% on both today, not the
-      // 11%/14% in stale docs); it moves supply APY directly.
+      // reserveRateBps is read live per market.
       const reserveBps = Number(market.reserveRateBps)
       const supplyAprBps = (borrowRateBps * utilBps * (1e4 - reserveBps)) / (1e4 * 1e4)
 
       const totalSupplyUsd = Number(market.totalSupplyAssets) / 1e6
       const totalBorrowUsd = Number(market.totalBorrowAssets) / 1e6
 
-      // tvlUsd = idle (available) USDC liquidity = supplied - borrowed, per DeFiLlama's
-      // lending convention. Each market reports its OWN idle: the two markets' supplied
-      // figures are a disjoint partition of the same lender base (capital allocated to a
-      // fixed loan moves out of market 0's supply and into market 1's), so no dollar is
-      // double-counted. The fixed market is funded on demand from variable-market lenders'
-      // opt-in exposure and runs at 100% utilization by construction, so it holds no idle
-      // liquidity of its own: 0. (Previously this used getMaxBorrowAmount, which returns
-      // the SHARED market-0 idle for both markets and therefore counted it twice.)
+      // tvlUsd = net supplied liquidity (supplied - borrowed) per market. The fixed
+      // market holds no liquidity of its own (funded from market-0 lenders' exposure,
+      // ~100% utilized), so its net is 0.
       const isFixed = m !== 0
-      const idleUsd = isFixed ? 0 : Math.max(0, totalSupplyUsd - totalBorrowUsd)
+      const tvlUsd = isFixed ? 0 : Math.max(0, totalSupplyUsd - totalBorrowUsd)
+
+      // availableBorrowUsd = physical cash borrowable now (totalPhysicalSupply -
+      // totalPhysicalBorrow). Uses the physical fields, not the accounting net, since
+      // accrued interest inflates totalSupplyAssets above what is actually withdrawable.
+      const physicalSupplyUsd = Number(market.totalPhysicalSupply) / 1e6
+      const physicalBorrowUsd = Number(market.totalPhysicalBorrow) / 1e6
+      const availableBorrowUsd = isFixed ? 0 : Math.max(0, physicalSupplyUsd - physicalBorrowUsd)
 
       pools.push({
         // Unique per market: liquidity-pool address + market id + chain.
@@ -67,13 +68,16 @@ async function apy() {
         chain: utils.formatChain(CHAIN),
         project: 'surge-credit',
         symbol: 'USDC',
-        tvlUsd: idleUsd,
+        // No receipt token; token: null stops triggerAdaptor.js inferring the
+        // LiquidityPool address (present in `pool`) as the token. Asset is underlyingTokens.
+        token: null,
+        tvlUsd,
         apyBase: aprBpsToApy(supplyAprBps), // supply APY, continuously compounded
         apyReward: null,
         apyBaseBorrow: aprBpsToApy(borrowRateBps), // borrow APY, same compounding as supply
         totalSupplyUsd,
         totalBorrowUsd,
-        availableBorrowUsd: idleUsd,
+        availableBorrowUsd,
         ltv: Number(market.maxLtvBps) / 1e4,
         borrowable: true,
         underlyingTokens: [USDC],
