@@ -34,6 +34,7 @@ const PRODUCTS = [
     chain: 'Ethereum',
     sdkChain: 'ethereum',
     token: ETHEREUM_OETH_TOKEN,
+    url: 'https://app.originprotocol.com/#/oeth',
   },
   {
     product: 'superOETHb',
@@ -41,6 +42,7 @@ const PRODUCTS = [
     chain: 'Base',
     sdkChain: 'base',
     token: BASE_SUPER_OETH_TOKEN,
+    url: 'https://app.originprotocol.com/#/super',
   },
 ];
 
@@ -57,7 +59,7 @@ const statsQuery = gql`
   }
 `;
 
-const fetchPoolData = async ({ product, symbol, chain, sdkChain, token }, ethPrice) => {
+const fetchPoolData = async ({ product, symbol, chain, sdkChain, token, url }, ethPrice) => {
   const [stats, apyBase] = await Promise.all([
     request(graphUrl, statsQuery, { product }),
     onChainApy(sdkChain, token),
@@ -81,6 +83,7 @@ const fetchPoolData = async ({ product, symbol, chain, sdkChain, token }, ethPri
     token,
     searchTokenOverride: token,
     isIntrinsicSource: true,
+    url,
   };
 };
 

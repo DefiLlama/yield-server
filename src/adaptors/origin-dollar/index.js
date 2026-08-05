@@ -59,7 +59,7 @@ const apy = async () => {
       underlyingTokens: ['0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'],
       token: OUSD,
       isIntrinsicSource: true,
-      url: 'https://originprotocol.eth.limo/#/ousd',
+      url: 'https://app.originprotocol.com/#/ousd',
     },
   ];
 };

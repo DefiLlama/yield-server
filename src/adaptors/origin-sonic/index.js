@@ -78,5 +78,7 @@ module.exports = {
   protocolId: '5688',
   timetravel: false,
   apy,
-  url: 'https://www.originprotocol.com/os',
+  // OS has no product page of its own any more, so this points at the site root rather than the
+  // old /os path, which now serves a soft 404.
+  url: 'https://www.originprotocol.com',
 };
