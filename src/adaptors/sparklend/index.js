@@ -139,6 +139,7 @@ async function fetchV3Pools(chain) {
           10 ** underlyingDecimalsEthereum[i]) *
         price;
       const borrowCapUsd = Number(reserveCaps[i].borrowCap) * price;
+      const supplyCap = Number(reserveCaps[i].supplyCap);
       const availableBorrowUsd = borrowCap > 0n
         ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
         : tvlUsd;
@@ -158,6 +159,7 @@ async function fetchV3Pools(chain) {
         apyBase: (p.liquidityRate / 10 ** 27) * 100,
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
+        ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
         ...(hasBorrowSide && {
           totalBorrowUsd,
           availableBorrowUsd,

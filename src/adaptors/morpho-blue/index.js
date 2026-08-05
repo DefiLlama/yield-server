@@ -507,7 +507,7 @@ const apy = async () => {
         tvlUsd: market.state.collateralAssetsUsd || 0,
         underlyingTokens: [market.collateralAsset.address],
         apyBaseBorrow: market.state.borrowApy * 100,
-        totalSupplyUsd: market.state.collateralAssetsUsd ?? 0,
+        totalSupplyUsd: market.state.collateralAssetsUsd ?? undefined,
         totalBorrowUsd: market.state.borrowAssetsUsd ?? 0,
         availableBorrowUsd,
         debtCeilingUsd:

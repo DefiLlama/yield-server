@@ -7,7 +7,7 @@ const _ = require('lodash');
 const { getPriceApiUrl } = require('../utils');
 const TEST_ACCOUNT = '0x1111110000000000000000000000000000000000'
 const DEXSCREENER_ENDPOINT = 'https://api.dexscreener.com/latest/dex/tokens/';
-const DEFILLAMA_ENDPOINT = getPriceApiUrl('/prices/current/');
+const priceUrl = (keys) => getPriceApiUrl(`/prices/current/${keys}`);
 const lynxAddress = '0x1a51b19ce03dbe0cb44c1528e34a7edd7771e9af';
 const olynxAddress = '0x63349ba5e1f71252ecd56e8f950d1a518b400b60'
 const btcs = ['0x5ffce65a40f6d3de5332766fff6a28bf491c868c', '0xe4d584ae9b753e549cae66200a6475d2f00705f7'];
@@ -25,7 +25,7 @@ const EXTRA_REWARDTOKENS = {
 const getDefillamaPrice = async (address) => {
   try {
     const chainToken = `linea:${address}`;
-    const res = await axios.get(DEFILLAMA_ENDPOINT + chainToken);
+    const res = await axios.get(priceUrl(chainToken));
     const items = Object.values(res.data.coins);
     if (items.length > 0) {
       return items[0].price;

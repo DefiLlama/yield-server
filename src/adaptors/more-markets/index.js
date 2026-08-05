@@ -173,6 +173,7 @@ const apy = async () => {
       aTokenAddress,
       variableDebtTokenAddress,
       borrowCap,
+      supplyCap,
     } = reserve;
 
     // Get price using chain:address format
@@ -294,6 +295,8 @@ const apy = async () => {
       ),
       underlyingTokens: [underlyingAsset],
       totalSupplyUsd,
+      ...(Number(supplyCap) > 0 &&
+        tokenPrice?.price > 0 && { supplyCapUsd: Number(supplyCap) * tokenPrice.price }),
       totalBorrowUsd: borrowedUsd,
       availableBorrowUsd,
       apyBaseBorrow: borrowAPY,

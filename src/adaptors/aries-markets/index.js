@@ -1,7 +1,7 @@
 const utils = require('../utils');
 
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
+const priceUrl = (keys) => utils.getPriceApiUrl(`/prices/current/${keys}`);
 
 const FARMING_TYPE = "0x9770fa9c725cbd97eb50b2be5f7416efdfd1f1554beb0750d4dae4c64e860da3::reserve_config::DepositFarming";
 const APT_ADDR = "0x1::aptos_coin::AptosCoin";
@@ -20,7 +20,7 @@ const SUPPORTED_COINS = [
 async function main() {
     let aptPrice = 0
     try {
-        const aptRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${APT_PRICE_ID}`)
+        const aptRes = await utils.getData(priceUrl(APT_PRICE_ID))
         aptPrice = aptRes?.coins?.[APT_PRICE_ID]?.price ?? 0
     } catch (error) {
         console.warn(`[aries-markets] failed to fetch APT price: ${error.message ?? error}`)
@@ -93,7 +93,7 @@ async function getCoinPrice(priceId, coinAddr) {
     let coinPrice = 0
 
     try {
-        const priceRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${priceId}`)
+        const priceRes = await utils.getData(priceUrl(priceId))
         coinPrice = priceRes?.coins?.[priceId]?.price ?? 0
     } catch (error) {
         console.warn(`[aries-markets] failed to fetch price ${priceId}: ${error.message ?? error}`)
@@ -102,7 +102,7 @@ async function getCoinPrice(priceId, coinAddr) {
     if (!coinPrice) {
         try {
             const aptosPriceId = `aptos:${coinAddr}`
-            const aptosPriceRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${aptosPriceId}`)
+            const aptosPriceRes = await utils.getData(priceUrl(aptosPriceId))
             coinPrice = aptosPriceRes?.coins?.[aptosPriceId]?.price ?? 0
         } catch (error) {
             console.warn(`[aries-markets] failed to fetch aptos price for ${coinAddr}: ${error.message ?? error}`)

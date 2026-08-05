@@ -3,7 +3,7 @@ const sdk = require('@defillama/sdk');
 const {liquidityMiningV2Abi} = require('./abiV2');
 const { getPriceApiUrl } = require('../utils');
 
-const COIN_PRICES_URL = getPriceApiUrl('/prices/current');
+const priceUrl = (keys) => getPriceApiUrl(`/prices/current/${keys}`);
 
 const CHAIN_CONFIG = {
   ethereum: {
@@ -146,7 +146,7 @@ const apy = async () => {
   );
 
   const coinPrices = (
-    await axios.get(`${COIN_PRICES_URL}/${coinKeys.join(',').toLowerCase()}`)
+    await axios.get(priceUrl(coinKeys.join(',').toLowerCase()))
   ).data.coins;
 
   return chainsData.flatMap(({chain, config, data}) =>

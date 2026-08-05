@@ -6,7 +6,6 @@ const redis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 1, enable
 redis.on('error', () => {});
 
 const yieldRoutes = require('./routes/yield');
-const holderRoutes = require('./routes/holders');
 const config = require('./routes/config');
 const median = require('./routes/median');
 const perp = require('./routes/perp');
@@ -14,7 +13,6 @@ const enriched = require('./routes/enriched');
 const lsd = require('./routes/lsd');
 const pools = require('./routes/pools');
 const { getCacheDates } = require('../utils/headers');
-const volatility = require('./routes/volatility');
 const tokenAddress = require('./routes/tokenAddress');
 
 const app = express();
@@ -48,7 +46,7 @@ async function redisCache (req, res, next) {
   }
 }
 
-app.use('/', [volatility, holderRoutes, tokenAddress]);
+app.use('/', [tokenAddress]);
 
 app.use(redisCache)
 

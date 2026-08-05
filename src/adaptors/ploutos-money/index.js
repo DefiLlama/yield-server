@@ -221,6 +221,12 @@ async function getApy(market) {
     calls: reserves.map(p => ({ target: provider, params: p.tokenAddress })),
   })).output.map(o => o.output)
 
+  const reserveCaps = (await sdk.api.abi.multiCall({
+    chain,
+    abi: poolAbi.find(m => m.name === 'getReserveCaps'),
+    calls: reserves.map(p => ({ target: provider, params: p.tokenAddress })),
+  })).output.map(o => o.output)
+
   const aSupplies = (await sdk.api.abi.multiCall({
     chain,
     abi: 'erc20:totalSupply',
@@ -268,6 +274,7 @@ async function getApy(market) {
 
     const supplyAToken = Number(aSupplies[i]) / 10 ** Number(aDecs[i])
     const totalSupplyUsd = supplyAToken * price
+    const supplyCap = Number(reserveCaps[i].supplyCap)
 
     const underlying = Number(underlyingBalances[i]) / 10 ** Number(uDecs[i])
     const tvlUsd = underlying * price
@@ -324,6 +331,7 @@ async function getApy(market) {
       apyBaseBorrow,
       underlyingTokens: [r.tokenAddress],
       totalSupplyUsd,
+      ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
       totalBorrowUsd,
       ltv: cfg.ltv / 10000,
       borrowable: cfg.borrowingEnabled,

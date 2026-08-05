@@ -30,14 +30,14 @@ const graphQuery = () => gql`
 
 const graphUrl = sdk.graph.modifyEndpoint('9MKTb9g59rBG1CNUTrriA6tDdSR8neruGJCP6FjD7SSo');
 
-const defiUrl = utils.getPriceApiUrl('/prices/current/');
+const priceUrl = (keys) => utils.getPriceApiUrl(`/prices/current/${keys}`);
 
 const poolsFunction = async () => {
   const { bonds } = await request(graphUrl, graphQuery(), {});
 
   const bondPools = bonds.map(async (bond) => {
     const coinUrl = `ethereum:${bond.collateralToken.id}`;
-    const fullUrl = defiUrl + coinUrl;
+    const fullUrl = priceUrl(coinUrl);
     const { coins } = await utils.getData(fullUrl);
     const tokenPrice = await coins[coinUrl].price;
     const tokenAmount =

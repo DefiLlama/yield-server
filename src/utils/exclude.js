@@ -182,7 +182,6 @@ const excludedProtocols = [
   { id: '2760', slug: 'maia-cl' },
   { id: '6888', slug: 'molecular' },
   { id: '1433', slug: 'jones-dao' }, //disabled deposits
-  { id: '6390', slug: 'zkp2p' }, // current slug: peer
   { id: '2506', slug: 'dyson' },
   { id: '2399', slug: 'opyn-squeeth' },
   { id: '345', slug: 'alpaca-leveraged-yield-farming' },
@@ -506,6 +505,10 @@ const excludedProtocols = [
   { id: '5333', slug: 'carrot-liquidity' },
   { id: '1669', slug: 'tokensfarm' },
   { id: '3912', slug: 'dinero-(pxeth)' },
+  { id: '7300', slug: 'altura' }, // deposits closed and sus activity
+  { id: '1653', slug: 'comb-financial' }, // winding down ops
+  { id: '2319', slug: 'gmd-protocol' },
+  { id: '4938', slug: 'meso-finance' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);

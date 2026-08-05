@@ -24,8 +24,18 @@ const getPriceApiUrl = (path) => {
 
 exports.getPriceApiUrl = getPriceApiUrl;
 
+// TODO: temporary cache-bypass on pro requests; remove once coins-api caps
+// staleness (Cache-Control) -- edge colos were replaying expired
+// /prices/current copies. Applied at request time, not in getPriceApiUrl:
+// adapters compose on top of that URL, so a query param baked into it would
+// corrupt their appended paths.
+const withCacheBust = (path) =>
+  process.env.DL_API_KEY
+    ? `${path}${path.includes('?') ? '&' : '?'}cachebust=${Date.now()}`
+    : path;
+
 const getPriceApiData = async (path) =>
-  (await axios.get(getPriceApiUrl(path))).data;
+  (await axios.get(getPriceApiUrl(withCacheBust(path)))).data;
 
 exports.getPriceApiData = getPriceApiData;
 
@@ -944,4 +954,119 @@ exports.getSanctumLstApy = async (
     .filter((a) => Number.isFinite(a) && a > 0.001);
   if (nonzero.length < minNonZero) return null;
   return (nonzero.reduce((s, a) => s + a, 0) / nonzero.length) * 100;
+};
+
+// Sui replaced JSON-RPC with GraphQL. Prefers SUI_GRAPHQL_URL, then Ankr, then
+// the Foundation's public endpoint, which is documented as rate limited and not
+// for production. https://docs.sui.io/develop/accessing-data/json-rpc-migration
+const SUI_GRAPHQL_PUBLIC = 'https://graphql.mainnet.sui.io/graphql';
+const ANKR_SUI_GRAPHQL = 'https://rpc.ankr.com/http/sui_graphql';
+
+// Ankr authenticates GraphQL via the x-token header; a key in the URL path 404s
+const getSuiGraphqlEndpoints = () => {
+  if (process.env.SUI_GRAPHQL_URL)
+    return [{ url: process.env.SUI_GRAPHQL_URL, headers: {} }];
+
+  const endpoints = [{ url: SUI_GRAPHQL_PUBLIC, headers: {} }];
+  if (process.env.ANKR_API_KEY)
+    endpoints.push({
+      url: ANKR_SUI_GRAPHQL,
+      headers: { 'x-token': process.env.ANKR_API_KEY },
+    });
+  return endpoints;
+};
+
+// Sticky so a degraded endpoint is not retried on every call of a paginated walk
+let suiEndpointPreferred = 0;
+
+const suiGraphql = async (query, variables) => {
+  const endpoints = getSuiGraphqlEndpoints();
+  let lastError;
+
+  for (let i = 0; i < endpoints.length; i++) {
+    const index = (suiEndpointPreferred + i) % endpoints.length;
+    const { url, headers } = endpoints[index];
+
+    let data;
+    try {
+      ({ data } = await axios.post(
+        url,
+        { query, variables },
+        {
+          timeout: 30000,
+          headers: { 'content-type': 'application/json', ...headers },
+        }
+      ));
+    } catch (e) {
+      lastError = e;
+      continue;
+    }
+
+    suiEndpointPreferred = index;
+    // A GraphQL error is deterministic, so surface it rather than retrying
+    if (data.errors) {
+      throw new Error(
+        `Sui GraphQL: ${JSON.stringify(data.errors).slice(0, 300)}`
+      );
+    }
+    return data.data;
+  }
+
+  throw new Error(`Sui GraphQL: ${lastError?.message}`);
+};
+
+exports.suiGraphql = suiGraphql;
+
+const SUI_OBJECTS_QUERY = `query ($keys: [ObjectKey!]!) {
+  multiGetObjects(keys: $keys) {
+    asMoveObject { contents { json } }
+  }
+}`;
+
+// maxMultiGetSize is 200 but the 5KB query payload cap bites first, at 60 keys
+const SUI_OBJECTS_PER_QUERY = 50;
+
+// Move struct fields per object id, positionally matching ids (null if absent)
+exports.suiObjectFields = async (ids) => {
+  const batches = await Promise.all(
+    chunkArray(ids, SUI_OBJECTS_PER_QUERY).map(async (batch) => {
+      const { multiGetObjects } = await suiGraphql(SUI_OBJECTS_QUERY, {
+        keys: batch.map((address) => ({ address })),
+      });
+      return batch.map(
+        (_, i) => multiGetObjects?.[i]?.asMoveObject?.contents?.json ?? null
+      );
+    })
+  );
+  return batches.flat();
+};
+
+const SUI_COIN_SUPPLY_QUERY = `query ($coinType: String!) {
+  coinMetadata(coinType: $coinType) { decimals symbol supply }
+}`;
+
+exports.suiCoinSupply = async (coinType) =>
+  (await suiGraphql(SUI_COIN_SUPPLY_QUERY, { coinType })).coinMetadata;
+
+const SUI_EVENTS_QUERY = `query ($type: String!, $last: Int!, $before: String) {
+  events(filter: { type: $type }, last: $last, before: $before) {
+    pageInfo { hasPreviousPage startCursor }
+    nodes { timestamp contents { json } }
+  }
+}`;
+
+// One page of events, newest first. Pass the returned cursor back to walk older.
+exports.suiEvents = async (type, { cursor = null, limit = 50 } = {}) => {
+  const { events } = await suiGraphql(SUI_EVENTS_QUERY, {
+    type,
+    last: limit,
+    before: cursor,
+  });
+  return {
+    events: (events?.nodes ?? [])
+      .map((n) => ({ json: n.contents?.json, ts: Date.parse(n.timestamp) }))
+      .reverse(),
+    cursor: events?.pageInfo?.startCursor ?? null,
+    hasMore: !!events?.pageInfo?.hasPreviousPage,
+  };
 };
