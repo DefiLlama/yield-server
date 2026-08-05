@@ -112,27 +112,59 @@ async function getTvlUsd(navOracleAddress) {
   return navIn18Decimals.div(1e18).toNumber();
 }
 
+async function getShareSupply(address, chain) {
+  const [supplyResult, decimalsResult] = await Promise.all([
+    sdk.api.abi.call({ target: address, abi: abi.totalSupply, chain }),
+    sdk.api.abi.call({ target: address, abi: abi.decimals, chain }),
+  ]);
+
+  return new BigNumber(supplyResult.output).div(
+    new BigNumber(10).pow(decimalsResult.output)
+  );
+}
+
 async function getPools(product) {
   const hubDeployment = product.deployments.hyperliquidL1;
-  const tvlUsd = await getTvlUsd(hubDeployment.navOracle);
+  const nav = await getTvlUsd(hubDeployment.navOracle);
   const apyBase7d = await getApy7d(
     hubDeployment.navOracle,
     hubDeployment.address,
     HYPERLIQUID_L1_CHAIN
   );
 
-  return Object.entries(product.deployments).map(([key, config]) => ({
-    pool: `${config.address}-${config.chain}-${key}`.toLowerCase(),
-    chain: utils.formatChain(config.chain),
-    project: 'liminal-basis',
-    symbol: product.symbol,
-    tvlUsd,
-    apyBase: apyBase7d,
-    apyBase7d,
-    underlyingTokens: config.underlyingTokens,
-    poolMeta: product.poolMeta,
-    url: 'https://liminal.money/app/tokenized',
-  }));
+  const deployments = Object.entries(product.deployments);
+  const supplies = await Promise.all(
+    deployments.map(([, config]) => getShareSupply(config.address, config.chain))
+  );
+
+  const hubIndex = deployments.findIndex(([key]) => key === 'hyperliquidL1');
+  const hubSupply = supplies[hubIndex];
+  if (hubSupply.isZero()) return [];
+
+  const bridgedSupply = supplies.reduce(
+    (total, supply, index) =>
+      index === hubIndex ? total : total.plus(supply),
+    new BigNumber(0)
+  );
+  const shareValue = new BigNumber(nav).div(hubSupply);
+
+  return deployments.map(([key, config], index) => {
+    const shares =
+      index === hubIndex ? hubSupply.minus(bridgedSupply) : supplies[index];
+
+    return {
+      pool: `${config.address}-${config.chain}-${key}`.toLowerCase(),
+      chain: utils.formatChain(config.chain),
+      project: 'liminal-basis',
+      symbol: product.symbol,
+      tvlUsd: shares.times(shareValue).toNumber(),
+      apyBase: apyBase7d,
+      apyBase7d,
+      underlyingTokens: config.underlyingTokens,
+      poolMeta: product.poolMeta,
+      url: 'https://liminal.money/app/tokenized',
+    };
+  });
 }
 
 async function main() {
