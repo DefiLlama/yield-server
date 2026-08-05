@@ -11,18 +11,20 @@ const LOOKBACK_DAYS = 30;
 const getBlock = async (timestamp) =>
   (await axios.get(getPriceApiUrl(`/block/ethereum/${timestamp}`))).data.height;
 
-const pricePerShareAt = async (block) =>
+const convertToAssets = async (shares, block) =>
   Number(
     (
       await sdk.api.abi.call({
         target: token,
         block,
         abi: convertToAssetsAbi,
-        params: [SHARE_UNIT],
+        params: [shares],
         chain: 'ethereum',
       })
     ).output
   );
+
+const pricePerShareAt = (block) => convertToAssets(SHARE_UNIT, block);
 
 const getOnChainApy = async () => {
   const now = Math.floor(Date.now() / 1e3);
@@ -53,8 +55,8 @@ const getOnChainApy = async () => {
 };
 
 const getApy = async () => {
-  const tvl =
-    (await sdk.api.erc20.totalSupply({ target: token })).output / 1e18;
+  const shares = (await sdk.api.erc20.totalSupply({ target: token })).output;
+  const tvl = (await convertToAssets(shares)) / 1e18;
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
