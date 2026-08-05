@@ -37,6 +37,8 @@ const apy = async () => {
   ]);
 
   const row = stats.protocolDailyStatDetails[0];
+  if (!row) return [];
+
   // Product rows report `tvl` in ETH; `rateETH` is OUSD's price in ETH, so this recovers the
   // OUSD-denominated amount and avoids valuing a dollar product through the ETH price.
   const tvlOusd = Number(row.tvl) / Number(row.rateETH);

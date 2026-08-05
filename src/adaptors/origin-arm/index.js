@@ -76,7 +76,13 @@ const sharePricesDaysAgo = (chainKey, addresses, days) =>
     .getPriceApiData(
       `/block/${chainKey}/${Math.floor(Date.now() / 1000) - days * DAY_SECONDS}`
     )
-    .then((r) => sharePricesAt(chainKey, addresses, r.height));
+    .then((r) => {
+      // Without a height the read would silently fall back to the latest block, making the
+      // window's two ends identical and reporting 0% rather than failing. Throwing hands it to
+      // the per-chain catch, which skips this chain and retries next run.
+      if (!r?.height) throw new Error(`no block height for ${chainKey} ${days}d ago`);
+      return sharePricesAt(chainKey, addresses, r.height);
+    });
 
 // Compound the share-price growth across a window into an annual rate. Null when the ARM did not
 // exist at the far end, or when the move is too large to be yield.

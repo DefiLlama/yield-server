@@ -48,6 +48,8 @@ const apy = async () => {
   ]);
 
   const row = stats.protocolDailyStatDetails[0];
+  if (!row) return [];
+
   // Product rows report `tvl` in ETH; `rateETH` is S's price in ETH, so this recovers the
   // S-denominated amount and avoids valuing a Sonic product through the ETH price.
   const tvlSonic = Number(row.tvl) / Number(row.rateETH);
