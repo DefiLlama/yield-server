@@ -154,7 +154,7 @@ const getApy = async (): Promise<Pool[]> => {
 			tvlUsd,
 			apyBase,
 			underlyingTokens: [BTC],
-			rewardTokens: [BTC],
+			rewardTokens: [],
 			url: "https://boar.finance/dashboard",
 		},
 	];
