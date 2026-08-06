@@ -20,6 +20,9 @@ const getApy = async () => {
       symbol: utils.formatSymbol(vault.asset.symbol),
       poolMeta: vault.name ?? undefined,
       underlyingTokens: [vault.asset.mint],
+      // bundle shares are a virtual u128 on the vault account; no SPL share
+      // mint exists
+      token: null,
       // null when the indexer has no fresh USD price; dropped by keepFinite
       tvlUsd: vault.tvlUsd,
       // 7d NAV growth net of fees; longer windows cover young vaults
