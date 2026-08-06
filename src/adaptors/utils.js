@@ -778,27 +778,64 @@ exports.getTotalSupply = async (tokenMintAddress) => {
   return supplyInTokens;
 };
 
-// Solana RPC helper for getAccountInfo
-const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+const BASE58_ALPHABET =
+  '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+// Base58 encode a byte buffer, eg a 32-byte pubkey read out of account data.
+exports.toBase58 = (bytes) => {
+  if (!bytes.length) return '';
+
+  let value = BigInt(`0x${bytes.toString('hex')}`);
+  let encoded = '';
+  while (value > 0n) {
+    encoded = BASE58_ALPHABET[Number(value % 58n)] + encoded;
+    value /= 58n;
+  }
+
+  const leadingZeros = bytes.findIndex((b) => b !== 0);
+  return (
+    '1'.repeat(leadingZeros === -1 ? bytes.length : leadingZeros) + encoded
+  );
+};
+
+// Solana getAccountInfo returning the owning program alongside the data, so a
+// caller can verify what it is decoding before trusting byte offsets. Accepts a
+// dataSlice to read a few bytes out of a large account, and returns null rather
+// than throwing when the account does not exist.
+const getSolanaAccount = async (
+  address,
+  { rpcUrl = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com', dataSlice } = {}
+) => {
   const response = await axios.post(rpcUrl, {
     jsonrpc: '2.0',
     id: 1,
     method: 'getAccountInfo',
-    params: [address, { encoding: 'base64' }],
+    params: [address, { encoding: 'base64', ...(dataSlice && { dataSlice }) }],
   }, {
     headers: { 'Content-Type': 'application/json' },
   });
 
-  const data = response.data;
-  if (data.error) {
-    throw new Error(`Error fetching account info: ${data.error.message}`);
+  const { error, result } = response.data;
+  if (error) {
+    throw new Error(`Error fetching account info: ${error.message}`);
   }
 
-  if (!data.result?.value?.data?.[0]) {
+  const account = result?.value;
+  if (typeof account?.data?.[0] !== 'string') return null;
+
+  return { owner: account.owner, data: Buffer.from(account.data[0], 'base64') };
+};
+
+exports.getSolanaAccount = getSolanaAccount;
+
+const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const account = await getSolanaAccount(address, { rpcUrl });
+
+  if (!account?.data.length) {
     throw new Error(`Account not found: ${address}`);
   }
 
-  return Buffer.from(data.result.value.data[0], 'base64');
+  return account.data;
 };
 
 // SPL Stake Pool data decoder using official library
