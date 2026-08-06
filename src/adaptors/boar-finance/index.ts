@@ -13,7 +13,7 @@ const sdk = require("@defillama/sdk");
 const { request, gql } = require("graphql-request");
 const utils = require("../utils");
 
-export const LOCKED_ABI = {
+const LOCKED_ABI = {
 	inputs: [{ name: "_tokenId", type: "uint256" }],
 	name: "locked",
 	outputs: [
@@ -32,7 +32,7 @@ export const LOCKED_ABI = {
 	type: "function",
 } as const;
 
-export const YIELD_PER_EPOCH_ABI = {
+const YIELD_PER_EPOCH_ABI = {
 	inputs: [{ name: "epoch", type: "uint256" }],
 	name: "yieldPerEpoch",
 	outputs: [{ name: "amount", type: "uint256" }],
@@ -40,21 +40,21 @@ export const YIELD_PER_EPOCH_ABI = {
 	type: "function",
 } as const;
 
-export const CHAIN = "mezo";
-export const EPOCH_DURATION = 604800;
-export const EPOCHS_PER_YEAR = 52;
+const CHAIN = "mezo";
+const EPOCH_DURATION = 604800;
+const EPOCHS_PER_YEAR = 52;
 
-export const SUBGRAPH_URL =
+const SUBGRAPH_URL =
 	"https://api.goldsky.com/api/public/project_cmlihkrxs647t01t34wtrafk1/subgraphs/boar-finance-data-mezo/current/gn";
 
 // Mainnet addresses (chain ID 31612)
-export const BTC = "0x7b7C000000000000000000000000000000000000";
-export const VE_BTC = "0x3D4b1b884A7a1E59fE8589a3296EC8f8cBB6f279";
-export const BOAR_BTC_RELAY = "0x920b1c573F503554E113e4c47A92cd289a3d1625";
-export const MANAGED_TOKEN_ID = 1226;
+const BTC = "0x7b7C000000000000000000000000000000000000";
+const VE_BTC = "0x3D4b1b884A7a1E59fE8589a3296EC8f8cBB6f279";
+const BOAR_BTC_RELAY = "0x920b1c573F503554E113e4c47A92cd289a3d1625";
+const MANAGED_TOKEN_ID = 1226;
 
 // Matches dapp's APY_PRECISION from @repo/shared
-export const APY_PRECISION = 10_000_000n;
+const APY_PRECISION = 10_000_000n;
 
 interface LockedTuple {
 	amount: string;
