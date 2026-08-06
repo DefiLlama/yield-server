@@ -508,6 +508,9 @@ const excludedProtocols = [
   { id: '1653', slug: 'comb-financial' }, // winding down ops
   { id: '2319', slug: 'gmd-protocol' },
   { id: '4938', slug: 'meso-finance' },
+  { id: '2001', slug: 'demex-perp' },
+  { id: '7336', slug: 'satsuma' },
+  { id: '7335', slug: 'juiceswap' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
