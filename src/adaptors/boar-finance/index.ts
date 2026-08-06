@@ -150,7 +150,7 @@ const getApy = async (): Promise<Pool[]> => {
 			chain: utils.formatChain(CHAIN),
 			project: "boar-finance",
 			symbol: "BTC",
-			poolMeta: "veBTC — Boar managed",
+			poolMeta: "28d unstake lock",
 			tvlUsd,
 			apyBase,
 			underlyingTokens: [BTC],
@@ -163,7 +163,7 @@ const getApy = async (): Promise<Pool[]> => {
 };
 
 module.exports = {
-	protocolId: '8079',
+	protocolId: "8079",
 	timetravel: false,
 	apy: getApy,
 	url: "https://boar.finance",
