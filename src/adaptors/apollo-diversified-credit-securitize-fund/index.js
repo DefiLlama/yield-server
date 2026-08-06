@@ -40,10 +40,9 @@ const apy = async () => {
     block30d ? getOraclePrice(block30d).catch(() => null) : null,
   ]);
 
-  const apyBase =
-    price30d && price30d > 0
-      ? ((priceNow - price30d) / price30d) * (365 / 30) * 100
-      : 0;
+  if (!(price30d > 0)) return [];
+
+  const apyBase = ((priceNow - price30d) / price30d) * (365 / 30) * 100;
 
   // Fetch EVM supplies, decimals, and Solana supply
   const [supplyResults, decimalsResults, solSupply] = await Promise.all([
