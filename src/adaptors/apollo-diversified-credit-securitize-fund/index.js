@@ -40,7 +40,7 @@ const apy = async () => {
     block30d ? getOraclePrice(block30d).catch(() => null) : null,
   ]);
 
-  if (!(price30d > 0)) return [];
+  if (!(priceNow > 0) || !(price30d > 0)) return [];
 
   const apyBase = ((priceNow - price30d) / price30d) * (365 / 30) * 100;
 
