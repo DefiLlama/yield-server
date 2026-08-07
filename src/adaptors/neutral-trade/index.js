@@ -44,6 +44,10 @@ const vaultMetadata = {
     snapshotVaultId: 83,
     strategySlug: 'cta-longshort-alpha',
   },
+  J7qhMAKnB6G5dvoAN9281ufabajKbyGQxxd2bq6R7fPJ: {
+    snapshotVaultId: 76,
+    strategySlug: 'neutral-autopilot',
+  },
   nE1x7KQq2sm3GQrafQUUdBkSPPT52FmiMM9qAS1dgnC: {
     snapshotVaultId: 48,
     strategySlug: 'hlfundingarb',
