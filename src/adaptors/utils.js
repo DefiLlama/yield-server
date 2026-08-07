@@ -39,6 +39,44 @@ const getPriceApiData = async (path) =>
 
 exports.getPriceApiData = getPriceApiData;
 
+const PRICE_KEY_BYTE_BUDGET = 3000;
+const PRICE_REQUEST_CONCURRENCY = 5;
+
+const chunkPriceKeys = (keys) => {
+  const chunks = [];
+  let bytes = Infinity;
+
+  for (const key of keys) {
+    const size = String(key).length + 1;
+    if (bytes + size > PRICE_KEY_BYTE_BUDGET) {
+      chunks.push([]);
+      bytes = 0;
+    }
+    chunks[chunks.length - 1].push(key);
+    bytes += size;
+  }
+
+  return chunks;
+};
+
+// No try/catch on purpose: a swallowed price error yields a partial map, which
+// zeroes out tvlUsd and silently drops pools while the run still reports
+// success. A thrown error is the louder, better failure.
+const fetchPriceChunk = async (keyChunk) =>
+  (await getPriceApiData(`/prices/current/${keyChunk.join(',')}`)).coins;
+
+const getPriceApiCoins = async (keys) => {
+  const coins = {};
+
+  for (const batch of chunk(chunkPriceKeys(keys), PRICE_REQUEST_CONCURRENCY)) {
+    Object.assign(coins, ...(await Promise.all(batch.map(fetchPriceChunk))));
+  }
+
+  return coins;
+};
+
+exports.getPriceApiCoins = getPriceApiCoins;
+
 exports.formatAddress = (address) => {
   return String(address).toLowerCase();
 };
