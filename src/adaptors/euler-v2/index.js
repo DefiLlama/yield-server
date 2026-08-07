@@ -5,7 +5,7 @@ const { utils: ethersUtils } = require('ethers');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const lensAbi = require('./lens.abi.json');
 const eulerEarnLensAbi = require('./eulerEarnLens.abi.json');
-const { getPriceApiData } = require('../utils');
+const { getPriceApiCoins } = require('../utils');
 
 // Euler v2 EVK vaults are both lend/debt markets and possible collateral assets
 // for other EVK markets. Vault rows keep the real supply/borrow state; separate
@@ -349,10 +349,10 @@ const getApys = async () => {
           });
         });
         earnVaults.forEach((v) => assets.add(v.asset));
-        const priceKeys = [...assets].map((a) => `${chain}:${a}`).join(',');
-        if (!priceKeys) return [];
+        const priceKeys = [...assets].map((a) => `${chain}:${a}`);
+        if (!priceKeys.length) return [];
 
-        const prices = await getPriceApiData(`/prices/current/${priceKeys}`);
+        const prices = { coins: await getPriceApiCoins(priceKeys) };
 
         // --- Build EVK pools ---
         const evkPools = activeEvkVaults
