@@ -9,9 +9,6 @@ const FEED = 'https://wealthville.net/api/v1/defillama/tvl';
 const SOL = 'So11111111111111111111111111111111111111112';
 const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
-// DefiLlama only surfaces pools at or above this TVL, so we emit only what it would display
-// rather than shipping dust pools that get filtered out downstream.
-const MIN_TVL_USD = 10000;
 // Vaults can hold a long tail of small balances; keep the ticker readable.
 const MAX_SYMBOL_PARTS = 3;
 
@@ -51,11 +48,7 @@ const poolsFunction = async () => {
   const active = list.filter(
     // `vault_pubkey` guards the pool id — a vault missing it is skipped rather than
     // emitting a malformed `undefined-solana` pool.
-    (v) =>
-      v &&
-      v.status === 'active' &&
-      v.vault_pubkey &&
-      Number(v.tvl_usd) >= MIN_TVL_USD
+    (v) => v && v.status === 'active' && v.vault_pubkey && Number(v.tvl_usd) > 0
   );
 
   // One price call covering every mint across every emitted vault.
