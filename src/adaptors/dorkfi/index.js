@@ -14,9 +14,9 @@
 const axios = require('axios');
 
 const API_BASE = 'https://dorkfi-api.nautilus.sh';
-const NETWORK  = { algorand: 'algorand-mainnet', voi: 'voi-mainnet' };
+const NETWORK = { algorand: 'algorand-mainnet', voi: 'voi-mainnet' };
 const DL_CHAIN = { algorand: 'Algorand', voi: 'Voi Network' };
-const PROJECT  = 'dorkfi';
+const PROJECT = 'dorkfi';
 const REQUEST_TIMEOUT_MS = 30_000;
 
 // ── Known market → token symbol mapping ──────────────────────────────────────
@@ -27,27 +27,27 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const MARKET_SYMBOLS = {
   // Voi Pool A
   41877720: 'VOI',
-  395614:   'aUSDC',
-  420069:   'UNIT',
+  395614: 'aUSDC',
+  420069: 'UNIT',
   47138068: 'WAD',
   40153155: 'POW',
-  413153:   'aALGO',
+  413153: 'aALGO',
   40153308: 'aETH',
   40153368: 'aWBTC',
   40153415: 'acbBTC',
   // Voi Pool B
-  300279:   'USDC',
-  412682:   'ALGO',
-  410111:   'USDT',
-  419744:   'AVAX',
-  302222:   'BNB',
-  410811:   'wBTC',
-  798968:   'MATIC',
-  420024:   'LINK',
-  8471125:  'SOL',
-  8324600:  'DOT',
-  828295:   'ADA',
-  770561:   'DOGE',
+  300279: 'USDC',
+  412682: 'ALGO',
+  410111: 'USDT',
+  419744: 'AVAX',
+  302222: 'BNB',
+  410811: 'wBTC',
+  798968: 'MATIC',
+  420024: 'LINK',
+  8471125: 'SOL',
+  8324600: 'DOT',
+  828295: 'ADA',
+  770561: 'DOGE',
   // Algorand Pool A + B — symbols from ASA on-chain metadata
   3207744109: 'ALGO',
   3211820549: 'goBTC',
@@ -81,23 +81,23 @@ const MARKET_SYMBOLS = {
 
 const MARKET_COINGECKO_IDS = {
   41877720: 'coingecko:voi-network',
-  395614:   'coingecko:aave-v3-usdc',
-  413153:   'coingecko:algorand',
+  395614: 'coingecko:aave-v3-usdc',
+  413153: 'coingecko:algorand',
   40153308: 'coingecko:ethereum',
   40153368: 'coingecko:wrapped-bitcoin',
   40153415: 'coingecko:coinbase-wrapped-btc',
-  300279:   'coingecko:usd-coin',
-  412682:   'coingecko:algorand',
-  410111:   'coingecko:tether',
-  419744:   'coingecko:avalanche-2',
-  302222:   'coingecko:binancecoin',
-  410811:   'coingecko:wrapped-bitcoin',
-  798968:   'coingecko:matic-network',
-  420024:   'coingecko:chainlink',
-  8471125:  'coingecko:solana',
-  8324600:  'coingecko:polkadot',
-  828295:   'coingecko:cardano',
-  770561:   'coingecko:dogecoin',
+  300279: 'coingecko:usd-coin',
+  412682: 'coingecko:algorand',
+  410111: 'coingecko:tether',
+  419744: 'coingecko:avalanche-2',
+  302222: 'coingecko:binancecoin',
+  410811: 'coingecko:wrapped-bitcoin',
+  798968: 'coingecko:matic-network',
+  420024: 'coingecko:chainlink',
+  8471125: 'coingecko:solana',
+  8324600: 'coingecko:polkadot',
+  828295: 'coingecko:cardano',
+  770561: 'coingecko:dogecoin',
   3207744109: 'coingecko:algorand',
   3211820549: 'coingecko:bitcoin',
   3210682240: 'coingecko:usd-coin',
@@ -119,25 +119,34 @@ const MARKET_COINGECKO_IDS = {
 
 async function fetchMarketData(chain) {
   try {
-    const { data } = await axios.get(`${API_BASE}/market-data/${NETWORK[chain]}`, {
-      timeout: REQUEST_TIMEOUT_MS,
-    });
+    const { data } = await axios.get(
+      `${API_BASE}/market-data/${NETWORK[chain]}`,
+      {
+        timeout: REQUEST_TIMEOUT_MS,
+      }
+    );
     if (!data.success) return [];
     return data.data || [];
   } catch (error) {
-    console.warn(`DorkFi market data unavailable for ${chain}: ${error.message}`);
+    console.warn(
+      `DorkFi market data unavailable for ${chain}: ${error.message}`
+    );
     return [];
   }
 }
 
 async function fetchAnalyticsTVL(chain) {
   try {
-    const { data } = await axios.get(`${API_BASE}/analytics/tvl/${NETWORK[chain]}`, {
-      timeout: REQUEST_TIMEOUT_MS,
-    });
+    const { data } = await axios.get(
+      `${API_BASE}/analytics/tvl/${NETWORK[chain]}`,
+      {
+        timeout: REQUEST_TIMEOUT_MS,
+      }
+    );
     if (!data.success) return {};
     const map = {};
-    for (const m of data.data.markets || []) map[`${m.appId}:${m.marketId}`] = m.tvl;
+    for (const m of data.data.markets || [])
+      map[`${m.appId}:${m.marketId}`] = m.tvl;
     return map;
   } catch (error) {
     console.warn(`DorkFi TVL data unavailable for ${chain}: ${error.message}`);
@@ -149,7 +158,8 @@ function dedup(markets) {
   const seen = new Map();
   for (const m of markets) {
     const key = `${m.appId}:${m.marketId}`;
-    if (!seen.has(key) || m.lastUpdated > seen.get(key).lastUpdated) seen.set(key, m);
+    if (!seen.has(key) || m.lastUpdated > seen.get(key).lastUpdated)
+      seen.set(key, m);
   }
   return [...seen.values()];
 }
@@ -163,20 +173,20 @@ function bpsToApy(rateBps) {
 
 function computeRates(market) {
   const totalDep = Number(market.totalScaledDeposits || 0);
-  const totalBor = Number(market.totalScaledBorrows  || 0);
+  const totalBor = Number(market.totalScaledBorrows || 0);
   if (totalDep === 0) return { borrowApy: 0, supplyApy: 0, utilization: 0 };
 
-  const utilization   = totalBor / totalDep;
-  const borrowRate    = Number(market.borrowRate    || 0);
-  const slope         = Number(market.slope         || 0);
+  const utilization = totalBor / totalDep;
+  const borrowRate = Number(market.borrowRate || 0);
+  const slope = Number(market.slope || 0);
   const reserveFactor = Number(market.reserveFactor || 0) / 10000;
 
   const borrowBps = borrowRate + utilization * slope;
   const supplyBps = borrowBps * utilization * (1 - reserveFactor);
 
   return {
-    borrowApy:   parseFloat(bpsToApy(borrowBps).toFixed(4)),
-    supplyApy:   parseFloat(bpsToApy(supplyBps).toFixed(4)),
+    borrowApy: parseFloat(bpsToApy(borrowBps).toFixed(4)),
+    supplyApy: parseFloat(bpsToApy(supplyBps).toFixed(4)),
     utilization,
   };
 }
@@ -187,7 +197,7 @@ function getUnderlyingTokens(market) {
 
 function getUsdValues(market, totalSupplyUsd) {
   const totalDep = Number(market.totalScaledDeposits || 0);
-  const totalBor = Number(market.totalScaledBorrows  || 0);
+  const totalBor = Number(market.totalScaledBorrows || 0);
   const utilization = totalDep === 0 ? 0 : totalBor / totalDep;
   const totalBorrowUsd = totalSupplyUsd * utilization;
 
@@ -212,7 +222,7 @@ const apy = async () => {
     for (const market of dedup(markets)) {
       if (market.paused) continue;
 
-      const key    = `${market.appId}:${market.marketId}`;
+      const key = `${market.appId}:${market.marketId}`;
       const hasTvl = Object.prototype.hasOwnProperty.call(tvlMap, key);
       if (!hasTvl) {
         console.warn(`DorkFi TVL missing for ${chain} market ${key}`);
@@ -220,28 +230,30 @@ const apy = async () => {
       }
 
       const totalSupplyUsd = Number(tvlMap[key]) || 0;
-      const { totalBorrowUsd, availableLiquidityUsd } = getUsdValues(market, totalSupplyUsd);
+      const { totalBorrowUsd, availableLiquidityUsd } = getUsdValues(
+        market,
+        totalSupplyUsd
+      );
       const tvlUsd = availableLiquidityUsd;
       if (tvlUsd < 1) continue;
 
       const { borrowApy, supplyApy } = computeRates(market);
-      const symbol = MARKET_SYMBOLS[market.marketId] || `ASA-${market.marketId}`;
+      const symbol =
+        MARKET_SYMBOLS[market.marketId] || `ASA-${market.marketId}`;
       const ltv = Number(market.collateralFactor || 0) / 10000;
 
       results.push({
-        pool:          `dorkfi-${chain}-${market.appId}-${market.marketId}`,
-        chain:         DL_CHAIN[chain],
-        project:       PROJECT,
+        pool: `dorkfi-${chain}-${market.appId}-${market.marketId}`,
+        chain: DL_CHAIN[chain],
+        project: PROJECT,
         symbol,
         tvlUsd,
-        apyBase:       supplyApy,
+        apyBase: supplyApy,
         apyBaseBorrow: borrowApy,
         totalSupplyUsd,
         totalBorrowUsd,
         ltv,
         underlyingTokens: getUnderlyingTokens(market),
-        poolMeta:      `Pool ${market.appId}`,
-        url:           'https://dork.fi',
       });
     }
   }
@@ -249,4 +261,9 @@ const apy = async () => {
   return results;
 };
 
-module.exports = { apy, timetravel: false, url: 'https://dork.fi', protocolId: 7531 };
+module.exports = {
+  apy,
+  timetravel: false,
+  url: 'https://dork.fi',
+  protocolId: 7531,
+};
