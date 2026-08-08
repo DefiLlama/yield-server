@@ -183,8 +183,10 @@ function toIndex(value) {
 
 function getIndexedBalances(market) {
   return {
-    totalDep: Number(market.totalScaledDeposits || 0) * toIndex(market.depositIndex),
-    totalBor: Number(market.totalScaledBorrows || 0) * toIndex(market.borrowIndex),
+    totalDep:
+      Number(market.totalScaledDeposits || 0) * toIndex(market.depositIndex),
+    totalBor:
+      Number(market.totalScaledBorrows || 0) * toIndex(market.borrowIndex),
   };
 }
 
@@ -280,5 +282,5 @@ module.exports = {
   apy,
   timetravel: false,
   url: 'https://dork.fi',
-  protocolId: 7531,
+  protocolId: '7531',
 };
