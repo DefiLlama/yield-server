@@ -171,9 +171,25 @@ function bpsToApy(rateBps) {
   return (Math.pow(1 + r / 365, 365) - 1) * 100;
 }
 
+// Balances are stored scaled; the current deposit/debt is scaled * index.
+// Deposits and borrows accrue on separate indices, so borrows grow faster and
+// using the raw scaled figures understates utilization.
+const INDEX_SCALE = 1e18;
+
+function toIndex(value) {
+  const index = Number(value) / INDEX_SCALE;
+  return Number.isFinite(index) && index > 0 ? index : 1;
+}
+
+function getIndexedBalances(market) {
+  return {
+    totalDep: Number(market.totalScaledDeposits || 0) * toIndex(market.depositIndex),
+    totalBor: Number(market.totalScaledBorrows || 0) * toIndex(market.borrowIndex),
+  };
+}
+
 function computeRates(market) {
-  const totalDep = Number(market.totalScaledDeposits || 0);
-  const totalBor = Number(market.totalScaledBorrows || 0);
+  const { totalDep, totalBor } = getIndexedBalances(market);
   if (totalDep === 0) return { borrowApy: 0, supplyApy: 0, utilization: 0 };
 
   const utilization = totalBor / totalDep;
@@ -196,8 +212,7 @@ function getUnderlyingTokens(market) {
 }
 
 function getUsdValues(market, totalSupplyUsd) {
-  const totalDep = Number(market.totalScaledDeposits || 0);
-  const totalBor = Number(market.totalScaledBorrows || 0);
+  const { totalDep, totalBor } = getIndexedBalances(market);
   const utilization = totalDep === 0 ? 0 : totalBor / totalDep;
   const totalBorrowUsd = totalSupplyUsd * utilization;
 
