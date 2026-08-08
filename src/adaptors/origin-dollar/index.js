@@ -1,63 +1,69 @@
-const axios = require('axios');
+/*
+ * Origin Dollar: OUSD.
+ *
+ * TVL comes from Origin's production squid. `protocolDailyStatDetails.tvl` is the backing that
+ * belongs to holders: it nets out the OUSD the vault's own Curve AMO minted into the pool, which
+ * is protocol-owned liquidity rather than depositor funds. That runs ~11% below OUSD's total
+ * supply, which is what a naive totalSupply x price reports.
+ */
 const { gql, request } = require('graphql-request');
-const sdk = require('@defillama/sdk');
-const { getPriceApiData } = require('../utils');
+
+const utils = require('../utils');
+const { onChainApy } = require('../origin-ether/otokenApy');
 
 const OUSD = '0x2A8e1E676Ec238d8A992307B495b45B3fEAa5e86';
+const PRICE_KEY = `ethereum:${OUSD}`;
+
 const graphUrl = 'https://origin.squids.live/origin-squid/graphql';
 
-const apy = async () => {
-  const query = gql`
-    query OTokenApy($chainId: Int!, $token: String!) {
-      oTokenApies(
-        limit: 1
-        orderBy: timestamp_DESC
-        where: { chainId_eq: $chainId, otoken_containsInsensitive: $token }
-      ) {
-        apy7DayAvg
-        apy14DayAvg
-        apy30DayAvg
-        apr
-        apy
-      }
+const statsQuery = gql`
+  query OusdStats {
+    protocolDailyStatDetails(
+      limit: 1
+      orderBy: date_DESC
+      where: { product_eq: "OUSD" }
+    ) {
+      tvl
+      rateETH
     }
-  `;
+  }
+`;
 
-  const variables = {
-    token: OUSD,
-    chainId: 1,
-  };
+const apy = async () => {
+  const [stats, priceData, apyBase] = await Promise.all([
+    request(graphUrl, statsQuery),
+    utils.getPriceApiData(`/prices/current/${PRICE_KEY}`),
+    onChainApy('ethereum', OUSD),
+  ]);
 
-  const apy =
-    (await request(graphUrl, query, variables)).oTokenApies[0].apy7DayAvg * 100;
+  const row = stats.protocolDailyStatDetails[0];
+  if (!row) return [];
 
-  const totalSupply =
-    (
-      await sdk.api.abi.call({
-        target: OUSD,
-        abi: 'erc20:totalSupply',
-      })
-    ).output / 1e18;
+  // Product rows report `tvl` in ETH; `rateETH` is OUSD's price in ETH, so this recovers the
+  // OUSD-denominated amount and avoids valuing a dollar product through the ETH price.
+  const tvlOusd = Number(row.tvl) / Number(row.rateETH);
+  const tvlUsd = tvlOusd * priceData.coins[PRICE_KEY].price;
 
-  const priceKey = `ethereum:${OUSD}`;
-  const price = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
+  // Emit nothing rather than a partial pool: a failed archive read just means no sample this
+  // run, and the next one picks it up.
+  if (!Number.isFinite(tvlUsd) || !Number.isFinite(apyBase)) return [];
 
-  const ousd = {
-    pool: OUSD,
-    chain: 'Ethereum',
-    project: 'origin-dollar',
-    symbol: 'OUSD',
-    tvlUsd: totalSupply * price,
-    apy,
-    underlyingTokens: [
-      '0xdac17f958d2ee523a2206206994597c13d831ec7',
-      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-      '0x6b175474e89094c44da98b954eedeac495271d0f',
-    ],
-    url: 'https://originprotocol.eth.limo/#/ousd',
-  };
-
-  return [ousd];
+  return [
+    {
+      pool: OUSD,
+      chain: 'Ethereum',
+      project: 'origin-dollar',
+      symbol: 'OUSD',
+      tvlUsd,
+      // OUSD yield is all base yield: strategy returns rebase into the token.
+      apyBase,
+      // The vault's only collateral asset today; it used to also hold USDT and DAI.
+      underlyingTokens: ['0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'],
+      token: OUSD,
+      isIntrinsicSource: true,
+      url: 'https://app.originprotocol.com/#/ousd',
+    },
+  ];
 };
 
 module.exports = {
