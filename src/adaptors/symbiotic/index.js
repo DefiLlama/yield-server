@@ -34,7 +34,7 @@ const LOOKBACK_DAYS = 7;
 
 // v1 apyReward is everything distributed inside this sliding window over TVL, annualised
 // linearly — reward tokens are paid out rather than reinvested, so they do not compound.
-const REWARD_WINDOW_DAYS = 30;
+const REWARD_WINDOW_DAYS = 90;
 
 const DAY = 86400;
 
@@ -136,14 +136,13 @@ const apy = async () => {
 
   const v1Calls = v1.map((target) => ({ target }));
   const v2Calls = v2.map((target) => ({ target }));
-  const [collaterals, stakes, assets, totalAssets, shareDecimals, v2Symbols, v2Names, rewardsByVault] =
+  const [collaterals, stakes, assets, totalAssets, shareDecimals, v2Names, rewardsByVault] =
     await Promise.all([
       api.multiCall({ abi: abi.collateral, calls: v1Calls, permitFailure: true }),
       api.multiCall({ abi: abi.activeStake, calls: v1Calls, permitFailure: true }),
       api.multiCall({ abi: abi.asset, calls: v2Calls, permitFailure: true }),
       api.multiCall({ abi: abi.totalAssets, calls: v2Calls, permitFailure: true }),
       api.multiCall({ abi: 'erc20:decimals', calls: v2Calls, permitFailure: true }),
-      api.multiCall({ abi: 'erc20:symbol', calls: v2Calls, permitFailure: true }),
       api.multiCall({ abi: 'string:name', calls: v2Calls, permitFailure: true }),
       getRewardsByVault(api, new Set(v1.map(toLower)), rewardWindow.block, tip.block),
     ]);
@@ -156,10 +155,15 @@ const apy = async () => {
         .concat(Object.values(rewardsByVault).flatMap(Object.keys))
     ),
   ];
-  const [tokenDecimals, { pricesByAddress: prices }] = await Promise.all([
+  const [tokenDecimals, assetSymbols, { pricesByAddress: prices }] = await Promise.all([
     api.multiCall({
       abi: 'erc20:decimals',
       calls: tokens.map((target) => ({ target })),
+      permitFailure: true,
+    }),
+    api.multiCall({
+      abi: 'erc20:symbol',
+      calls: assets.map((target) => ({ target: target || VAULT_FACTORY })),
       permitFailure: true,
     }),
     utils.getPrices(tokens, CHAIN),
@@ -198,7 +202,7 @@ const apy = async () => {
       pool: `${vault}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: PROJECT,
-      symbol: utils.formatSymbol(v2Symbols[i] || 'UNKNOWN'),
+      symbol: assetSymbols[i] || 'UNKNOWN',
       tvlUsd,
       apyBase: growth > 1 ? (growth ** (365 / elapsedDays) - 1) * 100 : 0,
       // Yield accrues into the share price; there is no separate reward stream.
@@ -247,7 +251,7 @@ const apy = async () => {
       pool: `${vault}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: PROJECT,
-      symbol: utils.formatSymbol(collateralSymbols[i]),
+      symbol: collateralSymbols[i],
       tvlUsd,
       // 0 by construction: a v1 position does not appreciate, and the collateral's own yield is
       // published by the LST's own pool.
