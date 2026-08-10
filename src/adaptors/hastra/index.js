@@ -1,7 +1,6 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const { getTotalSupply } = require('../utils');
 
 const SOL_RPC = 'https://api.mainnet-beta.solana.com';
 const POR_URL = 'https://hastra.io/hastra-pulse/public/api/v1/por';
@@ -37,18 +36,26 @@ const ONE_SHARE = '1000000';
 const WINDOW_DAYS = 7;
 const DAY_SECONDS = 86400;
 
-const getTokenAccountBalance = async (account) => {
+// SPL Token layouts: a mint holds supply at 36 and decimals at 44, a token account its amount
+// at 64.
+const MINT_SUPPLY_OFFSET = 36;
+const MINT_DECIMALS_OFFSET = 44;
+const TOKEN_ACCOUNT_AMOUNT_OFFSET = 64;
+
+const solanaAccounts = async (addresses) => {
   const res = await axios.post(SOL_RPC, {
     jsonrpc: '2.0',
     id: 1,
-    method: 'getTokenAccountBalance',
-    params: [account],
+    method: 'getMultipleAccounts',
+    params: [addresses, { encoding: 'base64', commitment: 'confirmed' }],
   });
   if (res.data.error) {
-    throw new Error(`Error fetching token account balance: ${res.data.error.message}`);
+    throw new Error(`Error fetching Solana accounts: ${res.data.error.message}`);
   }
-  const { amount, decimals } = res.data.result.value;
-  return Number(amount) / Math.pow(10, decimals);
+  return res.data.result.value.map((account, i) => {
+    if (!account) throw new Error(`Missing Solana account ${addresses[i]}`);
+    return Buffer.from(account.data[0], 'base64');
+  });
 };
 
 const wyldsPerShareAt = async (target, block) => {
@@ -86,12 +93,25 @@ const erc20 = (target, abi, params, block) =>
 const bySymbol = (vaults, values) =>
   Object.fromEntries(vaults.map((v, i) => [v.symbol, values[i]]));
 
+// One request so the supply and every vault balance come from the same slot: the standalone
+// wYLDS pool is a small residual of much larger numbers, so read skew would land entirely on it.
 const solanaBalances = async () => {
-  const [supply, vaulted] = await Promise.all([
-    getTotalSupply(WYLDS.solana),
-    Promise.all(VAULTS.map((v) => getTokenAccountBalance(v.solanaVault))),
+  const [mint, ...vaults] = await solanaAccounts([
+    WYLDS.solana,
+    ...VAULTS.map((v) => v.solanaVault),
   ]);
-  return { supply, vaulted: bySymbol(VAULTS, vaulted) };
+
+  const decimals = mint.readUInt8(MINT_DECIMALS_OFFSET);
+  const amount = (account, offset) =>
+    Number(account.readBigUInt64LE(offset)) / 10 ** decimals;
+
+  return {
+    supply: amount(mint, MINT_SUPPLY_OFFSET),
+    vaulted: bySymbol(
+      VAULTS,
+      vaults.map((v) => amount(v, TOKEN_ACCOUNT_AMOUNT_OFFSET))
+    ),
+  };
 };
 
 const ethereumBalances = async (block) => {
