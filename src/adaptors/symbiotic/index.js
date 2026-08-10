@@ -245,7 +245,7 @@ const apy = async () => {
       rewardTokens.push(token);
     }
     const apyReward = (rewardUsd / tvlUsd) * (365 / REWARD_WINDOW_DAYS) * 100;
-    if (!Number.isFinite(apyReward)) return null;
+    if (!(apyReward > 0)) return null;
 
     return {
       pool: `${vault}-${CHAIN}`.toLowerCase(),
