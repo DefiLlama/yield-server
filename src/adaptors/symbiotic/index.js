@@ -34,7 +34,7 @@ const LOOKBACK_DAYS = 7;
 
 // v1 apyReward is everything distributed inside this sliding window over TVL, annualised
 // linearly — reward tokens are paid out rather than reinvested, so they do not compound.
-const REWARD_WINDOW_DAYS = 90;
+const REWARD_WINDOW_DAYS = 30;
 
 const DAY = 86400;
 
