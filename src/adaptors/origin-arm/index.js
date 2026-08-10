@@ -7,7 +7,8 @@
  * Each ARM is a share vault denominated in its liquidity asset (`assets[0]`):
  *   - `totalAssets()` is the net value backing the shares: it nets out the pending withdrawal
  *     queue and includes assets parked in the ARM's lending market, so it is the complete pool TVL.
- *   - `convertToAssets(1e18)` is the share price. Its trailing growth is the base yield.
+ *   - `convertToAssets(1e18)` is the share price, reported as `pricePerShare`. Its trailing
+ *     growth over a fixed 7d window is the base yield.
  *   - Merkl incentives come from the shared helper, which reads Merkl's own API.
  */
 const { gql, request } = require('graphql-request');
@@ -27,22 +28,18 @@ const CHAINS = {
 const SHARE_PRICE_ABI = 'function convertToAssets(uint256 shares) view returns (uint256 assets)';
 const ONE_SHARE = '1000000000000000000';
 
-// Trailing window for the base APY: two reads, now and 30 days ago. 30d rather than something
-// shorter because ARM yield arrives in lumps -- over 14d the OS ARM reads 0% and the Ethena ARM
-// swings by 2pp.
-const TRAILING_DAYS = 30;
+// Trailing window for the base APY: two reads, now and 7 days ago. One fixed window for every
+// ARM, no fallbacks to shorter ones, so the number means the same thing across pools and runs.
+// ARM yield arrives in lumps, so expect a 7d rate to move more between runs than a longer one.
+const TRAILING_DAYS = 7;
 const DAY_SECONDS = 86400;
 
 // An ARM earns single-digit percent a year, i.e. well under 0.05%/day. A larger move across the
 // window is a seeding or re-initialisation event, not yield -- the USDC ARM's share price doubled
-// overnight when it was funded out of its dust seed, which annualises to 7.1e9%.
+// overnight when it was funded out of its dust seed, which annualises to 7.1e9%. An ARM younger
+// than the window, or one carrying a jump like that, has no usable rate and is left out until the
+// event ages past the window.
 const MAX_DAILY_MOVE = 0.005;
-
-// Shorter windows tried, longest first, only for ARMs whose full window is unusable: either they
-// did not exist 30 days ago, or a jump like the above sits inside it. Everything else costs two
-// calls and never touches these. Kept short deliberately -- each entry is a round trip, and this
-// only applies to ARMs younger than the window or recently reseeded, which both age out of it.
-const FALLBACK_DAYS = [14, 7, 3];
 
 // The OS ARM (Sonic) is wound down -- a few hundred dollars of residual TVL, no longer a live
 // product -- so it is excluded rather than listed as an active pool.
@@ -92,35 +89,17 @@ const windowApy = (current, previous, days) => {
   return ((current / previous) ** (365 / days) - 1) * 100;
 };
 
-// Base APY for every ARM on a chain. The common path is two reads; only ARMs that fail the full
-// window fall through to the shorter ones.
-const chainApys = async (chainKey, addresses) => {
+// Current share price and base APY for every ARM on a chain: two reads, both ends of the window.
+const chainSharePrices = async (chainKey, addresses) => {
   const [current, previous] = await Promise.all([
     sharePricesAt(chainKey, addresses, undefined),
     sharePricesDaysAgo(chainKey, addresses, TRAILING_DAYS),
   ]);
 
-  const apys = addresses.map((_, i) => windowApy(current[i], previous[i], TRAILING_DAYS));
-
-  const pending = apys.map((apy, i) => (apy === null ? i : -1)).filter((i) => i >= 0);
-  if (!pending.length) return apys;
-
-  const pendingAddresses = pending.map((i) => addresses[i]);
-  const rows = await Promise.all(
-    FALLBACK_DAYS.map((days) => sharePricesDaysAgo(chainKey, pendingAddresses, days))
-  );
-
-  pending.forEach((armIndex, k) => {
-    for (let j = 0; j < FALLBACK_DAYS.length; j += 1) {
-      const apy = windowApy(current[armIndex], rows[j][k], FALLBACK_DAYS[j]);
-      if (apy !== null) {
-        apys[armIndex] = apy;
-        return;
-      }
-    }
-  });
-
-  return apys;
+  return addresses.map((_, i) => ({
+    sharePrice: current[i],
+    apy: windowApy(current[i], previous[i], TRAILING_DAYS),
+  }));
 };
 
 const apy = async () => {
@@ -147,25 +126,27 @@ const apy = async () => {
 
   const totalAssets = [];
   const apyBase = [];
+  const sharePrice = [];
 
   await Promise.all(
     Object.entries(byChain).map(async ([chainKey, entries]) => {
       const addresses = entries.map((e) => e.arm.address);
 
       try {
-        const [assets, apys] = await Promise.all([
+        const [assets, shares] = await Promise.all([
           sdk.api.abi.multiCall({
             chain: chainKey,
             abi: 'uint256:totalAssets',
             calls: addresses.map((target) => ({ target })),
             permitFailure: true,
           }),
-          chainApys(chainKey, addresses),
+          chainSharePrices(chainKey, addresses),
         ]);
 
         entries.forEach((entry, k) => {
           totalAssets[entry.i] = assets.output[k].output;
-          apyBase[entry.i] = apys[k];
+          apyBase[entry.i] = shares[k].apy;
+          sharePrice[entry.i] = shares[k].sharePrice;
         });
       } catch (e) {
         // A chain's RPC or block lookup failing shouldn't take the other chains' pools with it.
@@ -192,6 +173,9 @@ const apy = async () => {
         symbol: arm.symbol,
         tvlUsd: (Number(totalAssets[i]) / 10 ** arm.assetDecimals[0]) * price,
         apyBase: apyBase[i],
+        // Assets per share: convertToAssets(1 share) scaled out of the asset's decimals. A
+        // finite apyBase already implies this read succeeded and is positive.
+        pricePerShare: sharePrice[i] / 10 ** arm.assetDecimals[0],
         underlyingTokens: arm.assets,
         token: address,
         // Deep link to the ARM's own page, the form originprotocol.com/arm links to.
