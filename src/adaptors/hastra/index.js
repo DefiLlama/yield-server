@@ -4,12 +4,20 @@ const utils = require('../utils');
 
 const SOL_RPC = 'https://api.mainnet-beta.solana.com';
 const POR_URL = 'https://hastra.io/hastra-pulse/public/api/v1/por';
+const EFFECTIVE_RATE_URL =
+  'https://hastra.io/hastra-pulse/public/api/v1/reports/nav/effective-int-rate';
 
 const WYLDS = {
   solana: '8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih',
   ethereum: '0x6aD038cA6C04e885630851278ca0a856Ad9a66Cc',
 };
 
+// PRIME and AUTO stake wYLDS into Democratized Prime lending pools -- HELOC+ loans and consumer
+// auto loans respectively -- and share one global NAV. Each declares where its rate comes from:
+// `ethereum` measures the ERC4626 ratio directly, `rateToken` reads the same NAV measure from
+// Hastra's report because AUTO has not launched on Ethereum and Solana exposes no historical
+// account state. A wrapper with neither gets no pool, but stays listed so the wYLDS it holds is
+// still excluded from the wYLDS pool.
 const VAULTS = [
   {
     symbol: 'PRIME',
@@ -21,11 +29,14 @@ const VAULTS = [
   {
     symbol: 'AUTO',
     url: 'https://hastra.io/auto',
+    rateToken: 'auto-mint',
+    solanaMint: 'GNE6oDS6jHrfaV3GQVVCCp37fDnT7PiPuewMKBj2bqNm',
     solanaVault: 'GtWPVP3KPTJC8z9wPLAop4mPp9jZiRKzL8deDD4PfQ7C',
   },
 ];
 
-const MEASURABLE_VAULTS = VAULTS.filter((v) => v.ethereum);
+const ETHEREUM_VAULTS = VAULTS.filter((v) => v.ethereum);
+const RATED_VAULTS = VAULTS.filter((v) => v.ethereum || v.rateToken);
 
 const WYLDS_URL = 'https://hastra.io/wylds';
 
@@ -85,6 +96,21 @@ const navApy = async (target, blockNow, blockThen) => {
   return (ratio ** (365 / WINDOW_DAYS) - 1) * 100;
 };
 
+// The same NAV measure, as Hastra publishes it, over their trailing 24h rather than a window of
+// our choosing -- so it moves around more than the on-chain reading.
+const publishedNavApy = async (rateToken) => {
+  const { data } = await axios.get(
+    `${EFFECTIVE_RATE_URL}?token_name=${rateToken}`
+  );
+  const apyBase = Number(data.effective_annual_rate_pct);
+  return Number.isFinite(apyBase) ? apyBase : null;
+};
+
+const vaultApy = (vault, blockNow, blockThen) =>
+  vault.ethereum
+    ? navApy(vault.ethereum, blockNow, blockThen)
+    : publishedNavApy(vault.rateToken);
+
 const erc20 = (target, abi, params, block) =>
   sdk.api.abi
     .call({ chain: 'ethereum', target, abi, params, block })
@@ -118,12 +144,12 @@ const ethereumBalances = async (block) => {
   const [supply, vaulted] = await Promise.all([
     erc20(WYLDS.ethereum, 'erc20:totalSupply', undefined, block),
     Promise.all(
-      MEASURABLE_VAULTS.map((v) =>
+      ETHEREUM_VAULTS.map((v) =>
         erc20(WYLDS.ethereum, 'erc20:balanceOf', [v.ethereum], block)
       )
     ),
   ]);
-  return { supply, vaulted: bySymbol(MEASURABLE_VAULTS, vaulted) };
+  return { supply, vaulted: bySymbol(ETHEREUM_VAULTS, vaulted) };
 };
 
 const apy = async () => {
@@ -144,22 +170,22 @@ const apy = async () => {
         )
       ),
       Promise.all(
-        MEASURABLE_VAULTS.map((v) =>
-          navApy(v.ethereum, blockNow.height, blockThen.height)
+        RATED_VAULTS.map((v) =>
+          vaultApy(v, blockNow.height, blockThen.height)
         )
       ),
       solanaBalances(),
       ethereumBalances(blockNow.height),
     ]);
 
-  const apyBase = bySymbol(MEASURABLE_VAULTS, vaultApys);
+  const apyBase = bySymbol(RATED_VAULTS, vaultApys);
 
-  const unreadable = MEASURABLE_VAULTS.filter(
+  const unreadable = RATED_VAULTS.filter(
     (v) => apyBase[v.symbol] === null
   ).map((v) => v.symbol);
   if (unreadable.length) {
     throw new Error(
-      `hastra: could not read the ${WINDOW_DAYS}d NAV window for ${unreadable.join(', ')}`
+      `hastra: could not read the NAV rate for ${unreadable.join(', ')}`
     );
   }
 
@@ -197,26 +223,24 @@ const apy = async () => {
       underlyingTokens: [WYLDS.ethereum],
       url: WYLDS_URL,
     },
-    ...MEASURABLE_VAULTS.flatMap((v) => [
-      {
-        pool: `${v.solanaMint}-solana`,
-        chain: utils.formatChain('solana'),
-        symbol: v.symbol,
-        tvlUsd: solana.vaulted[v.symbol] * prices.solana,
-        apyBase: apyBase[v.symbol],
-        underlyingTokens: [WYLDS.solana],
-        url: v.url,
-      },
-      {
-        pool: `${v.ethereum.toLowerCase()}-ethereum`,
-        chain: utils.formatChain('ethereum'),
-        symbol: v.symbol,
-        tvlUsd: ethereum.vaulted[v.symbol] * prices.ethereum,
-        apyBase: apyBase[v.symbol],
-        underlyingTokens: [WYLDS.ethereum],
-        url: v.url,
-      },
-    ]),
+    ...RATED_VAULTS.map((v) => ({
+      pool: `${v.solanaMint}-solana`,
+      chain: utils.formatChain('solana'),
+      symbol: v.symbol,
+      tvlUsd: solana.vaulted[v.symbol] * prices.solana,
+      apyBase: apyBase[v.symbol],
+      underlyingTokens: [WYLDS.solana],
+      url: v.url,
+    })),
+    ...ETHEREUM_VAULTS.map((v) => ({
+      pool: `${v.ethereum.toLowerCase()}-ethereum`,
+      chain: utils.formatChain('ethereum'),
+      symbol: v.symbol,
+      tvlUsd: ethereum.vaulted[v.symbol] * prices.ethereum,
+      apyBase: apyBase[v.symbol],
+      underlyingTokens: [WYLDS.ethereum],
+      url: v.url,
+    })),
   ];
 
   return pools
