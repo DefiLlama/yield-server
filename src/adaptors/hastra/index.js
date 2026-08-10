@@ -5,18 +5,12 @@ const { getTotalSupply } = require('../utils');
 
 const SOL_RPC = 'https://api.mainnet-beta.solana.com';
 const POR_URL = 'https://hastra.io/hastra-pulse/public/api/v1/por';
-const EFFECTIVE_RATE_URL =
-  'https://hastra.io/hastra-pulse/public/api/v1/reports/nav/effective-int-rate';
 
 const WYLDS = {
   solana: '8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih',
   ethereum: '0x6aD038cA6C04e885630851278ca0a856Ad9a66Cc',
 };
 
-// PRIME and AUTO stake wYLDS into Democratized Prime lending pools -- HELOC+ loans and consumer
-// auto loans respectively -- and share one global NAV, so the Ethereum ERC4626 is the rate
-// source for the Solana pool as well. AUTO has not launched on Ethereum, so it has no on-chain
-// NAV history to read and falls back to the same trailing-NAV measure Hastra publishes.
 const VAULTS = [
   {
     symbol: 'PRIME',
@@ -28,13 +22,11 @@ const VAULTS = [
   {
     symbol: 'AUTO',
     url: 'https://hastra.io/auto',
-    rateToken: 'auto-mint',
-    solanaMint: 'GNE6oDS6jHrfaV3GQVVCCp37fDnT7PiPuewMKBj2bqNm',
     solanaVault: 'GtWPVP3KPTJC8z9wPLAop4mPp9jZiRKzL8deDD4PfQ7C',
   },
 ];
 
-const ETHEREUM_VAULTS = VAULTS.filter((v) => v.ethereum);
+const MEASURABLE_VAULTS = VAULTS.filter((v) => v.ethereum);
 
 const WYLDS_URL = 'https://hastra.io/wylds';
 
@@ -86,43 +78,33 @@ const navApy = async (target, blockNow, blockThen) => {
   return (ratio ** (365 / WINDOW_DAYS) - 1) * 100;
 };
 
-// The same NAV measure Hastra's own dashboard reports, over a trailing 24h rather than a window
-// we choose.
-const publishedNavApy = async (rateToken) => {
-  const { data } = await axios.get(
-    `${EFFECTIVE_RATE_URL}?token_name=${rateToken}`
-  );
-  const apyBase = Number(data.effective_annual_rate_pct);
-  return Number.isFinite(apyBase) ? apyBase : null;
-};
-
-const vaultApy = (vault, blockNow, blockThen) =>
-  vault.ethereum
-    ? navApy(vault.ethereum, blockNow, blockThen)
-    : publishedNavApy(vault.rateToken);
-
 const erc20 = (target, abi, params, block) =>
   sdk.api.abi
     .call({ chain: 'ethereum', target, abi, params, block })
     .then(({ output }) => Number(output) / 1e6);
 
-const solanaBalances = async () => ({
-  supply: await getTotalSupply(WYLDS.solana),
-  vaulted: await Promise.all(
-    VAULTS.map((v) => getTokenAccountBalance(v.solanaVault))
-  ),
-});
+const bySymbol = (vaults, values) =>
+  Object.fromEntries(vaults.map((v, i) => [v.symbol, values[i]]));
 
-// Pinned to one block: the standalone wYLDS pool is a small residual of two much larger
-// numbers, so skew between the supply and balance reads would land entirely on it.
-const ethereumBalances = async (block) => ({
-  supply: await erc20(WYLDS.ethereum, 'erc20:totalSupply', undefined, block),
-  vaulted: await Promise.all(
-    ETHEREUM_VAULTS.map((v) =>
-      erc20(WYLDS.ethereum, 'erc20:balanceOf', [v.ethereum], block)
-    )
-  ),
-});
+const solanaBalances = async () => {
+  const [supply, vaulted] = await Promise.all([
+    getTotalSupply(WYLDS.solana),
+    Promise.all(VAULTS.map((v) => getTokenAccountBalance(v.solanaVault))),
+  ]);
+  return { supply, vaulted: bySymbol(VAULTS, vaulted) };
+};
+
+const ethereumBalances = async (block) => {
+  const [supply, vaulted] = await Promise.all([
+    erc20(WYLDS.ethereum, 'erc20:totalSupply', undefined, block),
+    Promise.all(
+      MEASURABLE_VAULTS.map((v) =>
+        erc20(WYLDS.ethereum, 'erc20:balanceOf', [v.ethereum], block)
+      )
+    ),
+  ]);
+  return { supply, vaulted: bySymbol(MEASURABLE_VAULTS, vaulted) };
+};
 
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
@@ -142,22 +124,22 @@ const apy = async () => {
         )
       ),
       Promise.all(
-        VAULTS.map((v) => vaultApy(v, blockNow.height, blockThen.height))
+        MEASURABLE_VAULTS.map((v) =>
+          navApy(v.ethereum, blockNow.height, blockThen.height)
+        )
       ),
       solanaBalances(),
       ethereumBalances(blockNow.height),
     ]);
 
-  const apyBySymbol = Object.fromEntries(
-    VAULTS.map((v, i) => [v.symbol, vaultApys[i]])
-  );
+  const apyBase = bySymbol(MEASURABLE_VAULTS, vaultApys);
 
-  const unreadable = VAULTS.filter((v) => apyBySymbol[v.symbol] === null).map(
-    (v) => v.symbol
-  );
+  const unreadable = MEASURABLE_VAULTS.filter(
+    (v) => apyBase[v.symbol] === null
+  ).map((v) => v.symbol);
   if (unreadable.length) {
     throw new Error(
-      `hastra: could not read the NAV rate for ${unreadable.join(', ')}`
+      `hastra: could not read the ${WINDOW_DAYS}d NAV window for ${unreadable.join(', ')}`
     );
   }
 
@@ -170,9 +152,9 @@ const apy = async () => {
   );
 
   // Every wrapper's wYLDS sits in the wYLDS supply, so the standalone pool is what is left
-  // once each vault's holdings are removed.
+  // once each vault's holdings are removed -- including vaults that get no pool of their own.
   const unvaulted = ({ supply, vaulted }) =>
-    Math.max(0, vaulted.reduce((rest, balance) => rest - balance, supply));
+    Math.max(0, Object.values(vaulted).reduce((rest, held) => rest - held, supply));
 
   const wyldsRate = Number(porResponse.data.wylds_card.current_rate);
 
@@ -195,24 +177,26 @@ const apy = async () => {
       underlyingTokens: [WYLDS.ethereum],
       url: WYLDS_URL,
     },
-    ...VAULTS.map((v, i) => ({
-      pool: `${v.solanaMint}-solana`,
-      chain: utils.formatChain('solana'),
-      symbol: v.symbol,
-      tvlUsd: solana.vaulted[i] * prices.solana,
-      apyBase: apyBySymbol[v.symbol],
-      underlyingTokens: [WYLDS.solana],
-      url: v.url,
-    })),
-    ...ETHEREUM_VAULTS.map((v, i) => ({
-      pool: `${v.ethereum.toLowerCase()}-ethereum`,
-      chain: utils.formatChain('ethereum'),
-      symbol: v.symbol,
-      tvlUsd: ethereum.vaulted[i] * prices.ethereum,
-      apyBase: apyBySymbol[v.symbol],
-      underlyingTokens: [WYLDS.ethereum],
-      url: v.url,
-    })),
+    ...MEASURABLE_VAULTS.flatMap((v) => [
+      {
+        pool: `${v.solanaMint}-solana`,
+        chain: utils.formatChain('solana'),
+        symbol: v.symbol,
+        tvlUsd: solana.vaulted[v.symbol] * prices.solana,
+        apyBase: apyBase[v.symbol],
+        underlyingTokens: [WYLDS.solana],
+        url: v.url,
+      },
+      {
+        pool: `${v.ethereum.toLowerCase()}-ethereum`,
+        chain: utils.formatChain('ethereum'),
+        symbol: v.symbol,
+        tvlUsd: ethereum.vaulted[v.symbol] * prices.ethereum,
+        apyBase: apyBase[v.symbol],
+        underlyingTokens: [WYLDS.ethereum],
+        url: v.url,
+      },
+    ]),
   ];
 
   return pools
