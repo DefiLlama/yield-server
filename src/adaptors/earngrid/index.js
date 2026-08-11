@@ -52,11 +52,11 @@ async function getMorphoApyMap() {
   `;
 
   try {
-    const resp = await utils.fetchURL('https://blue-api.morpho.org/graphql', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
+    const resp = await utils.getData(
+      'https://blue-api.morpho.org/graphql',
+      { query },
+      { 'Content-Type': 'application/json' }
+    );
 
     const items = resp?.data?.vaults?.items ?? [];
     const map = {};
@@ -65,43 +65,56 @@ async function getMorphoApyMap() {
     }
     return map;
   } catch (e) {
-    console.error('EarnGrid: Morpho GraphQL failed, falling back to 0 APY', e.message);
+    console.error('EarnGrid: Morpho GraphQL failed, falling back to 0 APY', String(e));
     return {};
   }
 }
 
 const abiTotalAssets = 'function totalAssets() view returns (uint256)';
 const abiBalanceOf = 'function balanceOf(address) view returns (uint256)';
+const abiTotalSupply = 'erc20:totalSupply';
 
 const getApy = async () => {
-  // 1. Fetch totalAssets from the vault
+  // 1. Fetch totalAssets & totalSupply from the vault
   const totalAssetsCall = sdk.api.abi.call({
     chain: CHAIN,
     target: VAULT,
     abi: abiTotalAssets,
   });
 
-  // 2. Fetch vault's balance in each MetaMorpho strategy
+  const totalSupplyCall = sdk.api.abi.call({
+    chain: CHAIN,
+    target: BVUSDC,
+    abi: abiTotalSupply,
+  });
+
+  // 2. Fetch vault's balance in each MetaMorpho strategy (graceful: 0 on error)
   const strategyBalanceCalls = STRATEGIES.map((s) =>
     sdk.api.abi.call({
       chain: CHAIN,
       target: s.morphoVault,
       abi: abiBalanceOf,
       params: [VAULT],
-    })
+    }).catch(() => ({ output: '0' }))
   );
 
-  // 3. Fetch Morpho APY data
+  // 3. Fetch Morpho APY data + USDC price
   const apyMapPromise = getMorphoApyMap();
+  const pricesPromise = utils.getPrices([USDC], CHAIN);
 
-  const [totalAssetsRes, ...balanceResults] = await Promise.all([
+  const [totalAssetsRes, totalSupplyRes, ...balanceResults] = await Promise.all([
     totalAssetsCall,
+    totalSupplyCall,
     ...strategyBalanceCalls,
   ]);
-  const apyMap = await apyMapPromise;
+  const [apyMap, { pricesByAddress }] = await Promise.all([
+    apyMapPromise,
+    pricesPromise,
+  ]);
 
-  const totalAssets = totalAssetsRes.output / 1e6; // USDC has 6 decimals
-  const usdcPrice = 1; // stablecoin
+  const totalAssets = Number(totalAssetsRes.output) / 1e6;
+  const totalSupply = Number(totalSupplyRes.output) / 1e6;
+  const usdcPrice = pricesByAddress[USDC.toLowerCase()] || 1;
 
   // Build strategy allocation + compute weighted APY
   let totalBalance = 0;
@@ -125,6 +138,11 @@ const getApy = async () => {
   // Compute idle (unallocated) portion
   const idle = totalAssets - totalBalance;
 
+  // Compute pricePerShare (ERC-4626 convertToAssets rate)
+  const pricePerShare = totalSupply > 0 ? totalAssets / totalSupply : 1;
+
+  const activeStrategyCount = allocations.filter((a) => a.balance > 0).length;
+
   // Build pool output
   const pool = {
     pool: `${VAULT}-${CHAIN}`,
@@ -136,7 +154,11 @@ const getApy = async () => {
     apyReward: 0,
     underlyingTokens: [USDC],
     url: 'https://earngrid.site',
-    poolMeta: idle > 0.01 ? `${allocations.filter((a) => a.balance > 0).length} strategies + idle` : `${allocations.filter((a) => a.balance > 0).length} strategies`,
+    poolMeta: idle > 0.01
+      ? `${activeStrategyCount} strategies + idle`
+      : `${activeStrategyCount} strategies`,
+    token: BVUSDC,
+    pricePerShare,
   };
 
   return [pool];
