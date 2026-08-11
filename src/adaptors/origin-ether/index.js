@@ -81,7 +81,6 @@ const fetchPoolData = async ({ product, symbol, chain, sdkChain, token, url }, e
     apyBase,
     underlyingTokens: [NATIVE_ETH],
     token,
-    searchTokenOverride: token,
     isIntrinsicSource: true,
     url,
   };

@@ -69,7 +69,6 @@ const fetchPools = async () => {
         tvlUsd: totalStaked * price,
         apyBase: parseFloat(poolData.reward_rate),
         underlyingTokens: [pool.underlying],
-        searchTokenOverride: pool.address,
         isIntrinsicSource: true,
         url: pool.url,
       };

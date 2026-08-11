@@ -39,7 +39,6 @@ const apy = async () => {
       apyBase,
       pricePerShare,
       underlyingTokens: [SOL],
-      searchTokenOverride: STKESOL_MINT,
       poolMeta: feePct,
       isIntrinsicSource: true,
     },

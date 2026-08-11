@@ -26,7 +26,6 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apyBase,
       underlyingTokens: [SOL],
-      searchTokenOverride: DSOL_ADDRESS,
       isIntrinsicSource: true,
     },
   ];

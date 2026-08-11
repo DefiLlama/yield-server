@@ -26,7 +26,6 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase,
       underlyingTokens: [SOL],
-      searchTokenOverride: JUPSOL_ADDRESS,
       isIntrinsicSource: true,
 
     },

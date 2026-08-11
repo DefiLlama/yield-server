@@ -99,7 +99,6 @@ const getApy = async () => {
       apyBase7d,
       ...(Number(exchangeRates[0].output) / 1e18 > 0 && { pricePerShare: Number(exchangeRates[0].output) / 1e18 }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: token,
       isIntrinsicSource: true,
     },
     {
@@ -112,7 +111,6 @@ const getApy = async () => {
       apyBase7d: apyBase7dPolygon,
       ...(Number(exchangeRatesPolygon[0].output[0]) / 1e18 > 0 && { pricePerShare: Number(exchangeRatesPolygon[0].output[0]) / 1e18 }),
       underlyingTokens: ['coingecko:polygon-ecosystem-token'],
-      searchTokenOverride: stakeManagerContract,
       isIntrinsicSource: true,
     },
   ];
