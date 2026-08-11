@@ -93,8 +93,7 @@ const getApy = async () => {
       underlyingTokens: [vault.asset.mint],
       token: null,
       tvlUsd: vault.tvlUsd,
-      apyBase: toPct(vault.apy7d),
-      apyBase7d: toPct(vault.apy7d),
+      apyBase: toPct(vault.apy30d),
       pricePerShare: pricesPerShare[index],
       url: `${APP_URL}/strategies/${vaultMetadata[vault.bundleKey].strategySlug}`,
     }))
