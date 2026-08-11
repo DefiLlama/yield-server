@@ -38,6 +38,11 @@ const REWARD_WINDOW_DAYS = 30;
 
 const DAY = 86400;
 
+// The log window ends short of the chain tip: on the RPC fallback path sdk.getEventLogs reads a
+// few blocks past toBlock to prime its cache, and nodes lagging the coins-api block index reject
+// anything beyond their own head.
+const LOG_HEAD_BUFFER_BLOCKS = 20;
+
 const toLower = (s) => String(s).toLowerCase();
 const toNum = (v) => (v == null ? NaN : Number(v));
 
@@ -98,6 +103,14 @@ const getRewardsByVault = async (api, v1Vaults, fromBlock, toBlock) => {
   return byVault;
 };
 
+
+const getPricesByToken = async (tokens) => {
+  const coins = await utils.getPriceApiCoins(tokens.map((t) => `${CHAIN}:${t}`));
+  return Object.fromEntries(
+    Object.entries(coins).map(([key, coin]) => [toLower(key.split(':')[1]), coin?.price])
+  );
+};
+
 /** Display names from the public metadata repo; a miss just drops poolMeta. */
 const getVaultNames = async (vaults) =>
   Object.fromEntries(
@@ -144,7 +157,12 @@ const apy = async () => {
       api.multiCall({ abi: abi.totalAssets, calls: v2Calls, permitFailure: true }),
       api.multiCall({ abi: 'erc20:decimals', calls: v2Calls, permitFailure: true }),
       api.multiCall({ abi: 'string:name', calls: v2Calls, permitFailure: true }),
-      getRewardsByVault(api, new Set(v1.map(toLower)), rewardWindow.block, tip.block),
+      getRewardsByVault(
+        api,
+        new Set(v1.map(toLower)),
+        rewardWindow.block,
+        tip.block - LOG_HEAD_BUFFER_BLOCKS
+      ),
     ]);
 
   const tokens = [
@@ -155,7 +173,7 @@ const apy = async () => {
         .concat(Object.values(rewardsByVault).flatMap(Object.keys))
     ),
   ];
-  const [tokenDecimals, assetSymbols, { pricesByAddress: prices }] = await Promise.all([
+  const [tokenDecimals, assetSymbols, prices] = await Promise.all([
     api.multiCall({
       abi: 'erc20:decimals',
       calls: tokens.map((target) => ({ target })),
@@ -166,7 +184,7 @@ const apy = async () => {
       calls: assets.map((target) => ({ target: target || VAULT_FACTORY })),
       permitFailure: true,
     }),
-    utils.getPrices(tokens, CHAIN),
+    getPricesByToken(tokens),
   ]);
   const decimals = Object.fromEntries(tokens.map((t, i) => [t, Number(tokenDecimals[i])]));
   const usd = (token, raw) =>
