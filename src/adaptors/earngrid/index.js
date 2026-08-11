@@ -112,10 +112,10 @@ const getApy = async () => {
     return { ...s, balance: bal, apy };
   });
 
-  // Weighted average APY across strategies (only count strategies with balance > 0)
+  // Weighted average APY across all vault assets (idle USDC earns 0%)
   let weightedApy = 0;
-  if (totalBalance > 0) {
-    weightedApy = allocations.reduce((sum, a) => sum + a.balance * a.apy, 0) / totalBalance;
+  if (totalAssets > 0) {
+    weightedApy = allocations.reduce((sum, a) => sum + a.balance * a.apy, 0) / totalAssets;
   }
 
   // Fallback: if GraphQL failed, estimate from totalAssets growth (rough)
@@ -143,7 +143,7 @@ const getApy = async () => {
 };
 
 module.exports = {
-  protocolId: 'earngrid',
+  protocolId: '8384',
   timetravel: false,
   apy: getApy,
   url: 'https://earngrid.site',
