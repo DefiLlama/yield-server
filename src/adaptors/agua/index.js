@@ -1,5 +1,4 @@
 const sdk = require('@defillama/sdk');
-const axios = require('axios');
 const utils = require('../utils');
 
 const project = 'agua';
@@ -10,7 +9,7 @@ const VAULTS = [
     address: '0xa98B4A70E17e55045cdE4972B95BC2e8CEc22A0F', // aguaUSDCgc
     chain: 'ethereum',
     poolMeta: 'Global Carry Vault',
-    url: 'https://docs.tropicalwater.xyz/vaults/the-agua-global-carry-vault',
+    url: 'https://app.reservoir.xyz/vaults/aguaUSDCgc',
   },
 ];
 
@@ -24,17 +23,13 @@ const abis = {
     'function convertToAssets(uint256 shares) view returns (uint256 assets)',
 };
 
-const getBlock = async (chain, timestamp) =>
-  (await axios.get(`https://coins.llama.fi/block/${chain}/${timestamp}`)).data
-    .height;
-
 const getChainPools = async (chain, vaults) => {
-  // 60s safety margin so coins.llama.fi/block never 400s on "timestamp after now"
+  // 60s safety margin so the block endpoint never 400s on "timestamp after now"
   const now = Math.floor(Date.now() / 1e3) - 60;
-  const [blockNow, block7d] = await Promise.all([
-    getBlock(chain, now),
-    getBlock(chain, now - LOOKBACK_DAYS * DAY),
-  ]);
+  const [blockNow, block7d] = await utils.getBlocksByTime(
+    [now, now - LOOKBACK_DAYS * DAY],
+    chain
+  );
 
   const calls = vaults.map((v) => ({ target: v.address }));
 
@@ -105,10 +100,13 @@ const getChainPools = async (chain, vaults) => {
 
       const ppsNow = Number(ppsNowRes.output[i]?.output);
       const pps7d = Number(pps7dRes.output[i]?.output);
+      // null (not 0) when the vault is younger than the lookback window
       const apyBase =
         ppsNow > 0 && pps7d > 0
           ? ((ppsNow / pps7d) ** (365 / LOOKBACK_DAYS) - 1) * 100
-          : 0;
+          : null;
+      const pricePerShare =
+        ppsNow > 0 ? ppsNow / 10 ** underlyingDecimals : null;
 
       return {
         pool: `${vault.address.toLowerCase()}-${chain}`,
@@ -118,6 +116,7 @@ const getChainPools = async (chain, vaults) => {
         poolMeta: vault.poolMeta,
         tvlUsd,
         apyBase,
+        ...(pricePerShare > 0 && { pricePerShare }),
         token: vault.address,
         underlyingTokens: [underlying],
         url: vault.url,
