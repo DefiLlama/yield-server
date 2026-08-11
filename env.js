@@ -11,6 +11,7 @@ module.exports = {
   AVAX_RPC: process.env.AVAX_RPC,
   ARBITRUM_RPC: process.env.ARBITRUM_RPC,
   BASE_RPC: process.env.BASE_RPC,
+  BSC_RPC: process.env.BSC_RPC,
   TRON_RPC: process.env.TRON_RPC,
   TVL_SPIKE_WEBHOOK: process.env.TVL_SPIKE_WEBHOOK,
   NEW_YIELDS_WEBHOOK: process.env.NEW_YIELDS_WEBHOOK,
