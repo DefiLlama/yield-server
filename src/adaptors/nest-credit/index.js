@@ -77,10 +77,6 @@ const poolsFunction = async () => {
         pool.underlyingTokens = underlyingTokens;
       }
 
-      if (pusd && !underlyingTokens.includes(pusd)) {
-        pool.searchTokenOverride = pusd;
-      }
-
       return pool;
     })
   );

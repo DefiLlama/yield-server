@@ -62,7 +62,6 @@ const apy = async () => {
       tvlUsd: (spAssets.output / 1e18) * ethPrice,
       ...calcApy(spRates),
       underlyingTokens: [WETH],
-      searchTokenOverride: spETH,
       isIntrinsicSource: true,
     },
     {
@@ -73,7 +72,6 @@ const apy = async () => {
       tvlUsd: (mpAssets.output / 1e18) * ethPrice,
       ...calcApy(mpRates),
       underlyingTokens: [WETH],
-      searchTokenOverride: mpETH,
       isIntrinsicSource: true,
     },
   ];

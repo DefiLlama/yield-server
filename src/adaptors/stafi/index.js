@@ -23,7 +23,6 @@ const getApy = async () => {
       tvlUsd: tvl * ethPrice,
       apyBase: apyData.data.stakeApr,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: token,
       isIntrinsicSource: true,
     },
   ];
