@@ -176,7 +176,7 @@ const apy = async () => {
         // Assets per share: convertToAssets(1 share) scaled out of the asset's decimals. A
         // finite apyBase already implies this read succeeded and is positive.
         pricePerShare: sharePrice[i] / 10 ** arm.assetDecimals[0],
-        underlyingTokens: arm.assets,
+        underlyingTokens: [arm.assets[0]],
         token: address,
         // Deep link to the ARM's own page, the form originprotocol.com/arm links to.
         url: `https://app.originprotocol.com/#/arm/${arm.chainId}:${arm.symbol}`,
