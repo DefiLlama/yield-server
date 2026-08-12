@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
-const chainIdToName = { 1: 'ethereum', 143: 'monad', 4114: 'citrea' };
+const chainIdToName = { 1: 'ethereum', 143: 'monad', 4114: 'citrea', 4663: 'robinhood' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const abis = {
