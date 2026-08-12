@@ -20,7 +20,8 @@ const chain = 'ethereum';
 // StakeWise V3 subgraph (public) — source for vault-level staking APY
 const subgraphUrl =
   'https://graphs.stakewise.io/mainnet/subgraphs/name/stakewise/prod';
-const subgraphTimeout = 10000;
+// generous enough to survive a cold subgraph cache, still bounded
+const subgraphTimeout = 20000;
 // Genesis Vault: the protocol's primary public vault (~40% of TVL)
 const genesisVaultAddress = '0xac0f906e433d58fa868f936e8a43230473652885';
 
@@ -166,6 +167,13 @@ const getGenesisPool = async (ethPrice, osTokenPrice) => {
   // priced with the same osETH feed the osETH pool uses, so this cancels
   // exactly what that pool already reports for Genesis-minted osETH
   const mintedUsd = mintedShares.dividedBy(wad).toNumber() * osTokenPrice;
+  const tvlUsd = vaultUsd - mintedUsd;
+  // more osETH minted than the vault holds means the two sources disagree —
+  // that is a wrong number either way, so drop the pool instead of flooring it to 0
+  if (tvlUsd <= 0) {
+    console.error('stakewise-v2: Genesis minted osETH exceeds vault assets');
+    return null;
+  }
 
   return {
     pool: `${genesisVaultAddress}-${chain}`,
@@ -173,7 +181,7 @@ const getGenesisPool = async (ethPrice, osTokenPrice) => {
     project: 'stakewise-v2',
     // stakers deposit native ETH; the vault position is ETH-denominated
     symbol: 'ETH',
-    tvlUsd: Math.max(vaultUsd - mintedUsd, 0),
+    tvlUsd,
     // subgraph `apy`: percent units, net of the vault fee, unboosted —
     // the minimum-attainable yield (per DefiLlama methodology)
     apyBase: Number(vault.apy),
