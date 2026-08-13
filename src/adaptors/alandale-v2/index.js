@@ -58,29 +58,43 @@ const apy = async () => {
 
   // Emissions are voted on per epoch, so each gauge's share of the weekly mint is
   // known from the vote weights before the epoch's distribution actually runs.
-  const [activePeriod, weeklyRaw] = await Promise.all([
+  const [activePeriod, weeklyRaw, teamRateRaw, precisionRaw] = await Promise.all([
     call(MINTER, 'uint256:active_period'),
     call(MINTER, 'uint256:weekly'),
+    call(MINTER, 'uint256:teamRate'),
+    call(MINTER, 'uint256:PRECISION'),
   ]);
   const epoch = BigInt(String(activePeriod)) - (BigInt(String(activePeriod)) % BigInt(EPOCH));
-  const weeklyLute = Number(weeklyRaw) / 1e18;
+  // The team takes its cut of the weekly mint before anything reaches a gauge.
+  const precision = Number(precisionRaw) || 1;
+  const weeklyLute = (Number(weeklyRaw) / 1e18) * (1 - Number(teamRateRaw) / precision);
 
-  const [totalWeightRaw, poolWeights, rewardRates, gaugeSupplies] = await Promise.all([
+  const readTotalWeight = (e) =>
     sdk.api2.abi.call({
       target: VOTER,
       abi: 'function totalWeightsPerEpoch(uint256) view returns (uint256)',
-      params: [epoch.toString()],
+      params: [e.toString()],
       chain: CHAIN,
-    }),
+    });
+  // A week's emissions are split on the votes of the epoch that funded it, which is
+  // the one that just closed; the running epoch decides the week after.
+  const [fundedRaw, runningRaw] = await Promise.all([
+    readTotalWeight(epoch - BigInt(EPOCH)),
+    readTotalWeight(epoch),
+  ]);
+  const funded = Number(fundedRaw) / 1e18;
+  const voteEpoch = funded > 0 ? epoch - BigInt(EPOCH) : epoch;
+  const totalWeight = funded > 0 ? funded : Number(runningRaw) / 1e18;
+
+  const [poolWeights, rewardRates, gaugeSupplies] = await Promise.all([
     multiCall(
       'function weightsPerEpoch(uint256, address) view returns (uint256)',
-      pairs.map((pair) => ({ params: [epoch.toString(), pair] })),
+      pairs.map((pair) => ({ params: [voteEpoch.toString(), pair] })),
       VOTER
     ),
     multiCall('uint256:rewardRate', gauges),
     multiCall('erc20:totalSupply', gauges),
   ]);
-  const totalWeight = Number(totalWeightRaw) / 1e18;
 
   const { pricesByAddress } = await utils.getPrices([...tokens, LUTE], CHAIN);
   const lutePrice = pricesByAddress[LUTE.toLowerCase()] ?? 0;
@@ -100,27 +114,36 @@ const apy = async () => {
       const tvlUsd = reserve0 * price0 + reserve1 * price1;
       if (!(tvlUsd > 0)) return null;
 
-      // Only LP staked in the gauge earns emissions, so the reward APY is measured
-      // against that share of the pair rather than the whole pool.
+      // An unavailable read must stay unavailable: collapsing it to 0 would publish a
+      // verified no-reward pair, which downstream cannot tell apart from a real zero.
+      const gauge = gauges[i];
       const lpSupply = Number(lpSupplies[i]);
-      const hasGauge = gauges[i] && gauges[i] !== ZERO;
-      const stakedShare =
-        hasGauge && gaugeSupplies[i] != null && lpSupply > 0
-          ? Number(gaugeSupplies[i]) / lpSupply
-          : 0;
-      const stakedTvlUsd = tvlUsd * stakedShare;
+      let apyReward = null;
+      if (gauge == null) apyReward = null;
+      else if (gauge === ZERO) apyReward = 0;
+      else if (gaugeSupplies[i] == null || !(lpSupply > 0)) apyReward = null;
+      else {
+        // Only LP staked in the gauge earns emissions, so the reward APY is measured
+        // against that share of the pair rather than the whole pool.
+        const stakedTvlUsd = tvlUsd * (Number(gaugeSupplies[i]) / lpSupply);
 
-      // Once an epoch is distributed the gauge carries a live rate; until then the
-      // vote-weighted projection is what liquidity providers will actually receive.
-      const liveLutePerYear = (Number(rewardRates[i] ?? 0) / 1e18) * SECONDS_PER_YEAR;
-      const votedShare = totalWeight > 0 ? Number(poolWeights[i] ?? 0) / 1e18 / totalWeight : 0;
-      const projectedLutePerYear = votedShare * weeklyLute * EPOCHS_PER_YEAR;
-      const lutePerYear = liveLutePerYear > 0 ? liveLutePerYear : projectedLutePerYear;
+        // Once an epoch is distributed the gauge carries a live rate; until then the
+        // vote-weighted projection is what liquidity providers will actually receive.
+        const liveLutePerYear =
+          rewardRates[i] == null ? 0 : (Number(rewardRates[i]) / 1e18) * SECONDS_PER_YEAR;
+        let lutePerYear = liveLutePerYear;
+        if (!(lutePerYear > 0)) {
+          if (poolWeights[i] == null) lutePerYear = null;
+          else if (!(totalWeight > 0)) lutePerYear = 0;
+          else
+            lutePerYear =
+              (Number(poolWeights[i]) / 1e18 / totalWeight) * weeklyLute * EPOCHS_PER_YEAR;
+        }
 
-      const apyReward =
-        hasGauge && stakedTvlUsd > 0 && lutePerYear > 0 && lutePrice > 0
-          ? ((lutePerYear * lutePrice) / stakedTvlUsd) * 100
-          : 0;
+        if (lutePerYear === 0) apyReward = 0;
+        else if (lutePerYear > 0 && lutePrice > 0 && stakedTvlUsd > 0)
+          apyReward = ((lutePerYear * lutePrice) / stakedTvlUsd) * 100;
+      }
 
       return {
         pool: `${pair}-${CHAIN}`.toLowerCase(),
@@ -132,7 +155,7 @@ const apy = async () => {
         // Every pair routes its full swap fee to veLUTE voters, so liquidity
         // providers earn no trading fees and are compensated in LUTE emissions.
         apyBase: 0,
-        apyReward: Number.isFinite(apyReward) ? apyReward : 0,
+        apyReward: Number.isFinite(apyReward) ? apyReward : null,
         underlyingTokens: [token0s[i], token1s[i]],
         rewardTokens: [LUTE],
         token: pair,
