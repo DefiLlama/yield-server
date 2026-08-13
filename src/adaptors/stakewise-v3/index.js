@@ -1,8 +1,8 @@
 // StakeWise — Ethereum liquid staking (V3). Returns two pools:
 //   1. osETH        — the liquid staking token; yield osETH holders accrue.
 //   2. Genesis Vault — direct ETH staking in the protocol's main vault.
-// Same protocol; the `stakewise-v2` slug is legacy — V3 has been the live
-// mainnet protocol since 2023-11-28 (a rename to stakewise-v3 is requested).
+// V3 has been the live mainnet protocol since 2023-11-28. Renamed from the legacy
+// `stakewise-v2` slug once the protocols api caught up; protocol id 277 is unchanged.
 const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const axios = require('axios');
@@ -88,7 +88,7 @@ const getOsTokenPool = async (osTokenPrice) => {
   return {
     pool: osTokenAddress,
     chain,
-    project: 'stakewise-v2',
+    project: 'stakewise-v3',
     symbol: 'osETH',
     // osETH accrues value vs ETH (trades at a premium), so pricing its supply
     // with the ETH price understated TVL — use the osETH feed (ETH fallback).
@@ -157,7 +157,7 @@ const getGenesisPool = async (ethPrice, osTokenPrice) => {
   const { vault } = await querySubgraph(query);
   // null metrics would coerce to 0 and publish a false APY/TVL — skip instead
   if (vault?.apy == null || vault?.totalAssets == null) {
-    console.error('stakewise-v2: Genesis vault missing or has null metrics');
+    console.error('stakewise-v3: Genesis vault missing or has null metrics');
     return null;
   }
 
@@ -171,14 +171,14 @@ const getGenesisPool = async (ethPrice, osTokenPrice) => {
   // more osETH minted than the vault holds means the two sources disagree —
   // that is a wrong number either way, so drop the pool instead of flooring it to 0
   if (tvlUsd <= 0) {
-    console.error('stakewise-v2: Genesis minted osETH exceeds vault assets');
+    console.error('stakewise-v3: Genesis minted osETH exceeds vault assets');
     return null;
   }
 
   return {
     pool: `${genesisVaultAddress}-${chain}`,
     chain,
-    project: 'stakewise-v2',
+    project: 'stakewise-v3',
     // stakers deposit native ETH; the vault position is ETH-denominated
     symbol: 'ETH',
     tvlUsd,
@@ -214,7 +214,7 @@ const getApy = async () => {
   try {
     genesisPool = await getGenesisPool(ethPrice, osTokenPrice);
   } catch (err) {
-    console.error('stakewise-v2: Genesis vault pool skipped —', err.message);
+    console.error('stakewise-v3: Genesis vault pool skipped —', err.message);
   }
 
   return [osTokenPool, genesisPool].filter(Boolean);
