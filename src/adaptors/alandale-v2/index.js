@@ -86,15 +86,17 @@ const apy = async () => {
   const voteEpoch = funded > 0 ? epoch - BigInt(EPOCH) : epoch;
   const totalWeight = funded > 0 ? funded : Number(runningRaw) / 1e18;
 
-  const [poolWeights, rewardRates, gaugeSupplies] = await Promise.all([
+  const [poolWeights, rewardRates, periodFinishes, gaugeSupplies] = await Promise.all([
     multiCall(
       'function weightsPerEpoch(uint256, address) view returns (uint256)',
       pairs.map((pair) => ({ params: [voteEpoch.toString(), pair] })),
       VOTER
     ),
     multiCall('uint256:rewardRate', gauges),
+    multiCall('uint256:periodFinish', gauges),
     multiCall('erc20:totalSupply', gauges),
   ]);
+  const now = Math.floor(Date.now() / 1000);
 
   const { pricesByAddress } = await utils.getPrices([...tokens, LUTE], CHAIN);
   const lutePrice = pricesByAddress[LUTE.toLowerCase()] ?? 0;
@@ -129,8 +131,14 @@ const apy = async () => {
 
         // Once an epoch is distributed the gauge carries a live rate; until then the
         // vote-weighted projection is what liquidity providers will actually receive.
+        // The gauge leaves rewardRate set after its reward period ends, so a rate is
+        // only live while periodFinish is still ahead of us.
+        const rewardsActive =
+          periodFinishes[i] != null && Number(periodFinishes[i]) > now;
         const liveLutePerYear =
-          rewardRates[i] == null ? 0 : (Number(rewardRates[i]) / 1e18) * SECONDS_PER_YEAR;
+          rewardsActive && rewardRates[i] != null
+            ? (Number(rewardRates[i]) / 1e18) * SECONDS_PER_YEAR
+            : 0;
         let lutePerYear = liveLutePerYear;
         if (!(lutePerYear > 0)) {
           if (poolWeights[i] == null) lutePerYear = null;
