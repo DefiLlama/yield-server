@@ -84,8 +84,15 @@ const apy = async () => {
 
   // Whatever share of the swap fee a pool routes to its community fee leaves the pool
   // for veLUTE voters, so only the remainder ever reaches liquidity providers.
-  const [{ pricesByAddress }, globalStates, gauges, activePeriod, weeklyRaw] =
-    await Promise.all([
+  const [
+    { pricesByAddress },
+    globalStates,
+    gauges,
+    activePeriod,
+    weeklyRaw,
+    teamRateRaw,
+    precisionRaw,
+  ] = await Promise.all([
       utils.getPrices([...addresses, LUTE], CHAIN),
       sdk.api2.abi.multiCall({
         abi: 'function globalState() view returns (uint160 price, int24 tick, uint16 lastFee, uint8 pluginConfig, uint16 communityFee, bool unlocked)',
@@ -102,29 +109,50 @@ const apy = async () => {
       }),
       sdk.api2.abi.call({ target: MINTER, abi: 'uint256:active_period', chain: CHAIN }),
       sdk.api2.abi.call({ target: MINTER, abi: 'uint256:weekly', chain: CHAIN }),
+      sdk.api2.abi.call({ target: MINTER, abi: 'uint256:teamRate', chain: CHAIN }),
+      sdk.api2.abi.call({ target: MINTER, abi: 'uint256:PRECISION', chain: CHAIN }),
     ]);
 
-  // Emissions are voted on per epoch, so each gauge's share of the weekly mint is
-  // known from the vote weights before the epoch's distribution actually runs.
+  // The team takes its cut of the weekly mint before anything reaches a gauge.
+  const precision = Number(precisionRaw) || 1;
+  const weeklyLute = (Number(weeklyRaw) / 1e18) * (1 - Number(teamRateRaw) / precision);
+
+  // A week's emissions are split on the votes of the epoch that funded it, which is
+  // the one that just closed; the running epoch decides the week after.
   const epoch =
     BigInt(String(activePeriod)) - (BigInt(String(activePeriod)) % BigInt(EPOCH));
-  const weeklyLute = Number(weeklyRaw) / 1e18;
-  const [totalWeightRaw, poolWeights] = await Promise.all([
+  const readTotalWeight = (e) =>
     sdk.api2.abi.call({
       target: VOTER,
       abi: 'function totalWeightsPerEpoch(uint256) view returns (uint256)',
-      params: [epoch.toString()],
+      params: [e.toString()],
       chain: CHAIN,
-    }),
-    sdk.api2.abi.multiCall({
-      target: VOTER,
-      abi: 'function weightsPerEpoch(uint256, address) view returns (uint256)',
-      calls: pools.map((p) => ({ params: [epoch.toString(), p.id] })),
-      chain: CHAIN,
-      permitFailure: true,
-    }),
+    });
+  const [fundedRaw, runningRaw] = await Promise.all([
+    readTotalWeight(epoch - BigInt(EPOCH)),
+    readTotalWeight(epoch),
   ]);
-  const totalWeight = Number(totalWeightRaw) / 1e18;
+  const funded = Number(fundedRaw) / 1e18;
+  const voteEpoch = funded > 0 ? epoch - BigInt(EPOCH) : epoch;
+  const totalWeight = funded > 0 ? funded : Number(runningRaw) / 1e18;
+
+  const poolWeights = await sdk.api2.abi.multiCall({
+    target: VOTER,
+    abi: 'function weightsPerEpoch(uint256, address) view returns (uint256)',
+    calls: pools.map((p) => ({ params: [voteEpoch.toString(), p.id] })),
+    chain: CHAIN,
+    permitFailure: true,
+  });
+
+  // An unavailable read must stay unavailable: collapsing it to 0 would publish a
+  // verified no-reward pool, which downstream cannot tell apart from a real zero.
+  const lutePerYearFor = (gauge, weightRaw) => {
+    if (gauge == null) return null;
+    if (gauge === ZERO) return 0;
+    if (weightRaw == null) return null;
+    if (!(totalWeight > 0)) return 0;
+    return (Number(weightRaw) / 1e18 / totalWeight) * weeklyLute * EPOCHS_PER_YEAR;
+  };
 
   const lpShare = {};
   const feeRate = {};
@@ -140,9 +168,7 @@ const apy = async () => {
     // lastFee is the fee actually charged, unlike the subgraph's stored tier.
     const lastFee = Number(globalStates[i]?.lastFee ?? 0);
     feeRate[id] = lastFee > 0 ? lastFee / FEE_DENOMINATOR : Number(p.fee) / FEE_DENOMINATOR;
-    const votedShare = totalWeight > 0 ? Number(poolWeights[i] ?? 0) / 1e18 / totalWeight : 0;
-    emissions[id] =
-      gauges[i] && gauges[i] !== ZERO ? votedShare * weeklyLute * EPOCHS_PER_YEAR : 0;
+    emissions[id] = lutePerYearFor(gauges[i], poolWeights[i]);
   });
   const lutePrice = pricesByAddress[LUTE.toLowerCase()] ?? 0;
 
@@ -167,9 +193,12 @@ const apy = async () => {
       const lpFeeShare = lpShare[id] ?? 0;
       const apyBase = ((volumeUsd * feeTier * lpFeeShare * 365) / tvlUsd) * 100;
 
-      const lutePerYear = emissions[id] ?? 0;
-      const apyReward =
-        lutePerYear > 0 && lutePrice > 0 ? ((lutePerYear * lutePrice) / tvlUsd) * 100 : 0;
+      // Emissions that exist but cannot be priced are unknown, not zero.
+      const lutePerYear = emissions[id];
+      let apyReward = null;
+      if (lutePerYear === 0) apyReward = 0;
+      else if (lutePerYear > 0 && lutePrice > 0)
+        apyReward = ((lutePerYear * lutePrice) / tvlUsd) * 100;
 
       return {
         pool: `${p.id}-${CHAIN}`.toLowerCase(),
@@ -178,7 +207,7 @@ const apy = async () => {
         symbol: `${p.token0.symbol}-${p.token1.symbol}`,
         tvlUsd,
         apyBase: Number.isFinite(apyBase) ? apyBase : 0,
-        apyReward: Number.isFinite(apyReward) ? apyReward : 0,
+        apyReward: Number.isFinite(apyReward) ? apyReward : null,
         rewardTokens: [LUTE],
         underlyingTokens: [p.token0.id, p.token1.id],
         // Concentrated-liquidity positions are NFTs, not a fungible pool token.
