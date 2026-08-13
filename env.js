@@ -21,6 +21,8 @@ module.exports = {
   VENDOR_FINANCE: process.env.VENDOR_FINANCE,
   TRADERJOE: process.env.TRADERJOE,
   GRAPH_API_KEY: process.env.GRAPH_API_KEY,
+  LLAMA_INDEXER_V2_ENDPOINT: process.env.LLAMA_INDEXER_V2_ENDPOINT,
+  LLAMA_INDEXER_V2_API_KEY: process.env.LLAMA_INDEXER_V2_API_KEY,
   // Cloudflare R2
   R2_ENDPOINT: process.env.R2_ENDPOINT,
   R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
