@@ -2476,6 +2476,7 @@ const excludePools = [
   'turtle-828ee8d9-65c0-47ea-a2c3-a7f8c68fe671', // USDT Katana
   'turtle-817a72e5-72f5-4447-ae32-ae0e3261ac86', // WBTC Katana
   'turtle-b91fab34-3998-468b-adcf-645d9b68bc9c', // AUSD Katana
+  'turtle-1da6331a-0315-42b3-9cde-99ec55884d30', // USDC Katana
 ];
 
 const boundaries = {
