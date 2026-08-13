@@ -511,6 +511,7 @@ const excludedProtocols = [
   { id: '2001', slug: 'demex-perp' },
   { id: '7336', slug: 'satsuma' },
   { id: '7335', slug: 'juiceswap' },
+  { id: '1895', slug: 'sideshift' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
@@ -2471,6 +2472,10 @@ const excludePools = [
   '0xe16722b52fe814f5d551a12f0ec89574a130a0b7-arbitrum',
   '0xeae33e9f53fc405f834d4678e6c07a2523b2126e-arbitrum',
   '0:066e23b9d56299ae191f0bd03397f7ca6aec0a003f655518fddf8a1c9a70d96b-ton',
+  'turtle-14da66c3-4f06-4b9c-a6a3-b63a07d6e706', // WETH Katana
+  'turtle-828ee8d9-65c0-47ea-a2c3-a7f8c68fe671', // USDT Katana
+  'turtle-817a72e5-72f5-4447-ae32-ae0e3261ac86', // WBTC Katana
+  'turtle-b91fab34-3998-468b-adcf-645d9b68bc9c', // AUSD Katana
 ];
 
 const boundaries = {
