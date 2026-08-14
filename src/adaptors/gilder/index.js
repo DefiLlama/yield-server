@@ -27,6 +27,7 @@ const apy = async () => {
       apyBase: 20,
       underlyingTokens: [USDC],
       poolMeta: 'Standard — 3yr fixed, full principal returned at maturity',
+      token: null,
     },
     {
       pool: `${BOND_CONTRACT}-base-leverage`.toLowerCase(),
@@ -37,6 +38,7 @@ const apy = async () => {
       apyBase: 11,
       underlyingTokens: [USDC],
       poolMeta: 'Leverage — 3yr fixed, up to 75% of principal drawn on day 1',
+      token: null,
     },
     {
       pool: `${BOND_CONTRACT}-base-turbo`.toLowerCase(),
@@ -47,6 +49,7 @@ const apy = async () => {
       apyBase: 27.5,
       underlyingTokens: [USDC],
       poolMeta: 'Turbo — 3yr fixed, leveraged loop up to 2.485× multiplier',
+      token: null,
     },
   ];
 };
