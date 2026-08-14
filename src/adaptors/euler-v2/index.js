@@ -375,6 +375,12 @@ const getApys = async () => {
               assetDecimals
             );
 
+            const supplyCapRaw = toNumber(info.supplyCap);
+            const supplyCapUsd =
+              supplyCapRaw > 0 && !isCapFrozen(supplyCapRaw)
+                ? (supplyCapRaw / 10 ** assetDecimals) * price
+                : undefined;
+
             const vaultAddr = ethersUtils.getAddress(info.vault || v.id);
             const assetAddr = ethersUtils.getAddress(info.asset);
             return {
@@ -388,6 +394,7 @@ const getApys = async () => {
               totalSupplyUsd,
               totalBorrowUsd,
               availableBorrowUsd,
+              ...(supplyCapUsd !== undefined && { supplyCapUsd }),
               apyBase: getSupplyApyFromVaultInfo(info),
               apyBaseBorrow: getBorrowApyFromVaultInfo(info),
               underlyingTokens: [assetAddr],
