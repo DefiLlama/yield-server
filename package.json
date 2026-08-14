@@ -9,15 +9,17 @@
     "build": "sls package",
     "test": "jest",
     "migrate": "node-pg-migrate",
-    "start:api": "node src/api/server",
-    "start:holder-daily": "node src/scheduled/holderDaily.js"
+    "start:api": "node src/api/server"
   },
   "author": "",
   "license": "ISC",
+  "engines": {
+    "npm": ">=11"
+  },
   "dependencies": {
     "@aave/aave-v3-aptos-ts-sdk": "^0.0.61",
     "@blend-capital/blend-sdk": "3.0.1",
-    "@defillama/sdk": "^5.0.207",
+    "@defillama/sdk": "^5.0.220",
     "@solana/spl-stake-pool": "^1.1.8",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.15.0",
@@ -26,7 +28,6 @@
     "aws-sdk": "^2.1389.0",
     "axios": "^1.7.2",
     "bignumber.js": "^9.1.1",
-    "csv-writer": "^1.6.0",
     "date-fns": "^2.23.0",
     "dotenv": "^10.0.0",
     "ethers": "^5.7.2",

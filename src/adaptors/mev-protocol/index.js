@@ -47,7 +47,6 @@ const apy = async () => {
       apyBase,
       apyBase7d: apyBase,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: mevETH,
       isIntrinsicSource: true,
     },
   ];

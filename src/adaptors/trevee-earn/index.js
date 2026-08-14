@@ -27,19 +27,22 @@ const main = async () => {
   const infos = await Promise.all(
     wrappers.map((w) => utils.getERC4626Info(w.address, 'sonic'))
   );
-  return infos.map((info, i) => {
-    const token = `sonic:${wrappers[i].underlyingToken}`;
-    return {
-      pool: info.pool,
-      chain: 'sonic',
-      project: 'trevee-earn',
-      symbol: wrappers[i].symbol,
-      tvlUsd: (info.tvl / 10 ** prices[token].decimals) * prices[token].price,
-      apyBase: info.apyBase,
-      pricePerShare: info.pricePerShare,
-      underlyingTokens: [wrappers[i].underlyingToken],
-    };
-  });
+  return infos
+    .map((info, i) => {
+      const price = prices[`sonic:${wrappers[i].underlyingToken}`];
+      if (!price) return null;
+      return {
+        pool: info.pool,
+        chain: 'sonic',
+        project: 'trevee-earn',
+        symbol: wrappers[i].symbol,
+        tvlUsd: (info.tvl / 10 ** price.decimals) * price.price,
+        apyBase: info.apyBase,
+        pricePerShare: info.pricePerShare,
+        underlyingTokens: [wrappers[i].underlyingToken],
+      };
+    })
+    .filter(Boolean);
 };
 
 module.exports = {

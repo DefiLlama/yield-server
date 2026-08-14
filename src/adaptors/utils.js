@@ -24,10 +24,74 @@ const getPriceApiUrl = (path) => {
 
 exports.getPriceApiUrl = getPriceApiUrl;
 
+// TODO: temporary cache-bypass on pro requests; remove once coins-api caps
+// staleness (Cache-Control) -- edge colos were replaying expired
+// /prices/current copies. Applied at request time, not in getPriceApiUrl:
+// adapters compose on top of that URL, so a query param baked into it would
+// corrupt their appended paths.
+const withCacheBust = (path) =>
+  process.env.DL_API_KEY
+    ? `${path}${path.includes('?') ? '&' : '?'}cachebust=${Date.now()}`
+    : path;
+
 const getPriceApiData = async (path) =>
-  (await axios.get(getPriceApiUrl(path))).data;
+  (await axios.get(getPriceApiUrl(withCacheBust(path)))).data;
 
 exports.getPriceApiData = getPriceApiData;
+
+const PRICE_KEY_BYTE_BUDGET = 3000;
+const PRICE_REQUEST_CONCURRENCY = 5;
+const PRICE_REQUEST_ATTEMPTS = 3;
+
+const chunkPriceKeys = (keys) => {
+  const chunks = [];
+  let bytes = Infinity;
+
+  for (const key of keys) {
+    const size = String(key).length + 1;
+    if (bytes + size > PRICE_KEY_BYTE_BUDGET) {
+      chunks.push([]);
+      bytes = 0;
+    }
+    chunks[chunks.length - 1].push(key);
+    bytes += size;
+  }
+
+  return chunks;
+};
+
+const fetchPriceChunk = async (keyChunk) => {
+  const path = `/prices/current/${keyChunk.join(',')}`;
+
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return (await getPriceApiData(path)).coins;
+    } catch (error) {
+      if (attempt === PRICE_REQUEST_ATTEMPTS) throw error;
+      await sleep(500 * attempt);
+    }
+  }
+};
+
+const getPriceApiCoins = async (keys) => {
+  const coins = {};
+
+  for (const batch of chunk(chunkPriceKeys(keys), PRICE_REQUEST_CONCURRENCY)) {
+    const results = await Promise.allSettled(batch.map(fetchPriceChunk));
+
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') return Object.assign(coins, result.value);
+      console.error(
+        `getPriceApiCoins: ${batch[i].length} keys unpriced after ${PRICE_REQUEST_ATTEMPTS} attempts (${batch[i][0]}...):`,
+        result.reason?.message || result.reason
+      );
+    });
+  }
+
+  return coins;
+};
+
+exports.getPriceApiCoins = getPriceApiCoins;
 
 exports.formatAddress = (address) => {
   return String(address).toLowerCase();
@@ -60,6 +124,8 @@ const chunkArray = (arr, chunkSize = 100) => {
   }
   return chunks;
 };
+
+exports.chunkArray = chunkArray;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -179,6 +245,7 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'rsk') return 'RSK';
   if (chain && chain.toLowerCase() === '0g') return '0G';
   if (chain && chain.toLowerCase() === 'tac') return 'TAC';
+  if (chain && chain.toLowerCase() === 'robinhood') return 'Robinhood Chain';
   if (
     chain &&
     (chain.toLowerCase() === 'hyperevm' ||
@@ -282,6 +349,7 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('metis-graph.maiadao.io') ||
     url.includes('babydoge/faas') ||
     url.includes('kybernetwork/kyberswap-elastic-cronos') ||
+    url.includes('graph-v2.cronoslabs.com') ||
     url.includes('kybernetwork/kyberswap-elastic-matic') ||
     url.includes('metisapi.0xgraph.xyz/subgraphs/name') ||
     url.includes(
@@ -297,7 +365,8 @@ const getLatestBlockSubgraph = async (url) => {
     url.includes('exchange-v3-zksync/version/latest') ||
     url.includes('balancer-base-v2/version/latest') ||
     url.includes('horizondex') ||
-    url.includes('swopfi-units')
+    url.includes('swopfi-units') ||
+    url.includes('swap.w3us.site')
       ? await request(url, queryGraph)
       : url.includes('aperture/uniswap-v3')
       ? await request(
@@ -763,27 +832,64 @@ exports.getTotalSupply = async (tokenMintAddress) => {
   return supplyInTokens;
 };
 
-// Solana RPC helper for getAccountInfo
-const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+const BASE58_ALPHABET =
+  '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+// Base58 encode a byte buffer, eg a 32-byte pubkey read out of account data.
+exports.toBase58 = (bytes) => {
+  if (!bytes.length) return '';
+
+  let value = BigInt(`0x${bytes.toString('hex')}`);
+  let encoded = '';
+  while (value > 0n) {
+    encoded = BASE58_ALPHABET[Number(value % 58n)] + encoded;
+    value /= 58n;
+  }
+
+  const leadingZeros = bytes.findIndex((b) => b !== 0);
+  return (
+    '1'.repeat(leadingZeros === -1 ? bytes.length : leadingZeros) + encoded
+  );
+};
+
+// Solana getAccountInfo returning the owning program alongside the data, so a
+// caller can verify what it is decoding before trusting byte offsets. Accepts a
+// dataSlice to read a few bytes out of a large account, and returns null rather
+// than throwing when the account does not exist.
+const getSolanaAccount = async (
+  address,
+  { rpcUrl = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com', dataSlice } = {}
+) => {
   const response = await axios.post(rpcUrl, {
     jsonrpc: '2.0',
     id: 1,
     method: 'getAccountInfo',
-    params: [address, { encoding: 'base64' }],
+    params: [address, { encoding: 'base64', ...(dataSlice && { dataSlice }) }],
   }, {
     headers: { 'Content-Type': 'application/json' },
   });
 
-  const data = response.data;
-  if (data.error) {
-    throw new Error(`Error fetching account info: ${data.error.message}`);
+  const { error, result } = response.data;
+  if (error) {
+    throw new Error(`Error fetching account info: ${error.message}`);
   }
 
-  if (!data.result?.value?.data?.[0]) {
+  const account = result?.value;
+  if (typeof account?.data?.[0] !== 'string') return null;
+
+  return { owner: account.owner, data: Buffer.from(account.data[0], 'base64') };
+};
+
+exports.getSolanaAccount = getSolanaAccount;
+
+const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const account = await getSolanaAccount(address, { rpcUrl });
+
+  if (!account?.data.length) {
     throw new Error(`Account not found: ${address}`);
   }
 
-  return Buffer.from(data.result.value.data[0], 'base64');
+  return account.data;
 };
 
 // SPL Stake Pool data decoder using official library
@@ -939,4 +1045,119 @@ exports.getSanctumLstApy = async (
     .filter((a) => Number.isFinite(a) && a > 0.001);
   if (nonzero.length < minNonZero) return null;
   return (nonzero.reduce((s, a) => s + a, 0) / nonzero.length) * 100;
+};
+
+// Sui replaced JSON-RPC with GraphQL. Prefers SUI_GRAPHQL_URL, then Ankr, then
+// the Foundation's public endpoint, which is documented as rate limited and not
+// for production. https://docs.sui.io/develop/accessing-data/json-rpc-migration
+const SUI_GRAPHQL_PUBLIC = 'https://graphql.mainnet.sui.io/graphql';
+const ANKR_SUI_GRAPHQL = 'https://rpc.ankr.com/http/sui_graphql';
+
+// Ankr authenticates GraphQL via the x-token header; a key in the URL path 404s
+const getSuiGraphqlEndpoints = () => {
+  if (process.env.SUI_GRAPHQL_URL)
+    return [{ url: process.env.SUI_GRAPHQL_URL, headers: {} }];
+
+  const endpoints = [{ url: SUI_GRAPHQL_PUBLIC, headers: {} }];
+  if (process.env.ANKR_API_KEY)
+    endpoints.push({
+      url: ANKR_SUI_GRAPHQL,
+      headers: { 'x-token': process.env.ANKR_API_KEY },
+    });
+  return endpoints;
+};
+
+// Sticky so a degraded endpoint is not retried on every call of a paginated walk
+let suiEndpointPreferred = 0;
+
+const suiGraphql = async (query, variables) => {
+  const endpoints = getSuiGraphqlEndpoints();
+  let lastError;
+
+  for (let i = 0; i < endpoints.length; i++) {
+    const index = (suiEndpointPreferred + i) % endpoints.length;
+    const { url, headers } = endpoints[index];
+
+    let data;
+    try {
+      ({ data } = await axios.post(
+        url,
+        { query, variables },
+        {
+          timeout: 30000,
+          headers: { 'content-type': 'application/json', ...headers },
+        }
+      ));
+    } catch (e) {
+      lastError = e;
+      continue;
+    }
+
+    suiEndpointPreferred = index;
+    // A GraphQL error is deterministic, so surface it rather than retrying
+    if (data.errors) {
+      throw new Error(
+        `Sui GraphQL: ${JSON.stringify(data.errors).slice(0, 300)}`
+      );
+    }
+    return data.data;
+  }
+
+  throw new Error(`Sui GraphQL: ${lastError?.message}`);
+};
+
+exports.suiGraphql = suiGraphql;
+
+const SUI_OBJECTS_QUERY = `query ($keys: [ObjectKey!]!) {
+  multiGetObjects(keys: $keys) {
+    asMoveObject { contents { json } }
+  }
+}`;
+
+// maxMultiGetSize is 200 but the 5KB query payload cap bites first, at 60 keys
+const SUI_OBJECTS_PER_QUERY = 50;
+
+// Move struct fields per object id, positionally matching ids (null if absent)
+exports.suiObjectFields = async (ids) => {
+  const batches = await Promise.all(
+    chunkArray(ids, SUI_OBJECTS_PER_QUERY).map(async (batch) => {
+      const { multiGetObjects } = await suiGraphql(SUI_OBJECTS_QUERY, {
+        keys: batch.map((address) => ({ address })),
+      });
+      return batch.map(
+        (_, i) => multiGetObjects?.[i]?.asMoveObject?.contents?.json ?? null
+      );
+    })
+  );
+  return batches.flat();
+};
+
+const SUI_COIN_SUPPLY_QUERY = `query ($coinType: String!) {
+  coinMetadata(coinType: $coinType) { decimals symbol supply }
+}`;
+
+exports.suiCoinSupply = async (coinType) =>
+  (await suiGraphql(SUI_COIN_SUPPLY_QUERY, { coinType })).coinMetadata;
+
+const SUI_EVENTS_QUERY = `query ($type: String!, $last: Int!, $before: String) {
+  events(filter: { type: $type }, last: $last, before: $before) {
+    pageInfo { hasPreviousPage startCursor }
+    nodes { timestamp contents { json } }
+  }
+}`;
+
+// One page of events, newest first. Pass the returned cursor back to walk older.
+exports.suiEvents = async (type, { cursor = null, limit = 50 } = {}) => {
+  const { events } = await suiGraphql(SUI_EVENTS_QUERY, {
+    type,
+    last: limit,
+    before: cursor,
+  });
+  return {
+    events: (events?.nodes ?? [])
+      .map((n) => ({ json: n.contents?.json, ts: Date.parse(n.timestamp) }))
+      .reverse(),
+    cursor: events?.pageInfo?.startCursor ?? null,
+    hasMore: !!events?.pageInfo?.hasPreviousPage,
+  };
 };

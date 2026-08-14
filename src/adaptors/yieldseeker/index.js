@@ -12,7 +12,9 @@ const MERKL_IDENTIFIER = '0x960f6ca8f4bf67bd88fc1065ba69143c8214798f';
 
 const apy = async () => {
   const { data } = await axios.get(API_URL);
-  const agents = data.agentAnalytics || [];
+  const agents = (data.agentAnalytics || []).filter(
+    (agent) => agent.assetAddress?.toLowerCase() === USDC.toLowerCase()
+  );
 
   // Compute TVL-weighted average APY across all active agents
   let totalTvlRaw = 0;

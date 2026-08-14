@@ -5,7 +5,7 @@ const erc20Abi = require('./abis/erc20.abi.json');
 const potionAbi = require('./abis/potion.abi.json');
 const { getPriceApiUrl } = require('../utils');
 
-const BASE_URL = getPriceApiUrl('/prices/current/');
+const priceUrl = (keys) => getPriceApiUrl(`/prices/current/${keys}`);
 const POTIONS_URL = 'https://yel.finance/potions';
 
 const CHAINS = {
@@ -132,7 +132,7 @@ const getData = async ({ chainId, address }) => {
   const rewardsPerSec = backingRatio / timePassedSinceDeployment;
   const apr = rewardsPerSec * 60 * 60 * 24 * 365 * 100; // mul 100 == convert to percent
   const { data } = await axios.get(
-    `${BASE_URL}${CHAINS[chainId]}:${baseAsset.output[0].token}`
+    priceUrl(`${CHAINS[chainId]}:${baseAsset.output[0].token}`)
   );
 
     const baseTokenPrice =

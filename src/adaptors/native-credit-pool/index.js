@@ -57,28 +57,20 @@ const fetchApyData = async (chain) => {
 const batchFetchTotalUnderlying = async (lpTokenAddresses, chain) => {
   if (lpTokenAddresses.length === 0) return {};
 
-  try {
-    const results = await sdk.api.abi.multiCall({
-      calls: lpTokenAddresses.map((address) => ({ target: address })),
-      abi: totalUnderlyingABI,
-      chain: chain,
-      permitFailure: true,
-    });
+  const results = await sdk.api.abi.multiCall({
+    calls: lpTokenAddresses.map((address) => ({ target: address })),
+    abi: totalUnderlyingABI,
+    chain: chain,
+    permitFailure: true,
+  });
 
-    const tvlMap = {};
-    results.output.forEach((result, index) => {
-      const address = lpTokenAddresses[index].toLowerCase();
-      tvlMap[address] = result.output ? BigInt(result.output) : BigInt(0);
-    });
+  const tvlMap = {};
+  results.output.forEach((result, index) => {
+    const address = lpTokenAddresses[index].toLowerCase();
+    tvlMap[address] = result.output ? BigInt(result.output) : BigInt(0);
+  });
 
-    return tvlMap;
-  } catch (error) {
-    console.error(
-      `Error batch fetching totalUnderlying for ${chain}:`,
-      error.message
-    );
-    return {};
-  }
+  return tvlMap;
 };
 
 /**
@@ -124,41 +116,34 @@ const batchFetchTokenInfo = async (tokenAddresses, chain) => {
 
 /**
  * Batch fetch token prices from DefiLlama
- * Chunks requests to avoid API limits (max 100 tokens per request)
+ *
+ * Chunk size is bounded by URL length: keys go in the path and the API 500s once
+ * the request line passes ~3.5KB.
  */
 const batchFetchTokenPrices = async (tokenAddresses, chain) => {
   if (tokenAddresses.length === 0) return {};
 
-  const MAX_TOKENS_PER_REQUEST = 100;
+  const MAX_TOKENS_PER_REQUEST = 50;
   const pricesMap = {};
 
-  try {
-    // Chunk token addresses into batches
-    for (let i = 0; i < tokenAddresses.length; i += MAX_TOKENS_PER_REQUEST) {
-      const batch = tokenAddresses.slice(i, i + MAX_TOKENS_PER_REQUEST);
-      const priceKeys = batch
-        .map((addr) => `${chain}:${addr}`.toLowerCase())
-        .join(',');
+  for (let i = 0; i < tokenAddresses.length; i += MAX_TOKENS_PER_REQUEST) {
+    const batch = tokenAddresses.slice(i, i + MAX_TOKENS_PER_REQUEST);
+    const priceKeys = batch
+      .map((addr) => `${chain}:${addr}`.toLowerCase())
+      .join(',');
 
-      const response = await axios.get(
-        utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
-      );
-
-      batch.forEach((address) => {
-        const priceKey = `${chain}:${address}`.toLowerCase();
-        const priceData = response.data?.coins?.[priceKey];
-        pricesMap[address.toLowerCase()] = priceData?.price || 0;
-      });
-    }
-
-    return pricesMap;
-  } catch (error) {
-    console.error(
-      `Error batch fetching prices for ${chain}:`,
-      error.message
+    const response = await axios.get(
+      utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
     );
-    return pricesMap;
+
+    batch.forEach((address) => {
+      const priceKey = `${chain}:${address}`.toLowerCase();
+      const priceData = response.data?.coins?.[priceKey];
+      pricesMap[address.toLowerCase()] = priceData?.price || 0;
+    });
   }
+
+  return pricesMap;
 };
 
 /**
@@ -170,108 +155,116 @@ const calculateTvlUsd = (totalUnderlying, decimals, price) => {
 };
 
 /**
+ * Fetch and build pools for a single chain
+ */
+const processChain = async (chain, apyData) => {
+  const pools = [];
+
+  // Ensure apyData is an array
+  if (!Array.isArray(apyData) || apyData.length === 0) {
+    console.warn(`No APY data found for chain: ${chain}`);
+    return pools;
+  }
+
+  // Filter valid pools and collect unique addresses
+  const validPools = apyData.filter(
+    (pool) => pool.lpTokenAddress && pool.address
+  );
+
+  if (validPools.length === 0) {
+    return pools;
+  }
+
+  // Collect unique addresses for batching
+  const lpTokenAddresses = [
+    ...new Set(validPools.map((p) => p.lpTokenAddress.toLowerCase())),
+  ];
+  const underlyingTokenAddresses = [
+    ...new Set(validPools.map((p) => p.address.toLowerCase())),
+  ];
+
+  // Batch fetch all data for this chain
+  const [tvlMap, tokenInfoMap, pricesMap] = await Promise.all([
+    batchFetchTotalUnderlying(lpTokenAddresses, chain),
+    batchFetchTokenInfo(underlyingTokenAddresses, chain),
+    batchFetchTokenPrices(underlyingTokenAddresses, chain),
+  ]);
+
+  // Process each pool using the batched data
+  for (const poolData of validPools) {
+    try {
+      const { address, lpTokenAddress, fundingAPY } = poolData;
+      const lpAddr = lpTokenAddress.toLowerCase();
+      const underlyingAddr = address.toLowerCase();
+
+      // Get data from batched results
+      const totalUnderlying = tvlMap[lpAddr] || BigInt(0);
+      const tokenInfo = tokenInfoMap[underlyingAddr] || {
+        symbol: 'UNKNOWN',
+        decimals: 18,
+      };
+      const tokenPrice = pricesMap[underlyingAddr] || 0;
+
+      // Calculate TVL
+      const tvlUsd = calculateTvlUsd(
+        totalUnderlying,
+        tokenInfo.decimals,
+        tokenPrice
+      );
+
+      // Skip pools with zero or invalid TVL
+      if (!tvlUsd || tvlUsd <= 0 || !Number.isFinite(tvlUsd)) {
+        continue;
+      }
+
+      const symbol = tokenInfo.symbol;
+
+      // Format pool identifier
+      const poolId = `${lpAddr}-${chain}`;
+
+      // Format chain name
+      const formattedChain = utils.formatChain(chain);
+
+      // Build individual pool URL
+      const poolUrl = `https://app.native.org/pool?chain=${chain}`;
+
+      pools.push({
+        pool: poolId,
+        chain: formattedChain,
+        project: 'native-credit-pool',
+        symbol: symbol,
+        tvlUsd: tvlUsd,
+        apyBase: fundingAPY || 0,
+        underlyingTokens: [underlyingAddr],
+        poolMeta: 'single-side, no-loss LP',
+        url: poolUrl,
+      });
+    } catch (error) {
+      console.error(
+        `Error processing pool on ${chain}:`,
+        error.message,
+        poolData
+      );
+    }
+  }
+
+  return pools;
+};
+
+/**
  * Main function to fetch all pools
  */
 const apy = async () => {
-  const pools = [];
-
   // Fetch APY data for all chains in parallel
   const apyDataPromises = CHAINS.map((chain) => fetchApyData(chain));
   const apyDataResults = await Promise.all(apyDataPromises);
 
-  // Process each chain's data
-  for (let chainIndex = 0; chainIndex < CHAINS.length; chainIndex++) {
-    const chain = CHAINS[chainIndex];
-    const apyData = apyDataResults[chainIndex];
-
-    // Ensure apyData is an array
-    if (!Array.isArray(apyData) || apyData.length === 0) {
-      console.warn(`No APY data found for chain: ${chain}`);
-      continue;
-    }
-
-    // Filter valid pools and collect unique addresses
-    const validPools = apyData.filter(
-      (pool) => pool.lpTokenAddress && pool.address
-    );
-
-    if (validPools.length === 0) {
-      continue;
-    }
-
-    // Collect unique addresses for batching
-    const lpTokenAddresses = [
-      ...new Set(validPools.map((p) => p.lpTokenAddress.toLowerCase())),
-    ];
-    const underlyingTokenAddresses = [
-      ...new Set(validPools.map((p) => p.address.toLowerCase())),
-    ];
-
-    // Batch fetch all data for this chain
-    const [tvlMap, tokenInfoMap, pricesMap] = await Promise.all([
-      batchFetchTotalUnderlying(lpTokenAddresses, chain),
-      batchFetchTokenInfo(underlyingTokenAddresses, chain),
-      batchFetchTokenPrices(underlyingTokenAddresses, chain),
-    ]);
-
-    // Process each pool using the batched data
-    for (const poolData of validPools) {
-      try {
-        const { address, lpTokenAddress, fundingAPY } = poolData;
-        const lpAddr = lpTokenAddress.toLowerCase();
-        const underlyingAddr = address.toLowerCase();
-
-        // Get data from batched results
-        const totalUnderlying = tvlMap[lpAddr] || BigInt(0);
-        const tokenInfo = tokenInfoMap[underlyingAddr] || {
-          symbol: 'UNKNOWN',
-          decimals: 18,
-        };
-        const tokenPrice = pricesMap[underlyingAddr] || 0;
-
-        // Calculate TVL
-        const tvlUsd = calculateTvlUsd(
-          totalUnderlying,
-          tokenInfo.decimals,
-          tokenPrice
-        );
-
-        // Skip pools with zero or invalid TVL
-        if (!tvlUsd || tvlUsd <= 0 || !Number.isFinite(tvlUsd)) {
-          continue;
-        }
-
-        const symbol = tokenInfo.symbol;
-
-        // Format pool identifier
-        const poolId = `${lpAddr}-${chain}`;
-
-        // Format chain name
-        const formattedChain = utils.formatChain(chain);
-
-        // Build individual pool URL
-        const poolUrl = `https://app.native.org/pool?chain=${chain}`;
-
-        pools.push({
-          pool: poolId,
-          chain: formattedChain,
-          project: 'native-credit-pool',
-          symbol: symbol,
-          tvlUsd: tvlUsd,
-          apyBase: fundingAPY || 0,
-          underlyingTokens: [underlyingAddr],
-          poolMeta: 'single-side, no-loss LP',
-          url: poolUrl,
-        });
-      } catch (error) {
-        console.error(
-          `Error processing pool on ${chain}:`,
-          error.message,
-          poolData
-        );
-      }
-    }
-  }
+  const poolResults = await Promise.all(
+    CHAINS.map((chain, chainIndex) =>
+      processChain(chain, apyDataResults[chainIndex])
+    )
+  );
+  const pools = poolResults.flat();
 
   // Final filter to ensure no pools with zero or invalid TVL
   return pools.filter((pool) => pool.tvlUsd > 0 && Number.isFinite(pool.tvlUsd));

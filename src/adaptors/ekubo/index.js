@@ -1,14 +1,25 @@
 const utils = require('../utils');
 const { chunk } = require('lodash');
+const sdk = require('@defillama/sdk');
 
 const API_URL = 'https://prod-api.ekubo.org';
 const ETHEREUM_CHAIN_ID = '0x1';
 const STARKNET_CHAIN_ID = '0x534e5f4d41494e';
+const ROBINHOOD_CHAIN_ID = '0x1237';
+const ROBINHOOD_SDK_CHAIN = 'robinhood';
+const VE33_ADDRESS = '0xd18685a514e59b06d59824e16db07e73345d9953';
+const VE33_DATA_FETCHER_ADDRESS = '0x61f03754b1c7a7f0e584fd8869c00ba898ab888d';
+const STONX_ADDRESS = '0x570c5aa79c798e7a418412cc8399ae5bcce570c5';
 const MIN_TVL_USD = 10000;
 const TOP_POOL_REQUEST_CONCURRENCY = 5;
 const MAX_TOP_POOL_FAILURES = 3;
 const Q128 = 1n << 128n;
 const Q64 = 1n << 64n;
+const Q32 = 1n << 32n;
+const SECONDS_PER_DAY = 86400n;
+
+const GET_EMISSION_STATE_ABI =
+  'function getEmissionState() view returns (tuple(uint64 currentTimestamp, uint160 currentEmissionRate, uint256 totalRemainingEmissions, tuple(uint64 time, int256 emissionRateDelta, uint160 emissionRateAfter)[] futureEmissionRateChanges) state)';
 
 const LEGACY_STARKNET_POOL_IDS_BY_CANONICAL_ID = {
   'ekubo-0x534e5f4d41494e-0x5dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b-0x01002120c2f49c83a9d777123a4061cd371cfc24fb40cddd9bd8450ce3f464ac':
@@ -116,6 +127,11 @@ const CHAINS = [
     normalizedChainId: normalizeChainId(STARKNET_CHAIN_ID),
     chain: 'starknet',
   },
+  {
+    chainId: ROBINHOOD_CHAIN_ID,
+    normalizedChainId: normalizeChainId(ROBINHOOD_CHAIN_ID),
+    chain: 'robinhood',
+  },
 ];
 
 function normalizeTokenRef(chainId, address) {
@@ -179,8 +195,7 @@ function formatFeePercent(chainId, fee) {
     normalizeChainId(chainId) === normalizeChainId(STARKNET_CHAIN_ID)
       ? Q128
       : Q64;
-  const scaledPercent =
-    (BigInt(fee) * 10000n + denominator / 2n) / denominator;
+  const scaledPercent = (BigInt(fee) * 10000n + denominator / 2n) / denominator;
   const whole = scaledPercent / 100n;
   const fraction = (scaledPercent % 100n).toString().padStart(2, '0');
 
@@ -214,7 +229,8 @@ function getAmountUsd(token, amount) {
   if (!token?.usd_price) return 0;
 
   return (
-    (token.usd_price * Number(amount || 0)) / Math.pow(10, Number(token.decimals))
+    (token.usd_price * Number(amount || 0)) /
+    Math.pow(10, Number(token.decimals))
   );
 }
 
@@ -224,7 +240,9 @@ function getLiquidityUsd(token0, token1, amount0, amount1) {
 
 function isCampaignActive(campaign, now) {
   const startTime = new Date(campaign.startTime).getTime();
-  const endTime = campaign.endTime ? new Date(campaign.endTime).getTime() : Infinity;
+  const endTime = campaign.endTime
+    ? new Date(campaign.endTime).getTime()
+    : Infinity;
 
   return startTime <= now && now < endTime;
 }
@@ -236,7 +254,8 @@ function buildCampaignRewards(campaigns, tokenByKey) {
   for (const campaign of campaigns) {
     if (!isCampaignActive(campaign, now)) continue;
 
-    const rewardToken = tokenByKey[normalizeTokenRef(campaign.chain_id, campaign.rewardToken)];
+    const rewardToken =
+      tokenByKey[normalizeTokenRef(campaign.chain_id, campaign.rewardToken)];
     if (!rewardToken?.usd_price) continue;
 
     for (const pair of campaign.pairs) {
@@ -272,34 +291,160 @@ function buildCampaignRewards(campaigns, tokenByKey) {
   return rewardsByPair;
 }
 
+async function getVe33Data(normalizedChainId) {
+  if (normalizedChainId !== normalizeChainId(ROBINHOOD_CHAIN_ID)) return null;
+
+  let poolsById;
+  let totalVoteWeight;
+  try {
+    const poolsResponse = await utils.getData(
+      `${API_URL}/ve33/${VE33_ADDRESS}/pools?chainId=${normalizedChainId}&pageSize=200`
+    );
+    poolsById = new Map(
+      poolsResponse.data.map((pool) => [BigInt(pool.pool_id).toString(), pool])
+    );
+    totalVoteWeight = BigInt(poolsResponse.total_vote_weight);
+  } catch (error) {
+    console.error(
+      `Ekubo ve33 pool fetch failed for chain ${normalizedChainId}: ${error.message}`
+    );
+    return null;
+  }
+
+  let currentEmissionRate = null;
+  try {
+    const { output: emissionState } = await sdk.api.abi.call({
+      target: VE33_DATA_FETCHER_ADDRESS,
+      abi: GET_EMISSION_STATE_ABI,
+      chain: ROBINHOOD_SDK_CHAIN,
+    });
+    currentEmissionRate = BigInt(emissionState.currentEmissionRate);
+  } catch (error) {
+    console.error(
+      `Ekubo ve33 emission-state fetch failed for chain ${normalizedChainId}: ${error.message}`
+    );
+  }
+
+  return { poolsById, totalVoteWeight, currentEmissionRate };
+}
+
+function getVe33Reward(ve33Data, poolInfo, stonxToken, tvlUsd) {
+  if (
+    !ve33Data ||
+    ve33Data.currentEmissionRate === null ||
+    !stonxToken?.usd_price ||
+    !tvlUsd
+  )
+    return null;
+
+  const ve33Pool = ve33Data.poolsById.get(BigInt(poolInfo.pool_id).toString());
+  if (!ve33Pool) return null;
+
+  const projectedEmissions =
+    ve33Data.totalVoteWeight === 0n
+      ? 0n
+      : (ve33Data.currentEmissionRate *
+          SECONDS_PER_DAY *
+          BigInt(ve33Pool.pool_total_vote_weight)) /
+        (Q32 * ve33Data.totalVoteWeight);
+  const dailyRewardUsd = getAmountUsd(stonxToken, projectedEmissions);
+
+  return {
+    apyReward: (dailyRewardUsd * 365 * 100) / tvlUsd,
+    ve33Pool,
+  };
+}
+
+function isVe33Pool(poolInfo) {
+  return (
+    poolInfo.extension !== undefined &&
+    BigInt(poolInfo.extension) === BigInt(VE33_ADDRESS)
+  );
+}
+
+function buildVe33VoterPools(ve33Data, tokenByAddr) {
+  if (!ve33Data) return [];
+
+  const chainId = ROBINHOOD_CHAIN_ID;
+  const stonxToken = tokenByAddr[normalizeTokenRef(chainId, STONX_ADDRESS)];
+  if (!stonxToken?.usd_price) return [];
+
+  return [...ve33Data.poolsById.values()]
+    .map((pool) => {
+      const token0 = tokenByAddr[normalizeTokenRef(chainId, pool.token0)];
+      const token1 = tokenByAddr[normalizeTokenRef(chainId, pool.token1)];
+      if (!token0 || !token1) return null;
+
+      const voteWeightUsd = getAmountUsd(
+        stonxToken,
+        pool.pool_total_vote_weight
+      );
+      if (voteWeightUsd < MIN_TVL_USD) return null;
+
+      const voterFeesUsd = getLiquidityUsd(
+        token0,
+        token1,
+        pool.ve33_fees0_24h,
+        pool.ve33_fees1_24h
+      );
+      const rewardTokens = [
+        BigInt(pool.ve33_fees0_24h) > 0n ? token0.address : null,
+        BigInt(pool.ve33_fees1_24h) > 0n ? token1.address : null,
+      ]
+        .filter(Boolean)
+        .map((address) => formatTokenAddress(chainId, address));
+
+      return {
+        pool: `ekubo-vestonx-${formatNumericHex(pool.pool_id, 64)}`,
+        chain: utils.formatChain('robinhood'),
+        project: 'ekubo',
+        symbol: 'veSTONX',
+        underlyingTokens: [formatTokenAddress(chainId, STONX_ADDRESS)],
+        tvlUsd: voteWeightUsd,
+        apyReward: (voterFeesUsd * 365 * 100) / voteWeightUsd,
+        rewardTokens,
+        poolMeta: `${token0.symbol}-${token1.symbol} voter fees`,
+        url: `https://ekubo.org/evm/STONX/vote?pool=${encodeURIComponent(
+          pool.pool_key_id
+        )}`,
+      };
+    })
+    .filter(Boolean);
+}
+
 async function getChainData({ normalizedChainId }) {
   const query = `chainId=${encodeURIComponent(normalizedChainId)}`;
 
-  const [tokens, pairData, campaigns] = await Promise.all([
+  const [tokens, pairData, campaigns, ve33Data] = await Promise.all([
     utils.getData(`${API_URL}/tokens?${query}&pageSize=10000`),
-    utils.getData(`${API_URL}/overview/pairs?${query}&minTvlUsd=${MIN_TVL_USD}`),
+    utils.getData(
+      `${API_URL}/overview/pairs?${query}&minTvlUsd=${MIN_TVL_USD}`
+    ),
     utils.getData(`${API_URL}/campaigns?${query}`),
+    getVe33Data(normalizedChainId),
   ]);
 
   const topPoolEntries = [];
   let topPoolFailureCount = 0;
-  for (const pairsBatch of chunk(pairData.topPairs, TOP_POOL_REQUEST_CONCURRENCY)) {
+  for (const pairsBatch of chunk(
+    pairData.topPairs,
+    TOP_POOL_REQUEST_CONCURRENCY
+  )) {
     const batchEntries = await Promise.all(
       pairsBatch.map(async (pair) => {
         const pairKey = getPairKey(pair.chain_id, pair.token0, pair.token1);
         try {
           const pools = await utils.getData(
-            `${API_URL}/pair/${encodeURIComponent(normalizedChainId)}/${encodeURIComponent(
-              pair.token0
-            )}/${encodeURIComponent(pair.token1)}/pools?minTvlUsd=${MIN_TVL_USD}`
+            `${API_URL}/pair/${encodeURIComponent(
+              normalizedChainId
+            )}/${encodeURIComponent(pair.token0)}/${encodeURIComponent(
+              pair.token1
+            )}/pools?minTvlUsd=${MIN_TVL_USD}`
           );
           const topPools = pools?.topPools || [];
           if (topPools.length === 0) return null;
 
-          return [
-            pairKey,
-            topPools,
-          ];
+          return [pairKey, topPools];
         } catch (error) {
           console.error(
             `Ekubo top pool fetch failed for chain ${normalizedChainId} pair ${pairKey}: ${error.message}`
@@ -323,10 +468,14 @@ async function getChainData({ normalizedChainId }) {
   }
 
   return {
+    normalizedChainId,
     tokens,
     pairs: pairData.topPairs,
-    topPoolsByPair: new Map(topPoolEntries.filter(([, pools]) => pools?.length)),
+    topPoolsByPair: new Map(
+      topPoolEntries.filter(([, pools]) => pools?.length)
+    ),
     campaigns: campaigns.campaigns,
+    ve33Data,
   };
 }
 
@@ -345,8 +494,13 @@ async function apy() {
     results.flatMap((result) => result.campaigns),
     tokenByAddr
   );
+  const ve33DataByChainId = new Map(
+    results
+      .filter((result) => result.ve33Data)
+      .map((result) => [result.normalizedChainId, result.ve33Data])
+  );
 
-  return results
+  const liquidityPools = results
     .flatMap((result) => result.pairs)
     .map((p) => {
       const chainId = p.chain_id;
@@ -357,7 +511,9 @@ async function apy() {
       if (!token0 || !token1) return;
       const campaignReward =
         campaignRewards.get(getPairKey(chainId, p.token0, p.token1)) || null;
-      const topPools = topPoolsByPair.get(getPairKey(chainId, p.token0, p.token1));
+      const topPools = topPoolsByPair.get(
+        getPairKey(chainId, p.token0, p.token1)
+      );
 
       if (!topPools?.length) return [];
 
@@ -385,7 +541,21 @@ async function apy() {
             topPool.depth1
           );
 
-          const apyBase = (feesUsd * 100 * 365) / (depthUsd || tvlUsd);
+          const ve33Data = ve33DataByChainId.get(normalizeChainId(chainId));
+          const ve33Pool = isVe33Pool(topPool);
+          const ve33Reward = getVe33Reward(
+            ve33Data,
+            topPool,
+            tokenByAddr[normalizeTokenRef(chainId, STONX_ADDRESS)],
+            tvlUsd
+          );
+          const apyBase = ve33Pool
+            ? 0
+            : (feesUsd * 100 * 365) / (depthUsd || tvlUsd);
+          const rewardTokens = new Set(campaignReward?.rewardTokens || []);
+          if (ve33Reward) {
+            rewardTokens.add(formatTokenAddress(chainId, STONX_ADDRESS));
+          }
 
           return {
             pool: getPoolId(chainId, topPool),
@@ -402,15 +572,22 @@ async function apy() {
             ],
             tvlUsd,
             apyBase,
-            apyReward: campaignReward?.apyReward || 0,
-            rewardTokens: campaignReward ? [...campaignReward.rewardTokens] : [],
+            apyReward:
+              (campaignReward?.apyReward || 0) + (ve33Reward?.apyReward || 0),
+            rewardTokens: [...rewardTokens],
             poolMeta: getPoolMeta(chainId, topPool),
             url: getPoolUrl(chainId, topPool),
           };
         })
         .filter(Boolean);
     })
-    .flat()
+    .flat();
+  const voterPools = buildVe33VoterPools(
+    ve33DataByChainId.get(normalizeChainId(ROBINHOOD_CHAIN_ID)),
+    tokenByAddr
+  );
+
+  return [...liquidityPools, ...voterPools]
     .filter((p) => p && utils.keepFinite(p))
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
 }

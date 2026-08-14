@@ -143,9 +143,10 @@ const updateWithLendingData = async (poolsInfo) => {
     stableBorrowData.map((item) => BigInt(item.totalAmount)),
     stableBorrowData.map((item) => BigInt(item.interestRate)),
   ];
-  const ltvs = loanPools.map(
-    (item) => (Number(item.collateralFactor) * Number(item.borrowFactor)) / 1e8
-  );
+  const ltvs = loanPools.map((item) => {
+    const borrowFactor = Number(item.borrowFactor);
+    return borrowFactor > 0 ? Number(item.collateralFactor) / borrowFactor : 0;
+  });
 
   poolsInfo.forEach((poolInfo, i) => {
     const { price, decimals } = poolInfo.meta;

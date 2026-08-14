@@ -149,19 +149,25 @@ const ABIS = {
  */
 const fetchLatestAPY = async (tokenSymbol) => {
   try {
-    const endpoint = `https://gw.yield.fi/vault/api/public/vaults/${tokenSymbol?.toLowerCase()}`;
+    // gw.yield.fi vault metrics stopped returning apy (always null/0),
+    // so read the latest entry from the apy history endpoint instead
+    const endpoint = `https://ctrl.yield.fi/t/apy/${tokenSymbol?.toLowerCase()}/apyHistory`;
 
     const response = await fetch(endpoint);
 
     const data = await response.json();
-    const _apy = data?.data?.vault?.metrics?.apy;
-    if (!_apy) {
+    const apyHistory = data?.apy_history;
+    if (!Array.isArray(apyHistory) || apyHistory.length === 0) {
       console.error(`No APY history data found for ${tokenSymbol}`);
       return 0;
     }
 
-    // Convert APY from decimal to percentage
-    const latestAPY = _apy * 100;
+    // First entry is the most recent, apy is already in percent
+    const latestAPY = Number(apyHistory[0].apy);
+    if (!Number.isFinite(latestAPY)) {
+      console.error(`Invalid APY value for ${tokenSymbol}:`, apyHistory[0].apy);
+      return 0;
+    }
     return parseFloat(latestAPY.toFixed(2));
   } catch (error) {
     console.error(`Error fetching APY for ${tokenSymbol}:`, error);

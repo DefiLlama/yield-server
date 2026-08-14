@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
-const chainIdToName = { 1: 'ethereum', 143: 'monad', 4114: 'citrea' };
+const chainIdToName = { 1: 'ethereum', 143: 'monad', 4114: 'citrea', 4663: 'robinhood' };
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const abis = {
@@ -213,9 +213,11 @@ const apy = async() => {
             const poolMeta = pointNames.length
                 ? `Earn ${pointNames.map((n) => n.replace(/\s*points?$/i, '')).join(', ')} Points`
                 : undefined;
+            const supplyCapUsd = Number(item.capacity) > 0 ? toUsd(item.capacity) : null;
 
             return {
                 pool: `${item.loan_address}-${chainName}`.toLowerCase(),
+                token: vaultAddress ?? null,
                 chain: utils.formatChain(chainName),
                 project: 'accountable',
                 symbol: item.asset_symbol,
@@ -223,6 +225,7 @@ const apy = async() => {
                 // credit vaults run ~fully lent, so the on-chain idle-liquidity
                 // figure is ~$0 and would hide them below DefiLlama's thresholds.
                 tvlUsd: item.tvl_in_usd ?? null,
+                ...(supplyCapUsd != null && { supplyCapUsd }),
                 apyBase: baseApy,
                 apyReward,
                 rewardTokens,

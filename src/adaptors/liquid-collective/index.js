@@ -43,8 +43,8 @@ const apy = async () => {
   const exchangeRate7d =
     _underlyingAssetAmount / sharesFromUnderlyingBalances[2].output;
 
-  const apyBase1d = (exchangeRateNow - exchangeRate1d) * 365 * 100;
-  const apyBase7d = ((exchangeRateNow - exchangeRate7d) / 7) * 365 * 100;
+  const apyBase1d = ((exchangeRateNow - exchangeRate1d) / exchangeRate1d) * 365 * 100;
+  const apyBase7d = ((exchangeRateNow - exchangeRate7d) / exchangeRate7d / 7) * 365 * 100;
 
   const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
   const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
@@ -68,7 +68,6 @@ const apy = async () => {
       apyBase7d,
       ...(exchangeRateNow > 0 && { pricePerShare: exchangeRateNow }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: token,
       isIntrinsicSource: true,
     },
   ];

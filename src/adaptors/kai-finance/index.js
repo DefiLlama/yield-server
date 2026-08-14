@@ -1,9 +1,5 @@
-const sdk = require('@defillama/sdk');
-const axios = require('axios');
 const utils = require('../utils');
 const BigNumber = require('bignumber.js');
-
-const RPC_URL = 'https://fullnode.mainnet.sui.io'
 
 const VAULTS = [
   {
@@ -64,32 +60,23 @@ async function getApyData() {
   const vaultIds = VAULTS.map(vault => vault.id);
   const coinTypes = VAULTS.map(vault => vault.coinType);
 
-  const [vaultsResponse, coinInfos] = await Promise.all([axios.post(RPC_URL, {
-    jsonrpc: "2.0",
-    id: 1,
-    method: "sui_multiGetObjects",
-    params: [
-      vaultIds,
-        {
-          showContent: true,
-        }
-      ]
-    }),
+  const [vaults, coinInfos] = await Promise.all([
+    utils.suiObjectFields(vaultIds),
     getCoinInfos(coinTypes)
   ]);
 
   const apyData = [];
-  for (let i = 0; i < vaultsResponse.data.result.length; i++) {
+  for (let i = 0; i < vaults.length; i++) {
     const vaultInfo = VAULTS[i];
-    const vaultResponse = vaultsResponse.data.result[i];
     const coinInfo = coinInfos[i]
 
-    const vaultData = vaultResponse.data.content.fields;
-    const tlp = vaultData.time_locked_profit.fields;
+    const vaultData = vaults[i];
+    if (!vaultData || !coinInfo) continue;
+    const tlp = vaultData.time_locked_profit;
 
     let tvl = BigNumber(vaultData.free_balance)
-    for (const strategy of vaultData.strategies.fields.contents) {
-      tvl = tvl.plus(BigNumber(strategy.fields.value.fields.borrowed))
+    for (const strategy of vaultData.strategies.contents) {
+      tvl = tvl.plus(BigNumber(strategy.value.borrowed))
     }
     const tvlUsd = tvl.div(10 ** coinInfo.decimals).times(coinInfo.price).toNumber();
 

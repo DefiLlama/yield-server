@@ -3,7 +3,7 @@ const utils = require('../utils');
 const axios = require('axios');
 
 const HYDRATION_GRAPHQL_URL =
-  'https://orca-main-aggr-indx.indexer.hydration.cloud/graphql';
+  'https://unified-main-aggr-indx.indexer.hydration.cloud/graphql';
 
 // CoinGecko ID mapping for underlying token resolution and pricing
 const cgMapping = {

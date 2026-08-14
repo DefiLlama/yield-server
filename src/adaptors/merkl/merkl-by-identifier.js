@@ -1,4 +1,4 @@
-const { merklGet } = require('./merkl-client');
+const { merklGet, getRewardApr } = require('./merkl-client');
 
 // Chain ID mapping for Merkl API
 const CHAIN_IDS = {
@@ -30,6 +30,7 @@ const CHAIN_IDS = {
   berachain: 80094,
   polygon_zkevm: 1101,
   hyperevm: 999,
+  robinhood: 4663,
 };
 
 /**
@@ -56,7 +57,8 @@ const getMerklRewardsByIdentifier = async (
     if (!data || data.length === 0) return null;
 
     const opportunity = data[0];
-    if (!opportunity.apr || opportunity.apr <= 0) return null;
+    const apyReward = getRewardApr(opportunity);
+    if (!apyReward || apyReward <= 0) return null;
 
     const rewardTokens =
       opportunity.rewardsRecord?.breakdowns
@@ -69,7 +71,7 @@ const getMerklRewardsByIdentifier = async (
     }
 
     return {
-      apyReward: opportunity.apr, // Merkl returns APR as percentage
+      apyReward, // Merkl returns APR as percentage
       rewardTokens: [...new Set(rewardTokens)],
     };
   } catch (e) {

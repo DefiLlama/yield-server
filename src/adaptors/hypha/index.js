@@ -1,81 +1,65 @@
+// WINDING DOWN -- GoGoPool / Hypha operations end 2026-08-15: no new minipools
+// and ggAVAX (stAVAX on their site) stops accruing yield, so apyBase decays to
+// 0 while TVL lingers. Add { id: '3179', slug: 'hypha' } to src/utils/exclude.js
+// on that date. Withdrawals stay open until their site shuts down 2026-12-31.
 const utils = require('../utils');
-const axios = require('axios');
-const { ethers } = require('ethers');
+const sdk = require('@defillama/sdk');
 
-const provider = new ethers.providers.JsonRpcProvider(
-  'https://api.avax.network/ext/bc/C/rpc'
-);
 const GGAVAX_CONTRACT = '0xA25EaF2906FA1a3a13EdAc9B9657108Af7B703e3';
+const WAVAX_CONTRACT = '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7';
 
-const totalAssetsAbi = [
-  {
-    inputs: [],
-    name: 'totalAssets',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-];
-
-async function fetchTotalAssets() {
-  try {
-    const contract = new ethers.Contract(
-      GGAVAX_CONTRACT,
-      totalAssetsAbi,
-      provider
-    );
-    const totalAssets = await contract.totalAssets();
-    return ethers.utils.formatUnits(totalAssets, 18);
-  } catch (error) {
-    console.error('Error in fetching total assets:', error);
-  }
-}
-
-const avaxPrice = async () => {
-  try {
-    const response = await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd'
-    );
-    return response.data['avalanche-2'].usd;
-  } catch (error) {
-    console.error('Error fetching price data', error);
-    return null;
-  }
-};
-
-const fetchData = async () => {
-  const apiUrl = 'https://api.gogopool.com/metrics';
-  const avaxUSD = await avaxPrice();
-  const avaxLstSide = await fetchTotalAssets();
-
-  const data = await utils.getData(apiUrl);
-
-  const tvlUsd = parseFloat(avaxLstSide) * avaxUSD;
-
+const exchangeRate = async (block) => {
+  const [totalAssets, totalSupply] = await Promise.all([
+    sdk.api.abi.call({
+      target: GGAVAX_CONTRACT,
+      abi: 'uint256:totalAssets',
+      chain: 'avax',
+      block,
+    }),
+    sdk.api.abi.call({
+      target: GGAVAX_CONTRACT,
+      abi: 'erc20:totalSupply',
+      chain: 'avax',
+      block,
+    }),
+  ]);
   return {
-    apyBase: Number(data.ggavax_apy),
-    tvlUsd: tvlUsd,
+    totalAssets: Number(totalAssets.output) / 1e18,
+    rate: Number(totalAssets.output) / Number(totalSupply.output),
   };
 };
 
+const avaxPrice = async () => {
+  const priceKey = `avax:${WAVAX_CONTRACT}`;
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
+  return data.coins[priceKey]?.price;
+};
+
+const annualise = (rateNow, ratePrior, days) =>
+  rateNow > ratePrior ? (Math.pow(rateNow / ratePrior, 365 / days) - 1) * 100 : 0;
+
 const topLvl = async () => {
-  const { apyBase, tvlUsd } = await fetchData();
+  const now = Math.floor(Date.now() / 1000);
+  const [, block7d] = await utils.getBlocksByTime(
+    [now, now - 7 * 86400],
+    'avax'
+  );
+
+  const [current, prior7d, avaxUsd] = await Promise.all([
+    exchangeRate(),
+    exchangeRate(block7d),
+    avaxPrice(),
+  ]);
+
   return {
-    pool: '0xA25EaF2906FA1a3a13EdAc9B9657108Af7B703e3',
+    pool: GGAVAX_CONTRACT,
     chain: 'Avalanche',
     project: 'hypha',
     symbol: 'ggAVAX',
-    tvlUsd: tvlUsd,
-    apyBase: apyBase,
-    apyReward: 0,
-    rewardTokens: [],
-    underlyingTokens: ['0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7'],
+    tvlUsd: current.totalAssets * avaxUsd,
+    apyBase: annualise(current.rate, prior7d.rate, 7),
+    pricePerShare: current.rate,
+    underlyingTokens: [WAVAX_CONTRACT],
   };
 };
 

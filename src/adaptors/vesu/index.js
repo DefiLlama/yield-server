@@ -44,10 +44,8 @@ const poolsFunction = async () => {
       const availableBorrowUsd = borrowable
         ? Math.max(Math.min(tvlUsd, borrowHeadroomUsd), 0)
         : 0;
-      const apyBase = sumRates(
-        toPercent(stats.supplyApy),
-        toPercent(stats.lstApr)
-      );
+      const apyBase = toPercent(stats.supplyApy);
+
       const apyReward = sumRates(
         toPercent(stats.defiSpringSupplyApr),
         toPercent(stats.btcFiSupplyApr)

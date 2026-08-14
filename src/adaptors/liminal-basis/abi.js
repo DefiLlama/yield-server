@@ -1,4 +1,5 @@
 module.exports = {
+  navUpdated: 'event NAVUpdated(uint256 newNAV, uint256 timestamp)',
   getNAV: {
     inputs: [],
     name: 'getNAV',

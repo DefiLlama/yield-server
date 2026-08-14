@@ -104,7 +104,13 @@ async function getPoolsData() {
       ? tokenAddresses.map((address) => `${chain}:${address}`)
       : tokenAddresses;
 
-    const prices = (await utils.getPriceApiData(`/prices/current/${coins}`)).coins;
+    const prices = {};
+    for (const coinsChunk of utils.chunkArray(coins, 50)) {
+      const { coins: chunkPrices } = await utils.getPriceApiData(
+        `/prices/current/${coinsChunk.join(',')}`
+      );
+      Object.assign(prices, chunkPrices);
+    }
 
     function addLendPools() {
       const formattedLendingPools = formatLendingPoolwithRewards(

@@ -1,5 +1,14 @@
 const S3 = require('aws-sdk/clients/s3');
 
+const r2 = () =>
+  new S3({
+    endpoint: `https://${process.env.R2_ENDPOINT}`,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    signatureVersion: 'v4',
+    region: 'auto',
+  });
+
 module.exports.writeToS3 = async (bucket, key, body) => {
   const params = {
     Bucket: bucket,
@@ -38,12 +47,11 @@ module.exports.storeAPIResponse = (
   body,
   expires = next21Minutedate()
 ) => {
-  return new S3()
+  return r2()
     .upload({
       Bucket: bucket,
       Key: filename,
       Body: JSON.stringify(body),
-      ACL: 'public-read',
       Expires: expires,
       ContentType: 'application/json',
     })

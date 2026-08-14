@@ -1,5 +1,6 @@
 exports.networks = {
   1: 'ethereum',
+  100: 'gnosis',
   137: 'polygon',
   10: 'optimism',
   42161: 'arbitrum',
@@ -17,6 +18,7 @@ exports.networks = {
   5000: 'mantle',
   9745: 'plasma',
   747474: 'katana',
+  4663: 'robinhood',
 };
 
 // Chain name aliases for pool-matching helpers. Some protocols use a
@@ -25,5 +27,6 @@ exports.networks = {
 // Helpers that index Merkl opportunities by chain should index under
 // every alias so callers can match using whichever name they prefer.
 exports.chainAliases = {
+  gnosis: ['gnosis', 'xdai'],
   hyperevm: ['hyperevm', 'hyperliquid'],
 };

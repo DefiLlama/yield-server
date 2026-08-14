@@ -71,7 +71,15 @@ const VESTING_APY_VAULTS = {
     plasma: [],
     avax: [],
     katana: [],
+    hyperliquid: [],
+    robinhood: [],
 };
+// DefiLlama chain name -> ipor-abi (addresses.json) chain name
+const IPOR_CHAIN_NAME = {
+    avax: 'avalanche',
+    hyperliquid: 'hyperevm',
+};
+const toIporChainName = (chain) => IPOR_CHAIN_NAME[chain] || chain;
 const CHAIN_CONFIG = {
     ethereum: {
         chainId: 1
@@ -99,16 +107,18 @@ const CHAIN_CONFIG = {
     },
     katana: {
         chainId: 747474
+    },
+    hyperliquid: {
+        chainId: 999
+    },
+    robinhood: {
+        chainId: 4663
     }
 };
 
-async function getChainData(chain) {
+async function getAllVaults() {
     const allVaultsRes = await axios.get(FUSION_API_URL);
-    const chainVaults = allVaultsRes.data.vaults.filter(
-        vault => vault.chainId === CHAIN_CONFIG[chain].chainId
-    );
-
-    return chainVaults;
+    return allVaultsRes.data.vaults;
 }
 
 async function getPublicVaults() {
@@ -134,7 +144,7 @@ async function buildPool(vault) {
     );
 
     const chain = chainConfig[0];
-    const iporChainName = chain === "avax" ? 'avalanche' : chain;
+    const iporChainName = toIporChainName(chain);
     const chainData = chainConfig[1];
     const url = `https://app.ipor.io/fusion/${iporChainName}/${vault.address.toLowerCase()}`;
 
@@ -154,18 +164,19 @@ async function buildPool(vault) {
 
 const apy = async() => {
     const publicVaults = await getPublicVaults();
-    const chainsData = await Promise.all(
-        Object.entries(CHAIN_CONFIG).map(async([chain, config]) => ({
-            chain,
-            config,
-            data: await getChainData(chain)
-        }))
-    );
+    // fetch the full vault list once and filter per chain; fetching it per chain
+    // (11 parallel copies of a multi-MB payload) OOMs the 1GB lambda
+    const allVaults = await getAllVaults();
+    const chainsData = Object.entries(CHAIN_CONFIG).map(([chain, config]) => ({
+        chain,
+        config,
+        data: allVaults.filter(vault => vault.chainId === config.chainId)
+    }));
 
     const pools = await Promise.all(
         chainsData.flatMap(({ chain, data }) =>
             data
-            .filter(vault => publicVaults.get(chain)?.includes(vault.address.toLowerCase()))
+            .filter(vault => publicVaults.get(toIporChainName(chain))?.includes(vault.address.toLowerCase()))
             .map(vault => buildPool(vault))
         )
     );

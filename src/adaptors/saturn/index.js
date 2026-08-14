@@ -1,9 +1,9 @@
-const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const SUSDAT_ADDRESS = '0xD166337499E176bbC38a1FBd113Ab144e5bd2Df7';
 const USDAT_ADDRESS = '0x23238f20b894f29041f48D88eE91131C395Aaa71';
+const STRC_PRICE_ORACLE_ADDRESS = '0x5f7eCD0D045c393da6cb6c933c671AC305A871BF';
 
 const abi = {
   totalAssets: {
@@ -13,10 +13,23 @@ const abi = {
     stateMutability: 'view',
     type: 'function',
   },
-  previewRedeem: {
+  convertToAssets: {
     inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
-    name: 'previewRedeem',
+    name: 'convertToAssets',
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  vestingAmount: 'uint256:vestingAmount',
+  usdatBalance: 'uint256:usdatBalance',
+  vestingPeriod: 'uint256:vestingPeriod',
+  getStrcPrice: {
+    inputs: [],
+    name: 'getPrice',
+    outputs: [
+      { internalType: 'uint256', name: '', type: 'uint256' },
+      { internalType: 'uint8', name: '', type: 'uint8' },
+    ],
     stateMutability: 'view',
     type: 'function',
   },
@@ -24,50 +37,88 @@ const abi = {
 
 const ONE_E18 = '1000000000000000000';
 
+const getSaturnApy = ({
+  totalAssets,
+  vestingAmount,
+  usdatBalance,
+  strcPrice,
+  vestingPeriod,
+}) => {
+  const totalAssetsNum = Number(totalAssets);
+  const vestingAmountNum = Number(vestingAmount);
+  const usdatBalanceNum = Number(usdatBalance);
+  const vestingPeriodDays = Number(vestingPeriod) / 86400;
+
+  if (
+    totalAssetsNum <= 0 ||
+    vestingAmountNum <= 0 ||
+    strcPrice <= 0 ||
+    vestingPeriodDays <= 0
+  ) {
+    return 0;
+  }
+
+  const vestingYield =
+    (vestingAmountNum * strcPrice * 365 * 100) /
+    (totalAssetsNum * vestingPeriodDays);
+  const strcShare = Math.max(totalAssetsNum - usdatBalanceNum, 0) / totalAssetsNum;
+  const discountYield =
+    strcPrice < 100 ? ((100 - strcPrice) / strcPrice) * strcShare * 100 : 0;
+
+  return vestingYield + discountYield;
+};
+
 const main = async () => {
-  const now = Math.floor(Date.now() / 1000);
-  const timestamp1dAgo = now - 86400;
-  const timestamp7dAgo = now - 86400 * 7;
-
-  const totalAssets = await sdk.api.abi.call({
-    target: SUSDAT_ADDRESS,
-    chain: 'ethereum',
-    abi: abi.totalAssets,
-  });
-  const block1dAgo = (await utils.getPriceApiData(`/block/ethereum/${timestamp1dAgo}`)).height;
-  const block7dAgo = (await utils.getPriceApiData(`/block/ethereum/${timestamp7dAgo}`)).height;
-
-  const [rateNow, rate1dAgo, rate7dAgo] = await Promise.all([
+  const [
+    totalAssets,
+    rateNow,
+    vestingAmount,
+    usdatBalance,
+    vestingPeriod,
+    strcPriceData,
+  ] = await Promise.all([
     sdk.api.abi.call({
       target: SUSDAT_ADDRESS,
-      abi: abi.previewRedeem,
+      chain: 'ethereum',
+      abi: abi.totalAssets,
+    }),
+    sdk.api.abi.call({
+      target: SUSDAT_ADDRESS,
+      abi: abi.convertToAssets,
       params: [ONE_E18],
       chain: 'ethereum',
     }),
     sdk.api.abi.call({
       target: SUSDAT_ADDRESS,
-      abi: abi.previewRedeem,
-      params: [ONE_E18],
       chain: 'ethereum',
-      block: block1dAgo,
+      abi: abi.vestingAmount,
     }),
     sdk.api.abi.call({
       target: SUSDAT_ADDRESS,
-      abi: abi.previewRedeem,
-      params: [ONE_E18],
       chain: 'ethereum',
-      block: block7dAgo,
+      abi: abi.usdatBalance,
+    }),
+    sdk.api.abi.call({
+      target: SUSDAT_ADDRESS,
+      chain: 'ethereum',
+      abi: abi.vestingPeriod,
+    }),
+    sdk.api.abi.call({
+      target: STRC_PRICE_ORACLE_ADDRESS,
+      chain: 'ethereum',
+      abi: abi.getStrcPrice,
     }),
   ]);
 
-  const apyBase =
-    rate1dAgo.output > 0
-      ? ((rateNow.output / rate1dAgo.output) ** 365 - 1) * 100
-      : 0;
-  const apyBase7d =
-    rate7dAgo.output > 0
-      ? ((rateNow.output / rate7dAgo.output) ** (365 / 7) - 1) * 100
-      : 0;
+  const [strcPriceRaw, strcPriceDecimals] = strcPriceData.output;
+  const strcPrice = Number(strcPriceRaw) / 10 ** Number(strcPriceDecimals);
+  const apyBase = getSaturnApy({
+    totalAssets: totalAssets.output,
+    vestingAmount: vestingAmount.output,
+    usdatBalance: usdatBalance.output,
+    strcPrice,
+    vestingPeriod: vestingPeriod.output,
+  });
 
   const priceKey = `ethereum:${USDAT_ADDRESS}`;
   const usdatPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
@@ -82,7 +133,6 @@ const main = async () => {
       symbol: 'sUSDat',
       tvlUsd,
       apyBase,
-      apyBase7d,
       // USDat is 6-dec; sUSDat shares are 18-dec.
       ...(Number(rateNow.output) / 1e6 > 0 && { pricePerShare: Number(rateNow.output) / 1e6 }),
       underlyingTokens: [USDAT_ADDRESS],

@@ -35,6 +35,19 @@ const Addresses = {
     jrUSDat: '0x011e55d2b28306458e37Ca7E997C879BB25A455D',
     underlying: '0x23238f20b894f29041f48D88eE91131C395Aaa71', // USDat
   },
+  // [NEW] Figure/PRIME market
+  figure: {
+    cdo: '0xff408b4843CDD4a33CD49EB2aBe057fE8D71C234',
+    srPRIME: '0x35bFF778d3fc53a561486BF28e761428499232Eb',
+    jrPRIME: '0xF4C91F24E20EE8ed5eda905E501A1136334C2F27',
+    underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC (verified on-chain)
+  },
+  nestopal: {
+    cdo: '0xaE212D8515BA65C719f23dBad6bF73B74d4e4edE',
+    srNOPAL: '0x8a646Edc4633ADBA5Ec87DedaF3Af958e268FE96',
+    jrNOPAL: '0x1b2b8cFEF0b7B1Fad216b55fefeEb0c3349Da141',
+    underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
+  },
 };
 
 const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
@@ -52,14 +65,23 @@ const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
 };
 
 const getTokenPrice = async (tokenAddress) => {
-try {
+  try {
     const priceKey = `ethereum:${tokenAddress}`;
     const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
-    return data.coins[priceKey].price;
+    return data.coins[priceKey]?.price ?? null;
   } catch (error) {
-    console.error(`Error fetching price for ${tokenAddress}:`, error);
-    throw error;
+    console.warn(`Price not available for ${tokenAddress}, will use totalAssets fallback`);
+    return null;
   }
+};
+
+const getTotalAssets = async (tokenAddress, chain = 'ethereum') => {
+  const { output } = await sdk.api.abi.call({
+    target: tokenAddress,
+    abi: 'function totalAssets() view returns (uint256)',
+    chain,
+  });
+  return output;
 };
 
 const getAprs = async (cdoAddress, chain = 'ethereum') => {
@@ -82,15 +104,25 @@ const getAprs = async (cdoAddress, chain = 'ethereum') => {
   }
 };
 
-async function loadPool(tranche, symbol) {
+async function loadPool(tranche, symbol, overrides = {}) {
   const cdo = Addresses[tranche].cdo;
   const vault = Addresses[tranche][symbol];
+  const underlying = Addresses[tranche].underlying;
 
-  const [totalSupply, price, aprs] = await Promise.all([
+  const [totalSupply, price, aprs, totalAssetsRaw, underlyingPrice] = await Promise.all([
     getTotalSupply(vault, 'ethereum'),
     getTokenPrice(vault),
     getAprs(cdo),
+    getTotalAssets(vault, 'ethereum'),
+    getTokenPrice(underlying),
   ]);
+
+  // Use vault token price if available, otherwise fall back to
+  // totalAssets * underlying price (accurate for ERC4626 stablecoin vaults)
+  const decimals = ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', '0xCc5C22C7A6BCC25e66726AeF011dDE74289ED203'].includes(underlying) ? 6 : 18;
+  const tvlUsd = price
+    ? totalSupply * price
+    : (totalAssetsRaw / (10 ** decimals)) * (underlyingPrice ?? 1);
 
   const apy = utils.aprToApy(symbol.startsWith('sr') ? aprs.srt : aprs.jrt);
   return {
@@ -98,9 +130,10 @@ async function loadPool(tranche, symbol) {
     symbol: symbol,
     chain: 'ethereum',
     project: 'strata-markets',
-    tvlUsd: totalSupply * price,
+    tvlUsd,
     apyBase: apy,
-    underlyingTokens: [Addresses[tranche].underlying],
+    underlyingTokens: [underlying],
+    ...overrides,
   };
 }
 
@@ -115,8 +148,12 @@ const apy = async () => {
       loadPool('mhyper', 'jrmHYPER'),
       loadPool('mm1usd', 'srmM1USD'),
       loadPool('mm1usd', 'jrmM1USD'),
-      loadPool('saturn', 'srUSDat'),
+      loadPool('saturn', 'srUSDat', { poolMeta: 'fixed-rate' }),// [FIX] constant APY by design
       loadPool('saturn', 'jrUSDat'),
+      loadPool('figure', 'srPRIME'),
+      loadPool('figure', 'jrPRIME'),
+      loadPool('nestopal', 'srNOPAL'),
+      loadPool('nestopal', 'jrNOPAL'),
     ]);
   } catch (error) {
     console.error('Error fetching APYs:', error);
@@ -127,5 +164,5 @@ const apy = async () => {
 module.exports = {
   protocolId: '6873',
   apy,
-  url: 'https://strata.money/',
+  url: 'https://strata.markets/',
 };

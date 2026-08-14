@@ -11,6 +11,7 @@ module.exports = {
   AVAX_RPC: process.env.AVAX_RPC,
   ARBITRUM_RPC: process.env.ARBITRUM_RPC,
   BASE_RPC: process.env.BASE_RPC,
+  BSC_RPC: process.env.BSC_RPC,
   TRON_RPC: process.env.TRON_RPC,
   TVL_SPIKE_WEBHOOK: process.env.TVL_SPIKE_WEBHOOK,
   NEW_YIELDS_WEBHOOK: process.env.NEW_YIELDS_WEBHOOK,
@@ -22,9 +23,14 @@ module.exports = {
   GRAPH_API_KEY: process.env.GRAPH_API_KEY,
   LLAMA_INDEXER_V2_ENDPOINT: process.env.LLAMA_INDEXER_V2_ENDPOINT,
   LLAMA_INDEXER_V2_API_KEY: process.env.LLAMA_INDEXER_V2_API_KEY,
+  // Cloudflare R2
+  R2_ENDPOINT: process.env.R2_ENDPOINT,
+  R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
+  R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
   // DB
   DATABASE_URL: process.env.DATABASE_URL,
   OSMOSIS_API_KEY: process.env.OSMOSIS_API_KEY,
+  SAUCERSWAP_API_KEY: process.env.SAUCERSWAP_API_KEY,
   DUNE_API_KEY: process.env.DUNE_API_KEY,
   HYPERLIQUID_RPC: process.env.HYPERLIQUID_RPC,
   PLASMA_RPC: process.env.PLASMA_RPC,

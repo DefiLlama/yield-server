@@ -119,6 +119,7 @@ const main = async () => {
   if (!stablecoins.includes('ustb')) stablecoins.push('ustb');
   if (!stablecoins.includes('usdn')) stablecoins.push('usdn');
   if (!stablecoins.includes('aiusd')) stablecoins.push('aiusd');
+  if (!stablecoins.includes('usdm')) stablecoins.push('usdm');
 
   // get catgory data (we hardcode IL to true for options protocols)
   dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
@@ -374,6 +375,10 @@ const enrich = (pool, days, offsets) => {
 // 3: - more than 1 asset but same underlying assets
 const checkIlRisk = (el) => {
   const l1Token = ['btc', 'eth', 'avax', 'matic', 'eur', 'link', 'sushi'];
+  // tokens that merely CONTAIN an l1Token substring but are NOT correlated with it
+  // (independent governance/utility tokens). Without this, e.g. 'ethfi'.includes('eth')
+  // collapses ETHFI into the ETH family and mislabels ETHFI-ETH pools as ilRisk 'no'.
+  const notCorrelated = ['ethfi', 'sethfi', 'ethdydx', 'ethix'];
   const symbol = el.symbol.toLowerCase();
   const tokens = symbol.split('-');
 
@@ -392,6 +397,7 @@ const checkIlRisk = (el) => {
   } else {
     const elements = [];
     for (const t of tokens) {
+      if (notCorrelated.includes(t)) continue;
       for (const x of l1Token) {
         if (t.includes(x)) {
           elements.push(x);
