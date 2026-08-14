@@ -10,6 +10,9 @@ const VOTER = '0x4cF1c47B95031cD2bb1d102021D8Ede60392971C';
 const MINTER = '0x782355E7771A9Aa0834de4Ae981DCF3b7aeC11e6';
 const LUTE = '0xD1e861CC5Eee7eA88649206b74504D78CCD7AEeA';
 
+// Trailing zeros are trimmed, matching how fee tiers read elsewhere: 0.18%, 0.04%.
+const formatFee = (rate) => `${Number((rate * 100).toFixed(3))}%`;
+
 const SECONDS_PER_YEAR = 31536000;
 const EPOCH = 604800;
 const EPOCHS_PER_YEAR = 52;
@@ -37,6 +40,17 @@ const apy = async () => {
     multiCall('function getReserves() view returns (uint256,uint256,uint256)', pairs),
     multiCall('erc20:totalSupply', pairs),
   ]);
+
+  // Swap fees are per pair and differ between the stable and volatile curves.
+  const [feePrecisionRaw, pairFees] = await Promise.all([
+    call(PAIR_FACTORY, 'uint256:PRECISION'),
+    multiCall(
+      'function getFee(address, bool) view returns (uint256)',
+      pairs.map((pair, i) => ({ params: [pair, Boolean(stables[i])] })),
+      PAIR_FACTORY
+    ),
+  ]);
+  const feePrecision = Number(feePrecisionRaw) || 1;
 
   const tokens = [
     ...new Set([...token0s, ...token1s].filter(Boolean).map((a) => a.toLowerCase())),
@@ -158,7 +172,9 @@ const apy = async () => {
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
         symbol: `${meta[address0].symbol}-${meta[address1].symbol}`,
-        poolMeta: stables[i] ? 'Stable' : 'Volatile',
+        poolMeta: `${stables[i] ? 'Stable' : 'Volatile'}${
+          pairFees[i] == null ? '' : ` ${formatFee(Number(pairFees[i]) / feePrecision)}`
+        }`,
         tvlUsd,
         // Every pair routes its full swap fee to veLUTE voters, so liquidity
         // providers earn no trading fees and are compensated in LUTE emissions.
