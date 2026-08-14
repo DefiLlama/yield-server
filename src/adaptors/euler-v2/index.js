@@ -112,13 +112,16 @@ const parseAssetSymbol = (vaultSymbol) =>
   vaultSymbol.replace(/^e/, '').replace(/-\d+$/, '');
 
 const toNumber = (value) => Number(value?.toString?.() ?? value);
-
-// Euler lens returns resolved cap amounts. Tiny non-zero caps mean dust/frozen.
-// Governance sets caps to these tiny values to freeze a vault for wind-down.
-const CAP_FROZEN_THRESHOLD = 64;
-const isCapFrozen = (cap) => cap > 0 && cap < CAP_FROZEN_THRESHOLD;
 const toBigInt = (value) =>
   value === undefined || value === null ? 0n : BigInt(value.toString());
+
+// The lens resolves Euler's packed AmountCap to a raw token amount: an unset cap
+// resolves to type(uint256).max, and the packed 1..64 values governance uses to
+// freeze a vault for wind-down all resolve to 0. Caps at or above Euler's
+// MAX_SANE_AMOUNT can never bind.
+const MAX_SANE_AMOUNT = 2n ** 112n - 1n;
+const isCapFrozen = (cap) => toBigInt(cap) === 0n;
+const isCapUnbounded = (cap) => toBigInt(cap) >= MAX_SANE_AMOUNT;
 
 const getAvailableBorrowUsd = (info, price, decimals) => {
   const cash = toBigInt(info.totalCash);
@@ -319,17 +322,14 @@ const getApys = async () => {
         );
 
         // Filter to active vaults for pool output (exclude frozen caps)
-        const activeEvkVaults = evkVaults.filter(
-          (v) => {
-            const info = evkVaultInfoMap[v.id.toLowerCase()];
-            return (
-              info &&
-              getSupplyApyFromVaultInfo(info) > 0 &&
-              !isCapFrozen(toNumber(info.supplyCap)) &&
-              !isCapFrozen(toNumber(info.borrowCap))
-            );
-          }
-        );
+        const activeEvkVaults = evkVaults.filter((v) => {
+          const info = evkVaultInfoMap[v.id.toLowerCase()];
+          return (
+            info &&
+            getSupplyApyFromVaultInfo(info) > 0 &&
+            !isCapFrozen(info.supplyCap)
+          );
+        });
 
         // Collect unique asset addresses and fetch prices
         const assets = new Set(
@@ -375,6 +375,11 @@ const getApys = async () => {
               assetDecimals
             );
 
+            const supplyCapUsd =
+              isCapFrozen(info.supplyCap) || isCapUnbounded(info.supplyCap)
+                ? undefined
+                : (toNumber(info.supplyCap) / 10 ** assetDecimals) * price;
+
             const vaultAddr = ethersUtils.getAddress(info.vault || v.id);
             const assetAddr = ethersUtils.getAddress(info.asset);
             return {
@@ -388,6 +393,7 @@ const getApys = async () => {
               totalSupplyUsd,
               totalBorrowUsd,
               availableBorrowUsd,
+              ...(supplyCapUsd !== undefined && { supplyCapUsd }),
               apyBase: getSupplyApyFromVaultInfo(info),
               apyBaseBorrow: getBorrowApyFromVaultInfo(info),
               underlyingTokens: [assetAddr],
@@ -419,7 +425,7 @@ const getApys = async () => {
               const collateralInfo =
                 evkVaultInfoMap[collateralVault.toLowerCase()];
               if (!collateralInfo) return null;
-              if (isCapFrozen(toNumber(collateralInfo.supplyCap))) return null;
+              if (isCapFrozen(collateralInfo.supplyCap)) return null;
 
               const collateralPrice =
                 prices.coins[`${chain}:${collateralInfo.asset}`]?.price;
