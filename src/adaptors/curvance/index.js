@@ -234,6 +234,8 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
         totalSupplyUsd,
         totalBorrowUsd,
         availableBorrowUsd,
+        ...(Number(staticToken?.collateralCap || 0) > 0 &&
+          { supplyCapUsd: (Number(staticToken.collateralCap) / factor) * price }),
         apyBaseBorrow,
         isBorrowable,
         collateralEnabled,
@@ -270,6 +272,9 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
         symbol: collateralPool.symbol,
         tvlUsd: collateralPool.tvlUsd,
         totalSupplyUsd: collateralPool.totalSupplyUsd,
+        ...(collateralPool.supplyCapUsd !== undefined
+          ? { supplyCapUsd: collateralPool.supplyCapUsd }
+          : {}),
         apyBase: collateralPool.apyBase,
         poolMeta: collateralPool.poolMeta,
         underlyingTokens: collateralPool.underlyingTokens,
