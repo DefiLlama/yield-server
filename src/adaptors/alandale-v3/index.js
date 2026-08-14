@@ -16,6 +16,10 @@ const LUTE = '0xD1e861CC5Eee7eA88649206b74504D78CCD7AEeA';
 const FEE_DENOMINATOR = 1e6;
 const COMMUNITY_FEE_DENOMINATOR = 1e3;
 
+// Algebra fees are dynamic, so this is the rate in force at read time rather than a
+// fixed tier. Trailing zeros are trimmed: 0.3%, 1.492%, 0.011%.
+const formatFee = (rate) => `${Number((rate * 100).toFixed(3))}%`;
+
 const HOUR = 3600;
 const EPOCH = 604800;
 const EPOCHS_PER_YEAR = 52;
@@ -205,6 +209,7 @@ const apy = async () => {
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
         symbol: `${p.token0.symbol}-${p.token1.symbol}`,
+        poolMeta: formatFee(feeTier),
         tvlUsd,
         apyBase: Number.isFinite(apyBase) ? apyBase : 0,
         apyReward: Number.isFinite(apyReward) ? apyReward : null,
