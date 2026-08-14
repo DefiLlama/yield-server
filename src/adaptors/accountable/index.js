@@ -213,6 +213,7 @@ const apy = async() => {
             const poolMeta = pointNames.length
                 ? `Earn ${pointNames.map((n) => n.replace(/\s*points?$/i, '')).join(', ')} Points`
                 : undefined;
+            const supplyCapUsd = Number(item.capacity) > 0 ? toUsd(item.capacity) : null;
 
             return {
                 pool: `${item.loan_address}-${chainName}`.toLowerCase(),
@@ -224,6 +225,7 @@ const apy = async() => {
                 // credit vaults run ~fully lent, so the on-chain idle-liquidity
                 // figure is ~$0 and would hide them below DefiLlama's thresholds.
                 tvlUsd: item.tvl_in_usd ?? null,
+                ...(supplyCapUsd != null && { supplyCapUsd }),
                 apyBase: baseApy,
                 apyReward,
                 rewardTokens,
