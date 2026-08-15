@@ -221,10 +221,8 @@ const apy = async() => {
                 chain: utils.formatChain(chainName),
                 project: 'accountable',
                 symbol: item.asset_symbol,
-                // Vault size (total deposited), straight from the API. These
-                // credit vaults run ~fully lent, so the on-chain idle-liquidity
-                // figure is ~$0 and would hide them below DefiLlama's thresholds.
-                tvlUsd: item.tvl_in_usd ?? null,
+                // Deposited principal, not share-price market value.
+                tvlUsd: toUsd(item.tvl) ?? item.tvl_in_usd ?? null,
                 ...(supplyCapUsd != null && { supplyCapUsd }),
                 apyBase: baseApy,
                 apyReward,
