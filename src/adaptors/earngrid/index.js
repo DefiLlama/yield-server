@@ -3,10 +3,10 @@ const utils = require('../utils');
 
 const CHAIN = 'base';
 
-// EarnGrid BlendedVault on Base
-const VAULT = '0x8694D7D44309665D51Cb5002fceC0454f1c233dE';
+// EarnGrid BlendedVault v2.0.0 on Base (v1.0.4 0x8694D7D4… retired 2026-08-15)
+const VAULT = '0xbDacA8B7782C66cc0ee32Cf70F835EBe86cb20D3';
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-const BVUSDC = '0x8694D7D44309665D51Cb5002fceC0454f1c233dE'; // vault itself = receipt token
+const BVUSDC = '0xbDacA8B7782C66cc0ee32Cf70F835EBe86cb20D3'; // vault itself = receipt token
 
 // Underlying MetaMorpho strategies & their Morpho Blue vault addresses
 const STRATEGIES = [
@@ -113,13 +113,13 @@ const getApy = async () => {
   ]);
 
   const totalAssets = Number(totalAssetsRes.output) / 1e6;
-  const totalSupply = Number(totalSupplyRes.output) / 1e6;
+  const totalSupply = Number(totalSupplyRes.output) / 1e12; // bvUSDC shares: 12 decimals
   const usdcPrice = pricesByAddress[USDC.toLowerCase()] || 1;
 
   // Build strategy allocation + compute weighted APY
   let totalBalance = 0;
   const allocations = STRATEGIES.map((s, i) => {
-    const bal = balanceResults[i].output / 1e6;
+    const bal = balanceResults[i].output / 1e18; // MetaMorpho shares: 18 decimals
     totalBalance += bal;
     const apy = (apyMap[s.morphoVault.toLowerCase()] ?? 0) * 100; // decimal → percentage
     return { ...s, balance: bal, apy };
