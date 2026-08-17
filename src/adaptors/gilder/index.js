@@ -36,7 +36,7 @@ const apy = async () => {
       apyBase,
       underlyingTokens: [USDC],
       poolMeta: 'Standard 3yr Fixed',
-      url: 'https://gilderfinance.com',
+      url: 'https://gilderfinance.com/deposit',
       token: null,
     },
   ];
