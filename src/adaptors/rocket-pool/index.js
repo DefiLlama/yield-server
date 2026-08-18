@@ -84,7 +84,6 @@ const getApy = async () => {
       tvlUsd: ETH_TVL * ethPrice,
       apyBase: Number(apyData.yearlyAPR),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: token,
       isIntrinsicSource: true,
     },
   ];

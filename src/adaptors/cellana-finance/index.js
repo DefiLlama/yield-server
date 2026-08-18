@@ -2,7 +2,7 @@ const utils = require('../utils');
 const BigNumber = require("bignumber.js");
 //https://coins.llama.fi/prices/current/aptos:0x1::aptos_coin::AptosCoin
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
+const priceUrl = (keys) => utils.getPriceApiUrl(`/prices/current/${keys}`);
 
 const APT_ADDR = "0x1::aptos_coin::AptosCoin";
 const APT_PRICE_ID = 'coingecko:aptos';
@@ -59,7 +59,7 @@ async function getTokenPrice(tokenAddr) {
     if (tokenAddr.indexOf(":") < 0) {
         tokenAddr = await getWrapper(tokenAddr)
     }
-    const price = (await utils.getData(`${COINS_LLAMA_PRICE_URL}aptos:${tokenAddr}`))
+    const price = (await utils.getData(priceUrl(`aptos:${tokenAddr}`)))
     if (!price || !price.coins || !price.coins["aptos:" + tokenAddr]?.symbol) {
         let name = tokenAddr.split('::');
         return [null,name[2],null]
@@ -78,7 +78,7 @@ async function getEpoch() {
     return data[0];
 };
 async function main() {
-    const aptRes = await utils.getData(`${COINS_LLAMA_PRICE_URL}${APT_PRICE_ID}`)
+    const aptRes = await utils.getData(priceUrl(APT_PRICE_ID))
      aptPrice = aptRes['coins'][APT_PRICE_ID]['price']
      cellPrice = await getCELLPrice(aptPrice)
     // let poolResource = await getResources("0x4bf51972879e3b95c4781a5cdcb9e1ee24ef483e7d22f2d903626f126df62bd1");

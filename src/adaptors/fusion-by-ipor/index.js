@@ -116,13 +116,9 @@ const CHAIN_CONFIG = {
     }
 };
 
-async function getChainData(chain) {
+async function getAllVaults() {
     const allVaultsRes = await axios.get(FUSION_API_URL);
-    const chainVaults = allVaultsRes.data.vaults.filter(
-        vault => vault.chainId === CHAIN_CONFIG[chain].chainId
-    );
-
-    return chainVaults;
+    return allVaultsRes.data.vaults;
 }
 
 async function getPublicVaults() {
@@ -168,13 +164,14 @@ async function buildPool(vault) {
 
 const apy = async() => {
     const publicVaults = await getPublicVaults();
-    const chainsData = await Promise.all(
-        Object.entries(CHAIN_CONFIG).map(async([chain, config]) => ({
-            chain,
-            config,
-            data: await getChainData(chain)
-        }))
-    );
+    // fetch the full vault list once and filter per chain; fetching it per chain
+    // (11 parallel copies of a multi-MB payload) OOMs the 1GB lambda
+    const allVaults = await getAllVaults();
+    const chainsData = Object.entries(CHAIN_CONFIG).map(([chain, config]) => ({
+        chain,
+        config,
+        data: allVaults.filter(vault => vault.chainId === config.chainId)
+    }));
 
     const pools = await Promise.all(
         chainsData.flatMap(({ chain, data }) =>

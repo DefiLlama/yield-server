@@ -182,7 +182,6 @@ const excludedProtocols = [
   { id: '2760', slug: 'maia-cl' },
   { id: '6888', slug: 'molecular' },
   { id: '1433', slug: 'jones-dao' }, //disabled deposits
-  { id: '6390', slug: 'zkp2p' }, // current slug: peer
   { id: '2506', slug: 'dyson' },
   { id: '2399', slug: 'opyn-squeeth' },
   { id: '345', slug: 'alpaca-leveraged-yield-farming' },
@@ -343,7 +342,6 @@ const excludedProtocols = [
   { id: '450', slug: 'scream' },
   { id: '2805', slug: 'stake.link-index' },
   { id: '6792', slug: 'ploutos-money' },
-  { id: '3667', slug: 'amnis-finance' }, // temp only, until fix is in
   { id: '111', slug: 'aave-v2' },
   { id: '1918', slug: 'aura' }, // winding down
   { id: '4182', slug: 'bakerfi' }, // wound down
@@ -385,7 +383,6 @@ const excludedProtocols = [
   { id: '2992', slug: 'gravita-protocol' },
   { id: '6761', slug: 'sendit' },
   { id: '5746', slug: 'beraborrow' },
-  { id: '2309', slug: 'indigo' },
   { id: '4818', slug: 'bitu-protocol' },
   { id: '3068', slug: 'raft' },
   { id: '6681', slug: 'aimstrong' },
@@ -440,12 +437,10 @@ const excludedProtocols = [
   { id: '6292', slug: 'superfund' },
   { id: '1687', slug: 'smartcredit' },
   { id: '2876', slug: 'sft-protocol' },
-  { id: '1979', slug: 'saucerswap-v1' },
   { id: '5487', slug: 'nucleus' },
   { id: '4463', slug: 'blazeswap' },
   { id: '2169', slug: 'babydogeswap' },
   { id: '398', slug: 'apeswap-amm' },
-  { id: '4846', slug: 'd2-finance' },
   { id: '2261', slug: 'arbor-finance' },
   { id: '4244', slug: 'staking-rewards-sreth' },
   { id: '1296', slug: 'zipswap' },
@@ -458,8 +453,10 @@ const excludedProtocols = [
   { id: '627', slug: 'balmy' },
   { id: '6023', slug: 'brunch' },
   { id: '4603', slug: 'ceto-swap' },
+  { id: '3500', slug: 'circuit-protocol' },
   { id: '3277', slug: 'dexswap' },
   { id: '995', slug: 'drops' },
+  { id: '5568', slug: 'fiva' },
   { id: '620', slug: 'francium' },
   { id: '4908', slug: 'goldlink' },
   { id: '4372', slug: 'hercules-v2' },
@@ -491,7 +488,6 @@ const excludedProtocols = [
   { id: '2251', slug: 'stride' },
   { id: '4446', slug: 'synthetix-v3' },
   { id: '2417', slug: 'thena-v1' },
-  { id: '831', slug: 'vvs-standard' },
   { id: '2743', slug: 'yama-finance' },
   { id: '686', slug: 'yel-finance' },
   { id: '5588', slug: 'yieldfi' },
@@ -505,6 +501,18 @@ const excludedProtocols = [
   { id: '5306', slug: 'maxapy' },
   { id: '126', slug: 'loopring' },
   { id: '657', slug: 'synapse' },
+  { id: '2539', slug: 'unsheth' },
+  { id: '5333', slug: 'carrot-liquidity' },
+  { id: '1669', slug: 'tokensfarm' },
+  { id: '7300', slug: 'altura' }, // deposits closed and sus activity
+  { id: '1653', slug: 'comb-financial' }, // winding down ops
+  { id: '2319', slug: 'gmd-protocol' },
+  { id: '4938', slug: 'meso-finance' },
+  { id: '2001', slug: 'demex-perp' },
+  { id: '7336', slug: 'satsuma' },
+  { id: '7335', slug: 'juiceswap' },
+  { id: '1895', slug: 'sideshift' },
+  { id: '5214', slug: 'metrom' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
@@ -2464,6 +2472,16 @@ const excludePools = [
   '0x0059fd16bc019ffe788d37807533edcf4df06c06-berachain',
   '0xe16722b52fe814f5d551a12f0ec89574a130a0b7-arbitrum',
   '0xeae33e9f53fc405f834d4678e6c07a2523b2126e-arbitrum',
+  '0:066e23b9d56299ae191f0bd03397f7ca6aec0a003f655518fddf8a1c9a70d96b-ton',
+  'turtle-14da66c3-4f06-4b9c-a6a3-b63a07d6e706', // WETH Katana
+  'turtle-828ee8d9-65c0-47ea-a2c3-a7f8c68fe671', // USDT Katana
+  'turtle-817a72e5-72f5-4447-ae32-ae0e3261ac86', // WBTC Katana
+  'turtle-b91fab34-3998-468b-adcf-645d9b68bc9c', // AUSD Katana
+  'turtle-1da6331a-0315-42b3-9cde-99ec55884d30', // USDC Katana
+  'manta-vMANTA', // vMANTA, dropped from api 2026-08
+  'filecoin-vfil', // vFIL, no data since 2025-12-18
+  'moonbeam-vglmr', // vGLMR, retiring
+  'moonriver-vmovr', // vMOVR, retiring
 ];
 
 const boundaries = {

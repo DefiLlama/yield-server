@@ -16,6 +16,7 @@ exports.getAllVeloPools = async function (chain, vaults) {
       abi: pairsSugarContractAbi.find((m) => m.name === 'byAddress'),
       chain,
       permitFailure: true,
+      chunkSize: 10,
     })
   ).output.map((o) => o.output);
   const poolInfoList = poolInfoLists.map(pool => {

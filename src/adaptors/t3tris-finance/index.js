@@ -33,11 +33,17 @@ const ABI = {
     'function lastValuationTimestamp() external view returns (uint64)',
 };
 
-// Supported chains: DefiLlama chain name -> ecosystem-API chainId. Arbitrum only
-// for now (same CREATE3 addresses on every EVM chain); add a chain here once it
-// goes live and the API returns verified vaults for it.
-const CHAIN_IDS = { arbitrum: 42161 };
+// Supported chains: DefiLlama chain name -> ecosystem-API chainId. Vaults share
+// the same CREATE3 addresses on every EVM chain, so adding a chain here surfaces
+// its vaults as soon as the ecosystem API returns verified entries for it.
+const CHAIN_IDS = { arbitrum: 42161, robinhood: 4663 };
 const CHAINS = Object.keys(CHAIN_IDS);
+
+// A few chains' @defillama/sdk provider key differs from the DefiLlama slug we
+// use for the DB/URL: map slug -> sdk chain for on-chain calls (Robinhood's
+// provider is registered as "robinhoodchain", chainId 4663).
+const SDK_CHAIN = { robinhood: 'robinhoodchain' };
+const sdkChain = (chain) => SDK_CHAIN[chain] || chain;
 
 const DAY_SECONDS = 24 * 3600;
 
@@ -50,7 +56,7 @@ const multiCall = (targets, abi, chain, block = undefined) =>
   sdk.api.abi.multiCall({
     calls: targets.map((target) => ({ target })),
     abi,
-    chain,
+    chain: sdkChain(chain),
     block,
     permitFailure: true,
   });
@@ -272,7 +278,7 @@ const getAnchoredHistoricalPps = async (vaults, chain) => {
   const blockByTs = {};
   await Promise.all(
     uniqueTs.map(async (ts) => {
-      blockByTs[ts] = await getBlockNumber(ts, chain);
+      blockByTs[ts] = await getBlockNumber(ts, sdkChain(chain));
     }),
   );
 
@@ -293,7 +299,7 @@ const getAnchoredHistoricalPps = async (vaults, chain) => {
         const ppsRes = await sdk.api.abi.multiCall({
           calls: items.map((it) => ({ target: it.oracle })),
           abi: ABI.getLastSavedPricePerShare,
-          chain,
+          chain: sdkChain(chain),
           block: Number(block),
           permitFailure: true,
         });
@@ -325,7 +331,7 @@ const getCurrentOraclePps = async (vaults, chain) => {
     const ppsRes = await sdk.api.abi.multiCall({
       calls: oracleAddresses.map((oracle) => ({ target: oracle })),
       abi: ABI.getLastSavedPricePerShare,
-      chain,
+      chain: sdkChain(chain),
       permitFailure: true,
     });
 
@@ -360,7 +366,7 @@ const main = async () => {
 
       // Get prices for underlying assets
       const assetAddresses = [...new Set(vaults.map((v) => v.asset))];
-      const prices = await utils.getPrices(assetAddresses, chain);
+      const prices = await utils.getPrices(assetAddresses, sdkChain(chain));
 
       // Current PPS (= value saved at the last NAV) + historical PPS anchored at
       // each vault's last NAV, so the APY is held (extrapolated) afterwards.

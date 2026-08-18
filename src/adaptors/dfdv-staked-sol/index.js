@@ -27,7 +27,6 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apyBase,
       underlyingTokens: [SOL],
-      searchTokenOverride: DFDVSOL_MINT,
       poolMeta: '0% rewards fee',
       url: 'https://app.sanctum.so/stake/dfdvSOL',
       isIntrinsicSource: true,

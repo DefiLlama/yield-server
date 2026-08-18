@@ -41,7 +41,7 @@ const NETWORK_IDS = {
 
 const BASE_APP_URL = 'https://app.xtokenterminal.io/mining';
 
-const COINS_PRICES_URL = getPriceApiUrl('/prices/current');
+const coinsPriceUrl = (keys) => getPriceApiUrl(`/prices/current/${keys}`);
 
 module.exports = {
   NETWORKS,
@@ -49,6 +49,6 @@ module.exports = {
   USDC_ADDRESSES,
   NETWORK_IDS,
   BASE_APP_URL,
-  COINS_PRICES_URL,
+  coinsPriceUrl,
   DELISTED_POOLS,
 };

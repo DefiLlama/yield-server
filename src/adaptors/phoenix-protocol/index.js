@@ -3,7 +3,7 @@ const axios = require('axios');
 const { getPriceApiUrl } = require('../utils');
 
 const CHAIN = 'ethereum';
-const PHLIMBO = '0x6084a02c2ac0127ddf1e617de257c61480a2aee0';
+const PHLIMBO = '0x8D3A8E3ba43DEb8C7e2110DF437a92243523b6ca';
 const PHUSD = '0xf3B5B661b92B75C71fA5Aba8Fd95D7514A9CD605';
 const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const SUSDS = '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD';

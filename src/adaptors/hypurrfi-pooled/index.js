@@ -26,7 +26,8 @@ const extractConfigBits = (configData) => {
   const borrowingEnabled = Boolean((data >> 58n) & 1n);
   const paused = Boolean((data >> 60n) & 1n);
   const borrowCap = Number((data >> 80n) & ((1n << 36n) - 1n));
-  return { ltv, borrowCap, borrowable: active && !frozen && borrowingEnabled && !paused };
+  const supplyCap = Number((data >> 116n) & ((1n << 36n) - 1n));
+  return { ltv, borrowCap, supplyCap, borrowable: active && !frozen && borrowingEnabled && !paused };
 };
 
 const apy = async () => {
@@ -139,7 +140,7 @@ const apy = async () => {
         reserveDataResults[i].currentVariableBorrowRate
       );
 
-      const { ltv, borrowCap, borrowable } = extractConfigBits(
+      const { ltv, borrowCap, supplyCap, borrowable } = extractConfigBits(
         reserveDataResults[i].configuration.data
       );
       const borrowCapUsd = borrowCap * price;
@@ -156,6 +157,7 @@ const apy = async () => {
         apyBase,
         underlyingTokens: [asset],
         totalSupplyUsd,
+        ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow,

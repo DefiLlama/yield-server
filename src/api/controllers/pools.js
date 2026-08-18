@@ -2,10 +2,10 @@ const axios = require('axios');
 
 const AppError = require('../../utils/appError');
 
-const S3_BASE = 'https://defillama-datasets.s3.eu-central-1.amazonaws.com';
+const DATASETS_BASE = 'https://defillama-datasets.llama.fi';
 
 const getPools = async (req, res) => {
-  const response = await axios.get(`${S3_BASE}/yield-api/pools`);
+  const response = await axios.get(`${DATASETS_BASE}/yield-api/pools`);
 
   if (!response.data) {
     return new AppError("Couldn't retrieve data", 404);
@@ -15,7 +15,7 @@ const getPools = async (req, res) => {
 };
 
 const getLendBorrow = async (req, res) => {
-  const response = await axios.get(`${S3_BASE}/yield-api/lendBorrow`);
+  const response = await axios.get(`${DATASETS_BASE}/yield-api/lendBorrow`);
 
   if (!response.data) {
     return new AppError("Couldn't retrieve data", 404);

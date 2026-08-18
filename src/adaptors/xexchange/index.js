@@ -4,11 +4,9 @@ const utils = require('../utils');
 
 const API_URL = 'https://graph.xexchange.com/graphql';
 
-const VARIABLES = { days: 7, mexID: 'MEX-455c57', offset: 0, pairsLimit: 500 };
-
 const apy = async () => {
-  let { farms } = await request(API_URL, query, VARIABLES);
-  farms = farms.filter((p) => p.address);
+  let { farms } = await request(API_URL, query);
+  farms = farms.filter((p) => p.address && p.rewardType !== 'deprecated');
 
   const pools = farms.map((farm) => {
     const apyReward = Number(farm.baseApr) * 100 || 0;
@@ -25,6 +23,7 @@ const apy = async () => {
         farm.pair.firstToken?.identifier,
         farm.pair.secondToken?.identifier,
       ],
+      url: `https://xexchange.com/liquidity/${farm.pair.liquidityPoolToken.identifier}/create-position/farm`,
     };
   });
 
@@ -35,5 +34,5 @@ module.exports = {
   protocolId: '854',
   apy,
   timetravel: false,
-  url: 'https://maiar.exchange/farms',
+  url: 'https://xexchange.com/farms',
 };

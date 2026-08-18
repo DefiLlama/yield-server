@@ -46,10 +46,10 @@ const apy = async () => {
   ]);
 
   const apr1d =
-    ((exchangeRates[0].output - exchangeRates[1].output) / 1e18) * 365 * 100;
+    ((exchangeRates[0].output - exchangeRates[1].output) / exchangeRates[1].output) * 365 * 100;
 
   const apr7d =
-    ((exchangeRates[0].output - exchangeRates[2].output) / 1e18) * 52 * 100;
+    ((exchangeRates[0].output - exchangeRates[2].output) / exchangeRates[2].output) * 52 * 100;
 
   const priceKey = `ethereum:${weth}`;
   const price = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
@@ -65,7 +65,6 @@ const apy = async () => {
       apyBase7d: apr7d,
       ...(Number(exchangeRates[0].output) / 1e18 > 0 && { pricePerShare: Number(exchangeRates[0].output) / 1e18 }),
       underlyingTokens: ['0xe44fd7fcb2b1581822d0c862b68222998a0c299a'],
-      searchTokenOverride: cdceth.cronos,
       isIntrinsicSource: true,
     },
   ];

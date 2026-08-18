@@ -16,7 +16,8 @@ const CHAINS = {
   monad: 143,
   wc: 480,
   stable: 988,
-  tempo: 4217
+  tempo: 4217,
+  robinhood: 4663
 };
 
 // Maps chain keys to URL slugs used by app.morpho.org
@@ -24,7 +25,8 @@ const CHAINS = {
 const CHAIN_URL_SLUG = {
   hyperliquid: 'hyperevm',
   wc: 'worldchain',
-  optimism: 'opmainnet'
+  optimism: 'opmainnet',
+  robinhood: 'robinhood-chain'
 };
 
 const getChainSlug = (chain) => CHAIN_URL_SLUG[chain] || chain;
@@ -501,11 +503,11 @@ const apy = async () => {
         project: 'morpho-blue',
         symbol: market.collateralAsset?.symbol,
         token: null,
-        apy: 0,
+        apyBase: 0,
         tvlUsd: market.state.collateralAssetsUsd || 0,
         underlyingTokens: [market.collateralAsset.address],
         apyBaseBorrow: market.state.borrowApy * 100,
-        totalSupplyUsd: market.state.collateralAssetsUsd ?? 0,
+        totalSupplyUsd: market.state.collateralAssetsUsd ?? undefined,
         totalBorrowUsd: market.state.borrowAssetsUsd ?? 0,
         availableBorrowUsd,
         debtCeilingUsd:
@@ -514,6 +516,7 @@ const apy = async () => {
         mintedCoin: market.loanAsset?.symbol,
         borrowToken: market.loanAsset?.address,
         borrowable: market.lltv > 0,
+        borrowMarketOnly: true,
         url: `https://app.morpho.org/${getChainSlug(chain)}/market/${market.uniqueKey}`,
         apyRewardBorrow,
         rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],
@@ -543,7 +546,7 @@ const apy = async () => {
     filteredPools,
     'morpho',
     (p) => {
-      const match = p.pool.match(/0x[a-fA-F0-9]{40,}/);
+      const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
       return match ? match[0] : p.pool;
     }
   );
