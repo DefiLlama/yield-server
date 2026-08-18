@@ -512,6 +512,7 @@ const excludedProtocols = [
   { id: '7336', slug: 'satsuma' },
   { id: '7335', slug: 'juiceswap' },
   { id: '1895', slug: 'sideshift' },
+  { id: '5214', slug: 'metrom' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
