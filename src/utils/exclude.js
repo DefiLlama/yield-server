@@ -2478,6 +2478,10 @@ const excludePools = [
   'turtle-817a72e5-72f5-4447-ae32-ae0e3261ac86', // WBTC Katana
   'turtle-b91fab34-3998-468b-adcf-645d9b68bc9c', // AUSD Katana
   'turtle-1da6331a-0315-42b3-9cde-99ec55884d30', // USDC Katana
+  'manta-vMANTA', // vMANTA, dropped from api 2026-08
+  'filecoin-vfil', // vFIL, no data since 2025-12-18
+  'moonbeam-vglmr', // vGLMR, retiring
+  'moonriver-vmovr', // vMOVR, retiring
 ];
 
 const boundaries = {
