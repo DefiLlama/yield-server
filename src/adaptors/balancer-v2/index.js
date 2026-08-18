@@ -78,47 +78,43 @@ const queryGauge = gql`
 `;
 
 const query = gql`
-  {
-    pools(
-      first: 200
-      orderBy: "totalLiquidity"
-      orderDirection: "desc"
-      where: { totalShares_gt: 0.01 }
-      skip: 0
-    ) {
-      id
-      tokensList
-      totalSwapFee
-      totalShares
-      tokens {
-        address
-        balance
-        symbol
-        weight
-      }
-      address
-    }
-  }
-`;
-
-const queryPrior = gql`
 {
   pools(
-    first: 1000
+    first: 200
     orderBy: "totalLiquidity"
     orderDirection: "desc"
     where: { totalShares_gt: 0.01 }
-    block: {number: <PLACEHOLDER>}
-  ) { 
-    id 
-    tokensList 
-    totalSwapFee 
-    tokens { 
-      address 
-      balance 
+    skip: 0
+    block: {number_gte: <BLOCK_NOW>}
+  ) {
+    id
+    tokensList
+    swapFee
+    totalShares
+    tokens {
+      address
+      balance
       symbol
       weight
-    } 
+    }
+    address
+  }
+}
+`;
+
+const querySwaps = gql`
+{
+  swaps(
+    first: 1000
+    orderBy: id
+    orderDirection: asc
+    where: { block_gt: <BLOCK_PRIOR>, block_lte: <BLOCK_NOW>, id_gt: "<CURSOR>" }
+  ) {
+    id
+    poolId {
+      id
+    }
+    valueUSD
   }
 }
 `;
@@ -210,6 +206,7 @@ const tvl = (entry, tokenPriceList, chainString) => {
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
     tvl: 0,
     totalShares: entry.totalShares,
+    swapFee: entry.swapFee,
     tokensList: (entry.tokensList || []).filter(
       (token) => !isPoolToken(token, entry)
     ),
@@ -275,17 +272,23 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
             : chainString === 'xdai'
             ? 'gnosis'
             : chainString
-        )
+        ).catch(() => [])
       : Promise.resolve([]);
 
   const balKey = `ethereum:${BAL}`.toLowerCase();
+  // a dead gauge subgraph should cost the chain its reward apy, not every pool on it. base has
+  // been missing from the run because its gauge endpoint 404s and took the whole chain with it.
+  const liquidityGaugesPromise = request(urlLM, queryLM).catch((err) => {
+    console.log(`gauge subgraph unavailable for ${chainString}: ${err.message}`);
+    return { liquidityGauges: [] };
+  });
   const [
     { liquidityGauges },
     childChainRootGauges,
     inflationRateResult,
     balPriceResult,
   ] = await Promise.all([
-    request(urlLM, queryLM),
+    liquidityGaugesPromise,
     childChainRootGaugesPromise,
     // Global source of truth for the inflation rate. All mainnet gauges use the BalancerTokenAdmin contract to update their locally stored inflation rate during checkpoints.
     sdk.api.abi.call({
@@ -485,12 +488,62 @@ const aprLM = async (tvlData, urlLM, queryLM, chainString, gaugeABI) => {
   return data;
 };
 
-const aprFee = (el, dataNow, dataPrior, swapFeePercentage) => {
-  const swapFeeNow = dataNow.find((x) => x.id === el.id)?.totalSwapFee;
-  const swapFeePrior = dataPrior.find((x) => x.id === el.id)?.totalSwapFee;
-  const swapFee24h = Number(swapFeeNow) - Number(swapFeePrior);
+// a single mispriced swap can still put a small pool somewhere absurd, so keep a ceiling. the
+// fee apy of every balancer pool over $100k sits under 10% in practice.
+const maxFeeApy = 1000;
 
-  el.aprFee = ((swapFee24h * 365) / el.tvl) * 100 * swapFeePercentage;
+// busiest chain runs ~3k swaps a day, so this is far above what a healthy run needs
+const maxSwapPages = 25;
+
+const swapVolumeByPool = async (url, blockPrior, block) => {
+  const volumeByPool = new Map();
+  let cursor = '';
+
+  for (let page = 0; page < maxSwapPages; page++) {
+    const { swaps } = await request(
+      url,
+      querySwaps
+        .replace('<BLOCK_PRIOR>', blockPrior)
+        .replace('<BLOCK_NOW>', block)
+        .replace('<CURSOR>', cursor)
+    );
+
+    for (const swap of swaps) {
+      const id = swap.poolId.id;
+      volumeByPool.set(id, (volumeByPool.get(id) ?? 0) + Number(swap.valueUSD));
+    }
+
+    if (swaps.length < 1000) return volumeByPool;
+    cursor = swaps[swaps.length - 1].id;
+  }
+
+  console.log(`swap pagination hit ${maxSwapPages} pages, fee apy may be understated`);
+  return volumeByPool;
+};
+
+const aprFee = (el, volumeByPool, protocolFeePercentage) => {
+  if (!(el.tvl > 0)) {
+    el.aprFee = null;
+    return el;
+  }
+
+  const volume24h = volumeByPool.get(el.id) ?? 0;
+  // what the pool charged, minus the cut the protocol takes off the top, is what lps keep
+  const lpFees24h =
+    volume24h * Number(el.swapFee) * (1 - protocolFeePercentage);
+  const apr = ((lpFees24h * 365) / el.tvl) * 100;
+
+  if (!Number.isFinite(apr) || apr > maxFeeApy) {
+    console.log(
+      `dropping implausible aprFee for ${el.id}: ${apr.toFixed(
+        0
+      )}% from volume24h=${volume24h.toFixed(0)} tvl=${el.tvl.toFixed(0)}`
+    );
+    el.aprFee = null;
+    return el;
+  }
+
+  el.aprFee = apr;
   return el;
 };
 
@@ -498,23 +551,26 @@ const topLvl = async (
   chainString,
   url,
   query,
-  queryPrior,
   urlGauge,
   queryGauge,
   gaugeABI,
-  swapFeePercentage
+  protocolFeePercentage
 ) => {
-  const [_, blockPrior] = await utils.getBlocks(chainString, null, [url]);
-  // pull data
-  let dataNow = await request(url, query);
-  let dataPrior = await request(
-    url,
-    queryPrior.replace('<PLACEHOLDER>', blockPrior)
-  );
+  const [block, blockPrior] = await utils.getBlocks(chainString, null, [url]);
+
+  // getBlocks reads the head off a separate request, so it can name a block the indexer serving
+  // this one hasn't reached. that is worth a retry, not the loss of the chain — the pin is only
+  // a staleness guard on whichever indexer ends up answering.
+  const [data, volumeByPool] = await Promise.all([
+    request(url, query.replace('<BLOCK_NOW>', block)).catch((err) => {
+      console.log(`${chainString} retrying unpinned: ${err.message.slice(0, 120)}`);
+      return request(url, query.replace('<BLOCK_NOW>', blockPrior));
+    }),
+    swapVolumeByPool(url, blockPrior, block),
+  ]);
 
   // correct for missing maker symbol
-  dataNow = dataNow.pools.map((el) => correctMaker(el));
-  dataPrior = dataPrior.pools.map((el) => correctMaker(el));
+  const dataNow = data.pools.map((el) => correctMaker(el));
 
   // for tvl, we gonna pull token prices from our price api, which we use to calculate tvl
   // note: the subgraph already comes with usd tvl values, but sometimes they are inflated
@@ -552,7 +608,7 @@ const topLvl = async (
 
   // calculate fee apy
   tvlInfo = tvlInfo.map((el) =>
-    aprFee(el, dataNow, dataPrior, swapFeePercentage)
+    aprFee(el, volumeByPool, protocolFeePercentage)
   );
 
   // calculate reward apr
@@ -589,7 +645,7 @@ const topLvl = async (
 
 const main = async () => {
   // balancer splits off a pct cut of swap fees to the protocol, get pct value:
-  const swapFeePercentage =
+  const protocolFeePercentage =
     (
       await sdk.api.abi.call({
         target: protocolFeesCollector,
@@ -605,61 +661,55 @@ const main = async () => {
       'ethereum',
       urlEthereum,
       query,
-      queryPrior,
       urlGaugesEthereum,
       queryGauge,
       gaugeABIEthereum,
-      swapFeePercentage
+      protocolFeePercentage
     ),
     topLvl(
       'polygon',
       urlPolygon,
       query,
-      queryPrior,
       urlGaugesPolygon,
       queryGauge,
       gaugeABIPolygon,
-      swapFeePercentage
+      protocolFeePercentage
     ),
     topLvl(
       'arbitrum',
       urlArbitrum,
       query,
-      queryPrior,
       urlGaugesArbitrum,
       queryGauge,
       gaugeABIArbitrum,
-      swapFeePercentage
+      protocolFeePercentage
     ),
     topLvl(
       'xdai',
       urlGnosis,
       query,
-      queryPrior,
       urlGaugesGnosis,
       queryGauge,
       gaugeABIGnosis,
-      swapFeePercentage
+      protocolFeePercentage
     ),
     topLvl(
       'base',
       urlBaseChain,
       query,
-      queryPrior,
       urlGaugesBase,
       queryGauge,
       gaugeABIBase,
-      swapFeePercentage
+      protocolFeePercentage
     ),
     topLvl(
       'avax',
       urlAvalanche,
       query,
-      queryPrior,
       urlGaugesAvalanche,
       queryGauge,
       gaugeABIArbitrum,
-      swapFeePercentage
+      protocolFeePercentage
     ),
   ]);
 
