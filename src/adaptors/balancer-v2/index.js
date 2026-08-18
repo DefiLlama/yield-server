@@ -88,6 +88,7 @@ const query = gql`
     block: {number_gte: <BLOCK_NOW>}
   ) {
     id
+    name
     tokensList
     swapFee
     totalShares
@@ -204,6 +205,9 @@ const tvl = (entry, tokenPriceList, chainString) => {
   const d = {
     id: entry.id,
     symbol: balanceDetails.map((tok) => tok.symbol).join('-'),
+    // balancer's own name for the pool, which carries the weights our symbol drops
+    // (20wstETH-80AAVE vs wstETH-AAVE). some come back padded or empty
+    name: entry.name?.trim() || undefined,
     tvl: 0,
     totalShares: entry.totalShares,
     swapFee: entry.swapFee,
@@ -628,6 +632,7 @@ const topLvl = async (
       chain: utils.formatChain(chainString),
       project: 'balancer-v2',
       symbol: p.symbol,
+      poolMeta: p.name,
       token: p.id.slice(0, 42).toLowerCase(),
       tvlUsd: p.tvl,
       apyBase: p.aprFee,
