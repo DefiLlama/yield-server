@@ -103,6 +103,7 @@ async function apy() {
 }
 
 module.exports = {
+  protocolId: '8444', 
   timetravel: false,
   apy,
   url: 'https://dex.qomx.io/farm',
