@@ -7,6 +7,7 @@ const CHAIN = 'bsc';
 
 async function apy() {
   try {
+    // Get all farms
     const farms = (
       await sdk.api.abi.call({
         target: FARM_FACTORY,
@@ -21,7 +22,7 @@ async function apy() {
 
     for (const farm of farms) {
       try {
-        const [lpToken, rewardToken, totalStaked, rewardPerSecond, endTime] =
+        const [lpTokenRes, rewardTokenRes, totalStakedRes, rewardPerSecondRes, endTimeRes] =
           await Promise.all([
             sdk.api.abi.call({ target: farm, abi: 'address:lpToken', chain: CHAIN }),
             sdk.api.abi.call({ target: farm, abi: 'address:rewardToken', chain: CHAIN }),
@@ -30,31 +31,56 @@ async function apy() {
             sdk.api.abi.call({ target: farm, abi: 'uint256:endTime', chain: CHAIN }),
           ]);
 
-        if (Date.now() / 1000 > Number(endTime.output)) continue;
+        const lpToken = lpTokenRes.output;
+        const rewardToken = rewardTokenRes.output;
+        const totalStaked = Number(totalStakedRes.output);
+        const rewardPerSecond = Number(rewardPerSecondRes.output);
+        const endTime = Number(endTimeRes.output);
 
-        const tvlUsd = 0; // temporary to pass tests
-        const apyValue = 0;
+        // Skip finished farms
+        if (Date.now() / 1000 > endTime) continue;
+        if (totalStaked === 0) continue;
+
+        // Get prices
+        const prices = await utils.getPrices([
+          `${CHAIN}:${lpToken}`,
+          `${CHAIN}:${rewardToken}`,
+        ]);
+
+        const lpPrice = prices[`${CHAIN}:${lpToken.toLowerCase()}`]?.price || 0;
+        const rewardPrice = prices[`${CHAIN}:${rewardToken.toLowerCase()}`]?.price || 0;
+
+        // Calculate TVL in USD
+        const tvlUsd = (totalStaked / 1e18) * lpPrice;
+
+        // Calculate yearly rewards in USD
+        const yearlyRewardTokens = (rewardPerSecond / 1e18) * 365 * 24 * 60 * 60;
+        const yearlyRewardUsd = yearlyRewardTokens * rewardPrice;
+
+        // Calculate APR
+        const apy = tvlUsd > 0 ? (yearlyRewardUsd / tvlUsd) * 100 : 0;
 
         pools.push({
           pool: farm.toLowerCase(),
           chain: formatChain(CHAIN),
           project: 'qom-x',
-          symbol: 'QOMX-LP',
+          symbol: 'LP',
           tvlUsd: tvlUsd,
-          apy: apyValue,
-          apyReward: apyValue,
-          rewardTokens: [rewardToken.output],
-          underlyingTokens: [lpToken.output],
+          apy: apy,
+          apyReward: apy,
+          rewardTokens: [rewardToken],
+          underlyingTokens: [lpToken],
           url: 'https://dex.qomx.io/farm',
         });
-      } catch (e) {
-        // skip broken farm
+      } catch (err) {
+        // skip any broken farm
+        continue;
       }
     }
 
-    return pools;
+    return pools.filter((p) => p.tvlUsd > 10); // only show farms with meaningful TVL
   } catch (e) {
-    console.log('Qom X adapter error:', e.message);
+    console.log('Qom X yields adapter error:', e.message);
     return [];
   }
 }
