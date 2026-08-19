@@ -6,7 +6,6 @@ const CHAIN = 'bsc';
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
 
 async function apy() {
-  // 1. Automatically discover all farms
   let farms = [];
   try {
     const res = await sdk.api.abi.call({
@@ -27,7 +26,6 @@ async function apy() {
 
   for (const farm of farms) {
     try {
-      // Read farm data
       const [
         lpTokenRes,
         rewardTokenRes,
@@ -35,7 +33,6 @@ async function apy() {
         rewardPerSecondRes,
         endTimeRes,
         startTimeRes,
-        rewardDecimalsRes,
       ] = await Promise.all([
         sdk.api.abi.call({ target: farm, abi: 'address:lpToken', chain: CHAIN }),
         sdk.api.abi.call({ target: farm, abi: 'address:rewardToken', chain: CHAIN }),
@@ -43,28 +40,26 @@ async function apy() {
         sdk.api.abi.call({ target: farm, abi: 'uint256:rewardPerSecond', chain: CHAIN }),
         sdk.api.abi.call({ target: farm, abi: 'uint256:endTime', chain: CHAIN }),
         sdk.api.abi.call({ target: farm, abi: 'uint256:startTime', chain: CHAIN }),
-        sdk.api.abi.call({ target: farm, abi: 'uint8:rewardDecimals', chain: CHAIN }).catch(() => ({ output: 18 })),
       ]);
 
       const lpToken = lpTokenRes.output;
       const rewardToken = rewardTokenRes.output;
       const totalStaked = BigInt(totalStakedRes.output);
-      const rewardPerSecond = BigInt(rewardPerSecondRes.output); // already scaled to 1e18
+      const rewardPerSecond = BigInt(rewardPerSecondRes.output); // already 1e18 scaled
       const endTime = Number(endTimeRes.output);
       const startTime = Number(startTimeRes.output);
-      const rewardDecimals = Number(rewardDecimalsRes.output || 18);
 
-      // Skip only truly finished + empty farms
+      // Skip only truly dead farms
       if (startTime > 0 && Date.now() / 1000 > endTime && totalStaked === 0n) continue;
       if (totalStaked === 0n) continue;
 
-      // ===== Real TVL from reserves (same method as your frontend) =====
+      // LP data
       const [token0Res, token1Res, reservesRes, totalSupplyRes] = await Promise.all([
         sdk.api.abi.call({ target: lpToken, abi: 'address:token0', chain: CHAIN }),
         sdk.api.abi.call({ target: lpToken, abi: 'address:token1', chain: CHAIN }),
         sdk.api.abi.call({
           target: lpToken,
-          abi: 'function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
+          abi: 'function getReserves() view returns (uint112,uint112,uint32)',
           chain: CHAIN,
         }),
         sdk.api.abi.call({ target: lpToken, abi: 'uint256:totalSupply', chain: CHAIN }),
@@ -75,31 +70,45 @@ async function apy() {
       const [reserve0, reserve1] = reservesRes.output;
       const totalSupply = BigInt(totalSupplyRes.output);
 
-      // Get prices of underlyings + reward
+      // Prices
       const { pricesByAddress } = await utils.getPrices(
         [token0, token1, rewardToken],
         CHAIN
       );
 
-      const price0 = pricesByAddress[token0.toLowerCase()] || 0;
-      const price1 = pricesByAddress[token1.toLowerCase()] || 0;
-      const rewardPrice = pricesByAddress[rewardToken.toLowerCase()] || 0;
+      let price0 = pricesByAddress[token0.toLowerCase()] || 0;
+      let price1 = pricesByAddress[token1.toLowerCase()] || 0;
+      let rewardPrice = pricesByAddress[rewardToken.toLowerCase()] || 0;
+
+      // ===== Fallback: derive reward price from the LP itself =====
+      if (rewardPrice === 0) {
+        const rewardIsToken0 = rewardToken.toLowerCase() === token0.toLowerCase();
+        const rewardIsToken1 = rewardToken.toLowerCase() === token1.toLowerCase();
+
+        if (rewardIsToken0 && price1 > 0 && Number(reserve0) > 0) {
+          // price0 = (reserve1 * price1) / reserve0
+          rewardPrice = (Number(reserve1) / 1e18 * price1) / (Number(reserve0) / 1e18);
+          price0 = rewardPrice;
+        } else if (rewardIsToken1 && price0 > 0 && Number(reserve1) > 0) {
+          rewardPrice = (Number(reserve0) / 1e18 * price0) / (Number(reserve1) / 1e18);
+          price1 = rewardPrice;
+        }
+      }
 
       // Full pair liquidity
       const reserve0Usd = (Number(reserve0) / 1e18) * price0;
       const reserve1Usd = (Number(reserve1) / 1e18) * price1;
       const pairLiquidityUsd = reserve0Usd + reserve1Usd;
 
-      // Only the staked portion
+      // Staked portion only
       let tvlUsd = 0;
       if (totalSupply > 0n && pairLiquidityUsd > 0) {
-        const ratio = Number(totalStaked) / Number(totalSupply);
-        tvlUsd = ratio * pairLiquidityUsd;
+        tvlUsd = (Number(totalStaked) / Number(totalSupply)) * pairLiquidityUsd;
       }
 
-      if (tvlUsd < 1) continue; // safety
+      if (tvlUsd < 1) continue;
 
-      // ===== APR (rewardPerSecond is already 1e18 scaled) =====
+      // APR (rewardPerSecond is already scaled to 1e18)
       const yearlyRewardTokens = (Number(rewardPerSecond) / 1e18) * SECONDS_PER_YEAR;
       const yearlyRewardUsd = yearlyRewardTokens * rewardPrice;
       const apyReward = tvlUsd > 0 ? (yearlyRewardUsd / tvlUsd) * 100 : 0;
@@ -127,20 +136,18 @@ async function apy() {
 }
 
 function makePlaceholder() {
-  return [
-    {
-      pool: FARM_FACTORY.toLowerCase(),
-      chain: utils.formatChain(CHAIN),
-      project: 'qom-x',
-      symbol: 'NO-ACTIVE-FARMS',
-      tvlUsd: 0,
-      apy: 0,
-      apyReward: 0,
-      rewardTokens: [],
-      underlyingTokens: [],
-      url: 'https://dex.qomx.io/farm',
-    },
-  ];
+  return [{
+    pool: FARM_FACTORY.toLowerCase(),
+    chain: utils.formatChain(CHAIN),
+    project: 'qom-x',
+    symbol: 'NO-ACTIVE-FARMS',
+    tvlUsd: 0,
+    apy: 0,
+    apyReward: 0,
+    rewardTokens: [],
+    underlyingTokens: [],
+    url: 'https://dex.qomx.io/farm',
+  }];
 }
 
 module.exports = {
