@@ -73,6 +73,7 @@ const VESTING_APY_VAULTS = {
     katana: [],
     hyperliquid: [],
     robinhood: [],
+    monad: [],
 };
 // DefiLlama chain name -> ipor-abi (addresses.json) chain name
 const IPOR_CHAIN_NAME = {
@@ -113,6 +114,9 @@ const CHAIN_CONFIG = {
     },
     robinhood: {
         chainId: 4663
+    },
+    monad: {
+        chainId: 143
     }
 };
 
