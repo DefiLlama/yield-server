@@ -5,19 +5,8 @@ const FARM_FACTORY = '0x951AFf794ffD122e4EA90B8BcFeE722c05f7133D';
 const CHAIN = 'bsc';
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
 
-// Same hidden test farms you filter in your frontend
-const HIDDEN_FARMS = [
-  '0xde89057c4a2448d873971755cf115cabaa475411',
-  '0xed57001d377b78d8aa29d3b44ee2b2254ddab45f',
-  '0xd70b5ad20cfd7b35967c2171d869319f7b008175',
-  '0xa71a2e3d5ad1f0a835fc0b295509e0a56ed044ba',
-  '0xc32665de5c16e9bf80b65432f32e99aca3f72ba1',
-  '0xd294b6872463dc0539fed80b4a52f1b73c3c20f3',
-  '0x75046c72b97869deab0ba9324a1655259cc3567e',
-].map((a) => a.toLowerCase());
-
 async function apy() {
-  // 1. Get all farms from factory (BSC only)
+  // 1. Automatically discover all farms
   let farms = [];
   try {
     const res = await sdk.api.abi.call({
@@ -25,29 +14,27 @@ async function apy() {
       abi: 'function getAllFarms() view returns (address[])',
       chain: CHAIN,
     });
-    farms = (res.output || []).filter(
-      (addr) => !HIDDEN_FARMS.includes(addr.toLowerCase())
-    );
+    farms = res.output || [];
   } catch (e) {
     console.log('getAllFarms failed:', e.message);
     return makePlaceholder();
   }
 
-  console.log(`Found ${farms.length} active farms on BSC`);
-
+  console.log(`Found ${farms.length} farms from factory`);
   if (!farms.length) return makePlaceholder();
 
   const pools = [];
 
   for (const farm of farms) {
     try {
-      // Parallel reads – all forced to BSC
+      // Read farm data
       const [
         lpTokenRes,
         rewardTokenRes,
         totalStakedRes,
         rewardPerSecondRes,
         endTimeRes,
+        startTimeRes,
         rewardDecimalsRes,
       ] = await Promise.all([
         sdk.api.abi.call({ target: farm, abi: 'address:lpToken', chain: CHAIN }),
@@ -55,36 +42,65 @@ async function apy() {
         sdk.api.abi.call({ target: farm, abi: 'uint256:totalStaked', chain: CHAIN }),
         sdk.api.abi.call({ target: farm, abi: 'uint256:rewardPerSecond', chain: CHAIN }),
         sdk.api.abi.call({ target: farm, abi: 'uint256:endTime', chain: CHAIN }),
+        sdk.api.abi.call({ target: farm, abi: 'uint256:startTime', chain: CHAIN }),
         sdk.api.abi.call({ target: farm, abi: 'uint8:rewardDecimals', chain: CHAIN }).catch(() => ({ output: 18 })),
       ]);
 
       const lpToken = lpTokenRes.output;
       const rewardToken = rewardTokenRes.output;
       const totalStaked = BigInt(totalStakedRes.output);
-      const rewardPerSecond = BigInt(rewardPerSecondRes.output);
+      const rewardPerSecond = BigInt(rewardPerSecondRes.output); // already scaled to 1e18
       const endTime = Number(endTimeRes.output);
+      const startTime = Number(startTimeRes.output);
       const rewardDecimals = Number(rewardDecimalsRes.output || 18);
 
-      // Skip finished or empty farms
-      if (Date.now() / 1000 > endTime) continue;
+      // Skip only truly finished + empty farms
+      if (startTime > 0 && Date.now() / 1000 > endTime && totalStaked === 0n) continue;
       if (totalStaked === 0n) continue;
 
-      // Prices
+      // ===== Real TVL from reserves (same method as your frontend) =====
+      const [token0Res, token1Res, reservesRes, totalSupplyRes] = await Promise.all([
+        sdk.api.abi.call({ target: lpToken, abi: 'address:token0', chain: CHAIN }),
+        sdk.api.abi.call({ target: lpToken, abi: 'address:token1', chain: CHAIN }),
+        sdk.api.abi.call({
+          target: lpToken,
+          abi: 'function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
+          chain: CHAIN,
+        }),
+        sdk.api.abi.call({ target: lpToken, abi: 'uint256:totalSupply', chain: CHAIN }),
+      ]);
+
+      const token0 = token0Res.output;
+      const token1 = token1Res.output;
+      const [reserve0, reserve1] = reservesRes.output;
+      const totalSupply = BigInt(totalSupplyRes.output);
+
+      // Get prices of underlyings + reward
       const { pricesByAddress } = await utils.getPrices(
-        [lpToken, rewardToken],
+        [token0, token1, rewardToken],
         CHAIN
       );
 
-      const lpPrice = pricesByAddress[lpToken.toLowerCase()] || 0;
+      const price0 = pricesByAddress[token0.toLowerCase()] || 0;
+      const price1 = pricesByAddress[token1.toLowerCase()] || 0;
       const rewardPrice = pricesByAddress[rewardToken.toLowerCase()] || 0;
 
-      // TVL
-      const tvlUsd = (Number(totalStaked) / 1e18) * lpPrice;
-      if (tvlUsd < 1) continue; // skip dust
+      // Full pair liquidity
+      const reserve0Usd = (Number(reserve0) / 1e18) * price0;
+      const reserve1Usd = (Number(reserve1) / 1e18) * price1;
+      const pairLiquidityUsd = reserve0Usd + reserve1Usd;
 
-      // APR
-      const yearlyRewardTokens =
-        (Number(rewardPerSecond) / 10 ** rewardDecimals) * SECONDS_PER_YEAR;
+      // Only the staked portion
+      let tvlUsd = 0;
+      if (totalSupply > 0n && pairLiquidityUsd > 0) {
+        const ratio = Number(totalStaked) / Number(totalSupply);
+        tvlUsd = ratio * pairLiquidityUsd;
+      }
+
+      if (tvlUsd < 1) continue; // safety
+
+      // ===== APR (rewardPerSecond is already 1e18 scaled) =====
+      const yearlyRewardTokens = (Number(rewardPerSecond) / 1e18) * SECONDS_PER_YEAR;
       const yearlyRewardUsd = yearlyRewardTokens * rewardPrice;
       const apyReward = tvlUsd > 0 ? (yearlyRewardUsd / tvlUsd) * 100 : 0;
 
@@ -97,7 +113,7 @@ async function apy() {
         apy: apyReward,
         apyReward,
         rewardTokens: [rewardToken],
-        underlyingTokens: [lpToken],
+        underlyingTokens: [token0, token1],
         url: 'https://dex.qomx.io/farm',
       });
     } catch (err) {
@@ -106,12 +122,11 @@ async function apy() {
     }
   }
 
-  console.log(`Returning ${pools.length} pools with TVL`);
+  console.log(`Returning ${pools.length} pools`);
   return pools.length ? pools : makePlaceholder();
 }
 
 function makePlaceholder() {
-  // Prevents "Cannot read properties of undefined (reading 'project')"
   return [
     {
       pool: FARM_FACTORY.toLowerCase(),
