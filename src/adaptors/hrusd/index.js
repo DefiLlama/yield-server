@@ -23,22 +23,35 @@ const ABI = {
     'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
   previewAmounts:
     'function previewAmounts(uint256 tokenId) view returns (uint256 amt0, uint256 amt1, uint256 principalHrusd)',
-  slot0:
-    'function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16, uint16, uint16, uint8, bool)',
+  observe:
+    'function observe(uint32[] secondsAgos) view returns (int56[] tickCumulatives, uint160[] secondsPerLiquidityCumulativeX128)',
 };
 
+// Same window the staking contracts use for their own principal valuation
+// (`twapWindowSeconds() == 1800`).
+const TWAP_WINDOW = 1800;
+
 // HRUSD has no price feed on DefiLlama, so it is valued against USDC from its own
-// Uniswap V3 pool — the same source the staking contract reads for principal.
+// Uniswap V3 pool, over the same TWAP window the staking contract reads for principal.
+// A time-averaged tick is used rather than the spot price so that a swap at the sampled
+// block cannot move the reported TVL. `observe` reverts if the pool's observation
+// cardinality does not cover the window, which fails the run rather than reporting a
+// manipulable number.
 const getHrusdPrice = async (api) => {
-  const [slot0, usdc] = await Promise.all([
-    api.call({ abi: ABI.slot0, target: POOL }),
+  const [observation, usdc] = await Promise.all([
+    api.call({ abi: ABI.observe, target: POOL, params: [[TWAP_WINDOW, 0]] }),
     utils.getData(`https://coins.llama.fi/prices/current/${CHAIN}:${USDC}`),
   ]);
+
   const usdcPrice = Object.values(usdc.coins)[0]?.price;
   if (!usdcPrice) throw new Error('hrusd: missing USDC price');
-  // HRUSD is token0, USDC is token1, both 6 decimals
-  const hrusdInUsdc = (Number(slot0.sqrtPriceX96) / 2 ** 96) ** 2;
-  return hrusdInUsdc * usdcPrice;
+
+  const [start, end] = observation.tickCumulatives;
+  const avgTick = Number(BigInt(end) - BigInt(start)) / TWAP_WINDOW;
+  if (!Number.isFinite(avgTick)) throw new Error('hrusd: invalid TWAP observation');
+
+  // HRUSD is token0, USDC is token1, both 6 decimals, so the tick needs no decimal shift
+  return 1.0001 ** avgTick * usdcPrice;
 };
 
 // Rewards accrue linearly on `principalHrusd`, the HRUSD-denominated value of each
@@ -69,18 +82,13 @@ const getStakedPrincipal = async (api) => {
         .map(({ owner }, k) => (owner === staker ? { params: [tokenIds[k]] } : null))
         .filter(Boolean);
       if (!calls.length) return [];
-      return api.multiCall({
-        abi: ABI.previewAmounts,
-        target: staker,
-        calls,
-        permitFailure: true,
-      });
+      // No permitFailure: a missing preview would silently understate TVL
+      return api.multiCall({ abi: ABI.previewAmounts, target: staker, calls });
     })
   );
 
   return previews
     .flat()
-    .filter(Boolean)
     .reduce((acc, p) => acc + Number(p.principalHrusd) / 1e6, 0);
 };
 
