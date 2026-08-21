@@ -8,8 +8,10 @@ const USD_DECIMALS = 8;
 const GRAPHQL_DECIMAL_PLACES = 12;
 // Rujira rates are 12-decimal ratios; shifting by 10 returns percentage points.
 const RATE_PERCENT_DECIMALS = GRAPHQL_DECIMAL_PLACES - 2;
+const REQUEST_TIMEOUT_MS = 30_000;
 const RETRY_DELAYS_MS = [1_000, 2_000, 4_000];
 const RATE_BUCKET_RETRY_DELAY_MS = 12_000;
+const MAX_CONNECTION_PAGES = 20;
 
 const PROJECTS = {
   staking: 'rujira-staking',
@@ -31,7 +33,7 @@ const CANONICAL_CHAINS = {
   AAVE: 'ETH',
   ATOM: 'GAIA',
   BNB: 'BSC',
-  cbBTC: 'BASE',
+  CBBTC: 'BASE',
   DAI: 'ETH',
   FOX: 'ETH',
   GUSD: 'ETH',
@@ -226,10 +228,21 @@ const tokenValueUsd = (amount, price, decimals) => {
 
 const toPercent = (value) => fromFixed(value, RATE_PERCENT_DECIMALS);
 
+const isTransportError = (error) =>
+  !error?.response &&
+  ['AbortError', 'TimeoutError', 'TypeError', 'FetchError'].includes(
+    error?.name
+  );
+
 const requestGraphql = async (endpoint, query, variables) => {
   for (let attempt = 0; ; attempt++) {
     try {
-      return await request(endpoint, query, variables);
+      return await request({
+        url: endpoint,
+        document: query,
+        variables,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
     } catch (error) {
       const status = error?.response?.status;
       const messages = (error?.response?.errors || [])
@@ -237,7 +250,11 @@ const requestGraphql = async (endpoint, query, variables) => {
         .filter(Boolean)
         .join(' ');
       const rateBucketFull = messages.includes('rate bucket full');
-      const retryable = status === 429 || status >= 500 || rateBucketFull;
+      const retryable =
+        rateBucketFull ||
+        status === 429 ||
+        status >= 500 ||
+        isTransportError(error);
 
       if (!retryable || attempt === RETRY_DELAYS_MS.length) throw error;
       await new Promise((resolve) =>
@@ -255,10 +272,12 @@ const assetUrlSegment = (asset) => {
   const chain = asset?.chain;
   if (!symbol || !chain) return null;
 
-  const canonicalChain = CANONICAL_CHAINS[symbol] || symbol.toUpperCase();
-  return chain === 'THOR' || chain === canonicalChain
+  const normalizedSymbol = symbol.toUpperCase();
+  const normalizedChain = chain.toUpperCase();
+  const canonicalChain = CANONICAL_CHAINS[normalizedSymbol] || normalizedSymbol;
+  return normalizedChain === 'THOR' || normalizedChain === canonicalChain
     ? symbol
-    : `${symbol}.${chain}`;
+    : `${symbol}.${normalizedChain}`;
 };
 
 const assetVariantMeta = (asset) => {
@@ -287,8 +306,9 @@ const encodedAssetSegment = (asset) => {
 const getConnectionNodes = async (query, connectionAt) => {
   const nodes = [];
   let after = null;
+  const seenCursors = new Set();
 
-  do {
+  for (let page = 0; page < MAX_CONNECTION_PAGES; page++) {
     const data = await requestGraphql(MAIN_API, query, { after });
     const connection = connectionAt(data);
     if (!connection?.edges || !connection.pageInfo) {
@@ -298,11 +318,19 @@ const getConnectionNodes = async (query, connectionAt) => {
     nodes.push(...connection.edges.map((edge) => edge?.node).filter(Boolean));
 
     if (!connection.pageInfo.hasNextPage) break;
+    if (page === MAX_CONNECTION_PAGES - 1) {
+      throw new Error('Rujira GraphQL exceeded the maximum page count');
+    }
+
     after = connection.pageInfo.endCursor;
     if (!after) {
       throw new Error('Rujira GraphQL omitted the next page cursor');
     }
-  } while (after);
+    if (seenCursors.has(after)) {
+      throw new Error('Rujira GraphQL returned a repeated page cursor');
+    }
+    seenCursors.add(after);
+  }
 
   return nodes;
 };
