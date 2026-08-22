@@ -26,9 +26,9 @@ const ABI = {
   observe:
     'function observe(uint32[] secondsAgos) view returns (int56[] tickCumulatives, uint160[] secondsPerLiquidityCumulativeX128)',
   pendingRewards: 'function pendingRewards(uint256 tokenId) view returns (uint256)',
-  feeGrowth0: 'uint256:feeGrowthGlobal0X128',
-  feeGrowth1: 'uint256:feeGrowthGlobal1X128',
-  liquidity: 'uint128:liquidity',
+  fee: 'uint24:fee',
+  swap:
+    'event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)',
 };
 
 // Base produces a block roughly every 2s.
@@ -57,6 +57,19 @@ const getPrices = async (api) => {
   const [start, end] = observation.tickCumulatives;
   const avgTick = Number(BigInt(end) - BigInt(start)) / TWAP_WINDOW;
   if (!Number.isFinite(avgTick)) throw new Error('hrusd: invalid TWAP observation');
+
+  // `observe` proves the window exists, not that anything was backing the price during it.
+  // The harmonic mean of in-range liquidity over the window comes out of the seconds-per-
+  // liquidity accumulator; if it is degenerate the tick describes an empty pool and the
+  // price derived from it means nothing. No floor above zero is imposed: any figure would
+  // be arbitrary, and HRUSD has no second venue to fall back on, so rejecting on a guessed
+  // threshold would drop the pool rather than protect it.
+  const [splStart, splEnd] = observation.secondsPerLiquidityCumulativeX128;
+  const splDelta = BigInt(splEnd) - BigInt(splStart);
+  const harmonicLiquidity =
+    splDelta > 0n ? Number((BigInt(TWAP_WINDOW) * Q128) / splDelta) : 0;
+  if (!(harmonicLiquidity > 0))
+    throw new Error('hrusd: no liquidity backing the TWAP window');
 
   // HRUSD is token0, USDC is token1, both 6 decimals, so the tick needs no decimal shift
   return { hrusdPrice: 1.0001 ** avgTick * usdcPrice, usdcPrice };
@@ -114,34 +127,39 @@ const getStakedPositions = async (api) => {
   };
 };
 
-// Trading fees earned by the pool over the last day, from the change in the pool's
-// global fee growth accumulators. Uniswap V3 tracks fees per unit of in-range liquidity,
-// so the delta multiplied by liquidity is what the pool actually earned.
+// Trading fees earned by the pool over the last day. Taken from the Swap events
+// themselves rather than from the fee-growth accumulators: `feeGrowthGlobal` rises by
+// fee/liquidity at each swap, so multiplying its delta by any single liquidity reading is
+// only correct while liquidity is unchanged over the window. Summing the fee cut of each
+// swap's input amount is exact regardless of how liquidity moved.
 const getFeeApyBase = async (api, hrusdPrice, usdcPrice) => {
   const block = await api.getBlock();
-  const dayAgo = block - BLOCKS_PER_DAY;
+  const [feeTier, logs] = await Promise.all([
+    api.call({ abi: ABI.fee, target: POOL }),
+    sdk.getEventLogs({
+      target: POOL,
+      chain: CHAIN,
+      fromBlock: block - BLOCKS_PER_DAY,
+      toBlock: block,
+      eventAbi: ABI.swap,
+      onlyArgs: true,
+    }),
+  ]);
 
-  const read = (b) =>
-    Promise.all([
-      api.call({ abi: ABI.feeGrowth0, target: POOL, block: b }),
-      api.call({ abi: ABI.feeGrowth1, target: POOL, block: b }),
-      api.call({ abi: ABI.liquidity, target: POOL, block: b }),
-    ]);
+  // Uniswap V3 takes its fee from the input side, which is the amount the pool receives.
+  let fees0 = 0;
+  let fees1 = 0;
+  for (const { amount0, amount1 } of logs) {
+    const a0 = BigInt(amount0);
+    const a1 = BigInt(amount1);
+    if (a0 > 0n) fees0 += Number(a0) / 1e6;
+    if (a1 > 0n) fees1 += Number(a1) / 1e6;
+  }
+  const rate = Number(feeTier) / 1e6;
+  const feesUsd = (fees0 * hrusdPrice + fees1 * usdcPrice) * rate;
 
-  const [[f0, f1, liq], [p0, p1]] = await Promise.all([read(undefined), read(dayAgo)]);
-
-  // Accumulators only ever increase, but they are unsigned and wrap; clamp rather than
-  // report a negative fee take.
-  const grown = (now, then) => {
-    const d = BigInt(now) - BigInt(then);
-    return d > 0n ? d : 0n;
-  };
-  const feesOf = (now, then) =>
-    Number((grown(now, then) * BigInt(liq)) / Q128) / 1e6;
-
-  const feesUsd = feesOf(f0, p0) * hrusdPrice + feesOf(f1, p1) * usdcPrice;
-
-  // Denominated against the whole pool, which is what an LP in it earns.
+  // Fees accrue to every in-range position, not only the staked ones, so the yield is
+  // measured against the whole pool rather than against this entry's staked TVL.
   const [bal0, bal1] = await api.multiCall({
     abi: ABI.balanceOf,
     calls: [
