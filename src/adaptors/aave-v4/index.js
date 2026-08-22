@@ -12,6 +12,7 @@ const hubsByChain = {
     core: '0xCca852Bc40e560adC3b1Cc58CA5b55638ce826c9',
     plus: '0x06002e9c4412CB7814a791eA3666D905871E536A',
     prime: '0x943827DCA022D0F354a8a8c332dA1e5Eb9f9F931',
+    globalDollar: '0x62d63197660c080236193CA60b70E49A08E90368',
   },
   avax: {
     core: '0xd07369fAE4A5BB13c9Ce446B052c7867B1AbDf6e',
@@ -30,6 +31,9 @@ const spokeNamesByChain = {
     '0xe1900480ac69f0b296841cd01cc37546d92f35cd': 'Lido',
     '0x7ec68b5695e803e98a21a9a05d744f28b0a7753d': 'Lombard',
     '0x94e7a5dcbe816e498b89ab752661904e2f56c485': 'Main',
+    '0x956d8e0a89cfa3744428c4641b5a53b56167a7f9': 'USDG Pendle',
+    '0x774b9655413c34809c1f1b16b654465a89ebe989': 'USDG Maple',
+    '0xb9b0b8616f6bf6841972a52058132be08d723155': 'Treasury',
   },
   avax: {
     '0x435272ceff93a1e657e8abfdf0a13e95900a3a56': 'Main',
@@ -44,7 +48,12 @@ const getAssetKey = (hub, assetId) => `${hub.toLowerCase()}:${assetId}`;
 const getReserveKey = (hub, assetId, spoke) =>
   `${getAssetKey(hub, assetId)}:${spoke.toLowerCase()}`;
 const formatPoolMeta = (value) =>
-  value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+  value
+    ? (value.charAt(0).toUpperCase() + value.slice(1)).replace(
+        /([a-z])([A-Z])/g,
+        '$1 $2'
+      )
+    : value;
 const isUncapped = (cap, maxCap) => toNumber(cap) >= toNumber(maxCap);
 const isReserveActive = (reserve) =>
   reserve.spokeConfig.active &&
