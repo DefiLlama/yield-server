@@ -42,6 +42,24 @@ const spokeNamesByChain = {
   },
 };
 
+const AAVE_API_URL = 'https://api.aave.com/graphql';
+
+// Merkl campaigns on v4 are "net APR" targets whose raw Merkl `apr` includes
+// the base rate; Aave's API exposes the reconciled increment as `extraApy`.
+const hubRewardsQuery = `query Rewards($request: ReservesRequest!) {
+  reserves(request: $request) {
+    spoke { address }
+    asset { onchainAssetId hub { address } }
+    summary {
+      rewards {
+        __typename
+        ... on MerklSupplyReward { extraApy { value } payoutToken { address } }
+        ... on MerklBorrowReward { discountApy { value } payoutToken { address } }
+      }
+    }
+  }
+}`;
+
 const toNumber = (value) => Number(value ?? 0);
 const scale = (value, decimals) => toNumber(value) / 10 ** Number(decimals);
 const getAssetKey = (hub, assetId) => `${hub.toLowerCase()}:${assetId}`;
@@ -72,6 +90,75 @@ const getSpokeCalls = (assetCalls, spokeCounts) =>
       },
     }))
   );
+
+const emptyRewards = () => ({
+  apyReward: 0,
+  apyRewardBorrow: 0,
+  rewardTokens: [],
+  borrowRewardTokens: [],
+});
+
+const getHubRewards = async (chainId, hubs) => {
+  const responses = await Promise.allSettled(
+    Object.values(hubs).map((hub) =>
+      axios.post(AAVE_API_URL, {
+        query: hubRewardsQuery,
+        variables: {
+          request: {
+            query: {
+              hubId: Buffer.from(`${chainId}::${hub}`).toString('base64'),
+            },
+          },
+        },
+      })
+    )
+  );
+
+  const assetRewards = {};
+  const reserveRewards = {};
+  for (const res of responses) {
+    if (res.status !== 'fulfilled') continue;
+    for (const reserve of res.value.data?.data?.reserves ?? []) {
+      const entry = emptyRewards();
+      for (const reward of reserve.summary.rewards) {
+        if (reward.__typename === 'MerklSupplyReward') {
+          entry.apyReward += Number(reward.extraApy.value) * 100;
+          entry.rewardTokens.push(reward.payoutToken.address);
+        } else if (reward.__typename === 'MerklBorrowReward') {
+          entry.apyRewardBorrow += Number(reward.discountApy.value) * 100;
+          entry.borrowRewardTokens.push(reward.payoutToken.address);
+        }
+      }
+      if (!entry.apyReward && !entry.apyRewardBorrow) continue;
+
+      const assetKey = getAssetKey(
+        reserve.asset.hub.address,
+        reserve.asset.onchainAssetId
+      );
+      reserveRewards[`${assetKey}:${reserve.spoke.address.toLowerCase()}`] =
+        entry;
+
+      const current = assetRewards[assetKey] ?? emptyRewards();
+      assetRewards[assetKey] = {
+        apyReward: Math.max(current.apyReward, entry.apyReward),
+        apyRewardBorrow: Math.max(
+          current.apyRewardBorrow,
+          entry.apyRewardBorrow
+        ),
+        rewardTokens: [
+          ...new Set([...current.rewardTokens, ...entry.rewardTokens]),
+        ],
+        borrowRewardTokens: [
+          ...new Set([
+            ...current.borrowRewardTokens,
+            ...entry.borrowRewardTokens,
+          ]),
+        ],
+      };
+    }
+  }
+  return { assetRewards, reserveRewards };
+};
 
 const getReserveDetails = async (api, spokeEntries) => {
   if (!spokeEntries.length) return {};
@@ -188,6 +275,11 @@ const getApy = async (chain) => {
   const chainLabel = chain === 'avax' ? 'avalanche' : chain;
   const api = new sdk.ChainApi({ chain });
 
+  const rewardsPromise = getHubRewards(api.chainId, hubs).catch((err) => {
+    console.log(`aave-v4 ${chain} rewards lookup failed: ${err.message}`);
+    return { assetRewards: {}, reserveRewards: {} };
+  });
+
   const hubEntries = Object.entries(hubs);
   const hubAddresses = hubEntries.map(([, addr]) => addr);
 
@@ -241,21 +333,23 @@ const getApy = async (chain) => {
   ];
   const priceKeys = uniqueTokens.map((t) => `${chain}:${t}`).join(',');
 
-  const [balances, tokenSymbols, pricesRes] = await Promise.all([
-    api.multiCall({
-      abi: 'erc20:balanceOf',
-      calls: allCalls.map((c, i) => ({
-        target: underlyings[i][0],
-        params: [c.hub],
-      })),
-    }),
-    api.multiCall({
-      abi: 'erc20:symbol',
-      calls: allCalls.map((c, i) => underlyings[i][0]),
-      permitFailure: true,
-    }),
-    axios.get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`)),
-  ]);
+  const [balances, tokenSymbols, pricesRes, { assetRewards, reserveRewards }] =
+    await Promise.all([
+      api.multiCall({
+        abi: 'erc20:balanceOf',
+        calls: allCalls.map((c, i) => ({
+          target: underlyings[i][0],
+          params: [c.hub],
+        })),
+      }),
+      api.multiCall({
+        abi: 'erc20:symbol',
+        calls: allCalls.map((c, i) => underlyings[i][0]),
+        permitFailure: true,
+      }),
+      axios.get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`)),
+      rewardsPromise,
+    ]);
   const prices = pricesRes.data.coins;
 
   const chainId = api.chainId;
@@ -313,6 +407,22 @@ const getApy = async (chain) => {
         url: `https://pro.aave.com/explore/asset/${chainId}/${underlying}`,
         poolMeta: formatPoolMeta(c.name),
       };
+
+      const rewards = assetRewards[underlyingStateKey];
+      if (rewards) {
+        const rewardTokens = [];
+        if (rewards.apyReward > 0) {
+          pool.apyReward = rewards.apyReward;
+          rewardTokens.push(...rewards.rewardTokens);
+        }
+        if (rewards.apyRewardBorrow > 0) {
+          pool.apyRewardBorrow = rewards.apyRewardBorrow;
+          rewardTokens.push(...rewards.borrowRewardTokens);
+        }
+        if (rewardTokens.length) {
+          pool.rewardTokens = [...new Set(rewardTokens)];
+        }
+      }
 
       assetsByKey[underlyingStateKey] = {
         ...pool,
@@ -376,6 +486,13 @@ const getApy = async (chain) => {
         pool.totalBorrowUsd = totalBorrowUsd;
         pool.availableBorrowUsd = availableBorrowUsd;
         pool.borrowToken = asset.underlying;
+
+        const rewards =
+          reserveRewards[getReserveKey(entry.hub, entry.assetId, entry.spoke)];
+        if (rewards?.apyRewardBorrow > 0) {
+          pool.apyRewardBorrow = rewards.apyRewardBorrow;
+          pool.rewardTokens = rewards.borrowRewardTokens;
+        }
       }
 
       return pool;
