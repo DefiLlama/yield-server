@@ -50,8 +50,9 @@ const getPoolTvls = async () => {
     allPools.map((p) => [
       p.address,
       p.tokens.reduce((sum, token, i) => {
+        if (sum == null) return null;
         const decimals = decimalsById[token.id];
-        if (decimals == null || !token.price) return sum;
+        if (decimals == null || !token.price) return null;
         return sum + (Number(p.reserves[i]) / 10 ** decimals) * token.price;
       }, 0),
     ])
