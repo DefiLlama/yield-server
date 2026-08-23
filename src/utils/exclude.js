@@ -2483,6 +2483,7 @@ const excludePools = [
   'filecoin-vfil', // vFIL, no data since 2025-12-18
   'moonbeam-vglmr', // vGLMR, retiring
   'moonriver-vmovr', // vMOVR, retiring
+  '0x3d71ad2852676f8a3644a37a2932e678c0b80cf3',
 ];
 
 const boundaries = {
