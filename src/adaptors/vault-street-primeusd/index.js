@@ -120,12 +120,15 @@ const apy = async () => {
     console.log(
       `vault-street: ${failed.length}/${PRODUCTS.length} products failed -> ${failed.join(' | ')}`
     );
-  if (failed.length === PRODUCTS.length)
-    throw new Error(`vault-street: every product failed -> ${failed.join(' | ')}`);
-  return settled
+  const pools = settled
     .filter((r) => r.status === 'fulfilled')
     .map((r) => r.value)
     .filter(Boolean);
+  if (pools.length === 0)
+    throw new Error(
+      `vault-street: no valid product pool${failed.length ? ` -> ${failed.join(' | ')}` : ''}`
+    );
+  return pools;
 };
 
 module.exports = {
