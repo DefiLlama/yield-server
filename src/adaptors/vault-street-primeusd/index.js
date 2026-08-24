@@ -13,6 +13,7 @@ const LAST_PRICE_ABI =
 
 const DAY_IN_SECONDS = 24 * 60 * 60;
 const SECONDS_IN_YEAR = 365 * DAY_IN_SECONDS;
+const MIN_WINDOW_DAYS = 7;
 
 const PRODUCTS = [
   {
@@ -24,7 +25,6 @@ const PRODUCTS = [
   {
     symbol: 'CARRY',
     token: '0xf05f7ab9b05d9dcf99b8e9bbae8e5e4a3201d004',
-    // updates once per ~7d (staleness period 169h)
     priceOracle: '0xd610fabab31c6d76b50a49c337fc39d6559e0e87',
     url: 'https://app.vaultstreet.com/carry',
   },
@@ -40,16 +40,10 @@ const getLastPrice = async (priceOracle, block) => {
   return { value: BigInt(output.value), timestamp: Number(output.timestamp) };
 };
 
-// elapsed time between oracle updates rounded to whole days
-const elapsedWholeDaysSeconds = (startTimestamp, endTimestamp) =>
-  Math.floor(
-    (endTimestamp - startTimestamp + DAY_IN_SECONDS / 2) / DAY_IN_SECONDS
-  ) * DAY_IN_SECONDS;
-
 // compounded annualized rate: (endRate / startRate) ^ (year / elapsed) - 1
 // null when not calculable (e.g. the oracle's first update has no predecessor)
 const calcApyPct = (startRate, endRate, startTimestamp, endTimestamp) => {
-  const elapsed = elapsedWholeDaysSeconds(startTimestamp, endTimestamp);
+  const elapsed = endTimestamp - startTimestamp;
   if (!(startRate > 0) || elapsed <= 0) return null;
   return (
     (Math.pow(endRate / startRate, SECONDS_IN_YEAR / elapsed) - 1) * 100
@@ -63,15 +57,16 @@ const getPool = async ({ symbol, token, priceOracle, url }, usdcPriceUsd) => {
     getLastPrice(priceOracle),
   ]);
 
-  // sample just before the latest update landed; the oracle then reports the
-  // previous update, so the apy window is always exactly one publish interval
-  const [blockBeforeUpdate] = await utils.getBlocksByTime(
-    [endPrice.timestamp - 600],
+  // anchor to the last publish at or before (latest - MIN_WINDOW), so the window
+  // never collapses when the publisher goes off-schedule
+  const [anchorBlock] = await utils.getBlocksByTime(
+    [endPrice.timestamp - MIN_WINDOW_DAYS * DAY_IN_SECONDS],
     CHAIN
   );
-  const startPrice = await getLastPrice(priceOracle, blockBeforeUpdate).catch(
-    () => ({ value: 0n, timestamp: 0 })
-  );
+  const startPrice = await getLastPrice(priceOracle, anchorBlock).catch((e) => {
+    if (/revert/i.test(e?.message ?? '')) return { value: 0n, timestamp: 0 };
+    throw e;
+  });
 
   const supply = BigInt(supplyRes.output);
   const tokenDecimals = BigInt(decimalsRes.output);
@@ -113,10 +108,24 @@ const apy = async () => {
   );
   const usdcPriceUsd = usdcPrice.coins[`${CHAIN}:${USDC}`]?.price ?? 1;
 
-  const pools = await Promise.all(
+  const settled = await Promise.allSettled(
     PRODUCTS.map((product) => getPool(product, usdcPriceUsd))
   );
-  return pools.filter(Boolean);
+  const failed = settled
+    .map((r, i) =>
+      r.status === 'rejected' ? `${PRODUCTS[i].symbol}: ${r.reason?.message}` : null
+    )
+    .filter(Boolean);
+  if (failed.length)
+    console.log(
+      `vault-street: ${failed.length}/${PRODUCTS.length} products failed -> ${failed.join(' | ')}`
+    );
+  if (failed.length === PRODUCTS.length)
+    throw new Error(`vault-street: every product failed -> ${failed.join(' | ')}`);
+  return settled
+    .filter((r) => r.status === 'fulfilled')
+    .map((r) => r.value)
+    .filter(Boolean);
 };
 
 module.exports = {
@@ -125,3 +134,4 @@ module.exports = {
   apy,
   url: 'https://www.vaultstreet.com/',
 };
+
