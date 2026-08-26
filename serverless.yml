@@ -31,14 +31,14 @@ provider:
 
   environment:
     BUCKET_DATA: { Ref: BucketData }
-    DATABASE_URL: ${file(./env.js):DATABASE_URL}
-    ZEROX_API: ${file(./env.js):ZEROX_API}
-    GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
-    LLAMA_INDEXER_V2_ENDPOINT: ${file(./env.js):LLAMA_INDEXER_V2_ENDPOINT}
-    LLAMA_INDEXER_V2_API_KEY: ${file(./env.js):LLAMA_INDEXER_V2_API_KEY}
-    R2_ENDPOINT: ${file(./env.js):R2_ENDPOINT}
-    R2_ACCESS_KEY_ID: ${file(./env.js):R2_ACCESS_KEY_ID}
-    R2_SECRET_ACCESS_KEY: ${file(./env.js):R2_SECRET_ACCESS_KEY}
+    DATABASE_URL: ${env:DATABASE_URL}
+    ZEROX_API: ${env:ZEROX_API}
+    GRAPH_API_KEY: ${env:GRAPH_API_KEY}
+    LLAMA_INDEXER_V2_ENDPOINT: ${env:LLAMA_INDEXER_V2_ENDPOINT}
+    LLAMA_INDEXER_V2_API_KEY: ${env:LLAMA_INDEXER_V2_API_KEY}
+    R2_ENDPOINT: ${env:R2_ENDPOINT}
+    R2_ACCESS_KEY_ID: ${env:R2_ACCESS_KEY_ID}
+    R2_SECRET_ACCESS_KEY: ${env:R2_SECRET_ACCESS_KEY}
 
 functions:
   # ---------- TRIGGER HANDLERS
@@ -66,28 +66,28 @@ functions:
               - Arn
           batchSize: 4
     environment:
-      ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
-      XDAI_RPC: ${file(./env.js):XDAI_RPC}
-      CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
-      FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
-      OPTIMISM_RPC: ${file(./env.js):OPTIMISM_RPC}
-      AVAX_RPC: ${file(./env.js):AVAX_RPC}
-      ARBITRUM_RPC: ${file(./env.js):ARBITRUM_RPC}
-      BASE_RPC: ${file(./env.js):BASE_RPC}
-      BSC_RPC: ${file(./env.js):BSC_RPC}
-      TRON_RPC: ${file(./env.js):TRON_RPC}
-      TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
-      NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
-      SMARDEX_SUBGRAPH_API_KEY: ${file(./env.js):SMARDEX_SUBGRAPH_API_KEY}
-      VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
-      TRADERJOE: ${file(./env.js):TRADERJOE}
-      OSMOSIS_API_KEY: ${file(./env.js):OSMOSIS_API_KEY}
-      SAUCERSWAP_API_KEY: ${file(./env.js):SAUCERSWAP_API_KEY}
-      DUNE_API_KEY: ${file(./env.js):DUNE_API_KEY}
-      HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
-      PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
-      STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
-      MONAD_RPC: ${file(./env.js):MONAD_RPC}
+      ETHEREUM_RPC: ${env:ETHEREUM_RPC}
+      XDAI_RPC: ${env:XDAI_RPC}
+      CRONOS_RPC: ${env:CRONOS_RPC}
+      FANTOM_RPC: ${env:FANTOM_RPC}
+      OPTIMISM_RPC: ${env:OPTIMISM_RPC}
+      AVAX_RPC: ${env:AVAX_RPC}
+      ARBITRUM_RPC: ${env:ARBITRUM_RPC}
+      BASE_RPC: ${env:BASE_RPC}
+      BSC_RPC: ${env:BSC_RPC}
+      TRON_RPC: ${env:TRON_RPC}
+      TVL_SPIKE_WEBHOOK: ${env:TVL_SPIKE_WEBHOOK}
+      NEW_YIELDS_WEBHOOK: ${env:NEW_YIELDS_WEBHOOK}
+      SMARDEX_SUBGRAPH_API_KEY: ${env:SMARDEX_SUBGRAPH_API_KEY}
+      VENDOR_FINANCE: ${env:VENDOR_FINANCE}
+      TRADERJOE: ${env:TRADERJOE}
+      OSMOSIS_API_KEY: ${env:OSMOSIS_API_KEY}
+      SAUCERSWAP_API_KEY: ${env:SAUCERSWAP_API_KEY}
+      DUNE_API_KEY: ${env:DUNE_API_KEY}
+      HYPERLIQUID_RPC: ${env:HYPERLIQUID_RPC}
+      PLASMA_RPC: ${env:PLASMA_RPC}
+      STARKNET_RPC: ${env:STARKNET_RPC}
+      MONAD_RPC: ${env:MONAD_RPC}
       PROJECT_0_API_KEY: ${env:PROJECT_0_API_KEY}
       SANCTUM_API_KEY: ${env:SANCTUM_API_KEY}
 
@@ -130,7 +130,7 @@ functions:
           rate: cron(30 * * * ? *)
           enabled: false
     environment:
-      STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
+      STALE_PROJECTS_WEBHOOK: ${env:STALE_PROJECTS_WEBHOOK}
 
   # --- trigger perpetuals
   triggerPerpertuals:
@@ -157,7 +157,7 @@ functions:
       # every new hour
       - schedule: cron(0 * * * ? *)
     environment:
-      ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
+      ETHEREUM_RPC: ${env:ETHEREUM_RPC}
 
   triggerProtocolNameChange:
     handler: src/handlers/triggerProtocolNameChange.handler
@@ -167,7 +167,7 @@ functions:
       # every hour 40min past
       - schedule: cron(40 * * * ? *)
     environment:
-      STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
+      STALE_PROJECTS_WEBHOOK: ${env:STALE_PROJECTS_WEBHOOK}
 
 resources:
   Resources:
