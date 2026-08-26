@@ -36,9 +36,36 @@ const dayDataChains = {
   ),
 };
 
+// the ethereum subgraph above halts on a deterministic indexing error every so
+// often; _meta keeps reporting a fresh head while no indexer can attest a block
+// past the halt, so every pool query fails and the chain silently drops out.
+// this independently published subgraph indexes the same v4 poolIds (verified
+// identical ids and fee values) and stays at the chain tip, but prunes history,
+// so the 24h leg comes from PoolManager Swap logs instead of a block offset.
+const fallbackChains = {
+  ethereum: {
+    url: sdk.graph.modifyEndpoint(
+      '8B2wKxnkciCTc5HSgsAojF6vhKn6wxQ1nVecYzMge1hA'
+    ),
+    poolManager: '0x000000000004444c5dc75cB358380D2e3dE08A90',
+    // a halted subgraph throws and yields nothing, but one that serves a badly
+    // incomplete set is just as useless and would otherwise pass a >0 check.
+    // healthy runs return ~480 pools here, so anything near this floor is broken
+    minPools: 100,
+  },
+};
+
+// v4 reports the fee actually charged on every swap, so summing the logs prices
+// hook-set dynamic fees correctly instead of writing them off as 0
+const SWAP_EVENT =
+  'event Swap(bytes32 indexed id, address indexed sender, int128 amount0, int128 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick, uint24 fee)';
+
 const DYNAMIC_FEE_FLAG = 0x800000;
 const PAGE_SIZE = 1000;
 const TVL_MIN = 50000;
+// the fallback subgraph prices tokens itself and gets it wrong often enough that
+// its own tvl is only usable as a coarse prefilter; utils.tvl decides the real floor
+const FALLBACK_PREFILTER_TVL = 5000;
 const SUSPECT_TVL_USD = 1e8;
 const MIN_VOLUME_TO_TVL_RATIO = 1e-5;
 
@@ -321,11 +348,209 @@ const topLvlDayData = async (chainString, url) => {
   }
 };
 
+const fallbackPoolsQuery = (idCursor) => gql`
+  {
+    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${FALLBACK_PREFILTER_TVL}, id_gt: "${idCursor}"}) {
+      id
+      feeTier: fee
+      totalValueLockedUSD
+      totalValueLockedToken0
+      totalValueLockedToken1
+      token0 {
+        symbol
+        decimals
+        id
+      }
+      token1 {
+        symbol
+        decimals
+        id
+      }
+    }
+  }
+`;
+
+// timestamp is a String in this schema, so the bounds are compared
+// lexicographically -- fine while unix seconds stay 10 digits wide
+const snapshotVolumesQuery = (dayIndex, idCursor) => gql`
+  {
+    poolSnapshots(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {id_gt: "${idCursor}", timestamp_gte: "${
+  dayIndex * 86400
+}", timestamp_lt: "${(dayIndex + 1) * 86400}"}) {
+      id
+      volumeUSD
+      pool {
+        id
+      }
+    }
+  }
+`;
+
+const fetchFallbackPools = async (url) => {
+  const allPools = [];
+  let idCursor = '';
+
+  while (true) {
+    const data = await request(url, fallbackPoolsQuery(idCursor));
+    const page = data.pools ?? [];
+    allPools.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    idCursor = page[page.length - 1].id;
+  }
+
+  return allPools;
+};
+
+// poolSnapshots carry lifetime-cumulative volume as of the end of each UTC day,
+// so a span's volume is the difference between two buckets
+const fetchCumulativeVolumes = async (url, dayIndex) => {
+  const volumeByPoolId = {};
+  let idCursor = '';
+
+  while (true) {
+    const data = await request(url, snapshotVolumesQuery(dayIndex, idCursor));
+    const page = data.poolSnapshots ?? [];
+    for (const snapshot of page) {
+      volumeByPoolId[snapshot.pool.id] = Number(snapshot.volumeUSD);
+    }
+    if (page.length < PAGE_SIZE) break;
+    idCursor = page[page.length - 1].id;
+  }
+
+  return volumeByPoolId;
+};
+
+const absolute = (value) => (value < 0n ? -value : value);
+
+// sums the last 24h of swaps per pool, in raw token units for both legs, along
+// with the fee each swap actually paid
+const fetchSwapTotals = async (chainString, poolManager) => {
+  const [blockPrior] = await utils.getBlocksByTime(
+    [Math.floor(Date.now() / 1000) - 86400],
+    chainString
+  );
+  const block = (await sdk.api.util.getLatestBlock(chainString)).number;
+
+  const logs = await sdk.getEventLogs({
+    target: poolManager,
+    chain: chainString,
+    fromBlock: blockPrior,
+    toBlock: block,
+    eventAbi: SWAP_EVENT,
+    onlyArgs: true,
+  });
+
+  const totalsByPoolId = {};
+  for (const log of logs) {
+    const poolId = log.id.toLowerCase();
+    const amount0 = absolute(BigInt(log.amount0));
+    const amount1 = absolute(BigInt(log.amount1));
+    const totals = (totalsByPoolId[poolId] ??= {
+      amount0: 0n,
+      amount1: 0n,
+      fees0: 0n,
+      fees1: 0n,
+    });
+    totals.amount0 += amount0;
+    totals.amount1 += amount1;
+    totals.fees0 += (amount0 * BigInt(log.fee)) / 1000000n;
+    totals.fees1 += (amount1 * BigInt(log.fee)) / 1000000n;
+  }
+
+  return totalsByPoolId;
+};
+
+const topLvlFallback = async (chainString, { url, poolManager }) => {
+  try {
+    const today = Math.floor(Date.now() / 1000 / 86400);
+    const [pools, swapTotals, endOfYesterday, endOfWeekBefore] =
+      await Promise.all([
+        fetchFallbackPools(url),
+        fetchSwapTotals(chainString, poolManager),
+        fetchCumulativeVolumes(url, today - 1),
+        fetchCumulativeVolumes(url, today - 8),
+      ]);
+
+    let dataNow = pools
+      .filter((pool) => !hasInvalidTokenTvl(pool))
+      .map((pool) => ({
+        ...pool,
+        reserve0: pool.totalValueLockedToken0,
+        reserve1: pool.totalValueLockedToken1,
+      }));
+
+    dataNow = await utils.tvl(dataNow, chainString);
+    dataNow = dataNow.filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+
+    return dataNow.map((pool) => {
+      const totals = swapTotals[pool.id.toLowerCase()];
+
+      // both legs of a swap are worth the same, so whichever side has a price
+      // gives the same figure; token0 is preferred only because it is arbitrary
+      const toUsd = (raw, token, price) =>
+        price === undefined
+          ? undefined
+          : (Number(raw) / 10 ** Number(token.decimals)) * price;
+
+      const volumeUSD1d =
+        (totals &&
+          (toUsd(totals.amount0, pool.token0, pool.price0) ??
+            toUsd(totals.amount1, pool.token1, pool.price1))) ||
+        0;
+      const feeUSD1d =
+        (totals &&
+          (toUsd(totals.fees0, pool.token0, pool.price0) ??
+            toUsd(totals.fees1, pool.token1, pool.price1))) ||
+        0;
+
+      const volumeUSD7d =
+        endOfYesterday[pool.id] !== undefined &&
+        endOfWeekBefore[pool.id] !== undefined
+          ? endOfYesterday[pool.id] - endOfWeekBefore[pool.id]
+          : 0;
+      const isDynamic = isDynamicFeePool(pool.feeTier);
+
+      const toApy = (annualFeesUsd) =>
+        pool.totalValueLockedUSD > 0 && annualFeesUsd > 0
+          ? (annualFeesUsd * 100) / pool.totalValueLockedUSD
+          : 0;
+
+      // the swap logs carry the fee a hook actually charged, so apyBase covers
+      // dynamic pools; the 7d leg only has snapshot volume, which cannot be
+      // priced without a fee rate. undefined reads as "not measured", 0 would
+      // read as "earned nothing"
+      const apyBase7d = isDynamic
+        ? undefined
+        : toApy(volumeUSD7d * (Number(pool.feeTier) / 1e6) * 52);
+
+      return {
+        ...formatPool(chainString, {
+          ...pool,
+          apyBase: toApy(feeUSD1d * 365),
+          volumeUsd1d: volumeUSD1d,
+        }),
+        apyBase7d,
+        volumeUsd7d: volumeUSD7d,
+      };
+    });
+  } catch (e) {
+    console.log(`${chainString} fallback`, e);
+    return [];
+  }
+};
+
 const main = async (timestamp = null) => {
   const data = await Promise.all([
-    ...Object.entries(chains).map(([chain, url]) =>
-      topLvl(chain, url, timestamp)
-    ),
+    ...Object.entries(chains).map(async ([chain, url]) => {
+      const pools = await topLvl(chain, url, timestamp);
+      const fallback = fallbackChains[chain];
+      // the fallback subgraph prunes history, so it can only serve the live run
+      if (!fallback || timestamp !== null || pools.length >= fallback.minPools)
+        return pools;
+
+      const fallbackPools = await topLvlFallback(chain, fallback);
+      return fallbackPools.length > pools.length ? fallbackPools : pools;
+    }),
     ...Object.entries(dayDataChains).map(([chain, url]) =>
       topLvlDayData(chain, url)
     ),
