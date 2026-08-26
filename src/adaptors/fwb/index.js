@@ -18,7 +18,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-const PROTOCOL_ID = '8069';
 const PROJECT = 'fwb';
 const SITE = 'https://finwb.xyz';
 
@@ -121,5 +120,7 @@ module.exports = {
   timetravel: false,
   apy,
   url: SITE,
-  protocolId: PROTOCOL_ID,
+  // Номер протокола обязан стоять здесь цифрой: проверка yield-server читает
+  // файл как текст и константу подставить не может.
+  protocolId: '8069',
 };
