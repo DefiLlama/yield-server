@@ -503,11 +503,13 @@ const topLvlFallback = async (chainString, { url, poolManager }) => {
             toUsd(totals.fees1, pool.token1, pool.price1))) ||
         0;
 
+      // a pool younger than the window, or one absent from either bucket, has no
+      // measurable 7d span -- distinct from a pool that spanned it and traded 0
       const volumeUSD7d =
         endOfYesterday[pool.id] !== undefined &&
         endOfWeekBefore[pool.id] !== undefined
           ? endOfYesterday[pool.id] - endOfWeekBefore[pool.id]
-          : 0;
+          : undefined;
       const isDynamic = isDynamicFeePool(pool.feeTier);
 
       const toApy = (annualFeesUsd) =>
@@ -519,9 +521,10 @@ const topLvlFallback = async (chainString, { url, poolManager }) => {
       // dynamic pools; the 7d leg only has snapshot volume, which cannot be
       // priced without a fee rate. undefined reads as "not measured", 0 would
       // read as "earned nothing"
-      const apyBase7d = isDynamic
-        ? undefined
-        : toApy(volumeUSD7d * (Number(pool.feeTier) / 1e6) * 52);
+      const apyBase7d =
+        isDynamic || volumeUSD7d === undefined
+          ? undefined
+          : toApy(volumeUSD7d * (Number(pool.feeTier) / 1e6) * 52);
 
       return {
         ...formatPool(chainString, {
