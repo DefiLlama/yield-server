@@ -1,7 +1,6 @@
 const sdk = require('@defillama/sdk');
 const superagent = require('superagent');
 
-// Contract Addresses
 const VUSD = '0xCa83DDE9c22254f58e771bE5E157773212AcBAc3';
 const SVUSD_VAULT = '0x476310E34D2810f7d79C43A74E4D79405bd7a925';
 const VUSD_YIELD_DISTRIBUTOR = '0x55745265Ba172378cf45d224F09F0673cB470cef';
@@ -15,7 +14,7 @@ const SECONDS_PER_YEAR = 31536000n;
 const apy = async () => {
   const now = BigInt(Math.floor(Date.now() / 1000));
 
-  // --- 1. Compute sVUSD Live Yield ---
+  // 1. sVUSD Yield Calculation
   const svusdTotalAssets = (
     await sdk.api.abi.call({
       target: SVUSD_VAULT,
@@ -42,13 +41,12 @@ const apy = async () => {
 
   let svusdApy = 0;
   if (BigInt(vusdPeriodFinish) > now && BigInt(svusdTotalAssets) > 0n) {
-    // rewardRate in YieldDistributor is scaled by 1e18
     const vusdRateWeiPerSec = BigInt(vusdRewardRate) / 10n ** 18n;
     const annualRewardsWei = vusdRateWeiPerSec * SECONDS_PER_YEAR;
     svusdApy = (Number(annualRewardsWei) / Number(svusdTotalAssets)) * 100;
   }
 
-  // --- 2. Compute svetBTC Live Yield ---
+  // 2. svetBTC Yield Calculation
   const svetbtcTotalAssets = (
     await sdk.api.abi.call({
       target: SVETBTC_VAULT,
@@ -75,20 +73,20 @@ const apy = async () => {
 
   let svetbtcApy = 0;
   if (BigInt(vetbtcPeriodFinish) > now && BigInt(svetbtcTotalAssets) > 0n) {
-    // rewardRate in YieldDistributor is scaled by 1e18
     const vetbtcRateWeiPerSec = BigInt(vetbtcRewardRate) / 10n ** 18n;
     const annualRewardsWei = vetbtcRateWeiPerSec * SECONDS_PER_YEAR;
     svetbtcApy = (Number(annualRewardsWei) / Number(svetbtcTotalAssets)) * 100;
   }
 
-  // --- 3. Live BTC Price for vetBTC USD Valuation ---
-  let btcPrice = 60000;
-  try {
-    const priceRes = await superagent.get(
-      'https://coins.llama.fi/prices/current/coingecko:bitcoin'
-    );
-    btcPrice = priceRes.body.coins['coingecko:bitcoin']?.price || 60000;
-  } catch (e) {}
+  // 3. Dynamic Live BTC Price (No hardcoded fallback)
+  const priceRes = await superagent.get(
+    'https://coins.llama.fi/prices/current/coingecko:bitcoin'
+  );
+  const btcPrice = priceRes.body.coins['coingecko:bitcoin']?.price;
+
+  if (!btcPrice) {
+    throw new Error('Failed to fetch live BTC price from DefiLlama Coins API');
+  }
 
   return [
     {
