@@ -129,7 +129,7 @@ const apy = async (timestamp = null) => {
     {
       pool: `${SUSDM.toLowerCase()}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
-      project: 'monetrix',
+      project: 'monetrix-usdm',
       // the pool is the sUSDM staking vault (deposit USDM, receive sUSDM)
       symbol: 'sUSDM',
       tvlUsd: tvlUnderlying * usdmPrice,

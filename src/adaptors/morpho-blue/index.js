@@ -270,6 +270,17 @@ const ALLOWED_ADAPTER_TYPES = ['MetaMorpho', 'MorphoMarketV1'];
 const hasRedWarning = (item) =>
   item.warnings?.some((warning) => warning.level === 'RED');
 
+// Vaults reviewed and kept despite a RED warning: deposit_disabled (at cap) and
+// invalid_name/invalid_symbol don't stop holders earning the reported APY.
+const RED_WARNING_ALLOWLIST = new Set([
+  '0xbeeff033f34c046626b8d0a041844c5d1a5409dd',
+  '0x4ff4186188f8406917293a9e01a1ca16d3cf9e59',
+  '0x78b18e07dc43017fceaabad0751d6464c0f56b25',
+]);
+
+const isAllowlisted = (item) =>
+  RED_WARNING_ALLOWLIST.has(item.address?.toLowerCase());
+
 const buildVaultV2Pools = (earnV2, chain) =>
   earnV2
     // Filter vaults to only include those with allowed adapter types
@@ -377,8 +388,10 @@ const fetchChainData = async (chainId) => {
   });
 
   return {
-    earnV1: vaults.filter((v) => v.state !== null && !hasRedWarning(v)),
-    earnV2: vaultV2s.filter((v) => !hasRedWarning(v)),
+    earnV1: vaults.filter(
+      (v) => v.state !== null && (!hasRedWarning(v) || isAllowlisted(v))
+    ),
+    earnV2: vaultV2s.filter((v) => !hasRedWarning(v) || isAllowlisted(v)),
     borrow: markets.filter((m) => !hasRedWarning(m)),
   };
 };

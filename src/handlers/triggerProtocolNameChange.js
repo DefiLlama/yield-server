@@ -21,7 +21,7 @@ const main = async () => {
 
   if (noMatch.length) {
     await sendMessage(
-      `Check /protocols slug for ${noMatch}`,
+      `V1 server: Check /protocols slug for ${noMatch}`,
       process.env.STALE_PROJECTS_WEBHOOK
     );
   }

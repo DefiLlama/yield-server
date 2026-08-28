@@ -512,6 +512,8 @@ const excludedProtocols = [
   { id: '7336', slug: 'satsuma' },
   { id: '7335', slug: 'juiceswap' },
   { id: '1895', slug: 'sideshift' },
+  { id: '5214', slug: 'metrom' },
+  { id: '435', slug: 'hop-protocol' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
@@ -2477,6 +2479,11 @@ const excludePools = [
   'turtle-817a72e5-72f5-4447-ae32-ae0e3261ac86', // WBTC Katana
   'turtle-b91fab34-3998-468b-adcf-645d9b68bc9c', // AUSD Katana
   'turtle-1da6331a-0315-42b3-9cde-99ec55884d30', // USDC Katana
+  'manta-vMANTA', // vMANTA, dropped from api 2026-08
+  'filecoin-vfil', // vFIL, no data since 2025-12-18
+  'moonbeam-vglmr', // vGLMR, retiring
+  'moonriver-vmovr', // vMOVR, retiring
+  '0x3d71ad2852676f8a3644a37a2932e678c0b80cf3',
 ];
 
 const boundaries = {

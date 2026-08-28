@@ -65,11 +65,11 @@ const poolsFunction = async () => {
         // ✅ pool = vault address (lowercased)
         pool: address,
         chain: utils.formatChain(PLUME_CHAIN_KEY),
-        project: 'nest-credit',
+        project: 'plume-vaults',
         symbol: v.symbol || 'NEST',
         tvlUsd: Number(v.tvl || 0),
         apyBase: apyBase,
-        url: `https://www.nest.credit/vaults/${v.slug}`,
+        url: `https://app.plume.org/vaults/${v.slug}`,
       };
 
       // Set underlying tokens if available
@@ -88,5 +88,5 @@ module.exports = {
   protocolId: '5284',
   timetravel: false,
   apy: poolsFunction,
-  url: 'https://www.nest.credit',
+  url: 'https://app.plume.org/vaults',
 };
