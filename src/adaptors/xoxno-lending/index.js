@@ -1,5 +1,5 @@
 const API_BASE = process.env.XOXNO_LENDING_API_BASE || 'https://api.xoxno.com';
-const HEADERS = { 'User-Agent': 'dune-analytics' };
+const HEADERS = { 'User-Agent': 'defillama-yield-server' };
 const REQUEST_TIMEOUT_MS = 5_000;
 
 const CHAIN_CONFIGS = {
