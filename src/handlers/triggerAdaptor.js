@@ -134,6 +134,21 @@ const main = async (body) => {
       p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
   );
 
+  // Filter pools holding implausibly more tvl than the protocol they belong to.
+  const protocolTvl = await exclude.getProtocolTvl(body.adaptor);
+  const { multiplier, minProtocolTvl } = exclude.boundaries.tvlUsdVsProtocol;
+  if (Number.isFinite(protocolTvl) && protocolTvl >= minProtocolTvl) {
+    const ceiling = protocolTvl * multiplier;
+    const implausible = data.filter((p) => p.tvlUsd > ceiling);
+    if (implausible.length) {
+      console.log(
+        `${body.adaptor}: dropping ${implausible.length} pool(s) over ${multiplier}x the protocol tvl of ${protocolTvl}: ` +
+          implausible.map((p) => `${p.symbol} ${p.tvlUsd}`).join(', ')
+      );
+      data = data.filter((p) => p.tvlUsd <= ceiling);
+    }
+  }
+
   // nullify NaN, undefined or Infinity apy values
   data = data.map((p) => ({
     ...p,

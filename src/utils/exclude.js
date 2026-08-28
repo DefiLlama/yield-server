@@ -2495,22 +2495,37 @@ const boundaries = {
   apy: { lb: 0, ub: 1e6 },
   // reading from database returns only pools which is max 7 days old
   age: 7,
+  // a pool cannot hold this many times its own protocol's tvl, only checked when
+  // that protocol is on api.llama.fi with a tvl of at least minProtocolTvl
+  tvlUsdVsProtocol: { multiplier: 50, minProtocolTvl: 1e6 },
+};
+
+let protocolsPromise = null;
+
+const fetchProtocols = async () => {
+  if (!protocolsPromise) {
+    protocolsPromise = (async () => {
+      const response = await fetch('https://api.llama.fi/protocols', {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    })().catch((err) => {
+      protocolsPromise = null;
+      throw err;
+    });
+  }
+  return protocolsPromise;
 };
 
 const getProtocolExclusionsFromApi = async () => {
   try {
-    const response = await fetch('https://api.llama.fi/protocols', {
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await fetchProtocols();
     return new Set(
-      (Array.isArray(data) ? data : [])
-        .filter((p) => p.rugged || p.deprecated || p.deadFrom)
-        .map((p) => p.slug)
+      data.filter((p) => p.rugged || p.deprecated || p.deadFrom).map((p) => p.slug)
     );
   } catch (err) {
     console.log(
@@ -2518,6 +2533,20 @@ const getProtocolExclusionsFromApi = async () => {
       err?.message || err
     );
     return new Set();
+  }
+};
+
+const getProtocolTvl = async (slug) => {
+  try {
+    const data = await fetchProtocols();
+    const match = data.find((p) => p.slug === slug);
+    return Number.isFinite(match?.tvl) ? match.tvl : null;
+  } catch (err) {
+    console.log(
+      'Failed to fetch protocol tvl; skipping the pool tvl plausibility check',
+      err?.message || err
+    );
+    return null;
   }
 };
 
@@ -2532,4 +2561,5 @@ module.exports = {
   excludePools,
   boundaries,
   getExcludedAdaptors,
+  getProtocolTvl,
 };
