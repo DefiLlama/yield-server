@@ -113,7 +113,7 @@ const apy = async () => {
 };
 
 module.exports = {
-  protocolId: '0',
+  protocolId: '8528',
   timetravel: false,
   apy,
   url: 'https://vetro.org',
