@@ -18,8 +18,9 @@ const apy = async () => {
     axios.get(getPriceApiUrl(`/prices/current/${solKey}`)),
   ]);
 
-  const solPrice = priceRes.data.coins[solKey]?.price;
-  if (!solPrice) throw new Error('Unable to fetch SOL price');
+  const solPrice = priceRes?.data?.coins?.[solKey]?.price;
+  if (!Number.isFinite(solPrice) || solPrice <= 0)
+    throw new Error('Unable to fetch SOL price');
 
   const apyBase = calcSolanaLstApy(stakePool);
   const pricePerShare = solanaLstPricePerShare(stakePool);
