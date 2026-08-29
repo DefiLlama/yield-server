@@ -242,4 +242,7 @@ module.exports = {
   timetravel: false,
   apy,
   url: URL,
+  // DefiLlama protocol id for slug "3f" (defillama.com/protocol/3f,
+  // TVL adapter projects/three-f/index.js).
+  protocolId: '7923',
 };
