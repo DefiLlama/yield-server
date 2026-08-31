@@ -14,7 +14,7 @@ const PAGE_SIZE = 1000;
 const CONFIG = {
   arbitrum: {
     SUBGRAPH:
-      'https://graphnode.prod.everything.inc/subgraphs/name/unipool-arbitrum-0-9-3-v2',
+      'https://api.goldsky.com/api/public/project_cmgxmp7c90001s5p29ytoa6xo/subgraphs/everything-arbitrum/v0.0.1/gn',
     FARMING_ADDRESS: '0x53d165df0414bd02e91747775450934bf2257f69',
     TIME_BETWEEN_BLOCK: 0.25,
     FARMING_CAMPAIGNS: {
@@ -24,7 +24,7 @@ const CONFIG = {
   },
   base: {
     SUBGRAPH:
-      'https://graphnode.prod.everything.inc/subgraphs/name/unipool-base-v0-0-1',
+      'https://api.goldsky.com/api/public/project_cmgxmp7c90001s5p29ytoa6xo/subgraphs/everything-base/v0.0.1/gn',
     FARMING_ADDRESS: '0xa5d378c05192e3f1f365d6298921879c4d51c5a3',
     TIME_BETWEEN_BLOCK: 2.0,
     FARMING_CAMPAIGNS: {
@@ -33,7 +33,7 @@ const CONFIG = {
   },
   bsc: {
     SUBGRAPH:
-      'https://graphnode.prod.everything.inc/subgraphs/name/unipool-bsc-v0-0-1',
+      'https://api.goldsky.com/api/public/project_cmgxmp7c90001s5p29ytoa6xo/subgraphs/everything-bsc/v0.0.1/gn',
     FARMING_ADDRESS: '0xb891aeb2130805171796644a2af76fc7ff25a0b9',
     TIME_BETWEEN_BLOCK: 0.45,
     FARMING_CAMPAIGNS: {
@@ -42,7 +42,7 @@ const CONFIG = {
   },
   ethereum: {
     SUBGRAPH:
-      'https://graphnode.prod.everything.inc/subgraphs/name/unipool-ethereum-v0-0-1',
+      'https://api.goldsky.com/api/public/project_cmgxmp7c90001s5p29ytoa6xo/subgraphs/everything-ethereum/v0.0.1/gn',
     FARMING_ADDRESS: '0x7d85c0905a6e1ab5837a0b57cd94a419d3a77523',
     TIME_BETWEEN_BLOCK: 12.0,
     FARMING_CAMPAIGNS: {

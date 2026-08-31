@@ -513,6 +513,10 @@ const excludedProtocols = [
   { id: '7335', slug: 'juiceswap' },
   { id: '1895', slug: 'sideshift' },
   { id: '5214', slug: 'metrom' },
+  { id: '435', slug: 'hop-protocol' },
+  { id: '2228', slug: 'aries-markets' },
+  { id: '703', slug: 'goldfinch' }, // winding down, senior pool tvl is book value of defaulted loans
+  { id: '5655', slug: 'resolv-usr' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
@@ -2482,6 +2486,7 @@ const excludePools = [
   'filecoin-vfil', // vFIL, no data since 2025-12-18
   'moonbeam-vglmr', // vGLMR, retiring
   'moonriver-vmovr', // vMOVR, retiring
+  '0x3d71ad2852676f8a3644a37a2932e678c0b80cf3',
 ];
 
 const boundaries = {
