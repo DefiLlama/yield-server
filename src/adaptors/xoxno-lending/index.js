@@ -1,6 +1,4 @@
-const API_BASE = process.env.XOXNO_LENDING_API_BASE || 'https://api.xoxno.com';
-// Required by api.xoxno.com — this is the agreed User-Agent for API access.
-// Do not rename it to something adapter-specific.
+const API_BASE = 'https://api.xoxno.com';
 const HEADERS = { 'User-Agent': 'dune-analytics' };
 const REQUEST_TIMEOUT_MS = 5_000;
 
@@ -9,20 +7,17 @@ const CHAIN_CONFIGS = {
     chain: 'Stellar',
     exportPath: '/integrations/lending/stellar',
   },
-
-  // Add MultiversX later with the same API response shape:
-  // multiversx: {
-  //   chain: 'MultiversX',
-  //   exportPath: '/integrations/lending/multiversx',
-  // },
+  elrond: {
+    // MultiversX is listed under its former name; 'MultiversX' is not a
+    // valid chain name.
+    chain: 'Elrond',
+    exportPath: '/integrations/lending/multiversx',
+    model: 'flat',
+  },
 };
 
-function getApiUrl(path) {
-  return `${API_BASE.replace(/\/$/, '')}${path}`;
-}
-
 async function getExport(config) {
-  const response = await fetch(getApiUrl(config.exportPath), {
+  const response = await fetch(`${API_BASE}${config.exportPath}`, {
     headers: HEADERS,
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
@@ -57,18 +52,43 @@ async function apy() {
     const data = await getExport(config);
     const chain = config.chain;
     const chainSlug = chain.toLowerCase();
+
+    if (config.model === 'flat') {
+      for (const market of Array.isArray(data.markets) ? data.markets : []) {
+        const cashUsd = Number(market.tvlCashUsd ?? 0);
+        pools.push({
+          pool: `xoxno-lending-${chainSlug}-${market.poolId}`,
+          chain,
+          project: 'xoxno-lending',
+          symbol: market.symbol,
+          tvlUsd: cashUsd,
+          apyBase: decimalToPercent(market.supplyApy),
+          apyBaseBorrow: decimalToPercent(market.borrowApy),
+          totalSupplyUsd: Number(market.suppliedUsd ?? 0),
+          totalBorrowUsd: Number(market.borrowedUsd ?? 0),
+          availableBorrowUsd: cashUsd,
+          ltv: Number(market.ltv ?? 0),
+          borrowable: Boolean(market.borrowable),
+          underlyingTokens: [market.token],
+          borrowToken: market.token,
+          // No 1:1 pool token exists, and the handler's fallback only
+          // recognises 0x addresses.
+          token: null,
+          url: market.url,
+        });
+      }
+      continue;
+    }
+
     const hubMarkets = Array.isArray(data.hubMarkets) ? data.hubMarkets : [];
     const spokeMarkets = Array.isArray(data.spokeMarkets)
       ? data.spokeMarkets
       : [];
 
-    // Hub markets carry the yield: liquidity + supply/borrow APY live on the
-    // hub, so the same asset on two hubs is two distinct pools. poolMeta = the
-    // hub name (mirrors Aave V4 "Core"/"Prime").
+    // Liquidity and APY live on the hub, so an asset on two hubs is two pools.
     for (const market of hubMarkets) {
       const tvlUsd = Number(market.tvlUsd ?? 0);
       pools.push({
-        // poolId is `${hubId}-${token}` — unique per hub/asset.
         pool: `xoxno-lending-${chainSlug}-${market.poolId}`,
         chain,
         project: 'xoxno-lending',
@@ -82,19 +102,27 @@ async function apy() {
         availableBorrowUsd: tvlUsd,
         underlyingTokens: [market.token],
         borrowToken: market.token,
+        token: null,
         url:
           market.url ||
           `https://xoxno.com/defi/lending/hub/${market.hubId}`,
       });
     }
 
-    // Spoke reserves are the risk/borrow-routing layer — no APY of their own
-    // (that stays on the hub). Emitted as `routing_reserve` pools carrying LTV +
-    // borrowability + per-spoke debt, poolMeta = "hub / spoke" (mirrors Aave V4
-    // "Core / Lido"). These skip the finite/APY filter below.
+    // Spoke `availableBorrowUsd` is borrow-cap headroom, which routinely
+    // exceeds the liquidity actually present: XLM reported $5.25M against
+    // $1.5K of hub cash.
+    const hubCashUsd = new Map(
+      hubMarkets.map((market) => [
+        `${market.hubId}-${market.token}`,
+        Number(market.tvlCashUsd ?? 0),
+      ])
+    );
+
+    // Spokes are the risk/routing layer with no APY of their own. Emitted as
+    // `routing_reserve`, which skips the finite/APY filter below.
     for (const spoke of spokeMarkets) {
       const pool = {
-        // `${spokeId}-${hubId}-${token}` — unique per spoke/hub/asset.
         pool: `xoxno-lending-${chainSlug}-spoke-${spoke.poolId}`,
         chain,
         project: 'xoxno-lending',
@@ -115,7 +143,10 @@ async function apy() {
 
       if (spoke.borrowable) {
         pool.totalBorrowUsd = Number(spoke.totalBorrowUsd ?? 0);
-        pool.availableBorrowUsd = Number(spoke.availableBorrowUsd ?? 0);
+        pool.availableBorrowUsd = Math.min(
+          Number(spoke.availableBorrowUsd ?? 0),
+          hubCashUsd.get(`${spoke.hubId}-${spoke.token}`) ?? 0
+        );
         pool.borrowToken = spoke.token;
       }
 
