@@ -13,12 +13,12 @@ const chains = {
     'G5TsTKNi8yhPSV7kycaE23oWbqv9zzNqR49FoEQjzq1r'
   ),
   polygon: sdk.graph.modifyEndpoint(
-    'CwpebM66AH5uqS5sreKij8yEkkPcHvmyEs7EwFtdM5ND'
+    '2CB2uQxcDKWDenagn2z17KQVCtfwSx5eXYuvqTciRTJu'
   ),
   unichain: sdk.graph.modifyEndpoint(
     'aa3YpPCxatg4LaBbLFuv2iBC8Jvs9u3hwt5GTpS4Kit'
   ),
-  bsc: sdk.graph.modifyEndpoint('2qQpC8inZPZL4tYfRQPFGZhsE8mYzE67n5z3Yf5uuKMu'),
+  bsc: sdk.graph.modifyEndpoint('EAq1nJKgjnuKH6Gj4RFjCW7LcL7E2uipbncdwV7TTWkX'),
   avax: sdk.graph.modifyEndpoint(
     '49JxRo9FGxWpSf5Y5GKQPj5NUpX2HhpoZHpGzNEWQZjq'
   ),

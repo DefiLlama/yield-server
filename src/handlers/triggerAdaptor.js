@@ -4,6 +4,7 @@ const utils = require('../adaptors/utils');
 const AppError = require('../utils/appError');
 const exclude = require('../utils/exclude');
 const { derivePoolId } = require('../utils/poolId');
+const { findTvlDominanceOutliers } = require('../utils/tvlDominance');
 const { sendMessage } = require('../utils/discordWebhook');
 const { connect } = require('../utils/dbConnection');
 const { upsertAdapterStats } = require('../queries/adapterStats');
@@ -135,6 +136,27 @@ const main = async (body) => {
       getTvlForLowerBound(p) >= exclude.boundaries.tvlUsdDB.lb &&
       p.tvlUsd <= exclude.boundaries.tvlUsdDB.ub
   );
+
+  const dominance = findTvlDominanceOutliers({
+    protocolCategory: protocolConfig[body.adaptor]?.category,
+    pools: data,
+  });
+  if (dominance.outlierKeys.size) {
+    const message = data
+      .filter((p) => dominance.outlierKeys.has(p.pool))
+      .map(
+        (p) =>
+          `TVL dominance outlier dropped for ${body.adaptor} ${p.symbol} (${
+            p.pool
+          }): tvlUsd ${p.tvlUsd.toFixed()} vs next sibling ${dominance.anchorTvlUsd.toFixed()} (${(
+            p.tvlUsd / dominance.anchorTvlUsd
+          ).toFixed(1)}x)`
+      )
+      .join('\n');
+    data = data.filter((p) => !dominance.outlierKeys.has(p.pool));
+    console.log(message);
+    await sendMessage(message, process.env.TVL_SPIKE_WEBHOOK);
+  }
 
   // nullify NaN, undefined or Infinity apy values
   data = data.map((p) => ({
