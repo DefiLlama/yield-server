@@ -4,6 +4,8 @@ const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const poolAbi = require('../aave-v3/poolAbi');
 const {
+  poolAddressesProviderRegistryAbi,
+  poolAddressesProviderAbi,
   dustRewardsControllerAbi,
   dustLockAbi,
   revenueRewardAbi,
@@ -21,28 +23,13 @@ const SECONDS_PER_YEAR = 365.25 * 24 * 60 * 60;
 const WEEK = 7 * 24 * 60 * 60;
 const WEEKS_PER_YEAR = 52;
 
-// Shared singletons. The isolated markets deliberately reuse the canonical
-// DustRewardsController, so one address covers every market listed below.
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+// Shared singletons. Every registered market uses the same rewards controller.
 const rewardsController = '0x57ea245cCbFAb074baBb9d01d1F0c60525E52cec';
 const dustLock = '0xBB4738D05AD1b3Da57a4881baE62Ce9bb1eEeD6C';
 const revenueReward = '0xff20ac10eb808B1e31F5CfCa58D80eDE2Ba71c43';
-
-// Canonical and isolated markets have independent providers and reserve sets.
-// Isolated providers are not registered on-chain, so enumerate them explicitly.
-const markets = [
-  {
-    name: 'Neverland Cross Market',
-    protocolDataProvider: '0xfd0b6b6F736376F7B99ee989c749007c7757fDba',
-    poolMeta: null,
-    getUrl: (symbol) => `${APP_URL}/markets?asset=${symbol}`,
-  },
-  {
-    name: 'Neverland Pendle AUSD Isolated Market',
-    protocolDataProvider: '0xeEb78818C026A3c1b82804627d101e27Ce5E60CB',
-    poolMeta: 'Pendle AUSD Isolated',
-    getUrl: () => `${APP_URL}/isolated`,
-  },
-];
+const addressesProviderRegistry = '0xD0CCDe10CAcd12f1c839Db6400B82a82ab90fa9B';
 
 const priceKey = (address) => `${CHAIN}:${address}`;
 const uniq = (values) => [...new Set(values.filter(Boolean))];
@@ -56,12 +43,66 @@ const call = async (target, abi, params) =>
   (await sdk.api.abi.call({ chain: CHAIN, target, abi, params })).output;
 
 // Skip empty batches: rewardless markets legitimately produce them.
-const multiCall = async (abi, calls) =>
+const multiCall = async (abi, calls, permitFailure = false) =>
   calls.length === 0
     ? []
-    : (await sdk.api.abi.multiCall({ chain: CHAIN, abi, calls })).output.map(
-        (o) => o.output
-      );
+    : (
+        await sdk.api.abi.multiCall({ chain: CHAIN, abi, calls, permitFailure })
+      ).output.map((o) => o.output);
+
+// Market IDs are display metadata; an isolated suffix also identifies its URL.
+const getMarketUrl = (marketId, symbol) => {
+  const isolatedName = String(marketId).match(
+    /^Neverland Isolated\s+(.+)$/i
+  )?.[1];
+  if (!isolatedName) {
+    return `${APP_URL}/markets?asset=${encodeURIComponent(symbol)}`;
+  }
+
+  const route = isolatedName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${APP_URL}/isolated/${route}`;
+};
+
+const getMarkets = async () => {
+  const addressesProviders = uniq(
+    await call(
+      addressesProviderRegistry,
+      findAbi(poolAddressesProviderRegistryAbi, 'getAddressesProvidersList')
+    )
+  ).filter((provider) => provider !== ZERO_ADDRESS);
+
+  const [marketIds, protocolDataProviders] = await Promise.all(
+    ['getMarketId', 'getPoolDataProvider'].map((name) =>
+      multiCall(
+        findAbi(poolAddressesProviderAbi, name),
+        addressesProviders.map((target) => ({ target })),
+        true
+      )
+    )
+  );
+
+  const markets = addressesProviders
+    .map((_, i) => ({
+      marketId: marketIds[i],
+      protocolDataProvider: protocolDataProviders[i],
+    }))
+    .filter(
+      ({ marketId, protocolDataProvider }) =>
+        typeof marketId === 'string' &&
+        marketId.trim() &&
+        protocolDataProvider &&
+        protocolDataProvider !== ZERO_ADDRESS
+    );
+
+  if (markets.length === 0) {
+    throw new Error('No Neverland markets resolved');
+  }
+
+  return markets;
+};
 
 // a single PoolDataProvider view, fetched once per reserve of a market
 const byReserve = (protocolDataProvider, abiName, reserveTokens) =>
@@ -76,7 +117,8 @@ const byReserve = (protocolDataProvider, abiName, reserveTokens) =>
 const getDecimals = async (tokens) => {
   const decimals = await multiCall(
     'erc20:decimals',
-    tokens.map((target) => ({ target }))
+    tokens.map((target) => ({ target })),
+    true
   );
   return Object.fromEntries(tokens.map((t, i) => [t, decimals[i]]));
 };
@@ -136,21 +178,30 @@ const emissionRewardTokens = (emissions, timestamp) =>
     )
   );
 
-// Accept raw streams; expired or incomplete streams contribute zero.
+// `undefined` means unresolved; `null` means no on-chain stream before Merkl merging.
 const rewardApy = (emissions, rewardDecimals, prices, baseUsd, timestamp) => {
-  if (!(baseUsd > 0)) return 0;
-  return liveEmissions(emissions, timestamp).reduce(
-    (acc, { rewardToken, emissionPerSecond }) => {
-      const emission = Number(emissionPerSecond);
-      const rewardPrice = prices[priceKey(rewardToken)]?.price;
-      const decimals = rewardDecimals[rewardToken];
-      if (!(emission > 0) || !rewardPrice || !decimals) return acc;
-      const emissionUsdPerYear =
-        (emission / 10 ** decimals) * SECONDS_PER_YEAR * rewardPrice;
-      return acc + (emissionUsdPerYear / baseUsd) * 100;
-    },
-    0
+  const liveRewards = liveEmissions(emissions, timestamp);
+  const positiveRewards = liveRewards.filter(
+    ({ emissionPerSecond }) => Number(emissionPerSecond) > 0
   );
+  if (positiveRewards.length === 0) return 0;
+  if (!(baseUsd > 0)) return undefined;
+
+  const incomplete = positiveRewards.some(
+    ({ rewardToken }) =>
+      prices[priceKey(rewardToken)]?.price == null ||
+      rewardDecimals[rewardToken] == null
+  );
+  if (incomplete) return undefined;
+
+  return positiveRewards.reduce((acc, { rewardToken, emissionPerSecond }) => {
+    const emission = Number(emissionPerSecond);
+    const rewardPrice = prices[priceKey(rewardToken)].price;
+    const decimals = rewardDecimals[rewardToken];
+    const emissionUsdPerYear =
+      (emission / 10 ** decimals) * SECONDS_PER_YEAR * rewardPrice;
+    return acc + (emissionUsdPerYear / baseUsd) * 100;
+  }, 0);
 };
 
 // Token-level reads are staged after reserve addresses are known.
@@ -252,7 +303,7 @@ const buildMarketPools = (market, data, prices, rewardDecimals, timestamp) =>
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
         symbol: reserve.symbol,
-        ...(market.poolMeta && { poolMeta: market.poolMeta }),
+        poolMeta: market.marketId,
         tvlUsd,
         apyBase: rayToPct(reserveData.liquidityRate),
         apyReward: supplyEmissions
@@ -284,7 +335,7 @@ const buildMarketPools = (market, data, prices, rewardDecimals, timestamp) =>
             )
           : null,
         ltv: Number(config.ltv) / 10000,
-        url: market.getUrl(reserve.symbol),
+        url: getMarketUrl(market.marketId, reserve.symbol),
         borrowable: config.borrowingEnabled,
         borrowToken: reserve.tokenAddress,
         // Collateral in one market cannot back debt in another, so borrow
@@ -345,12 +396,20 @@ const buildVeDustPool = (data, prices, rewardDecimals) => {
   // Voting power decays independently of locked DUST; guard the denominator.
   if (!(tvlUsd > 0) || !(veDustPowerUsd > 0)) return null;
 
+  const incomplete = data.rewardTokens.some(
+    (rewardToken, i) =>
+      Number(data.epochRewards[i]) > 0 &&
+      (prices[priceKey(rewardToken)]?.price == null ||
+        rewardDecimals[rewardToken] == null)
+  );
+  if (incomplete) return null;
+
   // Revenue accrues to voting power, not locked principal.
   const apyReward = data.rewardTokens.reduce((acc, rewardToken, i) => {
-    const rewardPrice = prices[priceKey(rewardToken)]?.price;
-    const decimals = rewardDecimals[rewardToken];
     const weeklyRewards = Number(data.epochRewards[i]);
-    if (!rewardPrice || !decimals || !(weeklyRewards > 0)) return acc;
+    if (!(weeklyRewards > 0)) return acc;
+    const rewardPrice = prices[priceKey(rewardToken)].price;
+    const decimals = rewardDecimals[rewardToken];
     const annualRewardsUsd =
       (weeklyRewards / 10 ** decimals) * rewardPrice * WEEKS_PER_YEAR;
     return acc + (annualRewardsUsd / veDustPowerUsd) * 100;
@@ -376,16 +435,19 @@ const getMarketDataSafe = async (market) => {
   try {
     return { market, data: await getMarketData(market) };
   } catch (error) {
-    console.error(`Error loading ${market.name}:`, error.message);
+    console.error(`Error loading ${market.marketId}:`, error.message);
     return null;
   }
 };
 
-const addApy = (baseApy, extraApy) =>
-  extraApy > 0 ? (baseApy || 0) + extraApy : baseApy;
+const addApy = (baseApy, extraApy) => {
+  if (baseApy === undefined) return null;
+  return extraApy > 0 ? (baseApy ?? 0) + extraApy : baseApy;
+};
 
 // Preserve schema: veDUST has no borrow side; lending may report null APY.
-const hasBorrowApy = (pool) => pool.apyRewardBorrow !== undefined;
+const hasBorrowApy = (pool) =>
+  Object.prototype.hasOwnProperty.call(pool, 'apyRewardBorrow');
 
 // The helper fills empty reward fields and normalizes target-APR campaigns.
 // Blank them, run the helper, then add back on-chain APYs. On Merkl failure,
@@ -422,13 +484,16 @@ const addMerklRewards = async (pools) => {
 const apy = async () => {
   // Market providers and veDUST are independent, so resolve them concurrently.
   const [marketResults, veDustPool] = await Promise.all([
-    Promise.all(markets.map(getMarketDataSafe)),
+    getMarkets().then((markets) => Promise.all(markets.map(getMarketDataSafe))),
     getVeDustPool(),
   ]);
   const marketsData = marketResults.filter(Boolean);
+  if (marketsData.length === 0) {
+    throw new Error('No Neverland market data resolved');
+  }
+
   // Use one timestamp for token discovery and pool output.
   const rewardTimestamp = Math.floor(Date.now() / 1000);
-
   const rewardTokens = uniq(
     marketsData.flatMap(({ data }) =>
       emissionRewardTokens(data.emissions, rewardTimestamp)
@@ -449,14 +514,17 @@ const apy = async () => {
     getDecimals(rewardTokens),
   ]);
 
-  const pools = [
-    ...marketsData.flatMap(({ market, data }) =>
-      buildMarketPools(market, data, prices, rewardDecimals, rewardTimestamp)
-    ),
-    ...(veDustPool ? [veDustPool] : []),
-  ].filter(Boolean);
+  const lendingPools = marketsData.flatMap(({ market, data }) =>
+    buildMarketPools(market, data, prices, rewardDecimals, rewardTimestamp)
+  );
+  if (lendingPools.length === 0) {
+    throw new Error('No Neverland lending pools built');
+  }
 
-  return addMerklRewards(pools);
+  return addMerklRewards([
+    ...lendingPools,
+    ...(veDustPool ? [veDustPool] : []),
+  ]);
 };
 
 module.exports = {
