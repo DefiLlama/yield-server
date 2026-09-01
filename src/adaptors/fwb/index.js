@@ -1,19 +1,18 @@
-// Адаптер доходности FWB для DeFiLlama (репозиторий DefiLlama/yield-server).
-// Путь в репозитории: src/adaptors/fwb/index.js
+// FWB yield adapter for DefiLlama (DefiLlama/yield-server).
 //
-// Протокол: фиксированная ставка на фиксированный срок (30, 90, 180, 360 дней).
-// Расписок ERC-20 за депозит нет — позиция живёт во внутреннем учёте контракта,
-// поэтому идентификатор пула строим из адреса хранилища и адреса актива.
+// Protocol: fixed rate for a fixed term (30, 90, 180 or 360 days).
+// There is no ERC-20 receipt token — a deposit lives in the vault's internal
+// accounting, so the pool id is built from the vault address and the asset address.
 //
-// Что откуда берём (всё — вызовы чтения в контракте, без внешних API):
-//   getSupportedTokens()                      список принимаемых активов
-//   activePrincipalByToken(token)             тело активных депозитов
-//   getTokenUsdValue18(token, amount)         оценка в долларах, 18 знаков
-//   currentAprBps(token, term)                ставка в базисных пунктах
+// Where the data comes from (all on-chain reads, no external APIs):
+//   getSupportedTokens()                accepted assets
+//   activePrincipalByToken(token)       principal of active deposits
+//   getTokenUsdValue18(token, amount)   USD value, 18 decimals
+//   currentAprBps(token, term)          rate in basis points
 //
-// APY подаём для срока 360 дней и указываем это в poolMeta: единой ставки
-// у пула нет, срок выбирает вкладчик. Тот же подход у рынков с фиксированной
-// доходностью до погашения.
+// APY is reported for the 360-day term and poolMeta says so: there is no single
+// rate for a pool, the term is chosen by the depositor. Same approach as other
+// fixed-maturity markets.
 
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
@@ -21,7 +20,7 @@ const utils = require('../utils');
 const PROJECT = 'fwb';
 const SITE = 'https://finwb.xyz';
 
-// Срок, ставку за который показываем.
+// The term whose rate we report.
 const TERM_DAYS = 360;
 
 const VAULTS = {
@@ -40,10 +39,10 @@ const abi = {
 };
 
 const WAD = 1e18;
-const BPS = 100; // базисные пункты -> проценты
+const BPS = 100; // basis points -> percent
 
-// В символе USD₮0 стоит знак ₮ (U+20AE), а не латинская T: фильтр символов
-// его вырезает и получается USD0. Приводим к обычному написанию.
+// The on-chain symbol USD₮0 uses ₮ (U+20AE), not a latin T. Normalise it so the
+// symbol stays readable and searchable.
 function normaliseSymbol(symbol) {
   return String(symbol).replace(/₮/g, 'T');
 }
@@ -80,7 +79,7 @@ async function poolsForChain(chain) {
     }),
   ]);
 
-  // Оценку в долларах контракт считает сам — своим оракулом цен.
+  // The vault values assets in USD itself, through its own price oracle.
   const values = await sdk.api.abi.multiCall({
     chain,
     abi: abi.getTokenUsdValue18,
@@ -98,14 +97,16 @@ async function poolsForChain(chain) {
       pool: `${target}-${token}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
       project: PROJECT,
-      symbol: utils.formatSymbol(normaliseSymbol(symbols.output[i].output)),
+      symbol: normaliseSymbol(symbols.output[i].output),
       tvlUsd,
       apyBase,
       underlyingTokens: [token],
-      // Единой ставки у пула нет — она зависит от выбранного вкладчиком срока.
-      // Показываем ставку за 360 дней и говорим об этом прямо.
-      poolMeta: `Fixed term 30/90/180/${TERM_DAYS}d, APY shown for ${TERM_DAYS}d`,
-      url: SITE,
+      // No receipt token: the position is tracked in the vault's internal accounting.
+      token: null,
+      poolMeta: `Fixed term ${TERM_DAYS}d`,
+      // The deposit page. Chain, asset and term are picked in the UI after the
+      // wallet is connected, so there is no per-pool URL to link to.
+      url: `${SITE}/cabinet`,
     };
   }).filter((pool) => Number.isFinite(pool.tvlUsd) && Number.isFinite(pool.apyBase));
 }
@@ -120,7 +121,7 @@ module.exports = {
   timetravel: false,
   apy,
   url: SITE,
-  // Номер протокола обязан стоять здесь цифрой: проверка yield-server читает
-  // файл как текст и константу подставить не может.
+  // The protocol id must be an inline literal: the yield-server test reads this
+  // file as text and cannot resolve a constant.
   protocolId: '8069',
 };
