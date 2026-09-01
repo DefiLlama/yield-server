@@ -1,0 +1,96 @@
+const utils = require('../utils');
+
+const address = 'EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ';
+
+// hGRAM launched at an exchange rate of 1.0 GRAM
+const launchTimestamp = 1698685200;
+
+module.exports = {
+  protocolId: '3722',
+  timetravel: false,
+  url: 'https://app.hipo.finance',
+  apy: async () => {
+    const protocolData = await utils.getData(
+      'https://api.llama.fi/protocol/hipo'
+    );
+    const tvlUsd = protocolData.currentChainTvls['TON'];
+
+    const getTreasuryState = await utils.getData(
+      'https://toncenter.com/api/v3/runGetMethod',
+      {
+        address,
+        method: 'get_treasury_state',
+        stack: [],
+      }
+    );
+    if (getTreasuryState.exit_code !== 0) {
+      throw new Error(
+        'Expected a zero exit code, but got ' + getTreasuryState.exit_code
+      );
+    }
+
+    await sleep(1000);
+
+    const getTimes = await utils.getData(
+      'https://toncenter.com/api/v3/runGetMethod',
+      {
+        address,
+        method: 'get_times',
+        stack: [],
+      }
+    );
+    if (getTimes.exit_code !== 0) {
+      throw new Error(
+        'Expected a zero exit code, but got ' + getTimes.exit_code
+      );
+    }
+
+    // The treasury stores the hGRAM/GRAM exchange rate before and after the
+    // latest round's loan repayments (fixed-point, 1e9 = 1.0). The rate is
+    // updated once per validation round, so the growth between the two rates
+    // accrued over a single round duration.
+    const previousRate = Number(getTreasuryState.stack[11].value);
+    const currentRate = Number(getTreasuryState.stack[12].value);
+
+    const currentRoundSince = Number(getTimes.stack[0].value);
+    const nextRoundSince = Number(getTimes.stack[3].value);
+
+    if (!Number.isFinite(previousRate) || previousRate <= 0) {
+      throw new Error('Invalid previous rate: ' + previousRate);
+    }
+    if (!Number.isFinite(currentRate) || currentRate <= 0) {
+      throw new Error('Invalid current rate: ' + currentRate);
+    }
+
+    const roundDuration = nextRoundSince - currentRoundSince;
+    if (!Number.isFinite(roundDuration) || roundDuration <= 0) {
+      throw new Error('Invalid round duration: ' + roundDuration);
+    }
+
+    const year = 365 * 24 * 60 * 60;
+    const compoundingFrequency = year / roundDuration;
+    const apyBase =
+      (Math.pow(currentRate / previousRate, compoundingFrequency) - 1) * 100;
+
+    const yearsSinceLaunch = (Date.now() / 1000 - launchTimestamp) / year;
+    const apyBaseInception =
+      (Math.pow(currentRate / 1e9, 1 / yearsSinceLaunch) - 1) * 100;
+
+    return [
+      {
+        pool: (address + '-ton').toLowerCase(),
+        chain: utils.formatChain('ton'),
+        project: 'hipo',
+        symbol: 'hGRAM',
+        tvlUsd,
+        apyBase,
+        apyBaseInception,
+        underlyingTokens: ['EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c'], // native TON
+      },
+    ];
+  },
+};
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

@@ -1,0 +1,203 @@
+service: llama-apy
+
+package:
+  individually: true
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs24.x
+  stage: dev
+  region: eu-central-1
+  tracing:
+    apiGateway: true
+    lambda: true
+  memorySize: 1024
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - xray:PutTraceSegments
+            - xray:PutTelemetryRecords
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - s3:ListBucket
+            - s3:*Object*
+            - sqs:SendMessage
+          Resource: '*'
+
+  environment:
+    BUCKET_DATA: { Ref: BucketData }
+    DATABASE_URL: ${file(./env.js):DATABASE_URL}
+    ZEROX_API: ${file(./env.js):ZEROX_API}
+    GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
+    LLAMA_INDEXER_V2_ENDPOINT: ${file(./env.js):LLAMA_INDEXER_V2_ENDPOINT}
+    LLAMA_INDEXER_V2_API_KEY: ${file(./env.js):LLAMA_INDEXER_V2_API_KEY}
+    R2_ENDPOINT: ${file(./env.js):R2_ENDPOINT}
+    R2_ACCESS_KEY_ID: ${file(./env.js):R2_ACCESS_KEY_ID}
+    R2_SECRET_ACCESS_KEY: ${file(./env.js):R2_SECRET_ACCESS_KEY}
+
+functions:
+  # ---------- TRIGGER HANDLERS
+  # --- top-lvl-entrypoint
+  triggerEntrypoint:
+    handler: src/handlers/triggerEntrypoint.handler
+    description: Lambda to launch the adaptor pipeline
+    timeout: 30
+    events:
+      # every new hour
+      - schedule: cron(0 * * * ? *)
+    environment:
+      ADAPTER_QUEUE_URL: { Ref: AdapterQueue }
+
+  # --- adaptors
+  triggerAdaptor:
+    handler: src/handlers/triggerAdaptor.handler
+    description: Lambda which runs adaptors
+    timeout: 900
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - AdapterQueue
+              - Arn
+          batchSize: 4
+    environment:
+      ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
+      XDAI_RPC: ${file(./env.js):XDAI_RPC}
+      CRONOS_RPC: ${file(./env.js):CRONOS_RPC}
+      FANTOM_RPC: ${file(./env.js):FANTOM_RPC}
+      OPTIMISM_RPC: ${file(./env.js):OPTIMISM_RPC}
+      AVAX_RPC: ${file(./env.js):AVAX_RPC}
+      ARBITRUM_RPC: ${file(./env.js):ARBITRUM_RPC}
+      BASE_RPC: ${file(./env.js):BASE_RPC}
+      BSC_RPC: ${file(./env.js):BSC_RPC}
+      TRON_RPC: ${file(./env.js):TRON_RPC}
+      TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
+      NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}
+      SMARDEX_SUBGRAPH_API_KEY: ${file(./env.js):SMARDEX_SUBGRAPH_API_KEY}
+      VENDOR_FINANCE: ${file(./env.js):VENDOR_FINANCE}
+      TRADERJOE: ${file(./env.js):TRADERJOE}
+      OSMOSIS_API_KEY: ${file(./env.js):OSMOSIS_API_KEY}
+      SAUCERSWAP_API_KEY: ${file(./env.js):SAUCERSWAP_API_KEY}
+      DUNE_API_KEY: ${file(./env.js):DUNE_API_KEY}
+      HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
+      PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
+      STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
+      MONAD_RPC: ${file(./env.js):MONAD_RPC}
+      PROJECT_0_API_KEY: ${env:PROJECT_0_API_KEY}
+      SANCTUM_API_KEY: ${env:SANCTUM_API_KEY}
+
+  # --- data enrichment
+  triggerEnrichment:
+    handler: src/handlers/triggerEnrichment.handler
+    description: Lambda which runs enrichment process
+    timeout: 900
+    memorySize: 1024
+    events:
+      # every hour at 16 past
+      - schedule: cron(16 * * * ? *)
+
+  # --- stats update
+  triggerStat:
+    handler: src/handlers/triggerStat.handler
+    description: Lambda which updates the stat table
+    timeout: 600
+    events:
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
+
+  # --- median insert
+  triggerMedian:
+    handler: src/handlers/triggerMedian.handler
+    description: Lambda which inserts latest value into the median table
+    timeout: 600
+    events:
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
+
+  # --- trigger monitor
+  triggerMonitor:
+    handler: src/handlers/triggerMonitor.handler
+    description: Lambda which triggers the monitor query for logging stale adapters
+    timeout: 300
+    events:
+      # every hour at 30 past
+      - schedule:
+          rate: cron(30 * * * ? *)
+          enabled: false
+    environment:
+      STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
+
+  # --- trigger perpetuals
+  triggerPerpertuals:
+    handler: src/handlers/triggerPerpetuals.handler
+    description: Lambda which triggers perp files
+    timeout: 300
+    events:
+      # every new hour
+      - schedule: cron(0 * * * ? *)
+
+  triggerMedianProject:
+    handler: src/handlers/triggerMedianProject.handler
+    description: Lambda which triggers daily median calculation for each project
+    timeout: 300
+    events:
+      # 30min prior midnight
+      - schedule: cron(30 23 * * ? *)
+
+  triggerLSDRates:
+    handler: src/handlers/triggerLSDRates.handler
+    description: Lambda which triggers lsd market rate and expected rate
+    timeout: 300
+    events:
+      # every new hour
+      - schedule: cron(0 * * * ? *)
+    environment:
+      ETHEREUM_RPC: ${file(./env.js):ETHEREUM_RPC}
+
+  triggerProtocolNameChange:
+    handler: src/handlers/triggerProtocolNameChange.handler
+    description: Lambda which checks for protocol renames
+    timeout: 300
+    events:
+      # every hour 40min past
+      - schedule: cron(40 * * * ? *)
+    environment:
+      STALE_PROJECTS_WEBHOOK: ${file(./env.js):STALE_PROJECTS_WEBHOOK}
+
+resources:
+  Resources:
+    # QUEUES
+    # --- queue for adaptor handler
+    AdapterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:custom.stage}-AdapterQueue
+        VisibilityTimeout: 960
+        # setting this to 9hours
+        MessageRetentionPeriod: 32400
+
+    # --- create bucket
+    BucketData:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${self:custom.stage}-data
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  webpack:
+    webpackConfig: 'webpack.config.js'
+    includeModules: true
+    packager: 'npm'
+    excludeFiles: src/**/*.test.js
+  prune:
+    automatic: true
+    number: 5
+
+plugins:
+  - serverless-webpack
+  - serverless-prune-plugin

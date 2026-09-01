@@ -1,0 +1,105 @@
+const utils = require('../utils');
+const axios = require('axios');
+
+const SUBGRAPH_URL =
+  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-production';
+const CHAIN_NAME = 'Ethereum';
+
+const getData = async (url, query = null) => {
+  let res;
+  if (query !== null) {
+    res = await axios.post(url, query);
+  } else {
+    res = await axios.get(url);
+  }
+  return res.data;
+};
+
+const wsdQuery = `
+  {
+    wsdstakingPools {
+      id
+      reward_rate_stpol_9x
+      reward_rate_stlink_9x
+      tvl
+    }
+  }
+`;
+
+const pools = [
+  {
+    symbol: 'SDL', // Stake.link token
+    address: '0xa95c5ebb86e0de73b4fb8c47a45b792cfea28c23', // SDL token contract address
+    priceId: 'stake-link', // CoinGecko ID for SDL token
+    underlying: '0xa95c5ebb86e0de73b4fb8c47a45b792cfea28c23', // SDL itself is the underlying
+  },
+];
+
+const fetchPrice = async (tokenId) => {
+  const priceKey = `coingecko:${tokenId}`;
+  const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
+  return data.coins[priceKey].price;
+};
+
+const fetchPool = async (pool) => {
+  try {
+    const { symbol, address, priceId, underlying } = pool;
+
+    const price = await fetchPrice(priceId);
+
+    const response = await getData(
+      SUBGRAPH_URL,
+      JSON.stringify({ query: wsdQuery })
+    );
+
+    if (
+      !response ||
+      !response.data ||
+      !response.data.wsdstakingPools ||
+      !response.data.wsdstakingPools[0]
+    ) {
+      throw new Error('Invalid data structure received from subgraph');
+    }
+
+    const poolData = response.data.wsdstakingPools[0];
+
+    // Combine both stPOL and stLINK 9x reward rates
+    const stpolRewardRate = parseFloat(poolData.reward_rate_stpol_9x);
+    const stlinkRewardRate = parseFloat(poolData.reward_rate_stlink_9x);
+    const combinedRewardRate = stpolRewardRate + stlinkRewardRate;
+
+    // Rates are already in percentage form, no need to multiply by 100
+    const apy = combinedRewardRate;
+
+    // Use TVL from the subgraph
+    const tvl = parseFloat(poolData.tvl);
+
+    return {
+      pool: `${address}-${CHAIN_NAME}`.toLowerCase(),
+      chain: CHAIN_NAME,
+      project: 'stake.link-index',
+      symbol,
+      tvlUsd: tvl,
+      apyBase: apy,
+      underlyingTokens: [underlying],
+    };
+  } catch (error) {
+    console.error(
+      `Error fetching pool data for ${pool.symbol}:`,
+      error.message
+    );
+    return null;
+  }
+};
+
+const fetchPools = async () => {
+  const poolsData = await Promise.all(pools.map(fetchPool));
+  return poolsData.filter(Boolean);
+};
+
+module.exports = {
+  protocolId: '2805',
+  timetravel: false,
+  apy: fetchPools,
+  url: 'https://stake.link/sdl',
+};

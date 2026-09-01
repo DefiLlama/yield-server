@@ -1,0 +1,60 @@
+{
+  "LENDING_POOL": [
+    {
+      "inputs": [],
+      "name": "totalValue",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lendingAPR",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "assetDecimals",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "VAULT": [
+    {
+      "inputs": [],
+      "name": "reader",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "VAULT_READER": [
+    {
+      "inputs": [],
+      "name": "equityValue",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "CHAINLINK_ORACLE": [
+    {
+      "inputs": [
+        { "internalType": "address", "name": "_token", "type": "address" }
+      ],
+      "name": "consultIn18Decimals",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]
+}

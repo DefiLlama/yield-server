@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2020",
+    "strict": false,
+    "types": ["node", "jest"],
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
+    "rootDir": ".",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "lib": ["ES2020"],
+    "moduleDetection": "force"
+  },
+  "include": ["./src/**/*"]
+}

@@ -1,0 +1,58 @@
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
+const { getPriceApiData } = require('../utils');
+
+const wbeth = '0xa2E3356610840701BDf5611a53974510Ae27E2e1';
+const project = 'binance-staked-eth';
+const symbol = 'wbeth';
+
+const apy = async () => {
+  const tvlEthereum =
+    (await sdk.api.erc20.totalSupply({ target: wbeth })).output / 1e18;
+
+  const tvlBsc =
+    (await sdk.api.erc20.totalSupply({ target: wbeth, chain: 'bsc' })).output /
+    1e18;
+
+  const wbethExchangeRateRaw = await sdk.api.abi.call({
+    target: wbeth,
+    abi: 'uint256:exchangeRate',
+    chain: 'ethereum',
+  });
+
+  const wbethExchangeRate = wbethExchangeRateRaw.output / 1e18;
+
+  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
+
+  const apr =
+    (
+      await axios.get(
+        'https://www.binance.com/bapi/earn/v1/public/pos/cftoken/project/getPurchasableProject'
+      )
+    ).data.data.annualInterestRate * 100;
+
+  return [
+    {
+      pool: `${wbeth}-ethereum`,
+      chain: 'ethereum',
+      project,
+      symbol,
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      apyBase: apr,
+      tvlUsd: tvlEthereum * ethPrice * wbethExchangeRate,
+      isIntrinsicSource: true,
+    },
+    {
+      pool: `${wbeth}-bsc`,
+      chain: 'bsc',
+      project,
+      symbol,
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      apyBase: apr,
+      tvlUsd: tvlBsc * ethPrice * wbethExchangeRate,
+    },
+  ];
+};
+
+module.exports = { protocolId: '2914', apy, url: 'https://www.binance.com/en/eth2' };

@@ -1,0 +1,273 @@
+[
+  {
+    "name": "AddMarket",
+    "inputs": [
+      { "name": "collateral", "type": "address", "indexed": true },
+      { "name": "controller", "type": "address", "indexed": false },
+      { "name": "amm", "type": "address", "indexed": false },
+      { "name": "monetary_policy", "type": "address", "indexed": false },
+      { "name": "ix", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "SetDebtCeiling",
+    "inputs": [
+      { "name": "addr", "type": "address", "indexed": true },
+      { "name": "debt_ceiling", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "MintForMarket",
+    "inputs": [
+      { "name": "addr", "type": "address", "indexed": true },
+      { "name": "amount", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "RemoveFromMarket",
+    "inputs": [
+      { "name": "addr", "type": "address", "indexed": true },
+      { "name": "amount", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "SetImplementations",
+    "inputs": [
+      { "name": "amm", "type": "address", "indexed": false },
+      { "name": "controller", "type": "address", "indexed": false }
+    ],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "SetAdmin",
+    "inputs": [{ "name": "admin", "type": "address", "indexed": false }],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "name": "SetFeeReceiver",
+    "inputs": [{ "name": "fee_receiver", "type": "address", "indexed": false }],
+    "anonymous": false,
+    "type": "event"
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "constructor",
+    "inputs": [
+      { "name": "stablecoin", "type": "address" },
+      { "name": "admin", "type": "address" },
+      { "name": "fee_receiver", "type": "address" },
+      { "name": "weth", "type": "address" }
+    ],
+    "outputs": []
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "stablecoin",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "add_market",
+    "inputs": [
+      { "name": "token", "type": "address" },
+      { "name": "A", "type": "uint256" },
+      { "name": "fee", "type": "uint256" },
+      { "name": "admin_fee", "type": "uint256" },
+      { "name": "_price_oracle_contract", "type": "address" },
+      { "name": "monetary_policy", "type": "address" },
+      { "name": "loan_discount", "type": "uint256" },
+      { "name": "liquidation_discount", "type": "uint256" },
+      { "name": "debt_ceiling", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "address[2]" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "total_debt",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "get_controller",
+    "inputs": [{ "name": "collateral", "type": "address" }],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "get_controller",
+    "inputs": [
+      { "name": "collateral", "type": "address" },
+      { "name": "i", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "get_amm",
+    "inputs": [{ "name": "collateral", "type": "address" }],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "get_amm",
+    "inputs": [
+      { "name": "collateral", "type": "address" },
+      { "name": "i", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "set_implementations",
+    "inputs": [
+      { "name": "controller", "type": "address" },
+      { "name": "amm", "type": "address" }
+    ],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "set_admin",
+    "inputs": [{ "name": "admin", "type": "address" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "set_fee_receiver",
+    "inputs": [{ "name": "fee_receiver", "type": "address" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "set_debt_ceiling",
+    "inputs": [
+      { "name": "_to", "type": "address" },
+      { "name": "debt_ceiling", "type": "uint256" }
+    ],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "rug_debt_ceiling",
+    "inputs": [{ "name": "_to", "type": "address" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "collect_fees_above_ceiling",
+    "inputs": [{ "name": "_to", "type": "address" }],
+    "outputs": []
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "controllers",
+    "inputs": [{ "name": "arg0", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "amms",
+    "inputs": [{ "name": "arg0", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "admin",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "fee_receiver",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "controller_implementation",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "amm_implementation",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "n_collaterals",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "collaterals",
+    "inputs": [{ "name": "arg0", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "address" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "collaterals_index",
+    "inputs": [
+      { "name": "arg0", "type": "address" },
+      { "name": "arg1", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "debt_ceiling",
+    "inputs": [{ "name": "arg0", "type": "address" }],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "debt_ceiling_residual",
+    "inputs": [{ "name": "arg0", "type": "address" }],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "stateMutability": "view",
+    "type": "function",
+    "name": "WETH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }]
+  }
+]

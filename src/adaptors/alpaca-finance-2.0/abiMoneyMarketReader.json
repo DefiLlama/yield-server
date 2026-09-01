@@ -1,0 +1,584 @@
+[
+  {
+    "inputs": [
+      { "internalType": "address", "name": "moneyMarket_", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "moneyMarketAccountManager_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address[]",
+        "name": "_underlyingTokens",
+        "type": "address[]"
+      }
+    ],
+    "name": "getAlpacaGuardStatuses",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "underlyingToken",
+            "type": "address"
+          },
+          { "internalType": "bool", "name": "isGuardActivated", "type": "bool" }
+        ],
+        "internalType": "struct IMoneyMarketReader.AlpacaGuardStatus[]",
+        "name": "_alpacaGuardStatuses",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_underlyingToken",
+        "type": "address"
+      }
+    ],
+    "name": "getInterestRateModelConfig",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "ceilSlope1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ceilSlope2",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ceilSlope3",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxInterestSlope1",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxInterestSlope2",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxInterestSlope3",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IMoneyMarketReader.TripleSlopeModelConfig",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_account", "type": "address" },
+      {
+        "internalType": "address[]",
+        "name": "_underlyingTokenAddresses",
+        "type": "address[]"
+      }
+    ],
+    "name": "getMainAccountSummary",
+    "outputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "ibTokenAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "underlyingToken",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "supplyIbAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ibTokenPrice",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "underlyingAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "underlyingTokenPrice",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IMoneyMarketReader.SupplyAccountDetail[]",
+            "name": "supplyAccountDetails",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct IMoneyMarketReader.MainAccountSummary",
+        "name": "_mainAccountSummary",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_underlyingToken",
+        "type": "address"
+      }
+    ],
+    "name": "getMarketMetadata",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "underlyingTokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "ibTokenAddress",
+            "type": "address"
+          },
+          {
+            "components": [
+              { "internalType": "uint8", "name": "tier", "type": "uint8" },
+              {
+                "internalType": "uint16",
+                "name": "collateralFactor",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "borrowingFactor",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxCollateral",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxBorrow",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IMoneyMarketReader.TokenConfig",
+            "name": "underlyingTokenConfig",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              { "internalType": "uint8", "name": "tier", "type": "uint8" },
+              {
+                "internalType": "uint16",
+                "name": "collateralFactor",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint16",
+                "name": "borrowingFactor",
+                "type": "uint16"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxCollateral",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxBorrow",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IMoneyMarketReader.TokenConfig",
+            "name": "ibTokenConfig",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct IMoneyMarketReader.MarketMetadata",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_underlyingToken",
+        "type": "address"
+      }
+    ],
+    "name": "getMarketPriceInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "underlyingTokenPrice",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ibTokenPrice",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "underlyingToIbRate",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IMoneyMarketReader.MarketPriceInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_underlyingToken",
+        "type": "address"
+      },
+      { "internalType": "address[]", "name": "_rewarders", "type": "address[]" }
+    ],
+    "name": "getMarketRewardInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "totalDebtTokenInPool",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalUnderlyingTokenInPool",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "rewardToken",
+                "type": "address"
+              },
+              { "internalType": "uint256", "name": "pId", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerSec",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalAllocPoint",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "allocPoint",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IMoneyMarketReader.RewarderInfo[]",
+            "name": "ibRewarderInfos",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "rewardToken",
+                "type": "address"
+              },
+              { "internalType": "uint256", "name": "pId", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "rewardPerSec",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalAllocPoint",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "allocPoint",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IMoneyMarketReader.RewarderInfo[]",
+            "name": "debtRewarderInfos",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct IMoneyMarketReader.MarketRewardInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_underlyingToken",
+        "type": "address"
+      }
+    ],
+    "name": "getMarketStats",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "ibTotalSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ibTotalAsset",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "globalDebtValue",
+            "type": "uint256"
+          },
+          { "internalType": "uint256", "name": "reserve", "type": "uint256" },
+          {
+            "internalType": "uint256",
+            "name": "totalToken",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "pendingInterest",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "interestRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastAccruedAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "blockTimestamp",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IMoneyMarketReader.MarketStats",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token0", "type": "address" },
+      { "internalType": "address", "name": "_token1", "type": "address" }
+    ],
+    "name": "getPrice",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_token", "type": "address" }
+    ],
+    "name": "getPriceUSD",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_pId", "type": "uint256" },
+      { "internalType": "address", "name": "_account", "type": "address" },
+      { "internalType": "address[]", "name": "_rewarders", "type": "address[]" }
+    ],
+    "name": "getRewardSummary",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "rewardToken",
+            "type": "address"
+          },
+          { "internalType": "uint256", "name": "pId", "type": "uint256" },
+          {
+            "internalType": "uint256",
+            "name": "pendingReward",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IMoneyMarketReader.RewardSummary[]",
+        "name": "_rewardSummary",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_account", "type": "address" },
+      { "internalType": "uint256", "name": "_subAccountId", "type": "uint256" }
+    ],
+    "name": "getSubAccountSummary",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "subAccountId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalBorrowedValue",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalCollateralValue",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalBorrowingPower",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalUsedBorrowingPower",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "ibToken",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "underlyingToken",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ibTokenPrice",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "underlyingTokenPrice",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint16",
+                "name": "collateralFactor",
+                "type": "uint16"
+              }
+            ],
+            "internalType": "struct IMoneyMarketReader.CollateralPosition[]",
+            "name": "collaterals",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              { "internalType": "address", "name": "token", "type": "address" },
+              {
+                "internalType": "uint256",
+                "name": "shares",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+              },
+              { "internalType": "uint256", "name": "price", "type": "uint256" },
+              {
+                "internalType": "uint16",
+                "name": "borrowingFactor",
+                "type": "uint16"
+              }
+            ],
+            "internalType": "struct IMoneyMarketReader.DebtPosition[]",
+            "name": "debts",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct IMoneyMarketReader.SubAccountSummary",
+        "name": "summary",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "moneyMarket",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

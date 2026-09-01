@@ -1,0 +1,302 @@
+[
+  {
+      "inputs": [
+          {
+              "internalType": "address",
+              "name": "_comptroller",
+              "type": "address"
+          },
+          {
+              "internalType": "address",
+              "name": "_oracle",
+              "type": "address"
+          },
+          {
+              "internalType": "address",
+              "name": "_partnerMultiRewardDistributor",
+              "type": "address"
+          },
+          {
+              "internalType": "address",
+              "name": "_multiRewardDistributor",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+  },
+  {
+      "inputs": [],
+      "name": "comptroller",
+      "outputs": [
+          {
+              "internalType": "contract Comptroller",
+              "name": "",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "getActiveMarketsInfo",
+      "outputs": [
+          {
+              "components": [
+                  {
+                      "internalType": "uint256",
+                      "name": "tvl",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "ltv",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "totalSupply",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "totalBorrows",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "supplyRatePerBlock",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "borrowRatePerBlock",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "timestampsPerYear",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "address",
+                      "name": "token",
+                      "type": "address"
+                  },
+                  {
+                      "internalType": "address",
+                      "name": "underlying",
+                      "type": "address"
+                  },
+                  {
+                      "internalType": "string",
+                      "name": "symbol",
+                      "type": "string"
+                  },
+                  {
+                      "internalType": "string",
+                      "name": "underlyingSymbol",
+                      "type": "string"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "price",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "decimals",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "exchangeRateStored",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "orginTotalSupply",
+                      "type": "uint256"
+                  }
+              ],
+              "internalType": "struct MarketState.MarketsInfo[]",
+              "name": "",
+              "type": "tuple[]"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "contract TErc20",
+              "name": "rToken",
+              "type": "address"
+          }
+      ],
+      "name": "getPartnerRewardsAllMarketConfigs",
+      "outputs": [
+          {
+              "components": [
+                  {
+                      "internalType": "address",
+                      "name": "owner",
+                      "type": "address"
+                  },
+                  {
+                      "internalType": "address",
+                      "name": "emissionToken",
+                      "type": "address"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "endTime",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint224",
+                      "name": "supplyGlobalIndex",
+                      "type": "uint224"
+                  },
+                  {
+                      "internalType": "uint32",
+                      "name": "supplyGlobalTimestamp",
+                      "type": "uint32"
+                  },
+                  {
+                      "internalType": "uint224",
+                      "name": "borrowGlobalIndex",
+                      "type": "uint224"
+                  },
+                  {
+                      "internalType": "uint32",
+                      "name": "borrowGlobalTimestamp",
+                      "type": "uint32"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "supplyEmissionsPerSec",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "borrowEmissionsPerSec",
+                      "type": "uint256"
+                  }
+              ],
+              "internalType": "struct MultiRewardDistributorCommon.MarketConfig[]",
+              "name": "rewardsConfigs",
+              "type": "tuple[]"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "contract TErc20",
+              "name": "rToken",
+              "type": "address"
+          }
+      ],
+      "name": "getRewardsAllMarketConfigs",
+      "outputs": [
+          {
+              "components": [
+                  {
+                      "internalType": "address",
+                      "name": "owner",
+                      "type": "address"
+                  },
+                  {
+                      "internalType": "address",
+                      "name": "emissionToken",
+                      "type": "address"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "endTime",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint224",
+                      "name": "supplyGlobalIndex",
+                      "type": "uint224"
+                  },
+                  {
+                      "internalType": "uint32",
+                      "name": "supplyGlobalTimestamp",
+                      "type": "uint32"
+                  },
+                  {
+                      "internalType": "uint224",
+                      "name": "borrowGlobalIndex",
+                      "type": "uint224"
+                  },
+                  {
+                      "internalType": "uint32",
+                      "name": "borrowGlobalTimestamp",
+                      "type": "uint32"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "supplyEmissionsPerSec",
+                      "type": "uint256"
+                  },
+                  {
+                      "internalType": "uint256",
+                      "name": "borrowEmissionsPerSec",
+                      "type": "uint256"
+                  }
+              ],
+              "internalType": "struct MultiRewardDistributorCommon.MarketConfig[]",
+              "name": "rewardsConfigs",
+              "type": "tuple[]"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "oracle",
+      "outputs": [
+          {
+              "internalType": "contract CompositeOracle",
+              "name": "",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "partner",
+      "outputs": [
+          {
+              "internalType": "contract PartnerMultiRewardDistributor",
+              "name": "",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "rewards",
+      "outputs": [
+          {
+              "internalType": "contract MultiRewardDistributorV2",
+              "name": "",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  }
+]

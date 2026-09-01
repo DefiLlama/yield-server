@@ -1,0 +1,43 @@
+{
+  "totalStakedSupply": {
+    "inputs": [],
+    "name": "totalStakedSupply",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "rewardPrograms": {
+    "inputs": [
+      { "internalType": "contract IERC20", "name": "", "type": "address" }
+    ],
+    "name": "rewardPrograms",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "rewardPerSecond",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastRewardPerTokenCached",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastUpdateTime",
+        "type": "uint256"
+      },
+      { "internalType": "uint256", "name": "startTime", "type": "uint256" },
+      { "internalType": "uint256", "name": "finishTime", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "timeMultiplierIncreasePerSec": {
+    "inputs": [],
+    "name": "timeMultiplierIncreasePerSec",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+}

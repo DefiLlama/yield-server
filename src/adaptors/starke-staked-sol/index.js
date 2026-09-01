@@ -1,0 +1,41 @@
+const axios = require('axios');
+const { getTotalSupply, getSanctumLstApy, getPriceApiUrl } = require('../utils');
+
+const RKSOL_MINT = 'EPCz5LK372vmvCkZH3HgSuGNKACJJwwxsofW6fypCPZL';
+const SOL = 'So11111111111111111111111111111111111111112';
+const priceKey = `solana:${RKSOL_MINT}`;
+
+const apy = async () => {
+  const [totalSupply, priceRes, apyBase] = await Promise.all([
+    getTotalSupply(RKSOL_MINT),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
+    getSanctumLstApy(RKSOL_MINT),
+  ]);
+
+  const currentPrice = priceRes.data.coins[priceKey]?.price;
+  if (!currentPrice) throw new Error('Unable to fetch rkSOL price');
+
+  if (apyBase == null)
+    throw new Error(`Unable to fetch APY for ${RKSOL_MINT}`);
+
+  return [
+    {
+      pool: RKSOL_MINT,
+      chain: 'Solana',
+      project: 'starke-staked-sol',
+      symbol: 'rkSOL',
+      tvlUsd: totalSupply * currentPrice,
+      apyBase,
+      underlyingTokens: [SOL],
+      poolMeta: '2.5% epoch fee',
+      isIntrinsicSource: true,
+    },
+  ];
+};
+
+module.exports = {
+  protocolId: '7312',
+  timetravel: false,
+  apy,
+  url: 'https://starke.finance/rksol',
+};

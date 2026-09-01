@@ -1,0 +1,1163 @@
+const axios = require('axios');
+const { request, gql } = require('graphql-request');
+const { chunk } = require('lodash');
+const sdk = require('@defillama/sdk');
+const {
+  Contract,
+  validateAndParseAddress,
+  number: starknetNumber,
+  hash: starknetHash,
+} = require('starknet');
+const { default: BigNumber } = require('bignumber.js');
+const { checkStablecoin } = require('./checkStablecoin');
+
+exports.MIN_TVL_USD = 1_000;
+
+const getPriceApiUrl = (path) => {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  const key = process.env.DL_API_KEY;
+
+  return key
+    ? `https://pro-api.llama.fi/${key}/coins${p}`
+    : `https://coins.llama.fi${p}`;
+};
+
+exports.getPriceApiUrl = getPriceApiUrl;
+
+// TODO: temporary cache-bypass on pro requests; remove once coins-api caps
+// staleness (Cache-Control) -- edge colos were replaying expired
+// /prices/current copies. Applied at request time, not in getPriceApiUrl:
+// adapters compose on top of that URL, so a query param baked into it would
+// corrupt their appended paths.
+const withCacheBust = (path) =>
+  process.env.DL_API_KEY
+    ? `${path}${path.includes('?') ? '&' : '?'}cachebust=${Date.now()}`
+    : path;
+
+const getPriceApiData = async (path) =>
+  (await axios.get(getPriceApiUrl(withCacheBust(path)))).data;
+
+exports.getPriceApiData = getPriceApiData;
+
+const PRICE_KEY_BYTE_BUDGET = 3000;
+const PRICE_REQUEST_CONCURRENCY = 5;
+const PRICE_REQUEST_ATTEMPTS = 3;
+
+const chunkPriceKeys = (keys) => {
+  const chunks = [];
+  let bytes = Infinity;
+
+  for (const key of keys) {
+    const size = String(key).length + 1;
+    if (bytes + size > PRICE_KEY_BYTE_BUDGET) {
+      chunks.push([]);
+      bytes = 0;
+    }
+    chunks[chunks.length - 1].push(key);
+    bytes += size;
+  }
+
+  return chunks;
+};
+
+const fetchPriceChunk = async (keyChunk) => {
+  const path = `/prices/current/${keyChunk.join(',')}`;
+
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return (await getPriceApiData(path)).coins;
+    } catch (error) {
+      if (attempt === PRICE_REQUEST_ATTEMPTS) throw error;
+      await sleep(500 * attempt);
+    }
+  }
+};
+
+const getPriceApiCoins = async (keys) => {
+  const coins = {};
+
+  for (const batch of chunk(chunkPriceKeys(keys), PRICE_REQUEST_CONCURRENCY)) {
+    const results = await Promise.allSettled(batch.map(fetchPriceChunk));
+
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') return Object.assign(coins, result.value);
+      console.error(
+        `getPriceApiCoins: ${batch[i].length} keys unpriced after ${PRICE_REQUEST_ATTEMPTS} attempts (${batch[i][0]}...):`,
+        result.reason?.message || result.reason
+      );
+    });
+  }
+
+  return coins;
+};
+
+exports.getPriceApiCoins = getPriceApiCoins;
+
+exports.formatAddress = (address) => {
+  return String(address).toLowerCase();
+};
+
+exports.padStarknetAddress = (addr) => {
+  if (!addr || !addr.startsWith('0x')) return addr;
+  const hex = addr.slice(2);
+  if (hex.length >= 64) return addr;
+  return '0x' + hex.padStart(64, '0');
+};
+
+let pendingStarknetCall = Promise.resolve();
+
+const getStarknetRpc = () => {
+  if (!process.env.STARKNET_RPC) throw new Error('STARKNET_RPC is required');
+  return process.env.STARKNET_RPC;
+};
+
+const rateLimitedStarknetCall = (fn) => (...args) => {
+  const promise = pendingStarknetCall.then(() => fn(...args));
+  pendingStarknetCall = promise.catch(() => {});
+  return promise;
+};
+
+const chunkArray = (arr, chunkSize = 100) => {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    chunks.push(arr.slice(i, i + chunkSize));
+  }
+  return chunks;
+};
+
+exports.chunkArray = chunkArray;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getStarknetCallBody = ({ abi, target, params = [], allAbi = [] }, id = 0) => {
+  if ((params || params === 0) && !Array.isArray(params)) params = [params];
+
+  const contract = new Contract([abi, ...allAbi], target, null);
+  const requestData = contract.populate(abi.name, params);
+  requestData.entry_point_selector = starknetHash.getSelectorFromName(requestData.entrypoint);
+  requestData.contract_address = requestData.contractAddress;
+  delete requestData.contractAddress;
+  delete requestData.entrypoint;
+  requestData.calldata = requestData.calldata.map((i) => starknetNumber.toHex(starknetNumber.toBN(i)));
+
+  return {
+    jsonrpc: '2.0',
+    id,
+    method: 'starknet_call',
+    params: [requestData, 'latest'],
+  };
+};
+
+const parseStarknetOutput = (result, abi, allAbi) => {
+  const contract = new Contract([abi, ...allAbi], null, null);
+  let response = contract.parseResponse(abi.name, result);
+
+  if (abi.outputs.length !== 1) return response;
+
+  response = response[0];
+  if (abi.outputs[0].type === 'Uint256') return response;
+
+  switch (abi.customType) {
+    case 'address':
+      return validateAndParseAddress(response);
+    case 'Uint256':
+      return response;
+    default:
+      return response;
+  }
+};
+
+const starknetCall = async ({ abi, target, params = [], allAbi = [] } = {}) => {
+  const {
+    data: { result },
+  } = await axios.post(getStarknetRpc(), getStarknetCallBody({ abi, target, params, allAbi }));
+
+  return parseStarknetOutput(result, abi, allAbi);
+};
+
+const starknetMultiCall = async ({ abi: rootAbi, target: rootTarget, calls = [], allAbi = [] }) => {
+  if (!calls.length) return [];
+
+  calls = calls.map((callArgs) => {
+    if (typeof callArgs !== 'object') {
+      if (!rootTarget) return { target: callArgs, abi: rootAbi, allAbi };
+      return { target: rootTarget, params: callArgs, abi: rootAbi, allAbi };
+    }
+
+    const { target, params, abi } = callArgs;
+    return { target: target || rootTarget, params, abi: abi || rootAbi };
+  });
+
+  const callBodies = calls.map(getStarknetCallBody);
+  const allData = [];
+  for (const chunk of chunkArray(callBodies, 25)) {
+    await sleep(2000);
+    const { data } = await axios.post(getStarknetRpc(), chunk);
+    allData.push(...data);
+  }
+
+  const response = [];
+  allData.forEach(({ result, id }) => {
+    const abi = calls[id].abi ?? rootAbi;
+    response[id] = parseStarknetOutput(result, abi, allAbi);
+  });
+  return response;
+};
+
+exports.call = rateLimitedStarknetCall(starknetCall);
+exports.multiCall = rateLimitedStarknetCall(starknetMultiCall);
+exports.parseAddress = validateAndParseAddress;
+exports.number = starknetNumber;
+
+exports.formatChain = (chain) => {
+  if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
+  if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
+  if (chain && chain.toLowerCase() === 'okexchain') return 'OKExChain';
+  if (chain && chain.toLowerCase() === 'bsc') return 'Binance';
+  if (chain && chain.toLowerCase() === 'milkomeda') return 'Milkomeda C1';
+  if (chain && chain.toLowerCase() === 'milkomeda_a1') return 'Milkomeda A1';
+  if (chain && chain.toLowerCase() === 'boba_avax') return 'Boba_Avax';
+  if (chain && chain.toLowerCase() === 'boba_bnb') return 'Boba_Bnb';
+  if (chain && chain.toLowerCase() === 'iotaevm') return 'IOTA EVM';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'zksync_era' ||
+      chain.toLowerCase() === 'zksync era' ||
+      chain.toLowerCase() === 'era' ||
+      chain.toLowerCase() === 'zksync')
+  )
+    return 'ZKsync Era';
+  if (chain && chain.toLowerCase() === 'polygon_zkevm') return 'Polygon zkEVM';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'real' || chain.toLowerCase() === 're.al')
+  )
+    return 're.al';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'plume_mainnet' || chain.toLowerCase() === 'plume')
+  )
+    return 'Plume Mainnet';
+  if (chain && chain.toLowerCase() === 'megaeth') return 'MegaETH';
+  if (chain && chain.toLowerCase() === 'ripple') return 'XRPL';
+  if (chain && chain.toLowerCase() === 'xrplevm') return 'XRPL EVM';
+  if (chain && chain.toLowerCase() === 'etlk') return 'Etherlink';
+  if (chain && chain.toLowerCase() === 'rsk') return 'RSK';
+  if (chain && chain.toLowerCase() === '0g') return '0G';
+  if (chain && chain.toLowerCase() === 'tac') return 'TAC';
+  if (chain && chain.toLowerCase() === 'robinhood') return 'Robinhood Chain';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'hyperevm' ||
+      chain.toLowerCase() === 'hyperliquid')
+  )
+    return 'Hyperliquid L1';
+  if (chain && chain.toLowerCase() === 'core') return 'CORE';
+  if (chain && chain.toLowerCase() === 'cronos_zkevm') return 'Cronos zkEVM';
+  if (chain && chain.toLowerCase() === 'echelon_initia')
+    return 'Echelon Initia';
+  if (chain && chain.toLowerCase() === 'fuel-ignition') return 'Fuel Ignition';
+  if (chain && chain.toLowerCase() === 'icp') return 'ICP';
+  if (chain && chain.toLowerCase() === 'mainnet') return 'Ethereum';
+  if (chain && chain.toLowerCase() === 'op_bnb') return 'Opbnb';
+  if (chain && chain.toLowerCase() === 'optimism') return 'OP Mainnet';
+  if (chain && chain.toLowerCase() === 'ton') return 'TON';
+  if (chain && chain.toLowerCase() === 'zklink') return 'zkLink Nova';
+
+  return chain.charAt(0).toUpperCase() + chain.slice(1);
+};
+
+const getFormatter = (symbol) => {
+  if (symbol.includes('USD+') || symbol.includes('ETH+')) return /[_:\/]/g;
+  return /[_+:\/]/g;
+};
+
+// replace / with - and trim potential whitespace
+// set mimatic to mai, uppercase all symbols
+exports.formatSymbol = (symbol) => {
+  return symbol
+    .replace(getFormatter(symbol), '-')
+    .replace(/\s/g, '')
+    .trim()
+    .toLowerCase()
+    .replaceAll('mimatic', 'mai')
+    .toUpperCase();
+};
+
+exports.checkStablecoin = checkStablecoin;
+
+exports.getData = async (url, query = null, headers = {}) => {
+  let res;
+  if (query !== null) {
+    res = await axios.post(url, query, { headers });
+  } else {
+    res = await axios.get(url, { headers });
+  }
+  return res.data;
+};
+
+exports.getEgressData = async (egressPath, directUrl) => {
+  if (!process.env.EGRESS_BASE_URL) return exports.getData(directUrl);
+  return exports.getData(`${process.env.EGRESS_BASE_URL}${egressPath}`, null, {
+    'x-egress-token': process.env.EGRESS_TOKEN,
+  });
+};
+
+// Retry helper for flaky endpoints. Only retries transient failures
+// (429 + 5xx); permanent 4xx and non-HTTP errors fail fast.
+exports.withRetry = async (fn, { retries = 3, delayMs = 500 } = {}) => {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const status = e.response?.status;
+      const retryable = status === 429 || (status >= 500 && status < 600);
+      if (i === retries || !retryable) throw e;
+      await new Promise((r) => setTimeout(r, delayMs * 2 ** i));
+    }
+  }
+};
+
+// retrive block based on unixTimestamp array
+const getBlocksByTime = async (timestamps, chainString) => {
+  const chain = chainString === 'avalanche' ? 'avax' : chainString;
+  return Promise.all(
+    timestamps.map(async (timestamp) => {
+      const response = await axios.get(
+      getPriceApiUrl(`/block/${chain}/${timestamp}`)
+      );
+      return response.data.height;
+    })
+  );
+};
+
+exports.getBlocksByTime = getBlocksByTime;
+
+const getLatestBlockSubgraph = async (url) => {
+  const queryGraph = gql`
+    {
+      _meta {
+        block {
+          number
+        }
+      }
+    }
+  `;
+
+  const blockGraph =
+    url.includes('https://gateway-arbitrum.network.thegraph.com/api') ||
+    url.includes('metis-graph.maiadao.io') ||
+    url.includes('babydoge/faas') ||
+    url.includes('kybernetwork/kyberswap-elastic-cronos') ||
+    url.includes('graph-v2.cronoslabs.com') ||
+    url.includes('kybernetwork/kyberswap-elastic-matic') ||
+    url.includes('metisapi.0xgraph.xyz/subgraphs/name') ||
+    url.includes(
+      'https://subgraph.satsuma-prod.com/09c9cf3574cc/orbital-apes/v3-subgraph/api'
+    ) ||
+    url.includes('api.goldsky.com') ||
+    url.includes('api.studio.thegraph.com') ||
+    url.includes('48211/uniswap-v3-base') ||
+    url.includes('horizondex/block') ||
+    url.includes('pancake-swap.workers.dev') ||
+    url.includes('pancakeswap/exchange-v3-linea') ||
+    url.includes('exchange-v3-polygon-zkevm/version/latest') ||
+    url.includes('exchange-v3-zksync/version/latest') ||
+    url.includes('balancer-base-v2/version/latest') ||
+    url.includes('horizondex') ||
+    url.includes('swopfi-units') ||
+    url.includes('swap.w3us.site')
+      ? await request(url, queryGraph)
+      : url.includes('aperture/uniswap-v3')
+      ? await request(
+          'https://api.goldsky.com/api/public/project_clnz7akg41cv72ntv0uhyd3ai/subgraphs/aperture/manta-pacific-blocks/gn',
+          queryGraph
+        )
+      : await request(
+          `https://api.thegraph.com/subgraphs/name/${url.split('name/')[1]}`,
+          queryGraph
+        );
+
+  // return Number(
+  //   blockGraph.indexingStatusForCurrentVersion.chains[0].latestBlock.number
+  // );
+  return Number(blockGraph._meta.block.number);
+};
+
+// func which queries subgraphs for their latest block nb and compares it against
+// the latest block from https://coins.llama.fi/block/, if within a certain bound -> ok, otherwise
+// will break as data is stale
+exports.getBlocks = async (
+  chainString,
+  tsTimeTravel,
+  urlArray,
+  offset = 86400
+) => {
+  const timestamp =
+    tsTimeTravel !== null
+      ? Number(tsTimeTravel)
+      : Math.floor(Date.now() / 1000);
+
+  const timestampPrior = timestamp - offset;
+  let [block, blockPrior] = await getBlocksByTime(
+    [timestamp, timestampPrior],
+    chainString
+  );
+
+  // in case of standard run, we ping the subgraph and check its latest block
+  // ideally its synced with the block from getBlocksByTime. if the delta is too large
+  // throwing an error
+  if (tsTimeTravel === null) {
+    const blocksPromises = [];
+    for (const url of urlArray.filter((el) => el !== null)) {
+      blocksPromises.push(getLatestBlockSubgraph(url));
+    }
+    const blocks = await Promise.all(blocksPromises);
+    // we use oldest block
+    const blockGraph = Math.min(...blocks);
+    // calc delta
+    const blockDelta = Math.abs(block - blockGraph);
+
+    // check delta (keeping this large for now)
+    const thr =
+      chainString === 'ethereum' ? 300 : chainString === 'cronos' ? 6000 : 3000;
+    if (blockDelta > thr) {
+      console.log(`block: ${block}, blockGraph: ${blockGraph}`);
+      throw new Error(`Stale subgraph of ${blockDelta} blocks!`);
+    }
+
+    block = blockGraph;
+  }
+  return [block, blockPrior];
+};
+
+// calculate tvl in usd based on subgraph data.
+// reserveUSD field from subgraphs can be unreliable, using defillama price api instead
+exports.tvl = async (dataNow, networkString) => {
+  // changing the string for avax so it matches the defillama price api
+  networkString = networkString === 'avalanche' ? 'avax' : networkString;
+  // make copy
+  const dataNowCopy = dataNow.map((el) => ({ ...el }));
+
+  const formatId = (id) => `${networkString}:${String(id).toLowerCase()}`;
+  const idsSet = Array.from(
+    new Set(
+      dataNowCopy.flatMap((pool) => [
+        formatId(pool.token0.id),
+        formatId(pool.token1.id),
+      ])
+    )
+  );
+
+  // price endpoint seems to break with too many tokens, splitting it to max 50 per request
+  const fetchTokenPrices = async (tokenIds) => {
+    const idList = tokenIds.join(',').replaceAll('/', '');
+    const data = await getPriceApiData(`/prices/current/${idList}`);
+    return data.coins;
+  };
+
+  const priceChunks = [];
+  for (let index = 0; index < idsSet.length; index += 50) {
+    priceChunks.push(idsSet.slice(index, index + 50));
+  }
+  const CONCURRENCY = 5;
+  const prices = {};
+  for (let index = 0; index < priceChunks.length; index += CONCURRENCY) {
+    const batch = priceChunks.slice(index, index + CONCURRENCY);
+    const batchResults = await Promise.all(batch.map(fetchTokenPrices));
+    Object.assign(prices, ...batchResults);
+  }
+
+  // calc tvl
+  for (const el of dataNowCopy) {
+    let price0 = prices[formatId(el.token0.id)]?.price;
+    let price1 = prices[formatId(el.token1.id)]?.price;
+    let tvl;
+
+    if (price0 !== undefined && price1 !== undefined) {
+      tvl = Number(el.reserve0) * price0 + Number(el.reserve1) * price1;
+    } else if (price0 !== undefined && price1 === undefined) {
+      tvl = Number(el.reserve0) * price0 * 2;
+    } else if (price0 === undefined && price1 !== undefined) {
+      tvl = Number(el.reserve1) * price1 * 2;
+    } else {
+      tvl = 0;
+    }
+
+    el['totalValueLockedUSD'] = tvl;
+    el['price0'] = price0;
+    el['price1'] = price1;
+  }
+
+  return dataNowCopy;
+};
+
+exports.aprToApy = (apr, compoundFrequency = 365) => {
+  return (
+    ((1 + (apr * 0.01) / compoundFrequency) ** compoundFrequency - 1) * 100
+  );
+};
+
+exports.apyToApr = (apy, compoundFrequency = 365) => {
+  return (
+    (((apy / 100 + 1) ** (1 / compoundFrequency) - 1) * compoundFrequency) /
+    0.01
+  );
+};
+
+// calculating apy based on subgraph data
+exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
+  pool = { ...pool };
+
+  // uni v2 forks set feeTier to constant
+  if (version === 'v2') {
+    pool['feeTier'] = 3000;
+  } else if (version === 'stellaswap') {
+    pool['feeTier'] = 2000;
+  } else if (version === 'baseswap') {
+    pool['feeTier'] = 1700;
+  } else if (version === 'zyberswap') {
+    pool['feeTier'] = 1500;
+  } else if (version === 'arbidex') {
+    pool['feeTier'] = 500;
+  }
+
+  // calc prior volume on 24h offset
+  pool['volumeUSDPrior1d'] = dataPrior1d.find(
+    (el) => el.id === pool.id
+  )?.volumeUSD;
+
+  pool['volumeUSDPrior7d'] = dataPrior7d.find(
+    (el) => el.id === pool.id
+  )?.volumeUSD;
+
+  // calc 24h volume
+  pool['volumeUSD1d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior1d);
+  pool['volumeUSD7d'] = Number(pool.volumeUSD) - Number(pool.volumeUSDPrior7d);
+
+  if (
+    pool.volumeToken0 &&
+    (pool['volumeUSD1d'] === 0 || pool['volumeUSD7d'] === 0)
+  ) {
+    const poolDataPrior1D = dataPrior1d.find((el) => el.id === pool.id);
+    const poolDataPrior7D = dataPrior7d.find((el) => el.id === pool.id);
+
+    if (pool['volumeUSD1d'] === 0 && poolDataPrior1D) {
+      const volumeToken0 =
+        Number(pool.volumeToken0) - Number(poolDataPrior1D.volumeToken0);
+      pool['volumeUSD1d'] = volumeToken0 * pool.price0;
+    }
+    if (pool['volumeUSD7d'] === 0 && poolDataPrior7D) {
+      const volumeToken0 =
+        Number(pool.volumeToken0) - Number(poolDataPrior7D.volumeToken0);
+      pool['volumeUSD7d'] = volumeToken0 * pool.price0;
+    }
+  }
+
+  // calc fees
+  pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 1e6;
+  pool['feeUSD7d'] = (pool.volumeUSD7d * Number(pool.feeTier)) / 1e6;
+
+  // annualise
+  pool['feeUSDyear1d'] = pool.feeUSD1d * 365;
+  pool['feeUSDyear7d'] = pool.feeUSD7d * 52;
+
+  // calc apy
+  pool['apy1d'] = (pool.feeUSDyear1d / pool.totalValueLockedUSD) * 100;
+  pool['apy7d'] = (pool.feeUSDyear7d / pool.totalValueLockedUSD) * 100;
+
+  return pool;
+};
+
+exports.keepFinite = (p) => {
+  if (
+    !['apyBase', 'apyReward', 'apy']
+      .map((f) => Number.isFinite(p[f]))
+      .includes(true)
+  )
+    return false;
+
+  return Number.isFinite(p['tvlUsd']);
+};
+
+exports.getPrices = async (addresses, chain) => {
+  const priceKeys = chain
+    ? addresses.map((address) => `${chain}:${address}`)
+    : addresses;
+  const prices = (
+    await getPriceApiData(
+      `/prices/current/${priceKeys.join(',').toLowerCase()}`
+    )
+  ).coins;
+
+  const pricesByAddress = Object.entries(prices).reduce(
+    (acc, [address, price]) => ({
+      ...acc,
+      [address.split(':')[1].toLowerCase()]: price.price,
+    }),
+    {}
+  );
+
+  const pricesBySymbol = Object.entries(prices).reduce(
+    (acc, [name, price]) => ({
+      ...acc,
+      [price.symbol.toLowerCase()]: price.price,
+    }),
+    {}
+  );
+
+  return { pricesBySymbol, pricesByAddress };
+};
+
+///////// UNISWAP V2
+
+const calculateApy = (
+  poolInfo,
+  totalAllocPoint,
+  rewardPerBlock,
+  rewardPrice,
+  reserveUSD,
+  blocksPerYear
+) => {
+  const poolWeight = poolInfo.allocPoint / totalAllocPoint;
+  const tokensPerYear = blocksPerYear * rewardPerBlock;
+
+  return ((poolWeight * tokensPerYear * rewardPrice) / reserveUSD) * 100;
+};
+
+const calculateReservesUSD = (
+  reserves,
+  reservesRatio,
+  token0,
+  token1,
+  tokenPrices
+) => {
+  const { decimals: token0Decimals, id: token0Address } = token0;
+  const { decimals: token1Decimals, id: token1Address } = token1;
+  const token0Price = tokenPrices[token0Address.toLowerCase()];
+  const token1Price = tokenPrices[token1Address.toLowerCase()];
+
+  const reserve0 = new BigNumber(reserves._reserve0)
+    .times(reservesRatio)
+    .times(10 ** (18 - token0Decimals));
+  const reserve1 = new BigNumber(reserves._reserve1)
+    .times(reservesRatio)
+    .times(10 ** (18 - token1Decimals));
+
+  if (token0Price) return reserve0.times(token0Price).times(2).div(1e18);
+  if (token1Price) return reserve1.times(token1Price).times(2).div(1e18);
+};
+
+const getPairsInfo = async (pairs, url) => {
+  const pairQuery = gql`
+    query pairQuery($id_in: [ID!]) {
+      pairs(where: { id_in: $id_in }) {
+        name
+        id
+        token0 {
+          decimals
+          id
+        }
+        token1 {
+          decimals
+          id
+        }
+      }
+    }
+  `;
+  const pairInfo = await Promise.all(
+    chunk(pairs, 7).map((tokens) =>
+      request(url, pairQuery, {
+        id_in: tokens.map((pair) => pair.toLowerCase()),
+      })
+    )
+  );
+
+  return pairInfo
+    .map(({ pairs }) => pairs)
+    .flat()
+    .reduce((acc, pair) => ({ ...acc, [pair.id.toLowerCase()]: pair }), {});
+};
+
+exports.uniswap = { calculateApy, calculateReservesUSD, getPairsInfo };
+
+/// MULTICALL
+
+const makeMulticall = async (abi, addresses, chain, params = null) => {
+  const data = await sdk.api.abi.multiCall({
+    abi,
+    calls: addresses.map((address) => ({
+      target: address,
+      params,
+    })),
+    chain,
+    permitFailure: true,
+  });
+
+  const res = data.output.map(({ output }) => output);
+
+  return res;
+};
+
+exports.makeMulticall = makeMulticall;
+
+const capitalizeFirstLetter = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
+exports.capitalizeFirstLetter = capitalizeFirstLetter;
+
+exports.removeDuplicates = (pools) => {
+  const seen = {};
+  return pools.filter((i) => {
+    return seen.hasOwnProperty(i.pool) ? false : (seen[i.pool] = true);
+  });
+};
+
+exports.getERC4626Info = async (
+  address,
+  chain,
+  timestamp = Math.floor(Date.now() / 1e3),
+  {
+    assetUnit = '100000000000000000',
+    totalAssetsAbi = 'uint:totalAssets',
+    convertToAssetsAbi = 'function convertToAssets(uint256 shares) external view returns (uint256)',
+  } = {}
+) => {
+  const DAY = 24 * 3600;
+
+  const [blockNow, blockYesterday] = await Promise.all(
+    [timestamp, timestamp - DAY].map((time) =>
+      axios
+        .get(getPriceApiUrl(`/block/${chain}/${time}`))
+        .then((r) => r.data.height)
+    )
+  );
+  const [tvl, priceNow, priceYesterday, asset, shareDecimalsRes] = await Promise.all([
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: totalAssetsAbi,
+      chain: chain,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockNow,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+      chain: chain,
+    }),
+    sdk.api.abi.call({
+      target: address,
+      block: blockYesterday,
+      abi: convertToAssetsAbi,
+      params: [assetUnit],
+      chain: chain,
+    }),
+    sdk.api.abi
+      .call({
+        target: address,
+        abi: 'address:asset',
+        chain: chain,
+      })
+      .catch(() => null),
+    sdk.api.abi
+      .call({
+        target: address,
+        abi: 'erc20:decimals',
+        chain: chain,
+      })
+      .catch(() => null),
+  ]);
+  const apy = (priceNow.output / priceYesterday.output) ** 365 * 100 - 100;
+  let assetDecimals = 18;
+  if (asset && asset.output) {
+    try {
+      const decRes = await sdk.api.abi.call({
+        target: asset.output,
+        abi: 'erc20:decimals',
+        chain,
+      });
+      const parsed = Number(decRes.output);
+      if (Number.isFinite(parsed) && parsed > 0) assetDecimals = parsed;
+    } catch (_) {}
+  }
+  let shareDecimals = 18;
+  if (shareDecimalsRes && shareDecimalsRes.output) {
+    const parsed = Number(shareDecimalsRes.output);
+    if (Number.isFinite(parsed) && parsed > 0) shareDecimals = parsed;
+  }
+  const pricePerShare =
+    (Number(priceNow.output) * 10 ** shareDecimals) /
+    (Number(assetUnit) * 10 ** assetDecimals);
+  return {
+    pool: address,
+    chain,
+    tvl: tvl.output,
+    apyBase: apy,
+    pricePerShare,
+  };
+};
+
+// solana
+exports.getTotalSupply = async (tokenMintAddress) => {
+  const rpcUrl = 'https://api.mainnet-beta.solana.com';
+  const requestBody = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getTokenSupply',
+    params: [
+      tokenMintAddress,
+      {
+        commitment: 'confirmed',
+      },
+    ],
+  };
+
+  const response = await axios.post(rpcUrl, requestBody, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const data = response.data;
+  if (data.error) {
+    throw new Error(`Error fetching total supply: ${data.error.message}`);
+  }
+
+  const totalSupply = data.result.value.amount;
+  const decimals = data.result.value.decimals;
+  const supplyInTokens = totalSupply / Math.pow(10, decimals);
+
+  return supplyInTokens;
+};
+
+const BASE58_ALPHABET =
+  '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+// Base58 encode a byte buffer, eg a 32-byte pubkey read out of account data.
+exports.toBase58 = (bytes) => {
+  if (!bytes.length) return '';
+
+  let value = BigInt(`0x${bytes.toString('hex')}`);
+  let encoded = '';
+  while (value > 0n) {
+    encoded = BASE58_ALPHABET[Number(value % 58n)] + encoded;
+    value /= 58n;
+  }
+
+  const leadingZeros = bytes.findIndex((b) => b !== 0);
+  return (
+    '1'.repeat(leadingZeros === -1 ? bytes.length : leadingZeros) + encoded
+  );
+};
+
+// Solana getAccountInfo returning the owning program alongside the data, so a
+// caller can verify what it is decoding before trusting byte offsets. Accepts a
+// dataSlice to read a few bytes out of a large account, and returns null rather
+// than throwing when the account does not exist.
+const getSolanaAccount = async (
+  address,
+  { rpcUrl = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com', dataSlice } = {}
+) => {
+  const response = await axios.post(rpcUrl, {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getAccountInfo',
+    params: [address, { encoding: 'base64', ...(dataSlice && { dataSlice }) }],
+  }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const { error, result } = response.data;
+  if (error) {
+    throw new Error(`Error fetching account info: ${error.message}`);
+  }
+
+  const account = result?.value;
+  if (typeof account?.data?.[0] !== 'string') return null;
+
+  return { owner: account.owner, data: Buffer.from(account.data[0], 'base64') };
+};
+
+exports.getSolanaAccount = getSolanaAccount;
+
+const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const account = await getSolanaAccount(address, { rpcUrl });
+
+  if (!account?.data.length) {
+    throw new Error(`Account not found: ${address}`);
+  }
+
+  return account.data;
+};
+
+// SPL Stake Pool data decoder using official library
+const { StakePoolLayout } = require('@solana/spl-stake-pool');
+
+exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const stakePoolAccountData = await getSolanaAccountInfo(stakePoolAddress, rpcUrl);
+
+  // Decode using official SPL stake pool layout
+  const stakePool = StakePoolLayout.decode(stakePoolAccountData);
+
+  const totalLamports = BigInt(stakePool.totalLamports.toString());
+  const poolTokenSupply = BigInt(stakePool.poolTokenSupply.toString());
+  const lastEpochTotalLamports = BigInt(stakePool.lastEpochTotalLamports.toString());
+  const lastEpochPoolTokenSupply = BigInt(stakePool.lastEpochPoolTokenSupply.toString());
+  const lastUpdateEpoch = BigInt(stakePool.lastUpdateEpoch.toString());
+
+  // Exchange rate = SOL per pool token (guard against division by zero)
+  const exchangeRate = poolTokenSupply === 0n ? 0 : Number(totalLamports) / Number(poolTokenSupply);
+
+  // Epoch fee as a fraction (numerator/denominator)
+  const epochFee = stakePool.epochFee && Number(stakePool.epochFee.denominator) > 0
+    ? { numerator: Number(stakePool.epochFee.numerator), denominator: Number(stakePool.epochFee.denominator) }
+    : null;
+
+  // Fetch current epoch info for epochs-per-year calculation
+  const epochResponse = await axios.post(rpcUrl, {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'getEpochInfo',
+    params: [{ commitment: 'confirmed' }],
+  }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const currentEpoch = epochResponse.data.result?.epoch || 0;
+
+  // Solana genesis: March 16, 2020 (UTC)
+  const SOLANA_GENESIS_MS = Date.UTC(2020, 2, 16);
+  const yearsSinceGenesis = (Date.now() - SOLANA_GENESIS_MS) / (365.25 * 24 * 60 * 60 * 1000);
+  const epochsPerYear = yearsSinceGenesis > 0 ? currentEpoch / yearsSinceGenesis : 0;
+
+  return {
+    totalLamports: Number(totalLamports),
+    poolTokenSupply: Number(poolTokenSupply),
+    exchangeRate,
+    tvlSol: Number(totalLamports) / 1e9,
+    lastEpochTotalLamports: Number(lastEpochTotalLamports),
+    lastEpochPoolTokenSupply: Number(lastEpochPoolTokenSupply),
+    lastUpdateEpoch: Number(lastUpdateEpoch),
+    epochFee,
+    epochsPerYear,
+  };
+};
+
+// Current pricePerShare (lamports per pool token) for SPL Stake Pool LSTs
+exports.solanaLstPricePerShare = (stakePoolInfo) => {
+  const { totalLamports, poolTokenSupply } = stakePoolInfo || {};
+  if (!totalLamports || !poolTokenSupply) return null;
+  const pps = Number(totalLamports) / Number(poolTokenSupply);
+  return Number.isFinite(pps) && pps > 0 ? pps : null;
+};
+
+// On-chain single-epoch APY for SPL Stake Pool LSTs
+// Uses previous-epoch snapshots stored in the stake pool account
+exports.calcSolanaLstApy = (stakePoolInfo) => {
+  const {
+    totalLamports, poolTokenSupply,
+    lastEpochTotalLamports, lastEpochPoolTokenSupply,
+    epochsPerYear,
+  } = stakePoolInfo;
+
+  // Guard: pool never updated or no previous epoch data
+  if (!lastEpochTotalLamports || !lastEpochPoolTokenSupply || !epochsPerYear) {
+    return null;
+  }
+
+  const prevRate = lastEpochTotalLamports / lastEpochPoolTokenSupply;
+  const currRate = totalLamports / poolTokenSupply;
+
+  // Guard: no growth or invalid rates
+  if (!prevRate || !currRate || currRate <= prevRate) {
+    return null;
+  }
+
+  const epochGrowth = currRate / prevRate;
+  const apy = (Math.pow(epochGrowth, epochsPerYear) - 1) * 100;
+
+  return Number.isFinite(apy) && apy > 0 ? apy : null;
+};
+
+// 7-day smoothed APY from DefiLlama price ratio for Solana LSTs
+exports.calcSolanaLstApyFromPriceRatio = async (currentExchangeRate, lstMint, days = 7) => {
+  const SOL = 'So11111111111111111111111111111111111111112';
+  const lstKey = `solana:${lstMint}`;
+  const solKey = `solana:${SOL}`;
+
+  const timestamp = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
+
+  try {
+    const historicalRes = await axios.get(
+      getPriceApiUrl(`/prices/historical/${timestamp}/${lstKey},${solKey}`)
+    );
+
+    const lstPrice = historicalRes.data.coins[lstKey]?.price;
+    const solPrice = historicalRes.data.coins[solKey]?.price;
+
+    if (!lstPrice || !solPrice) return null;
+
+    const historicalRatio = lstPrice / solPrice;
+    const ratioChange = currentExchangeRate / historicalRatio;
+    const apy = (Math.pow(ratioChange, 365 / days) - 1) * 100;
+
+    return Number.isFinite(apy) && apy > 0 ? apy : null;
+  } catch {
+    return null;
+  }
+};
+
+// Sanctum LST APY (percent). Primary: ironforge (requires SANCTUM_API_KEY).
+// Fallback: extra-api `indiv-epochs` mean of non-zero values. Returns null if neither has data.
+const _fetchJson = async (url) => {
+  try {
+    const res = await fetch(url);
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+};
+
+exports.getSanctumLstApy = async (
+  mint,
+  { window = 15, minNonZero = 3 } = {}
+) => {
+  if (!mint) return null;
+
+  const apiKey = process.env.SANCTUM_API_KEY;
+  if (apiKey) {
+    const data = await _fetchJson(
+      `https://sanctum-api.ironforge.network/lsts/${mint}?apiKey=${apiKey}`
+    );
+    const lst = Array.isArray(data?.data) ? data.data[0] : data?.data;
+    const apy = lst?.avgApy;
+    if (Number.isFinite(apy) && apy > 0.001) return apy * 100;
+  }
+
+  const data = await _fetchJson(
+    `https://extra-api.sanctum.so/v1/apy/indiv-epochs?lst=${mint}&n=${window}`
+  );
+  const epochs = data?.apys?.[mint];
+  if (!Array.isArray(epochs)) return null;
+  const nonzero = epochs
+    .map((e) => e.apy)
+    .filter((a) => Number.isFinite(a) && a > 0.001);
+  if (nonzero.length < minNonZero) return null;
+  return (nonzero.reduce((s, a) => s + a, 0) / nonzero.length) * 100;
+};
+
+// Sui replaced JSON-RPC with GraphQL. Prefers SUI_GRAPHQL_URL, then Ankr, then
+// the Foundation's public endpoint, which is documented as rate limited and not
+// for production. https://docs.sui.io/develop/accessing-data/json-rpc-migration
+const SUI_GRAPHQL_PUBLIC = 'https://graphql.mainnet.sui.io/graphql';
+const ANKR_SUI_GRAPHQL = 'https://rpc.ankr.com/http/sui_graphql';
+
+// Ankr authenticates GraphQL via the x-token header; a key in the URL path 404s
+const getSuiGraphqlEndpoints = () => {
+  if (process.env.SUI_GRAPHQL_URL)
+    return [{ url: process.env.SUI_GRAPHQL_URL, headers: {} }];
+
+  const endpoints = [{ url: SUI_GRAPHQL_PUBLIC, headers: {} }];
+  if (process.env.ANKR_API_KEY)
+    endpoints.push({
+      url: ANKR_SUI_GRAPHQL,
+      headers: { 'x-token': process.env.ANKR_API_KEY },
+    });
+  return endpoints;
+};
+
+// Sticky so a degraded endpoint is not retried on every call of a paginated walk
+let suiEndpointPreferred = 0;
+
+const suiGraphql = async (query, variables) => {
+  const endpoints = getSuiGraphqlEndpoints();
+  let lastError;
+
+  for (let i = 0; i < endpoints.length; i++) {
+    const index = (suiEndpointPreferred + i) % endpoints.length;
+    const { url, headers } = endpoints[index];
+
+    let data;
+    try {
+      ({ data } = await axios.post(
+        url,
+        { query, variables },
+        {
+          timeout: 30000,
+          headers: { 'content-type': 'application/json', ...headers },
+        }
+      ));
+    } catch (e) {
+      lastError = e;
+      continue;
+    }
+
+    suiEndpointPreferred = index;
+    // A GraphQL error is deterministic, so surface it rather than retrying
+    if (data.errors) {
+      throw new Error(
+        `Sui GraphQL: ${JSON.stringify(data.errors).slice(0, 300)}`
+      );
+    }
+    return data.data;
+  }
+
+  throw new Error(`Sui GraphQL: ${lastError?.message}`);
+};
+
+exports.suiGraphql = suiGraphql;
+
+const SUI_OBJECTS_QUERY = `query ($keys: [ObjectKey!]!) {
+  multiGetObjects(keys: $keys) {
+    asMoveObject { contents { json } }
+  }
+}`;
+
+// maxMultiGetSize is 200 but the 5KB query payload cap bites first, at 60 keys
+const SUI_OBJECTS_PER_QUERY = 50;
+
+// Move struct fields per object id, positionally matching ids (null if absent)
+exports.suiObjectFields = async (ids) => {
+  const batches = await Promise.all(
+    chunkArray(ids, SUI_OBJECTS_PER_QUERY).map(async (batch) => {
+      const { multiGetObjects } = await suiGraphql(SUI_OBJECTS_QUERY, {
+        keys: batch.map((address) => ({ address })),
+      });
+      return batch.map(
+        (_, i) => multiGetObjects?.[i]?.asMoveObject?.contents?.json ?? null
+      );
+    })
+  );
+  return batches.flat();
+};
+
+const SUI_COIN_SUPPLY_QUERY = `query ($coinType: String!) {
+  coinMetadata(coinType: $coinType) { decimals symbol supply }
+}`;
+
+exports.suiCoinSupply = async (coinType) =>
+  (await suiGraphql(SUI_COIN_SUPPLY_QUERY, { coinType })).coinMetadata;
+
+const SUI_EVENTS_QUERY = `query ($type: String!, $last: Int!, $before: String) {
+  events(filter: { type: $type }, last: $last, before: $before) {
+    pageInfo { hasPreviousPage startCursor }
+    nodes { timestamp contents { json } }
+  }
+}`;
+
+// One page of events, newest first. Pass the returned cursor back to walk older.
+exports.suiEvents = async (type, { cursor = null, limit = 50 } = {}) => {
+  const { events } = await suiGraphql(SUI_EVENTS_QUERY, {
+    type,
+    last: limit,
+    before: cursor,
+  });
+  return {
+    events: (events?.nodes ?? [])
+      .map((n) => ({ json: n.contents?.json, ts: Date.parse(n.timestamp) }))
+      .reverse(),
+    cursor: events?.pageInfo?.startCursor ?? null,
+    hasMore: !!events?.pageInfo?.hasPreviousPage,
+  };
+};

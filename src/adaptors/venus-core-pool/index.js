@@ -1,0 +1,307 @@
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
+const abiUnitroller = require('./abiUnitroller');
+const abiPool = require('./abiPool');
+const { getPriceApiUrl } = require('../utils');
+
+const unitroller = '0xfD36E2c2a6789Db23113685031d7F16329158384';
+const VBNB = '0xA07c5b74C9B40447a954e1466938b865b6BBea36';
+const WBNB = '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c';
+const BETH = '0x250632378e573c6be1ac2f97fcdf00515d0aa91b';
+const XVS = '0xcf6bb5389c92bdda8a3747ddb454cb7a64626c63';
+
+const poolInfo = async (chain) => {
+  const getAllMarkets = await sdk.api.abi.call({
+    target: unitroller,
+    chain,
+    abi: abiUnitroller.find((m) => m.name === 'getAllMarkets'),
+    permitFailure: true,
+  });
+
+  // filter out unsupported vcan pool
+  const yieldMarkets = getAllMarkets.output
+    .map((pool) => {
+      return { pool };
+    })
+    .filter(
+      (pool) =>
+        pool.pool.toLowerCase() !== '0xebd0070237a0713e8d94fef1b728d3d993d290ef'
+    );
+
+  const getOutput = ({ output }) => output.map(({ output }) => output);
+  const [markets, venusSupplySpeeds, venusBorrowSpeeds, borrowCaps] = await Promise.all(
+    ['markets', 'venusSupplySpeeds', 'venusBorrowSpeeds', 'borrowCaps'].map((method) =>
+      sdk.api.abi.multiCall({
+        abi: abiUnitroller.find((m) => m.name === method),
+        target: unitroller,
+        calls: yieldMarkets.map((pool) => ({
+          params: pool.pool,
+        })),
+        chain,
+        permitFailure: true,
+      })
+    )
+  ).then((data) => data.map(getOutput));
+
+  const [protocolPaused, supplyPaused, borrowPaused] = await Promise.all([
+    sdk.api.abi.call({
+      abi: abiUnitroller.find((m) => m.name === 'protocolPaused'),
+      target: unitroller,
+      chain,
+      permitFailure: true,
+    }),
+    ...[0, 2].map((action) =>
+      sdk.api.abi.multiCall({
+        abi: abiUnitroller.find((m) => m.name === 'actionPaused'),
+        target: unitroller,
+        calls: yieldMarkets.map((pool) => ({
+          params: [pool.pool, action],
+        })),
+        chain,
+        permitFailure: true,
+      })
+    ),
+  ]).then(([protocol, ...pausedActions]) => [
+    protocol.output,
+    ...pausedActions.map(({ output }) => output.map(({ output }) => output)),
+  ]);
+
+  const collateralFactor = markets.map((data) => data.collateralFactorMantissa);
+
+  const [
+    borrowRatePerBlock,
+    supplyRatePerBlock,
+    getCash,
+    totalBorrows,
+    totalReserves,
+    underlyingToken,
+    tokenSymbol,
+  ] = await Promise.all(
+    [
+      'borrowRatePerBlock',
+      'supplyRatePerBlock',
+      'getCash',
+      'totalBorrows',
+      'totalReserves',
+      'underlying',
+      'symbol',
+    ].map((method) =>
+      sdk.api.abi.multiCall({
+        abi: abiPool.find((m) => m.name === method),
+        calls: yieldMarkets.map((pool) => ({
+          target: pool.pool,
+        })),
+        chain,
+        permitFailure: true,
+      })
+    )
+  ).then((data) => data.map(getOutput));
+
+  // no underlying token in vbnb swap null -> wbnb
+  underlyingToken.find((token, index, arr) => {
+    if (token === null) arr[index] = WBNB;
+  });
+
+  const underlyingTokenDecimals = (
+    await sdk.api.abi.multiCall({
+      abi: abiPool.find((m) => m.name === 'decimals'),
+      calls: underlyingToken.map((token) => ({
+        target: token,
+      })),
+      chain,
+      permitFailure: true,
+    })
+  ).output.map((decimal) => Math.pow(10, Number(decimal.output)));
+
+  //incorrect beth price swap beth 0xaddress -> coingecko id
+  const price = await getPrices('bsc', underlyingToken);
+
+  yieldMarkets.map((data, index) => {
+    data.isListed = markets[index].isListed;
+    data.collateralFactor = collateralFactor[index];
+    data.venusSupplySpeeds = venusSupplySpeeds[index];
+    data.venusBorrowSpeeds = venusBorrowSpeeds[index];
+    data.borrowCap = borrowCaps[index];
+    data.borrowPaused = borrowPaused[index];
+    data.borrowRatePerBlock = borrowRatePerBlock[index];
+    data.supplyRatePerBlock = supplyRatePerBlock[index];
+    data.getCash = getCash[index];
+    data.totalBorrows = totalBorrows[index];
+    data.totalReserves = totalReserves[index];
+    data.underlyingToken = underlyingToken[index];
+    data.tokenSymbol = tokenSymbol[index];
+    data.price = price[underlyingToken[index].toLowerCase()];
+    data.underlyingTokenDecimals = underlyingTokenDecimals[index];
+    data.rewardTokens = [XVS];
+  });
+
+  return { yieldMarkets };
+};
+
+const getPrices = async (chain, addresses) => {
+  const uri = `${addresses.map((address) => `${chain}:${address}`)}`;
+  const prices = (
+    await axios.get(getPriceApiUrl(`/prices/current/${uri}`))
+  ).data.coins;
+
+  const pricesObj = Object.entries(prices).reduce(
+    (acc, [address, price]) => ({
+      ...acc,
+      [address.split(':')[1].toLowerCase()]: price.price,
+    }),
+    {}
+  );
+
+  return pricesObj;
+};
+
+function calculateApy(rate, decimals, price = 1, tvl = 1) {
+  // APR compounded daily
+  const BLOCK_TIME = 0.45;
+  const DAILY_BLOCKS = (24 * 60 * 60) / BLOCK_TIME;
+  const dailyApr = (rate * price * DAILY_BLOCKS) / tvl;
+  const apy = ((dailyApr / decimals + 1) ** 364 - 1) * 100;
+  return apy;
+}
+
+function calculateTvl(cash, borrows, reserves, price, decimals) {
+  // ( cash + totalBorrows - reserve value ) * underlying price = balance
+  const tvl =
+    ((parseFloat(cash) + parseFloat(borrows) - parseFloat(reserves)) /
+      decimals) *
+    price;
+  return tvl;
+}
+
+const getApy = async () => {
+  const priceOf = await getPrices(['bsc'], [XVS]);
+
+  const yieldMarkets = (await poolInfo('bsc')).yieldMarkets;
+
+  const symbol = (
+    await sdk.api.abi.multiCall({
+      abi: 'erc20:symbol',
+      calls: yieldMarkets.map((p) => ({ target: p.underlyingToken })),
+      chain: 'bsc',
+      permitFailure: true,
+    })
+  ).output.map((o) => o.output);
+
+  const yieldPools = yieldMarkets.map((pool, i) => {
+    if (pool.price === undefined || pool.price === null) return null;
+    if (!pool.isListed) return null;
+
+    const totalSupplyUsd = calculateTvl(
+      pool.getCash,
+      pool.totalBorrows,
+      pool.totalReserves,
+      pool.price,
+      pool.underlyingTokenDecimals
+    );
+    const totalBorrowUsd = calculateTvl(
+      0,
+      pool.totalBorrows,
+      0,
+      pool.price,
+      pool.underlyingTokenDecimals
+    );
+    const tvl = totalSupplyUsd - totalBorrowUsd;
+    const availableBorrowUsd =
+      (Math.min(
+        parseFloat(pool.getCash),
+        parseFloat(pool.borrowCap) > 0
+          ? Math.max(parseFloat(pool.borrowCap) - parseFloat(pool.totalBorrows), 0)
+          : parseFloat(pool.getCash)
+      ) /
+        pool.underlyingTokenDecimals) *
+      pool.price;
+    const apyBase = calculateApy(
+      pool.supplyRatePerBlock,
+      pool.underlyingTokenDecimals
+    );
+    const apyReward = calculateApy(
+      pool.venusSupplySpeeds,
+      1e18, // XVS decimals
+      priceOf[XVS],
+      totalSupplyUsd
+    );
+
+    const apyBaseBorrow = calculateApy(
+      pool.borrowRatePerBlock,
+      pool.underlyingTokenDecimals
+    );
+    const apyRewardBorrow = calculateApy(
+      pool.venusBorrowSpeeds,
+      1e18, // XVS decimals
+      priceOf[XVS],
+      totalBorrowUsd
+    );
+    const ltv = parseInt(pool.collateralFactor) / 1e18;
+    const readyToExport = exportFormatter(
+      pool.pool,
+      'Binance',
+      symbol[i],
+      tvl,
+      apyBase,
+      apyReward,
+      pool.underlyingToken,
+      pool.rewardTokens,
+      apyBaseBorrow,
+      apyRewardBorrow,
+      totalSupplyUsd,
+      totalBorrowUsd,
+      availableBorrowUsd,
+      ltv,
+      pool.borrowPaused === false
+    );
+
+    return readyToExport;
+  }).filter(Boolean);
+
+  return yieldPools;
+};
+
+function exportFormatter(
+  pool,
+  chain,
+  symbol,
+  tvlUsd,
+  apyBase,
+  apyReward,
+  underlyingTokens,
+  rewardTokens,
+  apyBaseBorrow,
+  apyRewardBorrow,
+  totalSupplyUsd,
+  totalBorrowUsd,
+  availableBorrowUsd,
+  ltv,
+  borrowable
+) {
+  return {
+    pool: pool.toLowerCase(),
+    chain,
+    project: 'venus-core-pool',
+    symbol,
+    tvlUsd,
+    apyBase,
+    apyReward,
+    underlyingTokens: [underlyingTokens],
+    rewardTokens,
+    apyBaseBorrow,
+    borrowToken: underlyingTokens,
+    apyRewardBorrow,
+    totalSupplyUsd,
+    totalBorrowUsd,
+    availableBorrowUsd,
+    ltv,
+    borrowable,
+  };
+}
+
+module.exports = {
+  protocolId: '212',
+  timetravel: false,
+  apy: getApy,
+  url: 'https://app.venus.io/markets',
+};

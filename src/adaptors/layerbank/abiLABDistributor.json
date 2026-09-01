@@ -1,0 +1,613 @@
+[
+  { "type": "constructor", "stateMutability": "nonpayable", "inputs": [] },
+  {
+    "type": "event",
+    "name": "Claimed",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "internalType": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Compound",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "user",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "amount",
+        "internalType": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DistributionSpeedUpdated",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "lToken",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "supplySpeed",
+        "internalType": "uint256",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "borrowSpeed",
+        "internalType": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "previousOwner",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "newOwner",
+        "internalType": "address",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Paused",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "account",
+        "internalType": "address",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Unpaused",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "account",
+        "internalType": "address",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "BOOST_MAX",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "BOOST_PORTION",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "address", "name": "", "internalType": "address" }],
+    "name": "LAB",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "tuple",
+        "name": "",
+        "internalType": "struct Constant.DistributionAccountInfo",
+        "components": [
+          {
+            "type": "uint256",
+            "name": "accuredLAB",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "boostedSupply",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "boostedBorrow",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "accPerShareSupply",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "accPerShareBorrow",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "name": "accountDistributionInfoOf",
+    "inputs": [
+      { "type": "address", "name": "market", "internalType": "address" },
+      { "type": "address", "name": "account", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      { "type": "uint256", "name": "accuredLAB", "internalType": "uint256" },
+      { "type": "uint256", "name": "boostedSupply", "internalType": "uint256" },
+      { "type": "uint256", "name": "boostedBorrow", "internalType": "uint256" },
+      {
+        "type": "uint256",
+        "name": "accPerShareSupply",
+        "internalType": "uint256"
+      },
+      {
+        "type": "uint256",
+        "name": "accPerShareBorrow",
+        "internalType": "uint256"
+      }
+    ],
+    "name": "accountDistributions",
+    "inputs": [
+      { "type": "address", "name": "", "internalType": "address" },
+      { "type": "address", "name": "", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "accuredLAB",
+    "inputs": [
+      { "type": "address[]", "name": "markets", "internalType": "address[]" },
+      { "type": "address", "name": "account", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "approve",
+    "inputs": [
+      { "type": "address", "name": "_spender", "internalType": "address" },
+      { "type": "uint256", "name": "amount", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "tuple",
+        "name": "",
+        "internalType": "struct Constant.DistributionAPY",
+        "components": [
+          {
+            "type": "uint256",
+            "name": "apySupplyLab",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "apyBorrowLab",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "apyAccountSupplyLab",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "apyAccountBorrowLab",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "name": "apyDistributionOf",
+    "inputs": [
+      { "type": "address", "name": "market", "internalType": "address" },
+      { "type": "address", "name": "account", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "uint256",
+        "name": "boostedSupplyRatio",
+        "internalType": "uint256"
+      },
+      {
+        "type": "uint256",
+        "name": "boostedBorrowRatio",
+        "internalType": "uint256"
+      }
+    ],
+    "name": "boostedRatioOf",
+    "inputs": [
+      { "type": "address", "name": "market", "internalType": "address" },
+      { "type": "address", "name": "account", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "claim",
+    "inputs": [
+      { "type": "address[]", "name": "markets", "internalType": "address[]" },
+      { "type": "address", "name": "account", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "claimBehalf",
+    "inputs": [
+      { "type": "address[]", "name": "markets", "internalType": "address[]" },
+      { "type": "address[]", "name": "accounts", "internalType": "address[]" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "compound",
+    "inputs": [
+      { "type": "address[]", "name": "markets", "internalType": "address[]" },
+      { "type": "address", "name": "account", "internalType": "address" },
+      { "type": "uint256", "name": "lockDuration", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "compoundMinLockDuration",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      { "type": "address", "name": "", "internalType": "contract ICore" }
+    ],
+    "name": "core",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "tuple",
+        "name": "",
+        "internalType": "struct Constant.DistributionInfo",
+        "components": [
+          {
+            "type": "uint256",
+            "name": "supplySpeed",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "borrowSpeed",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "totalBoostedSupply",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "totalBoostedBorrow",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "accPerShareSupply",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "accPerShareBorrow",
+            "internalType": "uint256"
+          },
+          { "type": "uint256", "name": "accruedAt", "internalType": "uint256" }
+        ]
+      }
+    ],
+    "name": "distributionInfoOf",
+    "inputs": [
+      { "type": "address", "name": "market", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      { "type": "uint256", "name": "supplySpeed", "internalType": "uint256" },
+      { "type": "uint256", "name": "borrowSpeed", "internalType": "uint256" },
+      {
+        "type": "uint256",
+        "name": "totalBoostedSupply",
+        "internalType": "uint256"
+      },
+      {
+        "type": "uint256",
+        "name": "totalBoostedBorrow",
+        "internalType": "uint256"
+      },
+      {
+        "type": "uint256",
+        "name": "accPerShareSupply",
+        "internalType": "uint256"
+      },
+      {
+        "type": "uint256",
+        "name": "accPerShareBorrow",
+        "internalType": "uint256"
+      },
+      { "type": "uint256", "name": "accruedAt", "internalType": "uint256" }
+    ],
+    "name": "distributions",
+    "inputs": [{ "type": "address", "name": "", "internalType": "address" }]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "initialize",
+    "inputs": [
+      { "type": "address", "name": "_lab", "internalType": "address" },
+      { "type": "address", "name": "_core", "internalType": "address" },
+      { "type": "address", "name": "_xlab", "internalType": "address" },
+      {
+        "type": "address",
+        "name": "_priceCalculator",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "initialized",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "notifyBorrowUpdated",
+    "inputs": [
+      { "type": "address", "name": "market", "internalType": "address" },
+      { "type": "address", "name": "user", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "notifySupplyUpdated",
+    "inputs": [
+      { "type": "address", "name": "market", "internalType": "address" },
+      { "type": "address", "name": "user", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "notifyTransferred",
+    "inputs": [
+      { "type": "address", "name": "qToken", "internalType": "address" },
+      { "type": "address", "name": "sender", "internalType": "address" },
+      { "type": "address", "name": "receiver", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "address", "name": "", "internalType": "address" }],
+    "name": "owner",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "pause",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "paused",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "address",
+        "name": "",
+        "internalType": "contract IPriceCalculator"
+      }
+    ],
+    "name": "priceCalculator",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "renounceOwnership",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "address",
+        "name": "",
+        "internalType": "contract IRewardController"
+      }
+    ],
+    "name": "rewardController",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "setCompoundMinLockDuration",
+    "inputs": [
+      {
+        "type": "uint256",
+        "name": "newMinLockDuration",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "setDistributionSpeed",
+    "inputs": [
+      { "type": "address", "name": "qToken", "internalType": "address" },
+      { "type": "uint256", "name": "supplySpeed", "internalType": "uint256" },
+      { "type": "uint256", "name": "borrowSpeed", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "setPriceCalculator",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_priceCalculator",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "setRewardController",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_rewardController",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "setXLAB",
+    "inputs": [
+      { "type": "address", "name": "_xlab", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "transferOwnership",
+    "inputs": [
+      { "type": "address", "name": "newOwner", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "unpause",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "updateAccountBoostedInfo",
+    "inputs": [{ "type": "address", "name": "user", "internalType": "address" }]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "withdrawReward",
+    "inputs": [
+      { "type": "address", "name": "receiver", "internalType": "address" },
+      { "type": "uint256", "name": "amount", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      { "type": "address", "name": "", "internalType": "contract IxLAB" }
+    ],
+    "name": "xLAB",
+    "inputs": []
+  }
+]

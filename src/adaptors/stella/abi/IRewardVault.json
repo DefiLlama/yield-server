@@ -1,0 +1,20 @@
+[
+  {
+    "inputs": [],
+    "name": "rewardDistribution",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "dailyRewardDistributionRateE18",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "maxRewardDistributionFactorE18",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

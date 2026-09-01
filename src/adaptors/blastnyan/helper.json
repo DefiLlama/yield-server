@@ -1,0 +1,63 @@
+[
+  {
+    "inputs": [],
+    "name": "getBlnyanLpPrice",
+    "outputs": [
+      { "internalType": "uint256", "name": "wethBalance", "type": "uint256" },
+      { "internalType": "uint256", "name": "wethValue", "type": "uint256" },
+      { "internalType": "uint256", "name": "blnyanBalance", "type": "uint256" },
+      { "internalType": "uint256", "name": "blnyanValue", "type": "uint256" },
+      { "internalType": "uint256", "name": "supply", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+    ],
+    "name": "getBlnyanPrice",
+    "outputs": [
+      { "internalType": "uint256", "name": "value", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+    ],
+    "name": "getEthPrice",
+    "outputs": [
+      { "internalType": "uint256", "name": "value", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "_pool", "type": "address" },
+      { "internalType": "address", "name": "_user", "type": "address" }
+    ],
+    "name": "getPoolInfo",
+    "outputs": [
+      { "internalType": "uint256", "name": "_staked", "type": "uint256" },
+      { "internalType": "uint256", "name": "_rewardRate", "type": "uint256" },
+      { "internalType": "uint256", "name": "_userStaked", "type": "uint256" },
+      { "internalType": "uint256", "name": "_userEarned", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+    ],
+    "name": "getTokenPriceUSDC",
+    "outputs": [
+      { "internalType": "uint256", "name": "value", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

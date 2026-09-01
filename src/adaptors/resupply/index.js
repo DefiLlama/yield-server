@@ -1,0 +1,110 @@
+const utils = require('../utils')
+const { getERC4626Info } = require('../utils');
+const sdk = require('@defillama/sdk');
+
+const reUSD = '0x57aB1E0003F623289CD798B1824Be09a793e4Bec';
+
+const SUPPORTED_PROTOCOLS = {
+  ethereum: ['curvelend', 'fraxlend']
+};
+
+const maxLtvAbi = {
+  inputs: [],
+  name: 'maxLTV',
+  outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+  stateMutability: 'view',
+  type: 'function',
+};
+
+const fetchPairsForProtocol = async (chain, protocol) => {
+  try {
+    const response = await utils.getData(`https://api.hippo.army/v1/protocols/${chain}/${protocol}/pairs`);
+    return response.pairs || [];
+  } catch (error) {
+    console.error(`Error fetching ${protocol} pairs for ${chain}:`, error);
+    return [];
+  }
+};
+
+const formatPair = (pair, chain, protocol, maxLtv) => {
+  const apyRewardBorrow = pair.rewards.reduce((total, reward) => {
+    return total + parseFloat(reward.apr);
+  }, 0);
+
+  const symbol = `${pair.underlying_token.symbol}`;
+  const totalBorrowUsd = parseFloat(pair.total_debt);
+  const debtCeilingUsd = parseFloat(pair.borrow_limit);
+
+  return {
+    pool: `${pair.address.toLowerCase()}-${chain}`,
+    chain: utils.formatChain(chain),
+    project: 'resupply',
+    symbol: symbol,
+    tvlUsd: parseFloat(pair.total_underlying),
+    mintedCoin: pair.debt_token.symbol,
+    borrowToken: pair.debt_token.address,
+    apyBase: parseFloat(pair.base_apr),
+    apyBaseBorrow: parseFloat(pair.borrow_cost_apr),
+    apyRewardBorrow: apyRewardBorrow,
+    totalSupplyUsd: parseFloat(pair.total_underlying),
+    totalBorrowUsd,
+    availableBorrowUsd: Math.max(debtCeilingUsd - totalBorrowUsd, 0),
+    debtCeilingUsd,
+    ltv: Number(maxLtv) / 100000,
+    underlyingTokens: [pair.underlying_token.address],
+    rewardTokens: pair.rewards.map(reward => reward.token_address),
+    poolMeta: `${protocol.charAt(0).toUpperCase() + protocol.slice(1)} - ${pair.pair_collateral_token.symbol} collateral`,
+    url: 'https://resupply.fi/supply',
+    borrowable: debtCeilingUsd > 0,
+    borrowMarketOnly: true,
+  };
+};
+
+const main = async () => {
+  const allPools = [];
+
+  for (const [chain, protocols] of Object.entries(SUPPORTED_PROTOCOLS)) {
+    for (const protocol of protocols) {
+      const pairs = await fetchPairsForProtocol(chain, protocol);
+      const maxLtvs = (
+        await sdk.api.abi.multiCall({
+          chain,
+          abi: maxLtvAbi,
+          calls: pairs.map((pair) => ({ target: pair.address })),
+        })
+      ).output.map((o) => o.output);
+      const formattedPairs = pairs.map((pair, i) =>
+        formatPair(pair, chain, protocol, maxLtvs[i])
+      );
+      allPools.push(...formattedPairs);
+    }
+  }
+  const sreusd = await getERC4626Info(
+    '0x557AB1e003951A73c12D16F0fEA8490E39C33C35',
+    'ethereum'
+  );
+
+  return allPools
+    .concat([
+      {
+        symbol: 'sreUSD',
+        pool: `${sreusd.pool}-ethereum`,
+        project: 'resupply',
+        chain: 'Ethereum',
+        tvlUsd: sreusd.tvl / 1e18,
+        apyBase: sreusd.apyBase,
+        pricePerShare: sreusd.pricePerShare,
+        poolMeta: 'Savings reUSD',
+        url: 'https://resupply.fi/supply',
+        underlyingTokens: [reUSD],
+      },
+    ])
+    .filter(pool => utils.keepFinite(pool));
+};
+
+module.exports = {
+  protocolId: '5963',
+  timetravel: false,
+  apy: main,
+  url: 'https://resupply.fi/',
+};

@@ -1,0 +1,16 @@
+const utils = require('../utils');
+
+const poolsFunction = async () => {
+  const poolsData = await utils.getData(
+    'https://api-v2-de1.nudes.army/project-info/defillama-yields'
+  );
+
+  return poolsData.pools
+};
+
+module.exports = {
+  protocolId: '2114',
+  timetravel: false,
+  apy: poolsFunction,
+  url: 'https://nudes.army/single-stake'
+};

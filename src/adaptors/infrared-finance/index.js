@@ -1,0 +1,68 @@
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
+const { getPriceApiData } = require('../utils');
+
+const ibera = '0x9b6761bf2397bb5a6624a856cc84a3a14dcd3fe5';
+const bera = '0x0000000000000000000000000000000000000000';
+const project = 'infrared-finance';
+const symbol = 'ibera';
+
+const apy = async () => {
+  const priceKey = `berachain:${bera}`;
+  const beraPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
+  const timestampNow = Math.floor(Date.now() / 1000);
+  const timestampYesterday = timestampNow - 86400;
+
+  const blockNow = (await getPriceApiData(`/block/berachain/${timestampNow}`)).height;
+  const blockYesterday = (await getPriceApiData(`/block/berachain/${timestampYesterday}`)).height;
+
+      const exchangeRateAbi = {
+        inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+        name: 'convertToAssets',
+        outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+      };
+      const exchangeRateYesterday = await sdk.api.abi.call({
+        target: ibera,
+        chain: 'berachain',
+        abi: exchangeRateAbi,
+        params: ['1000000000000000000'],
+        block: blockYesterday,
+      });
+
+      const exchangeRateToday = await sdk.api.abi.call({
+        target: ibera,
+        chain: 'berachain',
+        abi: exchangeRateAbi,
+        params: ['1000000000000000000'],
+        block: blockNow,
+      });
+        const totalPooledBera = await sdk.api.abi.call({
+          target: ibera,
+          chain: 'berachain',
+          abi: 'uint256:totalAssets',
+        });
+
+      const apr =
+        ((exchangeRateToday.output / 1e18 -
+          exchangeRateYesterday.output / 1e18) /
+          (exchangeRateYesterday.output / 1e18)) *
+        365 *
+        100;
+
+  return [
+    {
+      pool: `${ibera}`,
+      chain: 'berachain',
+      project,
+      symbol,
+      underlyingTokens: [bera],
+      apyBase: apr,
+      ...(Number(exchangeRateToday.output) / 1e18 > 0 && { pricePerShare: Number(exchangeRateToday.output) / 1e18 }),
+      tvlUsd: totalPooledBera.output/1e18 * beraPrice,
+    },
+  ];
+};
+
+module.exports = { protocolId: '5775', apy, url: 'https://infrared.finance/ibera' };

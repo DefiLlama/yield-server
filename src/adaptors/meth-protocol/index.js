@@ -1,0 +1,81 @@
+const axios = require('axios');
+const sdk = require('@defillama/sdk');
+
+const stakingAbi = require('./stakingAbi.json');
+const { getPriceApiData } = require('../utils');
+
+const mETH = '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa';
+const stakingContract = '0xe3cBd06D7dadB3F4e6557bAb7EdD924CD1489E8f';
+const amount = 1000000000000000000n;
+
+const apy = async () => {
+  const tvl =
+    (
+      await sdk.api.abi.call({
+        target: stakingContract,
+        abi: stakingAbi.find((m) => m.name === 'totalControlled'),
+      })
+    ).output / 1e18;
+
+  const now = Math.floor(Date.now() / 1000);
+  const timestamp1dayAgo = now - 86400;
+  const timestamp7dayAgo = now - 86400 * 7;
+  const block1dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp1dayAgo}`)).height;
+
+  const block7dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp7dayAgo}`)).height;
+
+  const exchangeRates = await Promise.all([
+    sdk.api.abi.call({
+      target: stakingContract,
+      abi: stakingAbi.find((m) => m.name === 'mETHToETH'),
+      params: [amount],
+      chain: 'ethereum',
+    }),
+    sdk.api.abi.call({
+      target: stakingContract,
+      abi: stakingAbi.find((m) => m.name === 'mETHToETH'),
+      params: [amount],
+      chain: 'ethereum',
+      block: block1dayAgo,
+    }),
+    sdk.api.abi.call({
+      target: stakingContract,
+      abi: stakingAbi.find((m) => m.name === 'mETHToETH'),
+      params: [amount],
+      chain: 'ethereum',
+      block: block7dayAgo,
+    }),
+  ]);
+
+  const apyBase =
+    ((exchangeRates[0].output - exchangeRates[1].output) / exchangeRates[1].output) * 365 * 100;
+
+  const apyBase7d =
+    ((exchangeRates[0].output - exchangeRates[2].output) / exchangeRates[2].output / 7) *
+    365 *
+    100;
+
+  const priceKey = 'ethereum:0x0000000000000000000000000000000000000000';
+  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
+
+  return [
+    {
+      pool: mETH,
+      chain: 'ethereum',
+      project: 'meth-protocol',
+      symbol: 'mETH',
+      tvlUsd: tvl * ethPrice,
+      apyBase,
+      apyBase7d,
+      ...(Number(exchangeRates[0].output) / 1e18 > 0 && { pricePerShare: Number(exchangeRates[0].output) / 1e18 }),
+      underlyingTokens: ['0x0000000000000000000000000000000000000000'],
+      isIntrinsicSource: true
+    },
+  ];
+};
+
+module.exports = {
+  protocolId: '3882',
+  apy,
+  url: 'https://meth.mantle.xyz/stake',
+};

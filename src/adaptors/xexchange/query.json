@@ -1,0 +1,3 @@
+{
+  "query": "query {\n  farms {\n    ... on FarmModelV2 {\n      address\n      rewardType\n      baseApr\n      totalValueLockedUSD\n      pair {\n        address\n        feesAPR\n        firstToken {\n          ticker\n          identifier\n        }\n        secondToken {\n          ticker\n          identifier\n        }\n        liquidityPoolToken {\n          identifier\n        }\n      }\n    }\n  }\n}\n"
+}

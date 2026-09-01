@@ -1,0 +1,351 @@
+[
+    {
+        "inputs": [
+            { "internalType": "address", "name": "_master", "type": "address" },
+            { "internalType": "address", "name": "_aaveAddress", "type": "address" },
+            { "internalType": "address", "name": "_lendingAddress", "type": "address" }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    { "inputs": [], "name": "AlreadySet", "type": "error" },
+    { "inputs": [], "name": "FailedInnerCall", "type": "error" },
+    { "inputs": [], "name": "InvalidAction", "type": "error" },
+    { "inputs": [], "name": "InvalidToken", "type": "error" },
+    { "inputs": [], "name": "InvalidValue", "type": "error" },
+    { "inputs": [], "name": "NoValue", "type": "error" },
+    { "inputs": [], "name": "NotMaster", "type": "error" },
+    { "inputs": [], "name": "NotProposed", "type": "error" },
+    {
+        "anonymous": false,
+        "inputs": [
+            { "indexed": false, "internalType": "uint256", "name": "nftId", "type": "uint256" },
+            { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+        ],
+        "name": "IsBorrowAave",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            { "indexed": false, "internalType": "uint256", "name": "nftId", "type": "uint256" },
+            { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+        ],
+        "name": "IsDepositAave",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            { "indexed": false, "internalType": "uint256", "name": "nftId", "type": "uint256" },
+            { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+        ],
+        "name": "IsPaybackAave",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            { "indexed": false, "internalType": "uint256", "name": "nftId", "type": "uint256" },
+            { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+        ],
+        "name": "IsSolelyDepositAave",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            { "indexed": false, "internalType": "uint256", "name": "nftId", "type": "uint256" },
+            { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+        ],
+        "name": "IsSolelyWithdrawAave",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            { "indexed": false, "internalType": "uint256", "name": "nftId", "type": "uint256" },
+            { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+        ],
+        "name": "IsWithdrawAave",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "underlyingAsset",
+                "type": "address"
+            },
+            { "indexed": false, "internalType": "address", "name": "aaveToken", "type": "address" },
+            { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+        ],
+        "name": "SetAaveTokenAddress",
+        "type": "event"
+    },
+    {
+        "inputs": [],
+        "name": "AAVE_ADDRESS",
+        "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "POSITION_NFT",
+        "outputs": [{ "internalType": "contract IPositionNFTs", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "WETH_ADDRESS",
+        "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "WISE_LENDING",
+        "outputs": [{ "internalType": "contract IWiseLending", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "WISE_SECURITY",
+        "outputs": [{ "internalType": "contract IWiseSecurity", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "name": "aaveTokenAddress",
+        "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+            { "internalType": "address", "name": "_underlyingAsset", "type": "address" },
+            { "internalType": "uint256", "name": "_borrowAmount", "type": "uint256" }
+        ],
+        "name": "borrowExactAmount",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+            { "internalType": "uint256", "name": "_borrowAmount", "type": "uint256" }
+        ],
+        "name": "borrowExactAmountETH",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "claimOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+            { "internalType": "address", "name": "_underlyingAsset", "type": "address" },
+            { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+        ],
+        "name": "depositExactAmount",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "uint256", "name": "_nftId", "type": "uint256" }],
+        "name": "depositExactAmountETH",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "depositExactAmountETHMint",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "address", "name": "_underlyingAsset", "type": "address" },
+            { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+        ],
+        "name": "depositExactAmountMint",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "address", "name": "_underlyingAsset", "type": "address" }],
+        "name": "getAavePoolAPY",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "address", "name": "_underlyingAsset", "type": "address" }],
+        "name": "getLendingRate",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "master",
+        "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+            { "internalType": "address", "name": "_underlyingAsset", "type": "address" },
+            { "internalType": "uint256", "name": "_paybackAmount", "type": "uint256" }
+        ],
+        "name": "paybackExactAmount",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "uint256", "name": "_nftId", "type": "uint256" }],
+        "name": "paybackExactAmountETH",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+            { "internalType": "address", "name": "_underlyingAsset", "type": "address" },
+            { "internalType": "uint256", "name": "_shares", "type": "uint256" }
+        ],
+        "name": "paybackExactShares",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "address", "name": "_proposedOwner", "type": "address" }],
+        "name": "proposeOwner",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "proposedMaster",
+        "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "renounceOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "sendingProgressAaveHub",
+        "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "address", "name": "_underlyingAsset", "type": "address" },
+            { "internalType": "address", "name": "_aaveToken", "type": "address" }
+        ],
+        "name": "setAaveTokenAddress",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "address[]", "name": "_underlyingAssets", "type": "address[]" },
+            { "internalType": "address[]", "name": "_aaveTokens", "type": "address[]" }
+        ],
+        "name": "setAaveTokenAddressBulk",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "address", "name": "_securityAddress", "type": "address" }],
+        "name": "setWiseSecurity",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "address", "name": "_underlyingAsset", "type": "address" },
+            { "internalType": "bool", "name": "_isAave", "type": "bool" }
+        ],
+        "name": "skimAave",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+            { "internalType": "address", "name": "_underlyingAsset", "type": "address" },
+            { "internalType": "uint256", "name": "_withdrawAmount", "type": "uint256" }
+        ],
+        "name": "withdrawExactAmount",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+            { "internalType": "uint256", "name": "_withdrawAmount", "type": "uint256" }
+        ],
+        "name": "withdrawExactAmountETH",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+            { "internalType": "address", "name": "_underlyingAsset", "type": "address" },
+            { "internalType": "uint256", "name": "_shareAmount", "type": "uint256" }
+        ],
+        "name": "withdrawExactShares",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_nftId", "type": "uint256" },
+            { "internalType": "uint256", "name": "_shareAmount", "type": "uint256" }
+        ],
+        "name": "withdrawExactSharesETH",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    { "stateMutability": "payable", "type": "receive" }
+]

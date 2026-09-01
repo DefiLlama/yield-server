@@ -1,0 +1,67 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    strategy:
+      matrix:
+        node-version: [24.x]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci --omit=optional
+      - name: Validate adapters lockfile
+        run: npm ci --dry-run --no-audit --no-fund
+        working-directory: src/adaptors
+      - run: node scripts/checkAdaptors.js
+      - run: node scripts/createAdapterList.js
+      - name: Run database migrations
+        run: npm run migrate -- up
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Deploy infrastructure stack
+        run: npm run deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ETHEREUM_RPC: ${{ secrets.ETHEREUM_RPC }}
+          XDAI_RPC: ${{ secrets.XDAI_RPC }}
+          CRONOS_RPC: ${{ secrets.CRONOS_RPC }}
+          FANTOM_RPC: ${{ secrets.FANTOM_RPC }}
+          OPTIMISM_RPC: ${{ secrets.OPTIMISM_RPC }}
+          AVAX_RPC: ${{ secrets.AVAX_RPC }}
+          ARBITRUM_RPC: ${{ secrets.ARBITRUM_RPC }}
+          TRON_RPC: ${{ secrets.TRON_RPC }}
+          BASE_RPC: ${{ secrets.BASE_RPC }}
+          BSC_RPC: ${{ secrets.BSC_RPC }}
+          TVL_SPIKE_WEBHOOK: ${{ secrets.TVL_SPIKE_WEBHOOK }}
+          NEW_YIELDS_WEBHOOK: ${{ secrets.NEW_YIELDS_WEBHOOK }}
+          STALE_PROJECTS_WEBHOOK: ${{ secrets.STALE_PROJECTS_WEBHOOK }}
+          ZEROX_API: ${{ secrets.ZEROX_API }}
+          SMARDEX_SUBGRAPH_API_KEY: ${{ secrets.SMARDEX_SUBGRAPH_API_KEY }}
+          VENDOR_FINANCE: ${{ secrets.VENDOR_FINANCE }}
+          TRADERJOE: ${{ secrets.TRADERJOE }}
+          GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}
+          LLAMA_INDEXER_V2_ENDPOINT: ${{ secrets.LLAMA_INDEXER_V2_ENDPOINT }}
+          LLAMA_INDEXER_V2_API_KEY: ${{ secrets.LLAMA_INDEXER_V2_API_KEY }}
+          OSMOSIS_API_KEY: ${{ secrets.OSMOSIS_API_KEY}}
+          DUNE_API_KEY: ${{ secrets.DUNE_API_KEY}}
+          HYPERLIQUID_RPC: ${{ secrets.HYPERLIQUID_RPC }}
+          PLASMA_RPC: ${{ secrets.PLASMA_RPC }}
+          STARKNET_RPC: ${{ secrets.STARKNET_RPC }}
+          MONAD_RPC: ${{ secrets.MONAD_RPC }}
+          PROJECT_0_API_KEY: ${{ secrets.PROJECT_0_API_KEY }}
+          SANCTUM_API_KEY: ${{ secrets.SANCTUM_API_KEY }}
+          MERKL_API_KEY: ${{ secrets.MERKL_API_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          SAUCERSWAP_API_KEY: ${{ secrets.SAUCERSWAP_API_KEY }}

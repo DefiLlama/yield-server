@@ -1,0 +1,243 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      }
+    ],
+    "name": "getLatestPoolData",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "poolId",
+            "type": "address"
+          },
+          {
+            "internalType": "uint16",
+            "name": "protocolId",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "borrowStrategy",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "repayStrategy",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "rebalanceStrategy",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "shortStrategy",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "singleLiquidationStrategy",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "batchLiquidationStrategy",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "factory",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "paramsStore",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "LP_TOKEN_BALANCE",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "LP_TOKEN_BORROWED",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "LP_TOKEN_BORROWED_PLUS_INTEREST",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint128",
+            "name": "BORROWED_INVARIANT",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "LP_INVARIANT",
+            "type": "uint128"
+          },
+          {
+            "internalType": "address",
+            "name": "cfmm",
+            "type": "address"
+          },
+          {
+            "internalType": "uint80",
+            "name": "accFeeIndex",
+            "type": "uint80"
+          },
+          {
+            "internalType": "uint8",
+            "name": "extSwapFee",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "origFee",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint40",
+            "name": "LAST_BLOCK_NUMBER",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint64",
+            "name": "lastCFMMFeeIndex",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint128",
+            "name": "lastCFMMInvariant",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastCFMMTotalSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address[]",
+            "name": "tokens",
+            "type": "address[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "symbols",
+            "type": "string[]"
+          },
+          {
+            "internalType": "string[]",
+            "name": "names",
+            "type": "string[]"
+          },
+          {
+            "internalType": "uint8[]",
+            "name": "decimals",
+            "type": "uint8[]"
+          },
+          {
+            "internalType": "uint128[]",
+            "name": "TOKEN_BALANCE",
+            "type": "uint128[]"
+          },
+          {
+            "internalType": "uint128[]",
+            "name": "CFMM_RESERVES",
+            "type": "uint128[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastPrice",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastFeeIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "borrowRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "utilizationRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint40",
+            "name": "currBlockNumber",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint8",
+            "name": "ltvThreshold",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "liquidationFee",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "supplyRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint40",
+            "name": "emaUtilRate",
+            "type": "uint40"
+          },
+          {
+            "internalType": "uint8",
+            "name": "emaMultiplier",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "minUtilRate1",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "minUtilRate2",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "feeDivisor",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint72",
+            "name": "minBorrow",
+            "type": "uint72"
+          }
+        ],
+        "internalType": "struct IGammaPool.PoolData",
+        "name": "data",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

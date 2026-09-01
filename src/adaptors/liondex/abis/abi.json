@@ -1,0 +1,85 @@
+{
+    "getLPPrice": {
+        "inputs": [],
+        "name": "getLPPrice",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    "getLionPrice": {
+        "inputs": [],
+        "name": "getLionPrice",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    "getPrice": {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_token",
+                "type": "address"
+            }
+        ],
+        "name": "getPrice",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+
+    "getUserApr":{
+        "inputs":[
+            {
+                "internalType":"uint256",
+                "name":"pid",
+                "type":"uint256"
+            },
+            {
+                "internalType":"uint256",
+                "name":"LPPrice",
+                "type":"uint256"
+            },
+            {
+                "internalType":"uint256",
+                "name":"esLionPrice",
+                "type":"uint256"
+            },
+            {
+                "internalType":"uint256",
+                "name":"ethPrice",
+                "type":"uint256"
+            },
+            {
+                "internalType":"address",
+                "name":"user","type":"address"
+            }
+        ],
+        "name":"getUserApr",
+        "outputs":[
+            {
+                "internalType":"uint256[3]",
+                "name":"ret","type":"uint256[3]"
+            }
+        ],
+        "stateMutability":"view",
+        "type":"function"
+    }
+}

@@ -1,0 +1,58 @@
+[
+    {
+        "inputs": [],
+        "name": "metadata",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "dec0",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "dec1",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "r0",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "r1",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "st",
+                "type": "bool"
+            },
+            {
+                "internalType": "address",
+                "name": "t0",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "t1",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

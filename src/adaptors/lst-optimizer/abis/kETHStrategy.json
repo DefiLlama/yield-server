@@ -1,0 +1,40 @@
+[
+    {
+        "inputs": [],
+        "name": "totalAssets",
+        "outputs": [
+        {
+            "internalType": "uint256",
+            "name": "total",
+            "type": "uint256"
+        }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "assetsRatio",
+        "outputs": [
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "valueInETH",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct KETHStrategy.AssetRatio[]",
+            "name": "info",
+            "type": "tuple[]"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

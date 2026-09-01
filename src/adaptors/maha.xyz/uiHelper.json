@@ -1,0 +1,114 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_maha",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_zai",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_usdc",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_stakingPool",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_mahaPriceE8",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "_who",
+                "type": "address"
+            }
+        ],
+        "name": "getPoolInfo",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "mahaAprE8",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "mahaRewardsPerYearE18",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "mahaTotalSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "mahaUserBalance",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "poolUsdTVLE8",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "usdcAprE8",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "usdcRewardsPerYearE6",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "usdcTotalSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "usdcUserBalance",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "userShareE18",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "zaiTotalSupply",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "zaiUserBalance",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct PoolUIHelper.PoolInfoResponse",
+                "name": "res",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

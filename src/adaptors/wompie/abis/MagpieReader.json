@@ -1,0 +1,1557 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "version",
+        "type": "uint8"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "BUSD",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ETH",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "WBNB",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IMasterMagpieReader",
+        "name": "_masterMagpie",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IWombatBribeManagerReader",
+        "name": "_wombatBribeManager",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IPancakeRouter02Reader",
+        "name": "_pancakeRouter02",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IWombatRouterReader",
+        "name": "_wombatRouter",
+        "type": "address"
+      }
+    ],
+    "name": "__MagpieReader_init",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "tokenAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "priceAddress",
+        "type": "address"
+      }
+    ],
+    "name": "addTokenChainlink",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "tokenAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "address[]",
+        "name": "paths",
+        "type": "address[]"
+      }
+    ],
+    "name": "addTokenPancakeRouter",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "tokenAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "address[]",
+        "name": "paths",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "pools",
+        "type": "address[]"
+      }
+    ],
+    "name": "addTokenWombatRouter",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "poolAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "poolType",
+        "type": "string"
+      }
+    ],
+    "name": "addWombatPoolType",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllTokenPrice",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "price",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct MagpieReader.TokenPrice[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getBNBPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getBUSDPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getBribeInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "bribeCallerFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "bribeProtocolFee",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "usedVote",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalVlMgpInVote",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "lpAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "lpSymbol",
+                "type": "string"
+              },
+              {
+                "internalType": "address",
+                "name": "underlyingToken",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "underlyingTokenSymbol",
+                "type": "string"
+              },
+              {
+                "internalType": "address",
+                "name": "poolAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "rewarder",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalVoteInVlmgp",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "internalType": "bool",
+                "name": "isActive",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint104",
+                "name": "supplyBaseIndex",
+                "type": "uint104"
+              },
+              {
+                "internalType": "uint104",
+                "name": "supplyVoteIndex",
+                "type": "uint104"
+              },
+              {
+                "internalType": "uint40",
+                "name": "nextEpochStartTime",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint128",
+                "name": "claimable",
+                "type": "uint128"
+              },
+              {
+                "internalType": "bool",
+                "name": "whitelist",
+                "type": "bool"
+              },
+              {
+                "internalType": "contract IWombatGauge",
+                "name": "gaugeManager",
+                "type": "address"
+              },
+              {
+                "internalType": "contract IWombatBribeReader",
+                "name": "bribe",
+                "type": "address"
+              },
+              {
+                "internalType": "uint128",
+                "name": "allocPoint",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "voteWeight",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint256",
+                "name": "wombatStakingUserVotes",
+                "type": "uint256"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "contract IERC20",
+                    "name": "rewardToken",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "symbol",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "uint96",
+                    "name": "tokenPerSec",
+                    "type": "uint96"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "accTokenPerShare",
+                    "type": "uint128"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "distributedAmount",
+                    "type": "uint128"
+                  }
+                ],
+                "internalType": "struct MagpieReader.BribePoolReward[]",
+                "name": "rewardList",
+                "type": "tuple[]"
+              }
+            ],
+            "internalType": "struct MagpieReader.BribePool[]",
+            "name": "pools",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct MagpieReader.BribeInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getETHPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "getMagpieInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "wom",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "mgp",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "vlmgp",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "mWom",
+            "type": "address"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "symbol",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "price",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct MagpieReader.TokenPrice[]",
+            "name": "tokenPriceList",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "stakingToken",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "allocPoint",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "lastRewardTimestamp",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "accMGPPerShare",
+                "type": "uint256"
+              },
+              {
+                "internalType": "address",
+                "name": "rewarder",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "helper",
+                "type": "address"
+              },
+              {
+                "internalType": "bool",
+                "name": "helperNeedsHarvest",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "emission",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "sizeOfPool",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalPoint",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "poolType",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "stakingTokenSymbol",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "stakingTokenDecimals",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "poolId",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "poolTokenPrice",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bool",
+                "name": "isWombatPool",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "isActive",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "isMPGRewardPool",
+                "type": "bool"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "uint256",
+                    "name": "pid",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "depositToken",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "lpAddress",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "receiptToken",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "rewarder",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "helper",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "depositTarget",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "bool",
+                    "name": "isActive",
+                    "type": "bool"
+                  },
+                  {
+                    "internalType": "bool",
+                    "name": "isPoolFeeFree",
+                    "type": "bool"
+                  }
+                ],
+                "internalType": "struct MagpieReader.WombatStakingPool",
+                "name": "wombatStakingPool",
+                "type": "tuple"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "address",
+                    "name": "lpToken",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "rewarder",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "uint40",
+                    "name": "periodFinish",
+                    "type": "uint40"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "sumOfFactors",
+                    "type": "uint128"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "rewardRate",
+                    "type": "uint128"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "rewardRateToMgp",
+                    "type": "uint128"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "boostedEffect",
+                    "type": "uint128"
+                  },
+                  {
+                    "internalType": "uint104",
+                    "name": "accWomPerShare",
+                    "type": "uint104"
+                  },
+                  {
+                    "internalType": "uint104",
+                    "name": "accWomPerFactorShare",
+                    "type": "uint104"
+                  },
+                  {
+                    "internalType": "uint40",
+                    "name": "lastRewardTimestamp",
+                    "type": "uint40"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "wombatStakingUserAmount",
+                    "type": "uint128"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "wombatStakingUserFactor",
+                    "type": "uint128"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "totalSupply",
+                    "type": "uint256"
+                  },
+                  {
+                    "components": [
+                      {
+                        "internalType": "address",
+                        "name": "rewardToken",
+                        "type": "address"
+                      },
+                      {
+                        "internalType": "uint96",
+                        "name": "tokenPerSec",
+                        "type": "uint96"
+                      },
+                      {
+                        "internalType": "uint128",
+                        "name": "accTokenPerShare",
+                        "type": "uint128"
+                      },
+                      {
+                        "internalType": "uint128",
+                        "name": "distributedAmount",
+                        "type": "uint128"
+                      },
+                      {
+                        "internalType": "string",
+                        "name": "rewardTokenSymbol",
+                        "type": "string"
+                      },
+                      {
+                        "internalType": "uint256",
+                        "name": "rewardTokenDecimals",
+                        "type": "uint256"
+                      }
+                    ],
+                    "internalType": "struct MagpieReader.WombatV3PoolReward[]",
+                    "name": "rewardList",
+                    "type": "tuple[]"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "pool",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "poolType",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "assetCash",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "assetLiability",
+                    "type": "uint256"
+                  }
+                ],
+                "internalType": "struct MagpieReader.WombatV3Pool",
+                "name": "wombatV3Pool",
+                "type": "tuple"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "bool",
+                    "name": "isNative",
+                    "type": "bool"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "depositToken",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "depositTokenSymbol",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "depositTokenDecimals",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "lpToken",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "stakingToken",
+                    "type": "address"
+                  }
+                ],
+                "internalType": "struct MagpieReader.WombatPoolHelperInfo",
+                "name": "wombatHelperInfo",
+                "type": "tuple"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "uint256",
+                    "name": "pendingMGP",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "address[]",
+                    "name": "bonusTokenAddresses",
+                    "type": "address[]"
+                  },
+                  {
+                    "internalType": "string[]",
+                    "name": "bonusTokenSymbols",
+                    "type": "string[]"
+                  },
+                  {
+                    "internalType": "uint256[]",
+                    "name": "pendingBonusRewards",
+                    "type": "uint256[]"
+                  }
+                ],
+                "internalType": "struct MagpieReader.MagpieRewardInfo",
+                "name": "rewardInfo",
+                "type": "tuple"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "uint256",
+                    "name": "balance",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "stakedAmount",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "stakingAllowance",
+                    "type": "uint256"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "availableAmount",
+                    "type": "uint256"
+                  }
+                ],
+                "internalType": "struct MagpieReader.MagpieAccountInfo",
+                "name": "accountInfo",
+                "type": "tuple"
+              }
+            ],
+            "internalType": "struct MagpieReader.MagpiePool[]",
+            "name": "pools",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct MagpieReader.MagpieInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "poolId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "getMagpiePoolInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "stakingToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "allocPoint",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastRewardTimestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "accMGPPerShare",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "rewarder",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "helper",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "helperNeedsHarvest",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "emission",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "sizeOfPool",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalPoint",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "poolType",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "stakingTokenSymbol",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stakingTokenDecimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "poolId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "poolTokenPrice",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "isWombatPool",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isMPGRewardPool",
+            "type": "bool"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "pid",
+                "type": "uint256"
+              },
+              {
+                "internalType": "address",
+                "name": "depositToken",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "lpAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "receiptToken",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "rewarder",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "helper",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "depositTarget",
+                "type": "address"
+              },
+              {
+                "internalType": "bool",
+                "name": "isActive",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "isPoolFeeFree",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct MagpieReader.WombatStakingPool",
+            "name": "wombatStakingPool",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "lpToken",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "rewarder",
+                "type": "address"
+              },
+              {
+                "internalType": "uint40",
+                "name": "periodFinish",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint128",
+                "name": "sumOfFactors",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "rewardRate",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "rewardRateToMgp",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "boostedEffect",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint104",
+                "name": "accWomPerShare",
+                "type": "uint104"
+              },
+              {
+                "internalType": "uint104",
+                "name": "accWomPerFactorShare",
+                "type": "uint104"
+              },
+              {
+                "internalType": "uint40",
+                "name": "lastRewardTimestamp",
+                "type": "uint40"
+              },
+              {
+                "internalType": "uint128",
+                "name": "wombatStakingUserAmount",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint128",
+                "name": "wombatStakingUserFactor",
+                "type": "uint128"
+              },
+              {
+                "internalType": "uint256",
+                "name": "totalSupply",
+                "type": "uint256"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "address",
+                    "name": "rewardToken",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "uint96",
+                    "name": "tokenPerSec",
+                    "type": "uint96"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "accTokenPerShare",
+                    "type": "uint128"
+                  },
+                  {
+                    "internalType": "uint128",
+                    "name": "distributedAmount",
+                    "type": "uint128"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "rewardTokenSymbol",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "uint256",
+                    "name": "rewardTokenDecimals",
+                    "type": "uint256"
+                  }
+                ],
+                "internalType": "struct MagpieReader.WombatV3PoolReward[]",
+                "name": "rewardList",
+                "type": "tuple[]"
+              },
+              {
+                "internalType": "address",
+                "name": "pool",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "poolType",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "assetCash",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "assetLiability",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct MagpieReader.WombatV3Pool",
+            "name": "wombatV3Pool",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "isNative",
+                "type": "bool"
+              },
+              {
+                "internalType": "address",
+                "name": "depositToken",
+                "type": "address"
+              },
+              {
+                "internalType": "string",
+                "name": "depositTokenSymbol",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "depositTokenDecimals",
+                "type": "uint256"
+              },
+              {
+                "internalType": "address",
+                "name": "lpToken",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "stakingToken",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct MagpieReader.WombatPoolHelperInfo",
+            "name": "wombatHelperInfo",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "pendingMGP",
+                "type": "uint256"
+              },
+              {
+                "internalType": "address[]",
+                "name": "bonusTokenAddresses",
+                "type": "address[]"
+              },
+              {
+                "internalType": "string[]",
+                "name": "bonusTokenSymbols",
+                "type": "string[]"
+              },
+              {
+                "internalType": "uint256[]",
+                "name": "pendingBonusRewards",
+                "type": "uint256[]"
+              }
+            ],
+            "internalType": "struct MagpieReader.MagpieRewardInfo",
+            "name": "rewardInfo",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "balance",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "stakedAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "stakingAllowance",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "availableAmount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct MagpieReader.MagpieAccountInfo",
+            "name": "accountInfo",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct MagpieReader.MagpiePool",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "unitPrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "getTokenPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mWom",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "masterMagpie",
+    "outputs": [
+      {
+        "internalType": "contract IMasterMagpieReader",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "masterWombatV3",
+    "outputs": [
+      {
+        "internalType": "contract IMasterWombatV3Reader",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mgp",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pancakeRouter02",
+    "outputs": [
+      {
+        "internalType": "contract IPancakeRouter02Reader",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "reInit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "magpiePoolId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "status",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMagpieWombatPoolStatus",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenList",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "tokenRouterMap",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "decimals",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "chainlink",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "routerType",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "vlmgp",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "voter",
+    "outputs": [
+      {
+        "internalType": "contract IWombatVoter",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wom",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wombatBribeManager",
+    "outputs": [
+      {
+        "internalType": "contract IWombatBribeManagerReader",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "wombatPoolStatus",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "wombatPoolType",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wombatRouter",
+    "outputs": [
+      {
+        "internalType": "contract IWombatRouterReader",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wombatStaking",
+    "outputs": [
+      {
+        "internalType": "contract IWombatStakingReader",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

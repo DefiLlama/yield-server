@@ -1,0 +1,77 @@
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
+const { getPriceApiData } = require('../utils');
+
+const weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
+
+const cdceth = {
+  ethereum: '0xfe18aE03741a5b84e39C295Ac9C856eD7991C38e',
+  cronos: '0x7a7c9db510aB29A2FC362a4c34260BEcB5cE3446',
+};
+
+const abi = 'function exchangeRate() external view returns (uint256)';
+
+const apy = async () => {
+  const totalSupply =
+    (
+      await sdk.api.abi.call({
+        target: cdceth.cronos,
+        abi: 'erc20:totalSupply',
+        chain: 'cronos',
+      })
+    ).output / 1e18;
+
+  const now = Math.floor(Date.now() / 1000);
+  const timestamp1dayAgo = now - 86400;
+  const timestamp7dayAgo = now - 86400 * 7;
+  const block1dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp1dayAgo}`)).height;
+
+  const block7dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp7dayAgo}`)).height;
+
+  const exchangeRates = await Promise.all([
+    sdk.api.abi.call({
+      target: cdceth.ethereum,
+      abi: abi,
+    }),
+    sdk.api.abi.call({
+      target: cdceth.ethereum,
+      abi: abi,
+      block: block1dayAgo,
+    }),
+    sdk.api.abi.call({
+      target: cdceth.ethereum,
+      abi: abi,
+      block: block7dayAgo,
+    }),
+  ]);
+
+  const apr1d =
+    ((exchangeRates[0].output - exchangeRates[1].output) / exchangeRates[1].output) * 365 * 100;
+
+  const apr7d =
+    ((exchangeRates[0].output - exchangeRates[2].output) / exchangeRates[2].output) * 52 * 100;
+
+  const priceKey = `ethereum:${weth}`;
+  const price = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
+
+  return [
+    {
+      pool: cdceth.cronos,
+      chain: 'cronos',
+      project: 'crypto.com-liquid-staking',
+      symbol: 'cdcETH',
+      tvlUsd: totalSupply * price,
+      apyBase: apr7d,
+      apyBase7d: apr7d,
+      ...(Number(exchangeRates[0].output) / 1e18 > 0 && { pricePerShare: Number(exchangeRates[0].output) / 1e18 }),
+      underlyingTokens: ['0xe44fd7fcb2b1581822d0c862b68222998a0c299a'],
+      isIntrinsicSource: true,
+    },
+  ];
+};
+
+module.exports = {
+  protocolId: '4158',
+  apy,
+  url: 'https://crypto.com/staking',
+};

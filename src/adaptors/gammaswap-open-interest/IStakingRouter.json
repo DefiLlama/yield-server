@@ -1,0 +1,46 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "esToken",
+        "type": "address"
+      }
+    ],
+    "name": "poolTrackers",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "rewardTracker",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "rewardDistributor",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "loanRewardTracker",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "loanRewardDistributor",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "vester",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

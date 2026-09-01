@@ -1,0 +1,112 @@
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
+
+const abi = require('./abi');
+const { getPriceApiData } = require('../utils');
+
+const archController = '0xfEB516d9D946dD487A9346F6fee11f40C6945eE4';
+const chain = 'ethereum';
+
+const apy = async () => {
+  // all markets
+  const markets = (
+    await sdk.api.abi.call({
+      abi: 'address[]:getRegisteredMarkets',
+      target: archController,
+    })
+  ).output;
+
+  // --- market params
+  const annualInterestBips = (
+    await sdk.api.abi.multiCall({
+      calls: markets.map((m) => ({ target: m })),
+      abi: abi.find((i) => i.name === 'annualInterestBips'),
+    })
+  ).output.map((i) => i.output);
+
+  const symbol = (
+    await sdk.api.abi.multiCall({
+      calls: markets.map((m) => ({ target: m })),
+      abi: 'erc20:symbol',
+    })
+  ).output.map((i) => i.output);
+
+  const asset = (
+    await sdk.api.abi.multiCall({
+      calls: markets.map((m) => ({ target: m })),
+      abi: abi.find((i) => i.name === 'asset'),
+    })
+  ).output.map((i) => i.output);
+
+  const isClosed = (
+    await sdk.api.abi.multiCall({
+      calls: markets.map((m) => ({ target: m })),
+      abi: abi.find((i) => i.name === 'isClosed'),
+    })
+  ).output.map((i) => i.output);
+
+  const name = (
+    await sdk.api.abi.multiCall({
+      calls: markets.map((m) => ({ target: m })),
+      abi: abi.find((i) => i.name === 'name'),
+    })
+  ).output.map((i) => i.output);
+
+  const totalAssets = (
+    await sdk.api.abi.multiCall({
+      calls: markets.map((m) => ({ target: m })),
+      abi: abi.find((i) => i.name === 'totalAssets'),
+    })
+  ).output.map((i) => i.output);
+
+  const totalDebts = (
+    await sdk.api.abi.multiCall({
+      calls: markets.map((m) => ({ target: m })),
+      abi: abi.find((i) => i.name === 'totalDebts'),
+    })
+  ).output.map((i) => i.output);
+
+  const decimals = (
+    await sdk.api.abi.multiCall({
+      calls: markets.map((m) => ({ target: m })),
+      abi: abi.find((i) => i.name === 'decimals'),
+    })
+  ).output.map((i) => i.output);
+
+  const priceApiKeys = [...new Set(asset.map((i) => `${chain}:${i}`))];
+  const prices = (await getPriceApiData(`/prices/current/${priceApiKeys.join(',')}`)).coins;
+
+  const pools = [];
+  for (let i = 0; i < markets.length; i++) {
+    const m = markets[i];
+
+    if (isClosed[i]) continue;
+
+    pools.push({
+      pool: m,
+      project: 'wildcat-protocol',
+      chain,
+      symbol: symbol[i],
+      apyBase: annualInterestBips[i] / 100,
+      tvlUsd:
+        (totalAssets[i] / 10 ** decimals[i]) *
+        prices[`${chain}:${asset[i]}`]?.price,
+      totalSupplyUsd:
+        (totalDebts[i] / 10 ** decimals[i]) *
+        prices[`${chain}:${asset[i]}`]?.price,
+      totalBorrowUsd:
+        (Math.max(totalDebts[i] - totalAssets[i], 0) / 10 ** decimals[i]) *
+        prices[`${chain}:${asset[i]}`]?.price,
+      underlyingTokens: [asset[i]],
+      poolMeta: name[i],
+      url: `https://app.wildcat.finance/lender/market/${m.toLowerCase()}`,
+    });
+  }
+
+  return pools;
+};
+
+module.exports = {
+  protocolId: '3871',
+  apy,
+};

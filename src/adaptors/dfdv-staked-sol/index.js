@@ -1,0 +1,41 @@
+const axios = require('axios');
+const { getTotalSupply, getSanctumLstApy, getPriceApiUrl } = require('../utils');
+
+const DFDVSOL_MINT = 'sctmB7GPi5L2Q5G9tUSzXvhZ4YiDMEGcRov9KfArQpx';
+const priceKey = `solana:${DFDVSOL_MINT}`;
+const SOL = 'So11111111111111111111111111111111111111112';
+
+const apy = async () => {
+  const [totalSupply, priceRes, apyBase] = await Promise.all([
+    getTotalSupply(DFDVSOL_MINT),
+    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
+    getSanctumLstApy(DFDVSOL_MINT),
+  ]);
+
+  const currentPrice = priceRes.data.coins[priceKey]?.price;
+  if (!currentPrice) throw new Error('Unable to fetch dfdvSOL price');
+
+  if (apyBase == null)
+    throw new Error(`Unable to fetch APY for ${DFDVSOL_MINT}`);
+
+  return [
+    {
+      pool: DFDVSOL_MINT,
+      chain: 'Solana',
+      project: 'dfdv-staked-sol',
+      symbol: 'dfdvSOL',
+      tvlUsd: totalSupply * currentPrice,
+      apyBase,
+      underlyingTokens: [SOL],
+      poolMeta: '0% rewards fee',
+      url: 'https://app.sanctum.so/stake/dfdvSOL',
+      isIntrinsicSource: true,
+    },
+  ];
+};
+
+module.exports = {
+  protocolId: '6472',
+  timetravel: false,
+  apy,
+};

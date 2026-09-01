@@ -1,0 +1,740 @@
+const ethers = require('ethers');
+const { default: BigNumber } = require('bignumber.js');
+const sdk = require('@defillama/sdk');
+const axios = require('axios');
+
+const abiSUSDS = require('./abiSUSDS.json');
+const abiFarm = require('./abiFarm.json');
+const { getPriceApiData } = require('../utils');
+
+const HOUR = 60 * 60;
+const DAY = 24 * HOUR;
+const SECONDS_PER_YEAR = 365 * DAY;
+const RAY_PRECISION = 27;
+const RAY = new BigNumber(10).pow(RAY_PRECISION);
+
+const MCD_JUG = {
+  address: '0x19c0976f590D67707E62397C87829d896Dc0f1F1',
+  abis: {
+    ilks: {
+      constant: true,
+      inputs: [
+        {
+          internalType: 'bytes32',
+          name: '',
+          type: 'bytes32',
+        },
+      ],
+      name: 'ilks',
+      outputs: [
+        {
+          internalType: 'uint256',
+          name: 'duty',
+          type: 'uint256',
+        },
+        {
+          internalType: 'uint256',
+          name: 'rho',
+          type: 'uint256',
+        },
+      ],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
+const CDP_MANAGER = {
+  address: '0x5ef30b9986345249bc32d8928B7ee64DE9435E39',
+  abis: {
+    urns: {
+      constant: true,
+      inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      name: 'urns',
+      outputs: [{ internalType: 'address', name: '', type: 'address' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    ilks: {
+      constant: true,
+      inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      name: 'ilks',
+      outputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    owns: {
+      constant: true,
+      inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      name: 'owns',
+      outputs: [{ internalType: 'address', name: '', type: 'address' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    cdpi: {
+      constant: true,
+      inputs: [],
+      name: 'cdpi',
+      outputs: [
+        {
+          internalType: 'uint256',
+          name: '',
+          type: 'uint256',
+        },
+      ],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+const ILK_REGISTRY = {
+  address: '0x5a464C28D19848f44199D003BeF5ecc87d090F87',
+  abis: {
+    gem: {
+      inputs: [{ internalType: 'bytes32', name: 'ilk', type: 'bytes32' }],
+      name: 'gem',
+      outputs: [{ internalType: 'address', name: '', type: 'address' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    ilkData: {
+      inputs: [
+        {
+          internalType: 'bytes32',
+          name: '',
+          type: 'bytes32',
+        },
+      ],
+      name: 'ilkData',
+      outputs: [
+        {
+          internalType: 'uint96',
+          name: 'pos',
+          type: 'uint96',
+        },
+        {
+          internalType: 'address',
+          name: 'join',
+          type: 'address',
+        },
+        {
+          internalType: 'address',
+          name: 'gem',
+          type: 'address',
+        },
+        {
+          internalType: 'uint8',
+          name: 'dec',
+          type: 'uint8',
+        },
+        {
+          internalType: 'uint96',
+          name: 'class',
+          type: 'uint96',
+        },
+        {
+          internalType: 'address',
+          name: 'pip',
+          type: 'address',
+        },
+        {
+          internalType: 'address',
+          name: 'xlip',
+          type: 'address',
+        },
+        {
+          internalType: 'string',
+          name: 'name',
+          type: 'string',
+        },
+        {
+          internalType: 'string',
+          name: 'symbol',
+          type: 'string',
+        },
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    list: {
+      inputs: [],
+      name: 'list',
+      outputs: [{ internalType: 'bytes32[]', name: '', type: 'bytes32[]' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
+const MCD_VAT = {
+  address: '0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B',
+  abis: {
+    ilks: {
+      constant: true,
+      inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+      name: 'ilks',
+      outputs: [
+        { internalType: 'uint256', name: 'Art', type: 'uint256' },
+        { internalType: 'uint256', name: 'rate', type: 'uint256' },
+        { internalType: 'uint256', name: 'spot', type: 'uint256' },
+        { internalType: 'uint256', name: 'line', type: 'uint256' },
+        { internalType: 'uint256', name: 'dust', type: 'uint256' },
+      ],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    Line: {
+      constant: true,
+      inputs: [],
+      name: 'Line',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    debt: {
+      constant: true,
+      inputs: [],
+      name: 'debt',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
+const MCD_SPOT = {
+  address: '0x65C79fcB50Ca1594B025960e539eD7A9a6D434A3',
+  abis: {
+    ilks: {
+      constant: true,
+      inputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
+      name: 'ilks',
+      outputs: [
+        { internalType: 'contract PipLike', name: 'pip', type: 'address' },
+        { internalType: 'uint256', name: 'mat', type: 'uint256' },
+      ],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
+const DAI = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
+
+const MCD_POT = {
+  address: '0x197e90f9fad81970ba7976f33cbd77088e5d7cf7',
+  abis: {
+    Pie: {
+      constant: true,
+      inputs: [],
+      name: 'Pie',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    dsr: {
+      constant: true,
+      inputs: [],
+      name: 'dsr',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+    chi: {
+      constant: true,
+      inputs: [],
+      name: 'chi',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+  },
+};
+
+async function dsr() {
+  const [Pie, chi, dsr] = await Promise.all(
+    ['Pie', 'chi', 'dsr'].map(
+      async (name) =>
+        (
+          await sdk.api.abi.call({
+            target: MCD_POT.address,
+            abi: MCD_POT.abis[name],
+          })
+        ).output
+    )
+  );
+  const tvlUsd = BigNumber(Pie).times(chi).div(1e18).div(RAY); // check against https://makerburn.com/#/
+  const apyBase =
+    (BigNumber(dsr).div(RAY).toNumber() ** (60 * 60 * 24 * 365) - 1) * 100;
+
+  return {
+    pool: '0x83F20F44975D03b1b09e64809B757c47f942BEeA',
+    project: 'sky-lending',
+    symbol: 'sDAI',
+    chain: 'ethereum',
+    token: '0x83F20F44975D03b1b09e64809B757c47f942BEeA',
+    apyBase,
+    tvlUsd: tvlUsd.toNumber(),
+    underlyingTokens: [DAI],
+    isIntrinsicSource: true,
+  };
+}
+
+function onlyUnique(value, index, self) {
+  return self.indexOf(value) === index;
+}
+
+const getPrices = async (addresses) => {
+  const prices = (await getPriceApiData(`/prices/current/${addresses
+        .join(',')
+        .toLowerCase()}`)).coins;
+
+  const pricesObj = Object.entries(prices).reduce(
+    (acc, [address, price]) => ({
+      ...acc,
+      [address.split(':')[1].toLowerCase()]: price.price,
+    }),
+    {}
+  );
+
+  return pricesObj;
+};
+
+const main = async () => {
+  const dsrPool = dsr();
+  const ilkIds = (
+    await sdk.api.abi.call({
+      target: ILK_REGISTRY.address,
+      abi: ILK_REGISTRY.abis.list,
+      chain: 'ethereum',
+    })
+  ).output;
+  const ilkDatas = (
+    await sdk.api.abi.multiCall({
+      calls: ilkIds.map((ilkId) => ({
+        target: ILK_REGISTRY.address,
+        params: [ilkId],
+      })),
+      abi: ILK_REGISTRY.abis.ilkData,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
+  const joins = ilkDatas.map((e) => e['1']);
+  const gems = ilkDatas.map((e) => e.gem);
+  const symbols = ilkDatas.map((e) => e.symbol);
+  const decimals = ilkDatas.map((e) => e['3']);
+
+  const ilksDatas = (
+    await sdk.api.abi.multiCall({
+      calls: ilkIds.map((ilkId) => ({
+        target: MCD_JUG.address,
+        params: [ilkId],
+      })),
+      abi: MCD_JUG.abis.ilks,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
+
+  const ilks = (
+    await sdk.api.abi.multiCall({
+      calls: ilkIds.map((ilkId) => ({
+        target: MCD_VAT.address,
+        params: [ilkId],
+      })),
+      abi: MCD_VAT.abis.ilks,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
+  const [globalDebtCeiling, globalDebt] = await Promise.all(
+    ['Line', 'debt'].map(
+      async (name) =>
+        new BigNumber(
+          (
+            await sdk.api.abi.call({
+              target: MCD_VAT.address,
+              abi: MCD_VAT.abis[name],
+              chain: 'ethereum',
+            })
+          ).output
+        ).div(1e45)
+    )
+  );
+  const globalAvailableBorrowUsd = BigNumber.maximum(
+    globalDebtCeiling.minus(globalDebt),
+    0
+  );
+  const spots = (
+    await sdk.api.abi.multiCall({
+      calls: ilkIds.map((ilkId) => ({
+        target: MCD_SPOT.address,
+        params: [ilkId],
+      })),
+      abi: MCD_SPOT.abis.ilks,
+      requery: true,
+    })
+  ).output.map((x) => x.output);
+  const rate = ilksDatas.map((e) => e.duty);
+  const tokenBalances = (
+    await sdk.api.abi.multiCall({
+      abi: 'erc20:balanceOf',
+      calls: gems.map((address, index) => {
+        return { target: address, params: [joins[index]] };
+      }),
+      chain: 'ethereum',
+      requery: false,
+      permitFailure: true,
+    })
+  ).output.map((e) => e.output);
+
+  const mapPrice = gems.map((address) => `ethereum:${address}`);
+  const prices = await getPrices(mapPrice);
+  const blackList = [
+    '0x3435353434383264343130303030303030303030303030303030303030303030',
+    '0x3432343135343264343130303030303030303030303030303030303030303030',
+    '0x3078353734323534343332643433303030303030303030303030303030303030',
+  ];
+
+  return joins
+    .map((_, index) => {
+      const normalizRate = new BigNumber(rate[index]).dividedBy(RAY);
+      BigNumber.config({ POW_PRECISION: 100 });
+      const stabilityFee = normalizRate.pow(SECONDS_PER_YEAR).minus(1);
+      const art = new BigNumber(ilks[index].Art).div(1e18);
+      const debtScalingFactor = new BigNumber(ilks[index].rate).div(1e27);
+      const totalBorrowUsd = debtScalingFactor.multipliedBy(art);
+      const debtCeilingUsd = new BigNumber(ilks[index].line).div(1e45);
+      const availableBorrowUsd = BigNumber.minimum(
+        BigNumber.maximum(debtCeilingUsd.minus(totalBorrowUsd), 0),
+        globalAvailableBorrowUsd
+      );
+      const tvlUsd = new BigNumber(tokenBalances[index])
+        .dividedBy(new BigNumber(10).pow(decimals[index]))
+        .multipliedBy(prices[gems[index].toLowerCase()])
+        .toNumber();
+      const spot = spots[index];
+      const liquidationRatio = new BigNumber(spot.mat).div(1e27);
+      return {
+        pool: joins[index],
+        project: 'sky-lending',
+        symbol: symbols[index],
+        chain: 'ethereum',
+        token: null,
+        poolMeta: !blackList.includes(ilkIds[index])
+          ? ethers.utils.parseBytes32String(ilkIds[index])
+          : '',
+        apy: 0,
+        tvlUsd: tvlUsd,
+        // borrow fields
+        apyBaseBorrow: stabilityFee.toNumber() * 100,
+        totalSupplyUsd: tvlUsd,
+        totalBorrowUsd: totalBorrowUsd.toNumber(),
+        availableBorrowUsd: availableBorrowUsd.toNumber(),
+        debtCeilingUsd: debtCeilingUsd.toNumber(),
+        mintedCoin: 'DAI',
+        borrowToken: DAI,
+        borrowable: debtCeilingUsd.gt(0),
+        ltv: 1 / Number(liquidationRatio.toNumber()),
+        underlyingTokens: [gems[index]],
+      };
+    })
+    .concat([await dsrPool])
+    .filter((e) => e.tvlUsd !== NaN)
+    .filter((e) => e.tvlUsd !== 0)
+    .filter((e) => e.tvlUsd);
+};
+
+const susdsAPY = async () => {
+  const ETH_SUSDS = '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD';
+  const ssrAbi = abiSUSDS.find((m) => m.name === 'ssr');
+  const secPerYear = 60 * 60 * 24 * 365;
+
+  // SSR is global (set by Sky governance on Ethereum), use for all chains
+  const RAY = 1e27;
+  const ssr =
+    (
+      await sdk.api.abi.call({
+        target: ETH_SUSDS,
+        abi: ssrAbi,
+        chain: 'ethereum',
+      })
+    ).output / RAY;
+
+  const nChi = Math.pow(ssr, secPerYear) * RAY;
+  const apyBase = (nChi / RAY - 1) * 100;
+
+  const configs = [
+    {
+      chain: 'ethereum',
+      sUSDS: ETH_SUSDS,
+      USDS: '0xdC035D45d973E3EC169d2276DDab16f1e407384F',
+      url: 'https://app.sky.money/?network=ethereum&widget=savings',
+    },
+    {
+      chain: 'arbitrum',
+      sUSDS: '0xddb46999f8891663a8f2828d25298f70416d7610',
+      USDS: '0x6491c05a82219b8d1479057361ff1654749b876b',
+      url: 'https://app.sky.money/?network=arbitrumone&widget=savings',
+    },
+    {
+      chain: 'optimism',
+      sUSDS: '0xb5B2dc7fd34C249F4be7fB1fCea07950784229e0',
+      USDS: '0x4F13a96EC5C4Cf34e442b46Bbd98a0791F20edC3',
+      url: 'https://app.sky.money/?network=opmainnet&widget=savings',
+    },
+    {
+      chain: 'unichain',
+      sUSDS: '0xA06b10Db9F390990364A3984C04FaDf1c13691b5',
+      USDS: '0x7E10036Acc4B56d4dFCa3b77810356CE52313F9C',
+      url: 'https://app.sky.money/?network=unichain&widget=savings',
+    },
+  ];
+
+  const priceKeys = configs
+    .map(({ chain, sUSDS }) => `${chain}:${sUSDS}`)
+    .join(',');
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
+
+  const pools = await Promise.all(
+    configs.map(async ({ chain, sUSDS, USDS, url }) => {
+      const totalSupply =
+        (
+          await sdk.api.abi.call({
+            target: sUSDS,
+            abi: 'erc20:totalSupply',
+            chain,
+          })
+        ).output / 1e18;
+
+      const key = `${chain}:${sUSDS}`;
+      const price = prices[key]?.price;
+      if (!price) return null;
+
+      const pool = {
+        pool: sUSDS,
+        symbol: 'SUSDS',
+        project: 'sky-lending',
+        chain,
+        token: sUSDS,
+        tvlUsd: totalSupply * price,
+        apyBase,
+        underlyingTokens: [USDS],
+        url,
+      };
+
+      if (chain === 'ethereum') {
+        pool.isIntrinsicSource = true;
+      }
+
+      return pool;
+    })
+  );
+
+  return pools.filter(Boolean);
+};
+
+// stUSDS (Expert mode staked USDS) — same rate-accumulator pattern as sUSDS,
+// the per-second RAY rate getter is str() instead of ssr().
+const stusdsAPY = async () => {
+  const STUSDS = '0x99CD4Ec3f88A45940936F469E4bB72A2A701EEB9';
+  const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
+  const strAbi = {
+    inputs: [],
+    name: 'str',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  };
+  const RAY = 1e27;
+
+  const [strRes, totalSupplyRes] = await Promise.all([
+    sdk.api.abi.call({ target: STUSDS, abi: strAbi, chain: 'ethereum' }),
+    sdk.api.abi.call({
+      target: STUSDS,
+      abi: 'erc20:totalSupply',
+      chain: 'ethereum',
+    }),
+  ]);
+
+  const str = strRes.output / RAY;
+  const apyBase = (Math.pow(str, SECONDS_PER_YEAR) - 1) * 100;
+
+  const key = `ethereum:${STUSDS}`;
+  const price = (await getPriceApiData(`/prices/current/${key}`)).coins[key]
+    ?.price;
+  if (!price) return [];
+
+  return [
+    {
+      pool: STUSDS,
+      symbol: 'STUSDS',
+      project: 'sky-lending',
+      chain: 'ethereum',
+      token: STUSDS,
+      poolMeta: 'Expert Mode',
+      tvlUsd: (totalSupplyRes.output / 1e18) * price,
+      apyBase,
+      underlyingTokens: [USDS],
+      isIntrinsicSource: true,
+      url: 'https://app.sky.money/?network=ethereum&widget=expert&expert_module=stusds&flow=supply',
+    },
+  ];
+};
+
+// Staking farms (Synthetix-style StakingRewards).
+const farmsAPY = async () => {
+  const USDS = '0xdC035D45d973E3EC169d2276DDab16f1e407384F';
+  const SKY = '0x56072C95FAA701256059aa122697B133aDEd9279';
+  const farms = [
+    {
+      // USDS -> GROVE farm
+      address: '0x4E41488C19cD35EB4de3083Fc3e204854c75c86a',
+      stakeSymbol: 'USDS',
+      // token used to price the staked balance
+      stakeToken: USDS,
+      rewardToken: '0xb30FE1CF884b48A22A50D22A9282004f2c5E9406',
+      poolMeta: 'GROVE Farming Pool',
+      url: 'https://app.sky.money/?network=ethereum&widget=rewards&reward=0x4E41488C19cD35EB4de3083Fc3e204854c75c86a',
+    },
+    {
+      // SKY staking engine -> SKY rewards; the staked token is lsSKY, the
+      // engine's 1:1 wrapper around SKY, so the balance is priced via SKY
+      address: '0xB44c2Fb4181D7cb06BdFf34a46FdFE4A259b40Fc',
+      stakeSymbol: 'SKY',
+      stakeToken: SKY,
+      rewardToken: SKY,
+      poolMeta: 'SKY Staking Engine',
+      // staked SKY can also mint USDS against the LSEV2-SKY-A ilk — expose
+      // the borrow side of the engine with the standard MCD ilk reads
+      ilk: 'LSEV2-SKY-A',
+      url: 'https://app.sky.money/?network=ethereum&widget=stake',
+    },
+  ];
+
+  const priceKeys = [
+    ...new Set(farms.flatMap((f) => [f.stakeToken, f.rewardToken])),
+  ]
+    .map((t) => `ethereum:${t}`)
+    .join(',');
+  const prices = (await getPriceApiData(`/prices/current/${priceKeys}`)).coins;
+
+  const pools = await Promise.all(
+    farms.map(async (farm) => {
+      const priceStake = prices[`ethereum:${farm.stakeToken}`]?.price;
+      if (!priceStake) return null;
+
+      const [totalSupplyRes, rewardRateRes, periodFinishRes] =
+        await Promise.all([
+          sdk.api.abi.call({
+            target: farm.address,
+            abi: 'erc20:totalSupply',
+          }),
+          sdk.api.abi.call({
+            target: farm.address,
+            abi: abiFarm.find((m) => m.name === 'rewardRate'),
+          }),
+          sdk.api.abi.call({
+            target: farm.address,
+            abi: abiFarm.find((m) => m.name === 'periodFinish'),
+          }),
+        ]);
+
+      const tvlUsd = (totalSupplyRes.output / 1e18) * priceStake;
+      const rewardRate = rewardRateRes.output / 1e18;
+      const isActive = Date.now() / 1000 < Number(periodFinishRes.output);
+      const priceReward = prices[`ethereum:${farm.rewardToken}`]?.price;
+      const secPerDay = 86400;
+      const apyReward =
+        isActive && priceReward && tvlUsd > 0
+          ? ((rewardRate * secPerDay * 365 * priceReward) / tvlUsd) * 100
+          : 0;
+
+      const pool = {
+        pool: farm.address,
+        chain: 'ethereum',
+        project: 'sky-lending',
+        symbol: farm.stakeSymbol,
+        token: farm.address,
+        poolMeta: farm.poolMeta,
+        tvlUsd,
+        apyReward,
+        underlyingTokens: [farm.stakeToken],
+        rewardTokens: [farm.rewardToken],
+        url: farm.url,
+      };
+      if (farm.ilk) Object.assign(pool, await ilkBorrowFields(farm.ilk, tvlUsd));
+      return pool;
+    })
+  );
+
+  return pools.filter(Boolean);
+};
+
+// Borrow-side fields for an MCD ilk (jug duty -> stability fee, vat -> debt
+// and ceiling, spot -> max LTV). Used for the staking engine, which mints
+// USDS against staked SKY.
+const ilkBorrowFields = async (ilkName, totalSupplyUsd) => {
+  const ilkId = ethers.utils.formatBytes32String(ilkName);
+  const [jugIlk, vatIlk, spotIlk] = await Promise.all([
+    sdk.api.abi.call({
+      target: MCD_JUG.address,
+      params: [ilkId],
+      abi: MCD_JUG.abis.ilks,
+    }),
+    sdk.api.abi.call({
+      target: MCD_VAT.address,
+      params: [ilkId],
+      abi: MCD_VAT.abis.ilks,
+    }),
+    sdk.api.abi.call({
+      target: MCD_SPOT.address,
+      params: [ilkId],
+      abi: MCD_SPOT.abis.ilks,
+    }),
+  ]);
+
+  const duty = jugIlk.output.duty / 1e27;
+  const totalBorrowUsd =
+    (vatIlk.output.Art / 1e18) * (vatIlk.output.rate / 1e27);
+  const debtCeilingUsd = vatIlk.output.line / 1e45;
+  const liquidationRatio = spotIlk.output.mat / 1e27;
+
+  return {
+    apyBaseBorrow: (Math.pow(duty, SECONDS_PER_YEAR) - 1) * 100,
+    totalSupplyUsd,
+    totalBorrowUsd,
+    debtCeilingUsd,
+    availableBorrowUsd: Math.max(debtCeilingUsd - totalBorrowUsd, 0),
+    ltv: liquidationRatio > 0 ? 1 / liquidationRatio : 0,
+    mintedCoin: 'USDS',
+    borrowToken: '0xdC035D45d973E3EC169d2276DDab16f1e407384F',
+    borrowable: debtCeilingUsd > 0,
+  };
+};
+
+const apy = async () => {
+  const pools = await Promise.all([
+    main(),
+    susdsAPY(),
+    stusdsAPY(),
+    farmsAPY(),
+  ]);
+  return pools.flat();
+};
+
+module.exports = {
+  protocolId: '118',
+  apy,
+  url: 'https://sky.money/',
+};

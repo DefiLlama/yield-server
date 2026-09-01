@@ -1,0 +1,1296 @@
+{
+    "abi": [
+        {
+            "type": "function",
+            "name": "batchSyncUserBalance",
+            "inputs": [
+                {
+                    "name": "ops",
+                    "type": "tuple[]",
+                    "internalType": "struct ISubscriptionPool.SyncBalanceOperation[]",
+                    "components": [
+                        {
+                            "name": "asset",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "accounts",
+                            "type": "address[]",
+                            "internalType": "address[]"
+                        }
+                    ]
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "createVirtualRewardTrackingToken",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "contract IVirtualRewardTrackingToken"
+                }
+            ],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "incentivesController",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "contract IAaveIncentivesController"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "isSubscriptionAllowed",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "overrideUserBalance",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "account",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "newBalance",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "pool",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "contract IPool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "setIncentivesController",
+            "inputs": [
+                {
+                    "name": "controller",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "setSoulboundToken",
+            "inputs": [
+                {
+                    "name": "newToken",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "setSubscriptionAllowed",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "allowed",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "setTrackingTokenImpl",
+            "inputs": [
+                {
+                    "name": "_trackingTokenImpl",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "soulboundToken",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "contract ISoulboundToken"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "supply",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "onBehalfOf",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "referralCode",
+                    "type": "uint16",
+                    "internalType": "uint16"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "syncUserBalance",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "account",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "trackingTokenImpl",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "virtualRewardTrackingTokens",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "event",
+            "name": "BalanceOverridden",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "account",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "balance",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "BalanceSynced",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "account",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "balance",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "BatchBalanceSynced",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "accounts",
+                    "type": "address[]",
+                    "indexed": false,
+                    "internalType": "address[]"
+                },
+                {
+                    "name": "balances",
+                    "type": "uint256[]",
+                    "indexed": false,
+                    "internalType": "uint256[]"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "IncentivesControllerUpdated",
+            "inputs": [
+                {
+                    "name": "oldController",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "newController",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "PoolUpdated",
+            "inputs": [
+                {
+                    "name": "oldPool",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "newPool",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "SoulboundTokenUpdated",
+            "inputs": [
+                {
+                    "name": "oldToken",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "newToken",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "SubscriptionAllowedUpdated",
+            "inputs": [
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "oldAllowed",
+                    "type": "bool",
+                    "indexed": false,
+                    "internalType": "bool"
+                },
+                {
+                    "name": "newAllowed",
+                    "type": "bool",
+                    "indexed": false,
+                    "internalType": "bool"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "Supply",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "VirtualRewardTrackingTokenCreated",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "Withdraw",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "asset",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "error",
+            "name": "InvalidATokenAddress",
+            "inputs": []
+        },
+        {
+            "type": "error",
+            "name": "TrackingTokenAlreadyCreated",
+            "inputs": [
+                {
+                    "name": "createdTrackingTokenAddr",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        },
+        {
+            "type": "error",
+            "name": "TrackingTokenPoolMismatched",
+            "inputs": [
+                {
+                    "name": "subscriptionPool",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "tokenPool",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        }
+    ],
+    "bytecode": {
+        "object": "0x",
+        "sourceMap": "",
+        "linkReferences": {}
+    },
+    "deployedBytecode": {
+        "object": "0x",
+        "sourceMap": "",
+        "linkReferences": {}
+    },
+    "methodIdentifiers": {
+        "batchSyncUserBalance((address,address[])[])": "7e9477b6",
+        "createVirtualRewardTrackingToken(address)": "1317dc29",
+        "incentivesController()": "af1df255",
+        "isSubscriptionAllowed(address)": "e948fb20",
+        "overrideUserBalance(address,address,uint256)": "08942c16",
+        "pool()": "16f0115b",
+        "setIncentivesController(address)": "e655dbd8",
+        "setSoulboundToken(address)": "2432a951",
+        "setSubscriptionAllowed(address,bool)": "dba49658",
+        "setTrackingTokenImpl(address)": "9fa70aca",
+        "soulboundToken()": "a7192492",
+        "supply(address,uint256,address,uint16)": "617ba037",
+        "syncUserBalance(address,address)": "eaaed22b",
+        "trackingTokenImpl()": "f23a9b8c",
+        "virtualRewardTrackingTokens(address)": "2c8b9295"
+    },
+    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.28+commit.7893614a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"InvalidATokenAddress\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"createdTrackingTokenAddr\",\"type\":\"address\"}],\"name\":\"TrackingTokenAlreadyCreated\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"subscriptionPool\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"tokenPool\",\"type\":\"address\"}],\"name\":\"TrackingTokenPoolMismatched\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"balance\",\"type\":\"uint256\"}],\"name\":\"BalanceOverridden\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"balance\",\"type\":\"uint256\"}],\"name\":\"BalanceSynced\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"accounts\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"balances\",\"type\":\"uint256[]\"}],\"name\":\"BatchBalanceSynced\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"oldController\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newController\",\"type\":\"address\"}],\"name\":\"IncentivesControllerUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"oldPool\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newPool\",\"type\":\"address\"}],\"name\":\"PoolUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"oldToken\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newToken\",\"type\":\"address\"}],\"name\":\"SoulboundTokenUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"oldAllowed\",\"type\":\"bool\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"newAllowed\",\"type\":\"bool\"}],\"name\":\"SubscriptionAllowedUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Supply\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"VirtualRewardTrackingTokenCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"address[]\",\"name\":\"accounts\",\"type\":\"address[]\"}],\"internalType\":\"struct ISubscriptionPool.SyncBalanceOperation[]\",\"name\":\"ops\",\"type\":\"tuple[]\"}],\"name\":\"batchSyncUserBalance\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"createVirtualRewardTrackingToken\",\"outputs\":[{\"internalType\":\"contract IVirtualRewardTrackingToken\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"incentivesController\",\"outputs\":[{\"internalType\":\"contract IAaveIncentivesController\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"isSubscriptionAllowed\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"newBalance\",\"type\":\"uint256\"}],\"name\":\"overrideUserBalance\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pool\",\"outputs\":[{\"internalType\":\"contract IPool\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"controller\",\"type\":\"address\"}],\"name\":\"setIncentivesController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newToken\",\"type\":\"address\"}],\"name\":\"setSoulboundToken\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"allowed\",\"type\":\"bool\"}],\"name\":\"setSubscriptionAllowed\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_trackingTokenImpl\",\"type\":\"address\"}],\"name\":\"setTrackingTokenImpl\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"soulboundToken\",\"outputs\":[{\"internalType\":\"contract ISoulboundToken\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"onBehalfOf\",\"type\":\"address\"},{\"internalType\":\"uint16\",\"name\":\"referralCode\",\"type\":\"uint16\"}],\"name\":\"supply\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"syncUserBalance\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"trackingTokenImpl\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"}],\"name\":\"virtualRewardTrackingTokens\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"batchSyncUserBalance((address,address[])[])\":{\"custom:access\":\"Only callable by accounts with the `OPERATOR_ROLE`.\",\"custom:events\":\"Emits a `BatchBalanceSynced` event after all balances are updated.\",\"details\":\"Iterates through an array of `SyncBalanceOperation` structs, each containing an asset and      a list of user accounts. Updates each user's virtual reward tracking token balance to match      their corresponding AToken balance.      Can only be called by an account with the `OPERATOR_ROLE`.\",\"params\":{\"ops\":\"An array of `SyncBalanceOperation` structs, where each struct contains:        - `asset`: The address of the ERC20 token.        - `accounts`: An array of user addresses whose balances need to be synchronized.\"}},\"createVirtualRewardTrackingToken(address)\":{\"custom:access\":\"Only callable by `OPERATOR_ROLE`.\",\"custom:events\":\"Emits a `VirtualRewardTrackingTokenCreated` event with the new token address.\",\"details\":\"If a tracking token for the asset does not exist, it deploys a new one using the      tracking token implementation via the `Clones` library. The new token is mapped      to the asset for future use.\",\"params\":{\"asset\":\"The ERC20 token address for which the tracking token is created.\"},\"returns\":{\"_0\":\"The address of the newly created virtual reward tracking token.\"}},\"isSubscriptionAllowed(address)\":{\"params\":{\"asset\":\"The ERC20 token address.\"},\"returns\":{\"_0\":\"`true` if allowed, `false` otherwise.\"}},\"overrideUserBalance(address,address,uint256)\":{\"params\":{\"account\":\"The user's address.\",\"asset\":\"The ERC20 token address.\",\"newBalance\":\"The new balance to set.\"}},\"setIncentivesController(address)\":{\"params\":{\"controller\":\"The new Incentives Controller address.\"}},\"setSoulboundToken(address)\":{\"params\":{\"newToken\":\"The new Soulbound Token address.\"}},\"setSubscriptionAllowed(address,bool)\":{\"params\":{\"allowed\":\"`true` to allow, `false` to disallow.\",\"asset\":\"The ERC20 token address.\"}},\"setTrackingTokenImpl(address)\":{\"params\":{\"_trackingTokenImpl\":\"The new tracking token implementation address.\"}},\"supply(address,uint256,address,uint16)\":{\"custom:events\":\"Emits a `Supply` event after successfully supplying the asset.\",\"custom:requirements\":\"- `msg.sender` must have approved at least `amount` of `asset` to the subscription pool. - `asset` must be allowed for subscription.\",\"details\":\"Transfers the asset from the caller to the contract, approves the reserve pool, and supplies it.      After supplying, it synchronizes the user's virtual reward tracking token balance with their AToken balance.      The caller must have approved the subscription pool to spend the asset before calling this function.\",\"params\":{\"amount\":\"The amount of the asset to supply.\",\"asset\":\"The address of the ERC20 token to be supplied.\",\"onBehalfOf\":\"The address of the user on whose behalf the deposit is made.\",\"referralCode\":\"The referral code (0 if not used).\"}},\"syncUserBalance(address,address)\":{\"custom:access\":\"Only callable by accounts with the `OPERATOR_ROLE`.\",\"custom:events\":\"Emits a `BalanceSynced` event with the updated balance.\",\"details\":\"This function updates the tracked balance of the specified user for a given asset      by fetching their scaled balance from the corresponding AToken.      Can only be called by an account with the `OPERATOR_ROLE`.\",\"params\":{\"account\":\"The address of the user whose balance needs to be updated.\",\"asset\":\"The address of the ERC20 token for which the balance should be synchronized.\"}},\"virtualRewardTrackingTokens(address)\":{\"params\":{\"asset\":\"The ERC20 token address.\"},\"returns\":{\"_0\":\"The associated virtual reward tracking token address.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"batchSyncUserBalance((address,address[])[])\":{\"notice\":\"Batch synchronizes the virtual reward tracking token balances for multiple users and assets.\"},\"createVirtualRewardTrackingToken(address)\":{\"notice\":\"Creates a virtual reward tracking token for a specific asset.\"},\"incentivesController()\":{\"notice\":\"Returns the RewardController address.\"},\"isSubscriptionAllowed(address)\":{\"notice\":\"Checks if an asset is allowed for subscription.\"},\"overrideUserBalance(address,address,uint256)\":{\"notice\":\"Overrides a user's virtual reward tracking token balance for a specific asset.\"},\"pool()\":{\"notice\":\"Returns the reserve pool address.\"},\"setIncentivesController(address)\":{\"notice\":\"Updates the Incentives Controller.\"},\"setSoulboundToken(address)\":{\"notice\":\"Sets a new Soulbound Token contract.\"},\"setSubscriptionAllowed(address,bool)\":{\"notice\":\"Allows or disallows a specific asset for subscription.\"},\"setTrackingTokenImpl(address)\":{\"notice\":\"Sets the implementation for virtual reward tracking tokens.\"},\"soulboundToken()\":{\"notice\":\"Returns the subscription Soulbound token address.\"},\"supply(address,uint256,address,uint16)\":{\"notice\":\"Deposits a specified amount of an asset into the reserve pool on behalf of a user.\"},\"syncUserBalance(address,address)\":{\"notice\":\"Synchronizes the virtual reward tracking token balance of a user with their AToken balance.\"},\"trackingTokenImpl()\":{\"notice\":\"Returns VirtualRewardTrackingToken implementation address.\"},\"virtualRewardTrackingTokens(address)\":{\"notice\":\"Returns the virtual reward tracking token address for a given asset.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/interfaces/ISubscriptionPool.sol\":\"ISubscriptionPool\"},\"evmVersion\":\"shanghai\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"none\"},\"optimizer\":{\"enabled\":true,\"runs\":10000},\"remappings\":[\":@/=src/\",\":@aave/core-v3/contracts/=node_modules/@aave/core-v3/contracts/\",\":@aave/periphery-v3/contracts/=node_modules/@aave/periphery-v3/contracts/\",\":@ensdomains/=node_modules/@aave/periphery-v3/node_modules/@ensdomains/\",\":@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/\",\":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/\",\":@solmate/=node_modules/solmate/src/\",\":eth-gas-reporter/=node_modules/@aave/core-v3/node_modules/eth-gas-reporter/\",\":forge-std/=node_modules/forge-std/src/\",\":hardhat-deploy/=node_modules/@aave/core-v3/node_modules/hardhat-deploy/\",\":hardhat/=node_modules/@aave/core-v3/node_modules/hardhat/\",\":solmate/=node_modules/solmate/\",\":test/=test/\"],\"viaIR\":true},\"sources\":{\"node_modules/@aave/core-v3/contracts/interfaces/IAaveIncentivesController.sol\":{\"keccak256\":\"0x906b896fdcb878d1472f740a70680f26e9a601dc28701113ab1f89cd9edce0bd\",\"license\":\"AGPL-3.0\",\"urls\":[\"bzz-raw://b17473265a3ec2ec73dac797e0e60c147590f4e5cc7016f8eb61efbe072c49e0\",\"dweb:/ipfs/QmchQGeuyUw3VW4Kgwfg5Ys9ky1F7Q6QCcKbywbRaEUPt7\"]},\"node_modules/@aave/core-v3/contracts/interfaces/IPool.sol\":{\"keccak256\":\"0xbfd2077251c8dc766a56d45f4b03eb07f3441323e79c0f794efea3657a99747f\",\"license\":\"AGPL-3.0\",\"urls\":[\"bzz-raw://c6ff6221de0ea877932c73c0b99d3e4535f293053ae44f9f9d6b9d265e9af2f6\",\"dweb:/ipfs/QmSTaEKrhz1xNVnx4oBzWw8DenYPShVzJoP1A9GTEWkAzX\"]},\"node_modules/@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol\":{\"keccak256\":\"0x16468a4e76d9a330d9dcf9ff7ad0754265bd4d8aa81da5c468eb72fe08c85042\",\"license\":\"AGPL-3.0\",\"urls\":[\"bzz-raw://eb6e658e297ff3caa6a8e098a7eb082ddb71c54f88b2d5398e8995bb86732e1e\",\"dweb:/ipfs/QmZ5M8LaSZ3HdBEPwLT4KtsZYWcUqttX9eKpNdoYrWN4yW\"]},\"node_modules/@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol\":{\"keccak256\":\"0x771cb99fd8519c974f7e12130387c4d9a997a6e8d0ac10e4303b842fe53efa88\",\"license\":\"BUSL-1.1\",\"urls\":[\"bzz-raw://0f41689d1d58bc13678c749bae8830f5a8b19b89cd135e962bf07d483350f828\",\"dweb:/ipfs/QmQSNGDxjYGqT1GU2CZzsWUTNcAtcfkg1jDGTH516nCAfN\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"keccak256\":\"0xe06a3f08a987af6ad2e1c1e774405d4fe08f1694b67517438b467cecf0da0ef7\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://df6f0c459663c9858b6cba2cda1d14a7d05a985bed6d2de72bd8e78c25ee79db\",\"dweb:/ipfs/QmeTTxZ7qVk9rjEv2R4CpCwdf8UMCcRqDNMvzNxHc3Fnn9\"]},\"src/interfaces/ISoulboundToken.sol\":{\"keccak256\":\"0x641ddca9f150248160e993026516ed3e3fbb5a02e6e8c23c19fef07d0f1d6e7a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5166928e574e0d12409ecdccc809fc03963fa9e0aa7fb219315eef6b669301c5\",\"dweb:/ipfs/QmQXsakfZdgR579MaxPsoetzxEoYRXM9CJZ21Xph3rTfia\"]},\"src/interfaces/ISubscriptionPool.sol\":{\"keccak256\":\"0x6a2dd9a596cdaad3ac1b451a158f040e6f87e7547350547a5d6e7e6c87bf4b15\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://7a301a0a9731df8cf1effe8cd6ef3594f913c18d3da86a072bcd380d4e7d6a2d\",\"dweb:/ipfs/QmSf5c2jm9MNoBvMkpx6dBaqZmgVCKJoqM16ug1mCcs5XP\"]},\"src/interfaces/IVirtualRewardTrackingToken.sol\":{\"keccak256\":\"0xf15fe407c1192166c01444807c979adfcc184303509dbf1ea183fc4106f7e632\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://ae763bbfef658b65ea26bb029fb6a57c29e457dbc1a4f174e0f22f8d48c00d0b\",\"dweb:/ipfs/QmW1DKjbTkBqamvNqsEFBdEQ2DzHSRTpwzTDD4VAdJpTod\"]}},\"version\":1}",
+    "metadata": {
+        "compiler": {
+            "version": "0.8.28+commit.7893614a"
+        },
+        "language": "Solidity",
+        "output": {
+            "abi": [
+                {
+                    "inputs": [],
+                    "type": "error",
+                    "name": "InvalidATokenAddress"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "createdTrackingTokenAddr",
+                            "type": "address"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "TrackingTokenAlreadyCreated"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "subscriptionPool",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "tokenPool",
+                            "type": "address"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "TrackingTokenPoolMismatched"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "account",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "balance",
+                            "type": "uint256",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "BalanceOverridden",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "account",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "balance",
+                            "type": "uint256",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "BalanceSynced",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address[]",
+                            "name": "accounts",
+                            "type": "address[]",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "uint256[]",
+                            "name": "balances",
+                            "type": "uint256[]",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "BatchBalanceSynced",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "oldController",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "newController",
+                            "type": "address",
+                            "indexed": true
+                        }
+                    ],
+                    "type": "event",
+                    "name": "IncentivesControllerUpdated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "oldPool",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "newPool",
+                            "type": "address",
+                            "indexed": true
+                        }
+                    ],
+                    "type": "event",
+                    "name": "PoolUpdated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "oldToken",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "newToken",
+                            "type": "address",
+                            "indexed": true
+                        }
+                    ],
+                    "type": "event",
+                    "name": "SoulboundTokenUpdated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "bool",
+                            "name": "oldAllowed",
+                            "type": "bool",
+                            "indexed": false
+                        },
+                        {
+                            "internalType": "bool",
+                            "name": "newAllowed",
+                            "type": "bool",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "SubscriptionAllowedUpdated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "user",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "amount",
+                            "type": "uint256",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "Supply",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "token",
+                            "type": "address",
+                            "indexed": true
+                        }
+                    ],
+                    "type": "event",
+                    "name": "VirtualRewardTrackingTokenCreated",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "user",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "amount",
+                            "type": "uint256",
+                            "indexed": false
+                        }
+                    ],
+                    "type": "event",
+                    "name": "Withdraw",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "struct ISubscriptionPool.SyncBalanceOperation[]",
+                            "name": "ops",
+                            "type": "tuple[]",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "asset",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "address[]",
+                                    "name": "accounts",
+                                    "type": "address[]"
+                                }
+                            ]
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "batchSyncUserBalance"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "createVirtualRewardTrackingToken",
+                    "outputs": [
+                        {
+                            "internalType": "contract IVirtualRewardTrackingToken",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "incentivesController",
+                    "outputs": [
+                        {
+                            "internalType": "contract IAaveIncentivesController",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "isSubscriptionAllowed",
+                    "outputs": [
+                        {
+                            "internalType": "bool",
+                            "name": "",
+                            "type": "bool"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "account",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "newBalance",
+                            "type": "uint256"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "overrideUserBalance"
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "pool",
+                    "outputs": [
+                        {
+                            "internalType": "contract IPool",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "controller",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "setIncentivesController"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "newToken",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "setSoulboundToken"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "bool",
+                            "name": "allowed",
+                            "type": "bool"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "setSubscriptionAllowed"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "_trackingTokenImpl",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "setTrackingTokenImpl"
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "soulboundToken",
+                    "outputs": [
+                        {
+                            "internalType": "contract ISoulboundToken",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "amount",
+                            "type": "uint256"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "onBehalfOf",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "uint16",
+                            "name": "referralCode",
+                            "type": "uint16"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "supply"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address"
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "account",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "syncUserBalance"
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "trackingTokenImpl",
+                    "outputs": [
+                        {
+                            "internalType": "address",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "asset",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "virtualRewardTrackingTokens",
+                    "outputs": [
+                        {
+                            "internalType": "address",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ]
+                }
+            ],
+            "devdoc": {
+                "kind": "dev",
+                "methods": {
+                    "batchSyncUserBalance((address,address[])[])": {
+                        "custom:access": "Only callable by accounts with the `OPERATOR_ROLE`.",
+                        "custom:events": "Emits a `BatchBalanceSynced` event after all balances are updated.",
+                        "details": "Iterates through an array of `SyncBalanceOperation` structs, each containing an asset and      a list of user accounts. Updates each user's virtual reward tracking token balance to match      their corresponding AToken balance.      Can only be called by an account with the `OPERATOR_ROLE`.",
+                        "params": {
+                            "ops": "An array of `SyncBalanceOperation` structs, where each struct contains:        - `asset`: The address of the ERC20 token.        - `accounts`: An array of user addresses whose balances need to be synchronized."
+                        }
+                    },
+                    "createVirtualRewardTrackingToken(address)": {
+                        "custom:access": "Only callable by `OPERATOR_ROLE`.",
+                        "custom:events": "Emits a `VirtualRewardTrackingTokenCreated` event with the new token address.",
+                        "details": "If a tracking token for the asset does not exist, it deploys a new one using the      tracking token implementation via the `Clones` library. The new token is mapped      to the asset for future use.",
+                        "params": {
+                            "asset": "The ERC20 token address for which the tracking token is created."
+                        },
+                        "returns": {
+                            "_0": "The address of the newly created virtual reward tracking token."
+                        }
+                    },
+                    "isSubscriptionAllowed(address)": {
+                        "params": {
+                            "asset": "The ERC20 token address."
+                        },
+                        "returns": {
+                            "_0": "`true` if allowed, `false` otherwise."
+                        }
+                    },
+                    "overrideUserBalance(address,address,uint256)": {
+                        "params": {
+                            "account": "The user's address.",
+                            "asset": "The ERC20 token address.",
+                            "newBalance": "The new balance to set."
+                        }
+                    },
+                    "setIncentivesController(address)": {
+                        "params": {
+                            "controller": "The new Incentives Controller address."
+                        }
+                    },
+                    "setSoulboundToken(address)": {
+                        "params": {
+                            "newToken": "The new Soulbound Token address."
+                        }
+                    },
+                    "setSubscriptionAllowed(address,bool)": {
+                        "params": {
+                            "allowed": "`true` to allow, `false` to disallow.",
+                            "asset": "The ERC20 token address."
+                        }
+                    },
+                    "setTrackingTokenImpl(address)": {
+                        "params": {
+                            "_trackingTokenImpl": "The new tracking token implementation address."
+                        }
+                    },
+                    "supply(address,uint256,address,uint16)": {
+                        "custom:events": "Emits a `Supply` event after successfully supplying the asset.",
+                        "custom:requirements": "- `msg.sender` must have approved at least `amount` of `asset` to the subscription pool. - `asset` must be allowed for subscription.",
+                        "details": "Transfers the asset from the caller to the contract, approves the reserve pool, and supplies it.      After supplying, it synchronizes the user's virtual reward tracking token balance with their AToken balance.      The caller must have approved the subscription pool to spend the asset before calling this function.",
+                        "params": {
+                            "amount": "The amount of the asset to supply.",
+                            "asset": "The address of the ERC20 token to be supplied.",
+                            "onBehalfOf": "The address of the user on whose behalf the deposit is made.",
+                            "referralCode": "The referral code (0 if not used)."
+                        }
+                    },
+                    "syncUserBalance(address,address)": {
+                        "custom:access": "Only callable by accounts with the `OPERATOR_ROLE`.",
+                        "custom:events": "Emits a `BalanceSynced` event with the updated balance.",
+                        "details": "This function updates the tracked balance of the specified user for a given asset      by fetching their scaled balance from the corresponding AToken.      Can only be called by an account with the `OPERATOR_ROLE`.",
+                        "params": {
+                            "account": "The address of the user whose balance needs to be updated.",
+                            "asset": "The address of the ERC20 token for which the balance should be synchronized."
+                        }
+                    },
+                    "virtualRewardTrackingTokens(address)": {
+                        "params": {
+                            "asset": "The ERC20 token address."
+                        },
+                        "returns": {
+                            "_0": "The associated virtual reward tracking token address."
+                        }
+                    }
+                },
+                "version": 1
+            },
+            "userdoc": {
+                "kind": "user",
+                "methods": {
+                    "batchSyncUserBalance((address,address[])[])": {
+                        "notice": "Batch synchronizes the virtual reward tracking token balances for multiple users and assets."
+                    },
+                    "createVirtualRewardTrackingToken(address)": {
+                        "notice": "Creates a virtual reward tracking token for a specific asset."
+                    },
+                    "incentivesController()": {
+                        "notice": "Returns the RewardController address."
+                    },
+                    "isSubscriptionAllowed(address)": {
+                        "notice": "Checks if an asset is allowed for subscription."
+                    },
+                    "overrideUserBalance(address,address,uint256)": {
+                        "notice": "Overrides a user's virtual reward tracking token balance for a specific asset."
+                    },
+                    "pool()": {
+                        "notice": "Returns the reserve pool address."
+                    },
+                    "setIncentivesController(address)": {
+                        "notice": "Updates the Incentives Controller."
+                    },
+                    "setSoulboundToken(address)": {
+                        "notice": "Sets a new Soulbound Token contract."
+                    },
+                    "setSubscriptionAllowed(address,bool)": {
+                        "notice": "Allows or disallows a specific asset for subscription."
+                    },
+                    "setTrackingTokenImpl(address)": {
+                        "notice": "Sets the implementation for virtual reward tracking tokens."
+                    },
+                    "soulboundToken()": {
+                        "notice": "Returns the subscription Soulbound token address."
+                    },
+                    "supply(address,uint256,address,uint16)": {
+                        "notice": "Deposits a specified amount of an asset into the reserve pool on behalf of a user."
+                    },
+                    "syncUserBalance(address,address)": {
+                        "notice": "Synchronizes the virtual reward tracking token balance of a user with their AToken balance."
+                    },
+                    "trackingTokenImpl()": {
+                        "notice": "Returns VirtualRewardTrackingToken implementation address."
+                    },
+                    "virtualRewardTrackingTokens(address)": {
+                        "notice": "Returns the virtual reward tracking token address for a given asset."
+                    }
+                },
+                "version": 1
+            }
+        },
+        "settings": {
+            "remappings": [
+                "@/=src/",
+                "@aave/core-v3/contracts/=node_modules/@aave/core-v3/contracts/",
+                "@aave/periphery-v3/contracts/=node_modules/@aave/periphery-v3/contracts/",
+                "@ensdomains/=node_modules/@aave/periphery-v3/node_modules/@ensdomains/",
+                "@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/",
+                "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+                "@solmate/=node_modules/solmate/src/",
+                "eth-gas-reporter/=node_modules/@aave/core-v3/node_modules/eth-gas-reporter/",
+                "forge-std/=node_modules/forge-std/src/",
+                "hardhat-deploy/=node_modules/@aave/core-v3/node_modules/hardhat-deploy/",
+                "hardhat/=node_modules/@aave/core-v3/node_modules/hardhat/",
+                "solmate/=node_modules/solmate/",
+                "test/=test/"
+            ],
+            "optimizer": {
+                "enabled": true,
+                "runs": 10000
+            },
+            "metadata": {
+                "bytecodeHash": "none"
+            },
+            "compilationTarget": {
+                "src/interfaces/ISubscriptionPool.sol": "ISubscriptionPool"
+            },
+            "evmVersion": "shanghai",
+            "libraries": {},
+            "viaIR": true
+        },
+        "sources": {
+            "node_modules/@aave/core-v3/contracts/interfaces/IAaveIncentivesController.sol": {
+                "keccak256": "0x906b896fdcb878d1472f740a70680f26e9a601dc28701113ab1f89cd9edce0bd",
+                "urls": [
+                    "bzz-raw://b17473265a3ec2ec73dac797e0e60c147590f4e5cc7016f8eb61efbe072c49e0",
+                    "dweb:/ipfs/QmchQGeuyUw3VW4Kgwfg5Ys9ky1F7Q6QCcKbywbRaEUPt7"
+                ],
+                "license": "AGPL-3.0"
+            },
+            "node_modules/@aave/core-v3/contracts/interfaces/IPool.sol": {
+                "keccak256": "0xbfd2077251c8dc766a56d45f4b03eb07f3441323e79c0f794efea3657a99747f",
+                "urls": [
+                    "bzz-raw://c6ff6221de0ea877932c73c0b99d3e4535f293053ae44f9f9d6b9d265e9af2f6",
+                    "dweb:/ipfs/QmSTaEKrhz1xNVnx4oBzWw8DenYPShVzJoP1A9GTEWkAzX"
+                ],
+                "license": "AGPL-3.0"
+            },
+            "node_modules/@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol": {
+                "keccak256": "0x16468a4e76d9a330d9dcf9ff7ad0754265bd4d8aa81da5c468eb72fe08c85042",
+                "urls": [
+                    "bzz-raw://eb6e658e297ff3caa6a8e098a7eb082ddb71c54f88b2d5398e8995bb86732e1e",
+                    "dweb:/ipfs/QmZ5M8LaSZ3HdBEPwLT4KtsZYWcUqttX9eKpNdoYrWN4yW"
+                ],
+                "license": "AGPL-3.0"
+            },
+            "node_modules/@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol": {
+                "keccak256": "0x771cb99fd8519c974f7e12130387c4d9a997a6e8d0ac10e4303b842fe53efa88",
+                "urls": [
+                    "bzz-raw://0f41689d1d58bc13678c749bae8830f5a8b19b89cd135e962bf07d483350f828",
+                    "dweb:/ipfs/QmQSNGDxjYGqT1GU2CZzsWUTNcAtcfkg1jDGTH516nCAfN"
+                ],
+                "license": "BUSL-1.1"
+            },
+            "node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+                "keccak256": "0xe06a3f08a987af6ad2e1c1e774405d4fe08f1694b67517438b467cecf0da0ef7",
+                "urls": [
+                    "bzz-raw://df6f0c459663c9858b6cba2cda1d14a7d05a985bed6d2de72bd8e78c25ee79db",
+                    "dweb:/ipfs/QmeTTxZ7qVk9rjEv2R4CpCwdf8UMCcRqDNMvzNxHc3Fnn9"
+                ],
+                "license": "MIT"
+            },
+            "src/interfaces/ISoulboundToken.sol": {
+                "keccak256": "0x641ddca9f150248160e993026516ed3e3fbb5a02e6e8c23c19fef07d0f1d6e7a",
+                "urls": [
+                    "bzz-raw://5166928e574e0d12409ecdccc809fc03963fa9e0aa7fb219315eef6b669301c5",
+                    "dweb:/ipfs/QmQXsakfZdgR579MaxPsoetzxEoYRXM9CJZ21Xph3rTfia"
+                ],
+                "license": "MIT"
+            },
+            "src/interfaces/ISubscriptionPool.sol": {
+                "keccak256": "0x6a2dd9a596cdaad3ac1b451a158f040e6f87e7547350547a5d6e7e6c87bf4b15",
+                "urls": [
+                    "bzz-raw://7a301a0a9731df8cf1effe8cd6ef3594f913c18d3da86a072bcd380d4e7d6a2d",
+                    "dweb:/ipfs/QmSf5c2jm9MNoBvMkpx6dBaqZmgVCKJoqM16ug1mCcs5XP"
+                ],
+                "license": "MIT"
+            },
+            "src/interfaces/IVirtualRewardTrackingToken.sol": {
+                "keccak256": "0xf15fe407c1192166c01444807c979adfcc184303509dbf1ea183fc4106f7e632",
+                "urls": [
+                    "bzz-raw://ae763bbfef658b65ea26bb029fb6a57c29e457dbc1a4f174e0f22f8d48c00d0b",
+                    "dweb:/ipfs/QmW1DKjbTkBqamvNqsEFBdEQ2DzHSRTpwzTDD4VAdJpTod"
+                ],
+                "license": "MIT"
+            }
+        },
+        "version": 1
+    },
+    "id": 86
+}

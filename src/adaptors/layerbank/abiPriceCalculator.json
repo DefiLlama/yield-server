@@ -1,0 +1,143 @@
+[
+  { "type": "constructor", "stateMutability": "nonpayable", "inputs": [] },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "previousOwner",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "newOwner",
+        "internalType": "address",
+        "indexed": true
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "getUnderlyingPrice",
+    "inputs": [
+      { "type": "address", "name": "lToken", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      { "type": "uint256[]", "name": "", "internalType": "uint256[]" }
+    ],
+    "name": "getUnderlyingPrices",
+    "inputs": [
+      { "type": "address[]", "name": "lTokens", "internalType": "address[]" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "address", "name": "", "internalType": "address" }],
+    "name": "keeper",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "address", "name": "", "internalType": "address" }],
+    "name": "owner",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      { "type": "uint256", "name": "priceInUSD", "internalType": "uint256" }
+    ],
+    "name": "priceOf",
+    "inputs": [
+      { "type": "address", "name": "asset", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      { "type": "uint256", "name": "valueInUSD", "internalType": "uint256" }
+    ],
+    "name": "priceOfETH",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      { "type": "uint256[]", "name": "", "internalType": "uint256[]" }
+    ],
+    "name": "pricesOf",
+    "inputs": [
+      { "type": "address[]", "name": "assets", "internalType": "address[]" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      { "type": "uint256", "name": "lastData", "internalType": "uint256" },
+      { "type": "uint256", "name": "lastUpdated", "internalType": "uint256" }
+    ],
+    "name": "references",
+    "inputs": [{ "type": "address", "name": "", "internalType": "address" }]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "renounceOwnership",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "setKeeper",
+    "inputs": [
+      { "type": "address", "name": "_keeper", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "setPrices",
+    "inputs": [
+      { "type": "address[]", "name": "assets", "internalType": "address[]" },
+      { "type": "uint256[]", "name": "prices", "internalType": "uint256[]" },
+      { "type": "uint256", "name": "timestamp", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "setTokenFeed",
+    "inputs": [
+      { "type": "address", "name": "asset", "internalType": "address" },
+      { "type": "address", "name": "feed", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "transferOwnership",
+    "inputs": [
+      { "type": "address", "name": "newOwner", "internalType": "address" }
+    ]
+  }
+]
