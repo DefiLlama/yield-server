@@ -13,6 +13,9 @@ const MISSION_CONTROL = '0xb05f928baa860ef4548aeb6cf7bb901e402bf8b6';
 const PRICE_DESK = '0x56db9c2322e009189049bc57385751fc7922aab0';
 const RIPE = '0x4d3f37a965b21ab4122e92dd41d2693e742c883b';
 const GREEN = '0x355bb7f0f6c730e4460d620420a300fa08ff82f3';
+const SGREEN = '0x290a52380a88f743813b8c3e9f6b0e61db5fdf73';
+const GREEN_LP = '0x2fd13b49f970e8c6d89283056c1c6281214b7eb6';
+const USDG = '0x5fc5360d0400a0fd4f2af552add042d716f1d168';
 
 const ONE_TOKEN = new BigNumber(10).pow(18);
 
@@ -26,15 +29,37 @@ const TOTAL_AMOUNT_ABI =
   'function getTotalAmountForVault(address) view returns (uint256)';
 const REWARDS_CONFIG_ABI =
   'function getRewardsConfig() view returns (bool arePointsEnabled,uint256 ripePerBlock,uint256 borrowersAlloc,uint256 stakersAlloc,uint256 votersAlloc,uint256 genDepositorsAlloc,uint256 stakersPointsAllocTotal,uint256 voterPointsAllocTotal)';
+const REWARDS_PARAMS_ABI =
+  'function rewardsConfig() view returns (bool,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)';
 const USD_VALUE_ABI =
   'function getUsdValue(address,uint256,bool) view returns (uint256)';
-const ASSETS_URL = 'https://api.ripe.finance/api/ripe/assets?chain=robinhood';
+const ASSET_CONFIG_ABI = {
+  stateMutability: 'view',
+  type: 'function',
+  name: 'assetConfig',
+  inputs: [{ name: 'asset', type: 'address' }],
+  outputs: [
+    {
+      name: '',
+      type: 'tuple',
+      components: [
+        { name: 'vaultIds', type: 'uint256[]' },
+        { name: 'stakersPointsAlloc', type: 'uint256' },
+      ],
+    },
+  ],
+};
 
 const knownSymbols = {
   [RIPE]: 'RIPE',
-  '0x2fd13b49f970e8c6d89283056c1c6281214b7eb6': 'GREEN/USDG',
-  '0x290a52380a88f743813b8c3e9f6b0e61db5fdf73': 'sGREEN',
-  '0x9b8537be0fd5cf9b2ad495c5a85130d5bae4769d': 'RIPE/NVDA LP',
+  [GREEN_LP]: 'GREEN-USDG',
+  [SGREEN]: 'sGREEN',
+  '0x9b8537be0fd5cf9b2ad495c5a85130d5bae4769d': 'RIPE-NVDA',
+};
+
+const knownUnderlyingTokens = {
+  [GREEN_LP]: [GREEN, USDG],
+  [SGREEN]: [GREEN],
 };
 
 async function getVaultAssets(vault) {
@@ -120,13 +145,29 @@ async function getAssetPrice(asset, ripePrice) {
   return getLpPrice(asset, ripePrice);
 }
 
+async function getAssetSymbol(asset) {
+  if (knownSymbols[asset]) return knownSymbols[asset];
+
+  try {
+    const { output } = await sdk.api.abi.call({
+      target: asset,
+      abi: 'string:symbol',
+      chain: CHAIN,
+    });
+    return output;
+  } catch (_) {
+    return asset;
+  }
+}
+
 async function getPool(
   vault,
   vaultId,
   asset,
   config,
   rewardsConfig,
-  ripePrice
+  ripePrice,
+  liquidRewardRatio
 ) {
   const [amount, assetPrice] = await Promise.all([
     sdk.api.abi.call({
@@ -157,48 +198,47 @@ async function getPool(
     .times(ripePrice)
     .div(ONE_TOKEN.pow(2))
     .div(tvlUsd)
+    .times(liquidRewardRatio)
     .times(100);
 
   const pool = {
     pool: `${asset}-${vaultId}-${CHAIN}`.toLowerCase(),
     chain: CHAIN_NAME,
     project: PROJECT,
-    symbol: knownSymbols[asset] || asset,
+    symbol: await getAssetSymbol(asset),
     tvlUsd: tvlUsd.toNumber(),
     apyReward: apyReward.toNumber(),
     rewardTokens: [RIPE],
     token: asset,
     poolMeta: vaultId === 2 ? 'RipeGov' : 'StabilityPool',
-    url: EARN_URL,
   };
 
-  if (assetPrice.underlyingTokens)
-    pool.underlyingTokens = assetPrice.underlyingTokens;
-  else if (asset === '0x290a52380a88f743813b8c3e9f6b0e61db5fdf73') {
-    pool.underlyingTokens = [GREEN];
-  }
+  const underlyingTokens =
+    assetPrice.underlyingTokens || knownUnderlyingTokens[asset];
+  if (underlyingTokens) pool.underlyingTokens = underlyingTokens;
 
   return pool;
 }
 
 async function apy() {
-  const [ripePriceData, rewardsConfig, assetsResponse] = await Promise.all([
+  const [ripePriceData, rewardsConfig, rewardsParams] = await Promise.all([
     utils.getPrices([RIPE], CHAIN),
     sdk.api.abi.call({
       target: MISSION_CONTROL,
       abi: REWARDS_CONFIG_ABI,
       chain: CHAIN,
     }),
-    utils.withRetry(() => utils.getData(ASSETS_URL)),
+    sdk.api.abi.call({
+      target: MISSION_CONTROL,
+      abi: REWARDS_PARAMS_ABI,
+      chain: CHAIN,
+    }),
   ]);
   const ripePrice = new BigNumber(ripePriceData.pricesByAddress[RIPE]);
   const rewards = rewardsConfig.output;
-  const assetConfigs = new Map(
-    assetsResponse.result.map((asset) => [
-      `${asset.tokenAddress.toLowerCase()}-${asset.vaultId}`,
-      asset,
-    ])
-  );
+  const liquidRewardRatio = new BigNumber(10000)
+    .minus(rewardsParams.output[6])
+    .div(10000);
 
   if (
     !rewards.arePointsEnabled ||
@@ -216,22 +256,22 @@ async function apy() {
   for (const vault of vaults) {
     const assets = await getVaultAssets(vault.address);
     for (const asset of assets) {
-      const assetConfig = assetConfigs.get(
-        `${asset.toLowerCase()}-${vault.id}`
-      );
-      if (
-        !assetConfig ||
-        new BigNumber(assetConfig.stakersPointsAlloc).isZero()
-      )
-        continue;
+      const { output: assetConfig } = await sdk.api.abi.call({
+        target: MISSION_CONTROL,
+        abi: ASSET_CONFIG_ABI,
+        params: [asset],
+        chain: CHAIN,
+      });
+      if (new BigNumber(assetConfig[1]).isZero()) continue;
 
       const pool = await getPool(
         vault.address,
         vault.id,
         asset.toLowerCase(),
-        assetConfig,
+        { stakersPointsAlloc: assetConfig[1] },
         rewards,
-        ripePrice.times(ONE_TOKEN)
+        ripePrice.times(ONE_TOKEN),
+        liquidRewardRatio
       );
       if (pool) pools.push(pool);
     }
