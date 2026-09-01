@@ -66,7 +66,7 @@ const VESTING_APY_VAULTS = {
     arbitrum: [],
     base: ["0x5900c3b72458f12967dc1bef35b92d271f5cdbc1", "0x17d0f109ee895bad0b68aa104aa72bd0b003ad8e", "0xe883426b4fc84a7f5cc86415cabbef43e73a4cc8"],
     unichain: [],
-    tac: [],
+    flare: [],
     ink: [],
     plasma: [],
     avax: [],
@@ -94,8 +94,8 @@ const CHAIN_CONFIG = {
     unichain: {
         chainId: 130
     },
-    tac: {
-        chainId: 239
+    flare: {
+        chainId: 14
     },
     ink: {
         chainId: 57073
