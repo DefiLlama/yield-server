@@ -13,14 +13,12 @@ const chains = {
   matic: 'polygon',
   arbitrum: 'arbitrum',
   base: 'base',
-  zksync: 'era',
 };
 const url_config = {
   eth: 'ethereum',
   matic: 'polygon',
   arbitrum: 'arbitrum',
   base: 'base',
-  zksync: 'zksync',
 }
 
 function aggregateBaseApys(farm, poolsResponse) {
