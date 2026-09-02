@@ -10,6 +10,9 @@ const CHAIN = 'citrea';
 // derived from on-chain logs, so there is no indexer to go stale again.
 const POOL_STATS = 'https://s33-epoch-cron.tiagopratas69.workers.dev/pool-stats';
 const RPC = 'https://rpc.mainnet.citrea.xyz';
+// Axios defaults to no timeout; bound every upstream call so apy() rejects
+// instead of hanging on a stalled endpoint.
+const TIMEOUT_MS = 30_000;
 
 // s33 gauge system. The Voter streams weekly xSATS (symbol veSUMA, 1:1 with
 // SUMA) emissions to one IchiVaultGauge per Algebra pool; depositors of that
@@ -21,12 +24,9 @@ const CTUSD = '0x8d82c4e3c936c7b5724a382a9c5a4e6eb7ab6d5d';
 // SUMA/ctUSD Algebra pool, used to price SUMA (not on the coins API).
 const SUMA_CTUSD_POOL = '0x298a4e0ec1af98066b79836ea99dcc2dd5437f67';
 
-// Algebra pools carry a dynamic fee. globalState.lastFee is not usable here (it
-// reads a constant across pools), so take the live value from fee().
 const SELECTORS = {
   token0: '0x0dfe1681',
   token1: '0xd21220a7',
-  fee: '0xddca3f43',
   symbol: '0x95d89b41',
   globalState: '0xe76c01e4',
   // Voter
@@ -53,16 +53,27 @@ const ethCallBatch = async (calls) => {
       id: i,
       method: 'eth_call',
       params: [{ to: c.to, data: c.data }, 'latest'],
-    }))
+    })),
+    { timeout: TIMEOUT_MS }
   );
-  const byId = new Map((Array.isArray(data) ? data : []).map((r) => [r.id, r.result]));
-  return calls.map((_, i) => byId.get(i) ?? null);
+  // A JSON-RPC item can carry `error` instead of `result`. Fail loudly rather
+  // than publishing a pool with partial data.
+  const byId = new Map((Array.isArray(data) ? data : []).map((r) => [r.id, r]));
+  return calls.map((_, i) => {
+    const response = byId.get(i);
+    if (!response || response.error || typeof response.result !== 'string') {
+      throw new Error(
+        `eth_call failed for ${calls[i].to} (${calls[i].data.slice(0, 10)}): ${
+          response?.error?.message ?? 'no result'
+        }`
+      );
+    }
+    return response.result;
+  });
 };
 
 const toAddress = (word) =>
   word && word.length >= 66 ? `0x${word.slice(26, 66)}`.toLowerCase() : null;
-
-const toNumber = (word) => (word && word !== '0x' ? Number(BigInt(word)) : null);
 
 const toBigInt = (word) => (word && word !== '0x' ? BigInt(word) : 0n);
 
@@ -110,7 +121,8 @@ const getSumaPriceUsd = async () => {
   let ctUsdPrice = 1;
   try {
     const { data } = await axios.get(
-      `https://coins.llama.fi/prices/current/${CHAIN}:${CTUSD}`
+      `https://coins.llama.fi/prices/current/${CHAIN}:${CTUSD}`,
+      { timeout: TIMEOUT_MS }
     );
     ctUsdPrice = data?.coins?.[`${CHAIN}:${CTUSD}`]?.price ?? 1;
   } catch {
@@ -158,7 +170,7 @@ const getWeeklyEmissions = async () => {
 };
 
 const apy = async () => {
-  const { data: stats } = await axios.get(POOL_STATS);
+  const { data: stats } = await axios.get(POOL_STATS, { timeout: TIMEOUT_MS });
   const pools = Object.entries(stats?.pools ?? {}).filter(
     ([, s]) => Number(s.tvlUSD) > 0
   );
@@ -166,10 +178,9 @@ const apy = async () => {
 
   const addresses = pools.map(([address]) => address.toLowerCase());
 
-  const [token0s, token1s, fees, weeklyEmissions, sumaPriceUsd] = await Promise.all([
+  const [token0s, token1s, weeklyEmissions, sumaPriceUsd] = await Promise.all([
     ethCallBatch(addresses.map((to) => ({ to, data: SELECTORS.token0 }))),
     ethCallBatch(addresses.map((to) => ({ to, data: SELECTORS.token1 }))),
-    ethCallBatch(addresses.map((to) => ({ to, data: SELECTORS.fee }))),
     getWeeklyEmissions().catch(() => ({})),
     getSumaPriceUsd().catch(() => null),
   ]);
@@ -194,9 +205,11 @@ const apy = async () => {
 
       const tvlUsd = Number(stat.tvlUSD);
       const volumeUsd24h = Number(stat.volumeUSD24h) || 0;
-      // fee() is in hundredths of a bip (1e6 == 100%).
-      const feeRate = (toNumber(fees[i]) ?? 0) / 1e6;
-      const fees24h = volumeUsd24h * feeRate;
+      // Fees are accumulated per swap at the fee in force at the time (Algebra
+      // pools have a dynamic fee), so use the endpoint's 24h total rather than
+      // volume * current fee.
+      const fees24h = Number(stat.feesUSD24h);
+      if (!Number.isFinite(fees24h) || fees24h < 0) return null;
 
       // Gauge emissions go to the pool's ICHI vault depositors. Measured
       // against the whole pool TVL this is a floor on what vault LPs earn.
