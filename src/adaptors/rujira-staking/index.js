@@ -19,6 +19,7 @@ const STAKING_QUERY = gql`
         address
         bondAsset {
           metadata {
+            decimals
             symbol
           }
           variants {
@@ -28,6 +29,9 @@ const STAKING_QUERY = gql`
           }
         }
         receiptAsset {
+          metadata {
+            decimals
+          }
           variants {
             native {
               denom
@@ -35,6 +39,8 @@ const STAKING_QUERY = gql`
           }
         }
         status {
+          liquidBondShares
+          liquidBondSize
           valueUsd
         }
         summary {
@@ -68,6 +74,20 @@ const getStakingPools = async () => {
           : null;
       const underlying = pool?.bondAsset?.variants?.native?.denom;
       const token = pool?.receiptAsset?.variants?.native?.denom;
+      const bondDecimals = pool?.bondAsset?.metadata?.decimals;
+      const receiptDecimals = pool?.receiptAsset?.metadata?.decimals;
+      const liquidBondSize = Number.isInteger(bondDecimals)
+        ? fromFixed(pool?.status?.liquidBondSize, bondDecimals)
+        : null;
+      const liquidBondShares = Number.isInteger(receiptDecimals)
+        ? fromFixed(pool?.status?.liquidBondShares, receiptDecimals)
+        : null;
+      const pricePerShare =
+        liquidBondSize !== null &&
+        liquidBondShares !== null &&
+        liquidBondShares > 0
+          ? liquidBondSize / liquidBondShares
+          : null;
       const route = encodedAssetSegment({
         chain: 'THOR',
         metadata: { symbol },
@@ -93,6 +113,8 @@ const getStakingPools = async () => {
         symbol,
         tvlUsd,
         apyBase,
+        ...(Number.isFinite(pricePerShare) &&
+          pricePerShare > 0 && { pricePerShare }),
         underlyingTokens: [underlying],
         token,
         poolMeta: 'Staking',
