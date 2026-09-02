@@ -91,7 +91,7 @@ const getPool = async ({ symbol, token, priceOracle, url }, usdcPriceUsd) => {
   return {
     pool: `${token}-${CHAIN}`,
     chain: 'Ethereum', // display name; handler normalizes via formatChain
-    project: 'vault-street-primeusd',
+    project: 'vault-street',
     symbol,
     tvlUsd,
     apyBase,
