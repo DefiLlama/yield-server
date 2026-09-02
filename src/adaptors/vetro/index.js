@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
-const superagent = require('superagent');
+const utils = require('../utils');
 
+// Contract Addresses
 const VUSD = '0xCa83DDE9c22254f58e771bE5E157773212AcBAc3';
 const SVUSD_VAULT = '0x476310E34D2810f7d79C43A74E4D79405bd7a925';
 const VUSD_YIELD_DISTRIBUTOR = '0x55745265Ba172378cf45d224F09F0673cB470cef';
@@ -14,7 +15,7 @@ const SECONDS_PER_YEAR = 31536000n;
 const apy = async () => {
   const now = BigInt(Math.floor(Date.now() / 1000));
 
-  // 1. sVUSD Yield Calculation
+  // --- 1. Compute sVUSD Live Yield ---
   const svusdTotalAssets = (
     await sdk.api.abi.call({
       target: SVUSD_VAULT,
@@ -46,7 +47,7 @@ const apy = async () => {
     svusdApy = (Number(annualRewardsWei) / Number(svusdTotalAssets)) * 100;
   }
 
-  // 2. svetBTC Yield Calculation
+  // --- 2. Compute svetBTC Live Yield ---
   const svetbtcTotalAssets = (
     await sdk.api.abi.call({
       target: SVETBTC_VAULT,
@@ -78,15 +79,13 @@ const apy = async () => {
     svetbtcApy = (Number(annualRewardsWei) / Number(svetbtcTotalAssets)) * 100;
   }
 
-  // 3. Dynamic Live BTC Price (No hardcoded fallback)
-  const priceRes = await superagent.get(
-    'https://coins.llama.fi/prices/current/coingecko:bitcoin'
-  );
-  const btcPrice = priceRes.body.coins['coingecko:bitcoin']?.price;
-
-  if (!btcPrice) {
-    throw new Error('Failed to fetch live BTC price from DefiLlama Coins API');
-  }
+  // --- 3. Price Fetching via DefiLlama Utils ---
+  const vetBtcKey = `ethereum:${VETBTC}`;
+  const coins = await utils.getPrices([vetBtcKey, 'coingecko:bitcoin']);
+  const btcPrice =
+    coins.pricesByAddress[VETBTC.toLowerCase()] ||
+    coins.pricesByAddress['bitcoin'] ||
+    0;
 
   return [
     {
@@ -98,6 +97,7 @@ const apy = async () => {
       apyBase: Number(svusdApy.toFixed(2)),
       underlyingTokens: [VUSD],
       token: SVUSD_VAULT,
+      url: 'https://app.vetro.org/en/earn',
     },
     {
       pool: `${SVETBTC_VAULT}-ethereum`.toLowerCase(),
@@ -108,6 +108,7 @@ const apy = async () => {
       apyBase: Number(svetbtcApy.toFixed(2)),
       underlyingTokens: [VETBTC],
       token: SVETBTC_VAULT,
+      url: 'https://app.vetro.org/en/earn',
     },
   ];
 };
