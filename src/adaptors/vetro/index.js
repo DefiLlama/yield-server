@@ -42,8 +42,8 @@ const apy = async () => {
 
   let svusdApy = 0;
   if (BigInt(vusdPeriodFinish) > now && BigInt(svusdTotalAssets) > 0n) {
-    const annualRewards = BigInt(vusdRewardRate) * SECONDS_PER_YEAR;
-    svusdApy = (Number(annualRewards) / (Number(svusdTotalAssets) * 1e18)) * 100;
+    const annualRewardsWei = Number(BigInt(vusdRewardRate) * SECONDS_PER_YEAR) / 1e18;
+    svusdApy = (annualRewardsWei / Number(svusdTotalAssets)) * 100;
   }
 
   // --- 2. Compute svetBTC Live Yield ---
@@ -73,8 +73,8 @@ const apy = async () => {
 
   let svetbtcApy = 0;
   if (BigInt(vetbtcPeriodFinish) > now && BigInt(svetbtcTotalAssets) > 0n) {
-    const annualRewards = BigInt(vetbtcRewardRate) * SECONDS_PER_YEAR;
-    svetbtcApy = (Number(annualRewards) / (Number(svetbtcTotalAssets) * 1e18)) * 100;
+    const annualRewardsWei = Number(BigInt(vetbtcRewardRate) * SECONDS_PER_YEAR) / 1e18;
+    svetbtcApy = (annualRewardsWei / Number(svetbtcTotalAssets)) * 100;
   }
 
   // --- 3. Price Fetching via DefiLlama Utils ---
