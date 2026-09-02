@@ -1,211 +1,76 @@
 const axios = require('axios');
-const sdk = require('@defillama/sdk');
-const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
+const providers = require('@defillama/sdk/build/providers.json');
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const ONE_ETHER = 10n ** 18n;
-const SECONDS_IN_YEAR = 31556952n;
+const FUSION_API_URL = 'https://api.ipor.io/v2/fusion/vaults';
 
-const GET_REWARDS_CLAIM_MANAGER_ADDRESS_ABI =
-    'function getRewardsClaimManagerAddress() view returns (address)';
-const TOTAL_ASSETS_ABI = 'function totalAssets() view returns (uint256)';
-const GET_VESTING_DATA_ABI = {
-    type: 'function',
-    name: 'getVestingData',
-    inputs: [],
-    stateMutability: 'view',
-    outputs: [{
-        type: 'tuple',
-        components: [
-            { name: 'vestingTime', type: 'uint32' },
-            { name: 'updateBalanceTimestamp', type: 'uint32' },
-            { name: 'transferredTokens', type: 'uint128' },
-            { name: 'lastUpdateBalance', type: 'uint128' },
-        ],
-    }],
-};
-
-async function getVestingRewardsApy(vaultAddress, chain) {
-    try {
-        const rcm = (await sdk.api.abi.call({
-            target: vaultAddress,
-            chain,
-            abi: GET_REWARDS_CLAIM_MANAGER_ADDRESS_ABI,
-        })).output;
-
-        if (!rcm || rcm.toLowerCase() === ZERO_ADDRESS) return 0;
-
-        const [vestingDataRes, totalAssetsRes] = await Promise.all([
-            sdk.api.abi.call({ target: rcm, chain, abi: GET_VESTING_DATA_ABI }),
-            sdk.api.abi.call({ target: vaultAddress, chain, abi: TOTAL_ASSETS_ABI }),
-        ]);
-
-        const vestingTime = BigInt(vestingDataRes.output.vestingTime);
-        const lastUpdateBalance = BigInt(vestingDataRes.output.lastUpdateBalance);
-        const totalAssets = BigInt(totalAssetsRes.output);
-
-        if (vestingTime === 0n || lastUpdateBalance === 0n || totalAssets === 0n) {
-            return 0;
-        }
-
-        const apy_18 =
-            (lastUpdateBalance * ONE_ETHER * SECONDS_IN_YEAR * 100n) /
-            (totalAssets * vestingTime);
-
-        return Number(apy_18) / 1e18;
-    } catch (e) {
-        return 0;
-    }
-}
-
-const IPOR_GITHUB_ADDRESSES_URL = "https://raw.githubusercontent.com/IPOR-Labs/ipor-abi/refs/heads/main/mainnet/addresses.json";
-const FUSION_API_URL = 'https://api.ipor.io/fusion/vaults';
-
-const VESTING_APY_VAULTS = {
-    ethereum: ["0xb9e806e8f2d94c015ffefa90cd24ecce18f1663c"],
-    arbitrum: [],
-    base: ["0x5900c3b72458f12967dc1bef35b92d271f5cdbc1", "0x17d0f109ee895bad0b68aa104aa72bd0b003ad8e", "0xe883426b4fc84a7f5cc86415cabbef43e73a4cc8"],
-    unichain: [],
-    flare: [],
-    ink: [],
-    plasma: [],
-    avax: [],
-    katana: [],
-    hyperliquid: [],
-    robinhood: [],
-    monad: [],
-};
-// DefiLlama chain name -> ipor-abi (addresses.json) chain name
+const CHAINS = [
+  'ethereum',
+  'arbitrum',
+  'base',
+  'unichain',
+  'flare',
+  'ink',
+  'plasma',
+  'avax',
+  'katana',
+  'hyperliquid',
+  'robinhood',
+  'monad',
+];
+const CHAIN_BY_ID = Object.fromEntries(
+  CHAINS.map((chain) => [providers[chain].chainId, chain])
+);
+// DefiLlama chain name -> app.ipor.io chain name (only where they differ)
 const IPOR_CHAIN_NAME = {
-    avax: 'avalanche',
-    hyperliquid: 'hyperevm',
-};
-const toIporChainName = (chain) => IPOR_CHAIN_NAME[chain] || chain;
-const CHAIN_CONFIG = {
-    ethereum: {
-        chainId: 1
-    },
-    arbitrum: {
-        chainId: 42161
-    },
-    base: {
-        chainId: 8453
-    },
-    unichain: {
-        chainId: 130
-    },
-    flare: {
-        chainId: 14
-    },
-    ink: {
-        chainId: 57073
-    },
-    plasma: {
-        chainId: 9745
-    },
-    avax: {
-        chainId: 43114
-    },
-    katana: {
-        chainId: 747474
-    },
-    hyperliquid: {
-        chainId: 999
-    },
-    robinhood: {
-        chainId: 4663
-    },
-    monad: {
-        chainId: 143
-    }
+  avax: 'avalanche',
+  hyperliquid: 'hyperevm',
 };
 
-async function getAllVaults() {
-    const allVaultsRes = await axios.get(FUSION_API_URL);
-    return allVaultsRes.data.vaults;
+// API returns null (or omits) apy/tvl fields for some vaults; treat them as 0
+const toNumber = (value) => Number(value ?? 0);
+
+function buildPool(vault) {
+  const chain = CHAIN_BY_ID[vault.chainId];
+  const apyReward = toNumber(vault.vestingApy);
+
+  return {
+    pool: vault.address,
+    chain,
+    project: 'fusion-by-ipor',
+    symbol: vault.asset,
+    tvlUsd: toNumber(vault.tvl),
+    apyBase:
+      toNumber(vault.apy) +
+      toNumber(vault.underlyingAssetApy) +
+      toNumber(vault.rewardsApy),
+    apyReward,
+    underlyingTokens: [vault.assetAddress],
+    ...(apyReward > 0 && { rewardTokens: [vault.assetAddress] }),
+    poolMeta: vault.name,
+    url: `https://app.ipor.io/fusion/${
+      IPOR_CHAIN_NAME[chain] || chain
+    }/${vault.address.toLowerCase()}`,
+  };
 }
 
-async function getPublicVaults() {
-    const response = await axios.get(IPOR_GITHUB_ADDRESSES_URL);
-    const publicVaults = typeof response.data === 'string'
-        ? JSON.parse(response.data)
-        : response.data;
-    const chainVaults = new Map();
+const apy = async () => {
+  const { data } = await axios.get(FUSION_API_URL);
+  // API may list the same vault address more than once; keep the first entry
+  const seen = new Set();
 
-    Object.entries(publicVaults).forEach(([chainName, { vaults }]) => {
-        const lowerCaseVaults = (vaults || []).map(vault => vault.PlasmaVault.toLowerCase());
-        chainVaults.set(chainName, lowerCaseVaults);
-    });
-
-    return chainVaults;
-}
-
-async function buildPool(vault) {
-    const tvlUsd = Number(vault.tvl);
-    const apyBase = Number(vault.apy);
-    const chainConfig = Object.entries(CHAIN_CONFIG).find(
-        ([_, config]) => config.chainId === vault.chainId
-    );
-
-    const chain = chainConfig[0];
-    const iporChainName = toIporChainName(chain);
-    const chainData = chainConfig[1];
-    const url = `https://app.ipor.io/fusion/${iporChainName}/${vault.address.toLowerCase()}`;
-
-    return {
-        pool: vault.address,
-        chain,
-        project: 'fusion-by-ipor',
-        symbol: `${vault.asset}`,
-        tvlUsd,
-        apyBase,
-        apyReward : 0,
-        underlyingTokens: [vault.assetAddress],
-        poolMeta: `${vault.name}`,
-        url
-    };
-}
-
-const apy = async() => {
-    const publicVaults = await getPublicVaults();
-    // fetch the full vault list once and filter per chain; fetching it per chain
-    // (11 parallel copies of a multi-MB payload) OOMs the 1GB lambda
-    const allVaults = await getAllVaults();
-    const chainsData = Object.entries(CHAIN_CONFIG).map(([chain, config]) => ({
-        chain,
-        config,
-        data: allVaults.filter(vault => vault.chainId === config.chainId)
-    }));
-
-    const pools = await Promise.all(
-        chainsData.flatMap(({ chain, data }) =>
-            data
-            .filter(vault => publicVaults.get(toIporChainName(chain))?.includes(vault.address.toLowerCase()))
-            .map(vault => buildPool(vault))
-        )
-    );
-
-    const poolsWithMerkl = await addMerklRewardApy(pools, 'ipor');
-
-    return Promise.all(poolsWithMerkl.map(async (pool) => {
-        const allowedVaults = VESTING_APY_VAULTS[pool.chain] || [];
-        if (!allowedVaults.includes(pool.pool.toLowerCase())) return pool;
-
-        const vestingApy = await getVestingRewardsApy(pool.pool, pool.chain);
-        if (vestingApy <= 0) return pool;
-        const rewardTokens = [
-            ...new Set([...(pool.rewardTokens || []), ...pool.underlyingTokens]),
-        ];
-        return {
-            ...pool,
-            apyReward: (pool.apyReward || 0) + vestingApy,
-            rewardTokens,
-        };
-    }));
+  return data.vaults
+    .filter((vault) => vault.chainId in CHAIN_BY_ID)
+    .filter((vault) => {
+      const address = vault.address.toLowerCase();
+      if (seen.has(address)) return false;
+      seen.add(address);
+      return true;
+    })
+    .map(buildPool);
 };
 
 module.exports = {
   protocolId: '5145',
-    timetravel: false,
-    apy: apy
+  timetravel: false,
+  apy,
 };
