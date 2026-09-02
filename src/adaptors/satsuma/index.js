@@ -1,91 +1,114 @@
-const { request, gql } = require('graphql-request');
+const axios = require('axios');
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const PROJECT = 'satsuma';
 const CHAIN = 'citrea';
-const SUBGRAPH =
-  'https://api.goldsky.com/api/public/project_cmamb6kkls0v2010932jjhxj4/subgraphs/analytics-mainnet/v1.0.3/gn';
 
-// Current snapshot: TVL + cumulative fees for APY calculation
-const query = gql`
-  {
-    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc, block: {number: <PLACEHOLDER>}) {
-      id
-      totalValueLockedUSD
-      feesUSD
-      token0 {
-        id
-        symbol
-      }
-      token1 {
-        id
-        symbol
-      }
-    }
+// Satsuma's analytics subgraph was deleted upstream, which silently dropped
+// every Satsuma pool from this adapter. Both sources below are on-chain or
+// derived from on-chain logs, so there is no indexer to go stale again.
+const POOL_STATS = 'https://s33-epoch-cron.tiagopratas69.workers.dev/pool-stats';
+const RPC = 'https://rpc.mainnet.citrea.xyz';
+
+// Algebra pools carry a dynamic fee. globalState.lastFee is not usable here (it
+// reads a constant across pools), so take the live value from fee().
+const SELECTORS = {
+  token0: '0x0dfe1681',
+  token1: '0xd21220a7',
+  fee: '0xddca3f43',
+  symbol: '0x95d89b41',
+};
+
+/** One JSON-RPC batch instead of a request per call. */
+const ethCallBatch = async (calls) => {
+  const { data } = await axios.post(
+    RPC,
+    calls.map((c, i) => ({
+      jsonrpc: '2.0',
+      id: i,
+      method: 'eth_call',
+      params: [{ to: c.to, data: c.data }, 'latest'],
+    }))
+  );
+  const byId = new Map((Array.isArray(data) ? data : []).map((r) => [r.id, r.result]));
+  return calls.map((_, i) => byId.get(i) ?? null);
+};
+
+const toAddress = (word) =>
+  word && word.length >= 66 ? `0x${word.slice(26, 66)}`.toLowerCase() : null;
+
+const toNumber = (word) => (word && word !== '0x' ? Number(BigInt(word)) : null);
+
+/** Minimal ABI-decode of a dynamic string return. */
+const toSymbol = (word) => {
+  if (!word || word === '0x') return null;
+  const body = word.slice(2);
+  try {
+    const len = Number(BigInt(`0x${body.slice(64, 128)}`));
+    if (!len || len > 64) return null;
+    const hex = body.slice(128, 128 + len * 2);
+    return Buffer.from(hex, 'hex').toString('utf8').replace(/\0/g, '') || null;
+  } catch {
+    return null;
   }
-`;
+};
 
-// Prior snapshots: only cumulative fees needed to compute the delta
-const queryPrior = gql`
-  {
-    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc, block: {number: <PLACEHOLDER>}) {
-      id
-      feesUSD
-    }
-  }
-`;
+const apy = async () => {
+  const { data: stats } = await axios.get(POOL_STATS);
+  const pools = Object.entries(stats?.pools ?? {}).filter(
+    ([, s]) => Number(s.tvlUSD) > 0
+  );
+  if (!pools.length) return [];
 
-const apy = async (timestamp = null) => {
-  // Get block numbers: current, 24h ago, 7d ago
-  const [block, blockPrior24h] = await utils.getBlocks(CHAIN, timestamp, [SUBGRAPH]);
-  const [, blockPrior7d] = await utils.getBlocks(CHAIN, timestamp, [SUBGRAPH], 604800);
+  const addresses = pools.map(([address]) => address);
 
-  const [dataNow, dataPrior24h, dataPrior7d] = await Promise.all([
-    request(SUBGRAPH, query.replace('<PLACEHOLDER>', block)),
-    request(SUBGRAPH, queryPrior.replace('<PLACEHOLDER>', blockPrior24h)),
-    request(SUBGRAPH, queryPrior.replace('<PLACEHOLDER>', blockPrior7d)),
+  const [token0s, token1s, fees] = await Promise.all([
+    ethCallBatch(addresses.map((to) => ({ to, data: SELECTORS.token0 }))),
+    ethCallBatch(addresses.map((to) => ({ to, data: SELECTORS.token1 }))),
+    ethCallBatch(addresses.map((to) => ({ to, data: SELECTORS.fee }))),
   ]);
 
-  const prior24hMap = Object.fromEntries(
-    dataPrior24h.pools.map((p) => [p.id, Number(p.feesUSD)])
+  const tokens = addresses.flatMap((_, i) => [toAddress(token0s[i]), toAddress(token1s[i])]);
+  const uniqueTokens = [...new Set(tokens.filter(Boolean))];
+  const symbolResults = await ethCallBatch(
+    uniqueTokens.map((to) => ({ to, data: SELECTORS.symbol }))
   );
-  const prior7dMap = Object.fromEntries(
-    dataPrior7d.pools.map((p) => [p.id, Number(p.feesUSD)])
+  const symbolByToken = Object.fromEntries(
+    uniqueTokens.map((token, i) => [token, toSymbol(symbolResults[i])])
   );
 
-  const result = dataNow.pools
-    .map((pool) => {
-      const tvlUsd = Number(pool.totalValueLockedUSD);
-      const feesNow = Number(pool.feesUSD);
+  const result = pools
+    .map(([address, stat], i) => {
+      const token0 = toAddress(token0s[i]);
+      const token1 = toAddress(token1s[i]);
+      const symbol0 = symbolByToken[token0];
+      const symbol1 = symbolByToken[token1];
+      if (!token0 || !token1 || !symbol0 || !symbol1) return null;
 
-      const fees24h = Math.max(0, feesNow - (prior24hMap[pool.id] ?? feesNow));
-      const fees7d = Math.max(0, feesNow - (prior7dMap[pool.id] ?? feesNow));
-
-      const apyBase = tvlUsd > 0 ? (fees24h / tvlUsd) * 365 * 100 : 0;
-      const apyBase7d =
-        tvlUsd > 0 ? ((fees7d / 7) / tvlUsd) * 365 * 100 : 0;
+      const tvlUsd = Number(stat.tvlUSD);
+      const volumeUsd24h = Number(stat.volumeUSD24h) || 0;
+      // fee() is in hundredths of a bip (1e6 == 100%).
+      const feeRate = (toNumber(fees[i]) ?? 0) / 1e6;
+      const fees24h = volumeUsd24h * feeRate;
 
       return {
-        pool: `${pool.id}-${CHAIN}`,
+        pool: `${address}-${CHAIN}`,
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
-        symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
+        symbol: utils.formatSymbol(`${symbol0}-${symbol1}`),
         tvlUsd,
-        apyBase,
-        apyBase7d,
-        underlyingTokens: [pool.token0.id, pool.token1.id],
-        url: `https://www.satsuma.exchange/pool/${pool.id}`,
+        apyBase: tvlUsd > 0 ? (fees24h / tvlUsd) * 365 * 100 : 0,
+        underlyingTokens: [token0, token1],
+        volumeUsd1d: volumeUsd24h,
+        url: `https://www.satsuma.exchange/pool/${address}`,
       };
     })
+    .filter(Boolean)
     .filter((p) => Number.isFinite(p.tvlUsd) && p.tvlUsd > 0)
     .filter((p) => utils.keepFinite(p));
 
-  return addMerklRewardApy(
-    result,
-    'satsuma',
-    (pool) => pool.pool.split(`-${CHAIN}`)[0]
-  );
+  return addMerklRewardApy(result, PROJECT, (pool) => pool.pool.split(`-${CHAIN}`)[0]);
 };
 
 module.exports = {
