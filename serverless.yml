@@ -39,6 +39,8 @@ provider:
     R2_ENDPOINT: ${file(./env.js):R2_ENDPOINT}
     R2_ACCESS_KEY_ID: ${file(./env.js):R2_ACCESS_KEY_ID}
     R2_SECRET_ACCESS_KEY: ${file(./env.js):R2_SECRET_ACCESS_KEY}
+    LLAMA_METRICS_URL: ${file(./env.js):LLAMA_METRICS_URL}
+    LLAMA_PUSH_TOKEN: ${file(./env.js):LLAMA_PUSH_TOKEN}
 
 functions:
   # ---------- TRIGGER HANDLERS

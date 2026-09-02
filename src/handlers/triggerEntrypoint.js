@@ -3,8 +3,11 @@ const SQS = require('aws-sdk/clients/sqs');
 const { getExcludedAdaptors } = require('../utils/exclude');
 const adaptorList = require('../adaptors/list');
 
+const { reportHeartbeat } = require('../utils/reportHeartbeat');
+
 module.exports.handler = async () => {
   await main();
+  await reportHeartbeat('pipeline-triggered', { severity: 'ticket' });
 };
 
 // starting pipeline
