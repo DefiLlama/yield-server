@@ -9,6 +9,10 @@ const OPTIMISM_MRD_CONTRACT = '0xF9524bfa18C19C3E605FbfE8DFd05C6e967574Aa';
 const MOONBEAM_VIEWS_CONTRACT = '0xe76C8B8706faC85a8Fbdcac3C42e3E7823c73994';
 const BASE_VIEWS_CONTRACT = '0x821Ff3a967b39bcbE8A018a9b1563EAf878bad39';
 const OPTIMISM_VIEWS_CONTRACT = '0xD6C66868f937f00604d0FB860241970D6CC2CBfE';
+const MOONWELL_USDC_CORE_MARKET =
+  '0xedc817a28e8b93b03976fbd4a3ddbc9f7d176c22';
+const MOONWELL_USDC_INCIDENT_WARNING =
+  '⚠️ Affected by the 27 Aug 2026 MAMO incident. Withdrawals are impaired by effectively unavailable liquidity and unresolved borrower debt; the high APY is utilization-driven, not a withdrawal guarantee. MIP-X66 is proposed, not executed: https://moonwell.fi/governance/proposal/ethereum?id=185. Post-mortem: https://forum.moonwell.fi/t/post-mortem-mamo-market-incident-on-base/2208';
 
 const SECONDS_PER_DAY = 86400;
 const DAYS_PER_YEAR = 365;
@@ -482,6 +486,10 @@ const getApy = async () => {
           apyRewardBorrow: 0,
           ltv: Number(collateralFactorScaled),
           borrowable: !borrowPaused,
+          poolMeta:
+            market.toLowerCase() === MOONWELL_USDC_CORE_MARKET
+              ? MOONWELL_USDC_INCIDENT_WARNING
+              : undefined,
           incentives: [], //helper
         };
       })
