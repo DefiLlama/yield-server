@@ -60,6 +60,9 @@ const apy = async () => {
 
   return data.vaults
     .filter((vault) => vault.chainId in CHAIN_BY_ID)
+    // vaults not open for public deposits (whitelist only) are not listed;
+    // a missing or null publicDepositOpened is treated as not public
+    .filter((vault) => vault.publicDepositOpened === true)
     .filter((vault) => {
       const address = vault.address.toLowerCase();
       if (seen.has(address)) return false;
