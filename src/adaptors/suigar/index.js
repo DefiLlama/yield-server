@@ -2,19 +2,21 @@
  * SweetHouse (Suigar) yield adapter for DefiLlama.
  *
  * SweetHouse is the on-chain bankroll behind Suigar, a provably-fair casino
- * on Sui. Its `public_pool` is the only LP-facing, share-priced pool: users
- * deposit and receive `StakedCoin<CoinType>` shares (a Supply<T>, read here
- * as `public_supply`). The pool's value is `balance` (idle liquidity) plus
- * `pipe_debt.value` (liquidity routed to Suilend for lending yield via
- * suigar's `pipe` module). Both house-edge P&L from settled bets and pipe
- * interest flow into this same balance, so price-per-share
- * (poolValue / supply) captures the LP's full realized return with no need
- * to separate the two sources.
+ * on Sui. For each supported coin, `tvlUsd` is the full House<CoinType>
+ * bankroll — private_pool + public_pool + rakeback_pool + whitelist_pools —
+ * matching the methodology of the already-listed Suigar TVL adapter
+ * (DefiLlama-Adapters #19811): all of it is protocol-controlled liquidity
+ * that backs casino payouts and shares in the same house-edge P&L and pipe
+ * (Suilend) interest.
  *
- * The private, rakeback and whitelist pools are NOT share-priced vaults
- * (private is the house's own capital, rakeback is a payout pool, whitelist
- * deposits are tracked per-owner outside the StakedCoin supply) and are
- * intentionally excluded here.
+ * Only `public_pool` is LP-facing and share-priced, though: users deposit
+ * and receive `StakedCoin<CoinType>` shares (a Supply<T>, read here as
+ * `public_supply`). `apyBase` is derived solely from that pool's
+ * price-per-share, since it's the only pool with per-depositor accounting
+ * — private_pool has no share token and withdrawals are admin-only, and
+ * whitelist_pools deposits are tracked per-owner outside the StakedCoin
+ * supply. So `apyBase` reflects what an actual LP earns; `tvlUsd` reflects
+ * the full bankroll that coin's house-edge economics run on.
  *
  * APY methodology: there is no explicit on-chain accrual rate (unlike a
  * lending market's supply rate), since house-edge P&L lands in lumpy,
@@ -134,14 +136,25 @@ async function readHouseAt(objectAddress, atCheckpoint) {
   return object?.asMoveObject?.contents?.json ?? null;
 }
 
+function poolValue(pool) {
+  return new BigNumber(pool.balance).plus(pool.pipe_debt.value);
+}
+
 function pricePerShare(house) {
   if (!house) return null;
   const supply = new BigNumber(house.public_supply?.value ?? 0);
   if (supply.isZero()) return null;
-  const value = new BigNumber(house.public_pool.balance).plus(
-    house.public_pool.pipe_debt.value
-  );
-  return value.div(supply);
+  return poolValue(house.public_pool).div(supply);
+}
+
+// Full bankroll for this coin: private + public + rakeback + whitelist,
+// matching the methodology of the already-listed Suigar TVL adapter.
+function totalHouseValue(house) {
+  let total = poolValue(house.private_pool)
+    .plus(poolValue(house.public_pool))
+    .plus(poolValue(house.rakeback_pool));
+  for (const pool of house.whitelist_pools ?? []) total = total.plus(poolValue(pool));
+  return total;
 }
 
 async function getCoinInfos(coinTypes) {
@@ -186,10 +199,7 @@ const getApyData = async () => {
       }
     }
 
-    const poolValue = new BigNumber(house.public_pool.balance).plus(
-      house.public_pool.pipe_debt.value
-    );
-    const tvlUsd = poolValue
+    const tvlUsd = totalHouseValue(house)
       .div(10 ** coinInfo.decimals)
       .times(coinInfo.price)
       .toNumber();
@@ -199,7 +209,7 @@ const getApyData = async () => {
       chain: utils.formatChain('sui'),
       project: PROJECT,
       symbol: coinInfo.symbol,
-      poolMeta: 'SweetHouse public pool',
+      poolMeta: 'SweetHouse bankroll (public pool APY)',
       apyBase: apy,
       tvlUsd,
       underlyingTokens: [coinType],
