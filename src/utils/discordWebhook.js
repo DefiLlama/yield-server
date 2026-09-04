@@ -22,6 +22,7 @@ module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
   // Docs: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634
   const response = await fetch(`${webhookUrl}?wait=true`, {
     method: 'post',
+    redirect: 'error',
     headers: {
       'Content-Type': 'application/json',
     },
