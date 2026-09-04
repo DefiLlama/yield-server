@@ -42,8 +42,9 @@ const apy = async () => {
 
   let svusdApy = 0;
   if (BigInt(vusdPeriodFinish) > now && BigInt(svusdTotalAssets) > 0n) {
-    const annualRewardsWei = Number(BigInt(vusdRewardRate) * SECONDS_PER_YEAR) / 1e18;
-    svusdApy = (annualRewardsWei / Number(svusdTotalAssets)) * 100;
+    const annualRewards = BigInt(vusdRewardRate) * SECONDS_PER_YEAR;
+    // Reward rate is scaled by 1e18 in the YieldDistributor contract
+    svusdApy = (Number(annualRewards) / Number(svusdTotalAssets) / 1e18) * 100;
   }
 
   // --- 2. Compute svetBTC Live Yield ---
@@ -73,13 +74,17 @@ const apy = async () => {
 
   let svetbtcApy = 0;
   if (BigInt(vetbtcPeriodFinish) > now && BigInt(svetbtcTotalAssets) > 0n) {
-    const annualRewardsWei = Number(BigInt(vetbtcRewardRate) * SECONDS_PER_YEAR) / 1e18;
-    svetbtcApy = (annualRewardsWei / Number(svetbtcTotalAssets)) * 100;
+    const annualRewards = BigInt(vetbtcRewardRate) * SECONDS_PER_YEAR;
+    // Reward rate is scaled by 1e18 in the YieldDistributor contract
+    svetbtcApy = (Number(annualRewards) / Number(svetbtcTotalAssets) / 1e18) * 100;
   }
 
   // --- 3. Price Fetching via DefiLlama Utils ---
+  const vusdKey = `ethereum:${VUSD}`;
   const vetBtcKey = `ethereum:${VETBTC}`;
-  const coins = await utils.getPrices([vetBtcKey, 'coingecko:bitcoin']);
+  const coins = await utils.getPrices([vusdKey, vetBtcKey, 'coingecko:bitcoin']);
+
+  const vusdPrice = coins.pricesByAddress[VUSD.toLowerCase()] || 1;
   const btcPrice =
     coins.pricesByAddress[VETBTC.toLowerCase()] ||
     coins.pricesByAddress['bitcoin'] ||
@@ -91,7 +96,7 @@ const apy = async () => {
       chain: 'Ethereum',
       project: 'vetro',
       symbol: 'sVUSD',
-      tvlUsd: Number(svusdTotalAssets) / 1e18,
+      tvlUsd: (Number(svusdTotalAssets) / 1e18) * vusdPrice,
       apyBase: Number(svusdApy.toFixed(2)),
       underlyingTokens: [VUSD],
       token: SVUSD_VAULT,
