@@ -78,7 +78,7 @@ const apy = async () => {
 };
 
 module.exports = {
-  protocolId: 'FILL_FROM_https://api.llama.fi/protocols_ONCE_lodestar-protocol_IS_LISTED',
+  protocolId: '8565',
   timetravel: false,
   apy,
   url: 'https://lodestarprotocol.xyz/app#lend',
