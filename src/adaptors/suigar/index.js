@@ -161,7 +161,8 @@ async function getCoinInfos(coinTypes) {
   const response = await fetch(
     utils.getPriceApiUrl(
       `/prices/current/${coinTypes.map((c) => `sui:${c}`).join(',')}`
-    )
+    ),
+    { signal: AbortSignal.timeout(30_000) }
   );
   const json = await response.json();
   return coinTypes.map((coinType) => json.coins[`sui:${coinType}`]);
