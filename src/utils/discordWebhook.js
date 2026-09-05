@@ -12,10 +12,17 @@ module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
     await sendMessage(lines.slice(mid).join('\n'), webhookUrl);
     return;
   }
+  // Only allow requests to legitimate Discord webhook endpoints to prevent SSRF
+  const parsedUrl = new URL(webhookUrl);
+  const allowedHosts = ['discord.com', 'discordapp.com', 'ptb.discord.com', 'canary.discord.com'];
+  if (parsedUrl.protocol !== 'https:' || !allowedHosts.includes(parsedUrl.hostname) || !parsedUrl.pathname.startsWith('/api/webhooks/')) {
+    throw new Error('Invalid Discord webhook URL');
+  }
   // Example: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634
   // Docs: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634
   const response = await fetch(`${webhookUrl}?wait=true`, {
     method: 'post',
+    redirect: 'error',
     headers: {
       'Content-Type': 'application/json',
     },
