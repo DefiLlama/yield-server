@@ -109,7 +109,7 @@ const poolsFunction = async () => {
         {
           pool: `sd-${strat.key}-${CHAINS[strat.chainId]}`.toLowerCase(),
           chain: utils.formatChain(CHAINS[strat.chainId]),
-          project: 'stake-dao',
+          project: 'stake-dao-yield',
           symbol: symbol ? symbol : null,
           poolMeta,
           tvlUsd: strat.tvl,
@@ -132,7 +132,7 @@ const poolsFunction = async () => {
       return {
         pool: locker.sdToken.symbol.toLowerCase(),
         chain: utils.formatChain(CHAINS[locker.chainId]),
-        project: 'stake-dao',
+        project: 'stake-dao-yield',
         symbol: locker.sdToken.symbol,
         poolMeta: locker.protocol ? utils.formatChain(locker.protocol) : null,
         tvlUsd: locker.tvl,
