@@ -44,6 +44,30 @@ const config = {
       },
     ],
   },
+  robinhood: {
+    chainId: 4663,
+    assets: {
+      // Robinhood's dollar market is USDG; the chain has no USDC.
+      USDG: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168',
+      wETH: '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73',
+    },
+    pools: [
+      {
+        symbol: 'wETH',
+        address: '0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2',
+        underlying: '0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73',
+        decimals: 18,
+        poolMeta: 'Arcadia V2 WETH Pool',
+      },
+      {
+        symbol: 'USDG',
+        address: '0xf37c0C5996503Fdd2b5CCCE36E659cD30393AE59',
+        underlying: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168',
+        decimals: 6,
+        poolMeta: 'Arcadia V2 USDG Pool',
+      },
+    ],
+  },
   optimism: {
     chainId: 10,
     assets: {

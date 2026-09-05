@@ -518,6 +518,9 @@ const excludedProtocols = [
   { id: '703', slug: 'goldfinch' }, // winding down, senior pool tvl is book value of defaulted loans
   { id: '5655', slug: 'resolv-usr' },
   { id: '3912', slug: 'dinero-(pxeth)' },
+  { id: '7205', slug: 'permapod' }, // exploited 2026-08, contracts halted, all markets deposit-disabled
+  { id: '8243', slug: 'apyee' }, // no deposits since launch, tvl < $5
+  { id: '4366', slug: 'javsphere' }, // winding down
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);

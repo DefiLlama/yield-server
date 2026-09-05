@@ -149,7 +149,7 @@ const buildEthereumPool = (vault, onchain) => {
   return {
     pool: `${vault.address}-Ethereum`,
     chain: 'Ethereum',
-    project: 'sentora',
+    project: 'sentora-curator',
     poolMeta: vault.name,
     url: `https://app.upshift.finance/pools/1/${vault.address}`,
     symbol: onchain.symbol,
@@ -168,7 +168,7 @@ const buildKaminoPool = async (vault) => {
   const pool = {
     pool: `${vault.address}-Solana`,
     chain: 'Solana',
-    project: 'sentora',
+    project: 'sentora-curator',
     poolMeta: vault.name,
     url: vault.url,
     symbol: vault.depositToken.symbol,

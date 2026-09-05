@@ -109,13 +109,15 @@ const ROUTER_EVENTS = {
   SwapYtAndToken: 'event SwapYtAndToken(address indexed caller, address indexed market, address indexed token, address receiver, int256 netYtToAccount, int256 netTokenAmount, uint256 netSyInterm)',
 }
 
+const CHAIN_TIP_SAFETY_BLOCKS = 20;
+
 async function fetchPoolsVolumes(chain, pools, routers) {
   const timestamp = Math.floor(new Date().getTime() / 1000);
   const currentBlocks = await sdk.blocks.getBlocks(timestamp, [chain])
   const last1DaysBlocks = await sdk.blocks.getBlocks(timestamp - 24 * 60 * 60, [chain])
   const last7DaysBlocks = await sdk.blocks.getBlocks(timestamp - 7 * 24 * 60 * 60, [chain])
 
-  const currentBlock = currentBlocks.chainBlocks[chain];
+  const toBlock = currentBlocks.chainBlocks[chain] - CHAIN_TIP_SAFETY_BLOCKS;
   const last1DaysBlock = last1DaysBlocks.chainBlocks[chain];
   const last7DaysBlock = last7DaysBlocks.chainBlocks[chain];
   
@@ -133,45 +135,22 @@ async function fetchPoolsVolumes(chain, pools, routers) {
     }
   }
   
-  const addLogs = await sdk.getEventLogs({
-    chain: chain,
-    targets: routers,
-    eventAbi: ROUTER_EVENTS.AddLiquiditySingleToken,
-    flatten: true, // !!!
-    fromBlock: last7DaysBlock,
-    toBlock: currentBlock,
-    entireLog: true,
-  });
-  const removeLogs = await sdk.getEventLogs({
-    chain: chain,
-    targets: routers,
-    eventAbi: ROUTER_EVENTS.AddLiquiditySingleToken,
-    flatten: true, // !!!
-    fromBlock: last7DaysBlock,
-    toBlock: currentBlock,
-    entireLog: true,
-  });
-  const SwapPtAndTokenLogs = await sdk.getEventLogs({
-    chain: chain,
-    targets: routers,
-    eventAbi: ROUTER_EVENTS.AddLiquiditySingleToken,
-    flatten: true, // !!!
-    fromBlock: last7DaysBlock,
-    toBlock: currentBlock,
-    entireLog: true,
-  });
-  const SwapYtAndTokenLogs = await sdk.getEventLogs({
-    chain: chain,
-    targets: routers,
-    eventAbi: ROUTER_EVENTS.AddLiquiditySingleToken,
-    flatten: true, // !!!
-    fromBlock: last7DaysBlock,
-    toBlock: currentBlock,
-    entireLog: true,
-  });
+  let routerLogs = [];
+  for (const eventAbi of Object.values(ROUTER_EVENTS)) {
+    const logs = await sdk.getEventLogs({
+      chain: chain,
+      targets: routers,
+      eventAbi,
+      flatten: true,
+      fromBlock: last7DaysBlock,
+      toBlock,
+      entireLog: true,
+    });
+    routerLogs = routerLogs.concat(logs);
+  }
 
   const iface = new ethers.utils.Interface(Object.values(ROUTER_EVENTS))
-  const events = addLogs.concat(removeLogs).map(log => {
+  const events = routerLogs.map(log => {
     const event = iface.parseLog({
       topics: log.topics,
       data: log.data,
@@ -180,7 +159,7 @@ async function fetchPoolsVolumes(chain, pools, routers) {
     const market = utils.formatAddress(event.args.market);
     if (!markets[market]) return null;
 
-    let netTokenAmount = Number(event.args.netTokenAmount);
+    let netTokenAmount = Math.abs(Number(event.args.netTokenAmount));
     if (event.name === 'AddLiquiditySingleToken' || event.name === 'RemoveLiquiditySingleToken') {
       netTokenAmount = netTokenAmount / 2;
     }
@@ -250,14 +229,19 @@ async function fetchPoolsVolumes(chain, pools, routers) {
 
 async function poolApys(chainId, pools) {
   // support swap volumes on pool
-  const poolWithVolumes = chains[chainId].disabledVolume ? pools : await fetchPoolsVolumes(chains[chainId].chainName, pools, chains[chainId].ROUTERS)
+  const poolWithVolumes = chains[chainId].disabledVolume
+    ? pools
+    : await fetchPoolsVolumes(chains[chainId].chainName, pools, chains[chainId].ROUTERS).catch((e) => {
+        console.warn(`pendle-v2: skipping volumes on ${chains[chainId].chainName}: ${sdk.util.formError(e)}`);
+        return pools;
+      });
 
   return poolWithVolumes.map((p) => {
     const apyReward = p.details.pendleApy * 100;
     return {
       pool: p.address,
       chain: utils.formatChain(chains[chainId].chainName),
-      project: 'pendle',
+      project: 'pendle-v2',
       symbol: p.name,
       tvlUsd: p.details.liquidity,
       apyBase: (p.details.aggregatedApy - p.details.pendleApy) * 100,
@@ -279,7 +263,7 @@ function ptApys(chainId, pools) {
   return pools.map((p) => ({
     pool: splitId(p.pt).address,
     chain: utils.formatChain(chains[chainId].chainName),
-    project: 'pendle',
+    project: 'pendle-v2',
     symbol: p.name,
     tvlUsd: p.details.liquidity,
     apyBase: p.details.impliedApy * 100,
