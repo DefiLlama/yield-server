@@ -73,7 +73,6 @@ const getStakingPools = async () => {
           ? toPercent(pool.summary.apy.value)
           : null;
       const underlying = pool?.bondAsset?.variants?.native?.denom;
-      const token = pool?.receiptAsset?.variants?.native?.denom;
       const bondDecimals = pool?.bondAsset?.metadata?.decimals;
       const receiptDecimals = pool?.receiptAsset?.metadata?.decimals;
       const liquidBondSize = Number.isInteger(bondDecimals)
@@ -97,7 +96,6 @@ const getStakingPools = async () => {
         !pool?.address ||
         !symbol ||
         !underlying ||
-        !token ||
         !route ||
         tvlUsd === null ||
         tvlUsd < 0 ||
@@ -116,7 +114,6 @@ const getStakingPools = async () => {
         ...(Number.isFinite(pricePerShare) &&
           pricePerShare > 0 && { pricePerShare }),
         underlyingTokens: [underlying],
-        token,
         poolMeta: 'Staking',
         url: `https://rujira.network/stake/${route}`,
       };
