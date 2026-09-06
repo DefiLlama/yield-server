@@ -20,8 +20,9 @@
 // per-chain pools differ only in the size of the float deployed there.
 //
 // Guard: if the archive read for the prior window fails, or the window shows
-// no growth, the pool publishes tvlUsd with no apyBase rather than failing
-// the adapter or asserting a rate it cannot evidence.
+// no growth, the run publishes nothing rather than asserting a rate it cannot
+// evidence. Ingestion drops pools without any apy field, so a tvl-only pool
+// would never land anyway.
 
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
@@ -83,7 +84,11 @@ const apy = async () => {
         apyBase = ann;
     }
   } catch (e) {
-    apyBase = undefined; // no archive read available; publish TVL only
+    apyBase = undefined;
+  }
+  if (apyBase === undefined) {
+    console.warn('anemoy-capital: realised 7d rate unavailable, skipping run');
+    return [];
   }
 
   // 3. USDC price, so TVL is quoted through the same source as the rest of the repo.
@@ -123,7 +128,7 @@ const apy = async () => {
         project: PROJECT,
         symbol: 'JTRSY',
         tvlUsd,
-        ...(apyBase !== undefined ? { apyBase } : {}),
+        apyBase,
         underlyingTokens: [USDC],
         token: LTF[chain],
         url: URL,
