@@ -1,60 +1,46 @@
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
 
+// Only actively marketed strategies are listed on the yields page; protocol
+// TVL is tracked separately (DefiLlama-Adapters) and counts every vault.
 const config = {
-  ethereum: ['0x07Dff4087b43c4A759f4Fc69511c26d51929dAF4'],
   base: [
-    '0x6c05A7d2c24B48fC3C615D294fEc2eB068548897',
-    '0x2406aacbdF8463176DeB285AdAa81768415B6c7E',
+    '0x2406aacbdF8463176DeB285AdAa81768415B6c7E', // Alpha Strategies HYPE++ Base
   ],
   arbitrum: [
-    '0x27D22Eb71f00495Eccc89Bb02c2B68E6988C6A42',
-    '0x183424d5ae5ec9fd486634bc566d0f75ad9c9109',
-    '0x5b49d7fae00de64779ddcd6b067c8eb046bd9a0b',
-    '0x291344FBaaC4fE14632061E4c336Fe3B94c52320',
-    '0x0F76De33a3679a6065D14780618b54584a3907D4',
-    '0xD1D64dAeED7504Ef3Eb056aa2D973bD064843A84',
-    '0xB0730AA7d6e880F901B5d71A971096dB56895a0f',
-    '0x5f44A7DD0a016A5Ec9682df36899A781442CAa43',
-    '0x0215EdEecdABE3DfC5EC8D59337eC9b26d359088',
-    '0x36b1939ADf539a4AC94b57DBAd32FaEcd5bcF4d0',
-    '0x34F0FdD80A51dfd8bA42343c20F89217280d760E',
-    '0x57f467C9c4639B066F5A4D676Cd8Ed7D87C1791b',
-    '0x7348925D3C63e4E61e9F5308eEec0f06EaA3bB7b',
-    '0xCFBBea43Fd99126E4c0eF53e2344609D513f72b3',
-    '0x195a9e0f29f96d4ab2139ee1272380a4aa352890',
-    '0x75288264FDFEA8ce68e6D852696aB1cE2f3E5004',
-    '0xaB2743a3A2e06d457368E901F5f927F271fa1374',
-    '0x91aCd32dA9beA6DA3751dc12Ee0fBe47169349C1',
-    '0xc027EC28F76d92D4124fCbffCF6b25137a84968C',
-    '0xaC75f0c46723432a2303f2a7c7769535A179Ed56',
-    '0x907A9f69061736AD82811CccD6ADD9dC4A2352A9',
-    '0x1176c3760Af6a1dbAa5BBd0Cc6cdA8A2Ed6B785E',
-    '0x0178b56FeA3d7B5B9F9e0cDAd486522de948730F',
-  ],
-  berachain: [
-    '0xbE75c8A7E58C7901D2e128dc8d3b6DE2481F1F79',
-    '0x2b8d0420996a2753ef21c25c94eae9fc0c0aed1e',
-    '0x36b933554782b108bb9962ac00c498acbceb706d',
-    '0xAcE42F7E3F4672607897bf1951468031f0214359',
-    '0xf650ba4303ce164e1f6b215d4cbb5e212d307056',
-    '0xcd18006cc69c6d5fa4fd4eaf99910b58464fa3ae',
-    '0xBf075980792f8cc89DFb74b553acf6750a7E941b',
-    '0xC4fEE8c68293a63241b64e5A2EF07fcf89005dD3',
+    '0x75288264FDFEA8ce68e6D852696aB1cE2f3E5004', // Alpha Strategies HYPE++ Arbitrum
   ],
   hyperliquid: [
-    '0xf44f49E6577B3934f981C6f0629d15154d2606E6',
-    '0x7410E69958a8ECE2A51C231C8528513d4d668C7a',
-    '0xade27c7dec9211973278876f3819aedc28cd50ca',
-    '0x6bf9345b5d6b27b5cbf2e463dc5e0b2afcedc21c',
-    '0x3ebb11ba6a5b61c04d1a703ea10728d519945440',
-    '0x195eb4d088f222c982282b5dd495e76dba4bc7d1',
-    '0x8ef30c5ce9a460bfae82f1f039f7c5e5427d7018',
+    '0xf44f49E6577B3934f981C6f0629d15154d2606E6', // hXXI BTC
+    '0x6bf9345b5d6b27b5cbf2e463dc5e0b2afcedc21c', // dgnUpside
+    '0x3ebb11ba6a5b61c04d1a703ea10728d519945440', // d2HYPE
+    '0x195eb4d088f222c982282b5dd495e76dba4bc7d1', // Alpha Strategies HYPE++ hyperliquid
+    '0x208f63A7F60C319597C05Fa5eC67FDe41839baD6', // texasHedge
   ],
 };
 
-const LOOKBACK_DAYS = 30;
+// D2 vaults trade in discrete epochs: funds are custodied (FundsCustodied),
+// traded, then returned with pnl (FundsReturned) net of fees. NAV (pricePerShare) only
+// updates at settlement, so a fixed trailing window reads 0% whenever no epoch
+// settled inside it. PricePerShare starts at exactly 1.0 (ERC-4626), so
+// all-time NAV growth needs no historical calls. Two figures are reported:
+//   apyBase          = (pps - 1) * 365/effectiveTradingDays * 100
+//                      (days capital was deployed: sum of custody->return
+//                      spans from on-chain epoch events — strategy performance)
+//   apyBaseInception = (pps - 1) * 365/daysSinceDeploy * 100
+//                      (calendar basis — what a deposit-and-hold user earned)
+// All values reported are net of fees and match what the users realize. 
+const DEPLOY_BLOCKS = {
+  '0x195eb4d088f222c982282b5dd495e76dba4bc7d1': 11326226, // HYPE++ hyperliquid
+  '0x75288264fdfea8ce68e6d852696ab1ce2f3e5004': 276124793, // HYPE++ arbitrum
+  '0x2406aacbdf8463176deb285adaa81768415b6c7e': 37242442, // HYPE++ base
+  '0xf44f49e6577b3934f981c6f0629d15154d2606e6': 3387093, // hXXI BTC hyperliquid
+  '0x3ebb11ba6a5b61c04d1a703ea10728d519945440': 4369757, // d2HYPE hyperliquid
+  '0x6bf9345b5d6b27b5cbf2e463dc5e0b2afcedc21c': 5339834, // dgnUpside hyperliquid
+  '0x208f63a7f60c319597c05fa5ec67fde41839bad6': 26267244, // texasHedge hyperliquid
+};
 
 const abis = {
   totalAssets: {
@@ -80,6 +66,186 @@ const abis = {
   },
 };
 
+// timestamp of the vault's deploy block; null when unavailable
+const getDeployTimestamp = async (chain, deployBlock) => {
+  try {
+    return await sdk.api.util.getTimestamp(deployBlock, chain);
+  } catch (e) {
+    return null;
+  }
+};
+
+// keccak256 topics of the epoch events (verified against the vault ABI)
+// FundsCustodied(uint256 indexed epoch, uint256 amount)
+const CUSTODY_TOPIC =
+  '0x69e193dd4c77613d0e599740c9e2cd88fb7b4a9d11ef9b1f6226d392c941f471';
+// FundsReturned(uint256 indexed epoch, uint256 amount)
+const RETURN_TOPIC =
+  '0xe5e9cfeede9ff1fc77b415bf8346e29706d16794b3bdeca347ac54a7fd3e0c3c';
+
+const SCAN_CONCURRENCY = 10;
+const MAX_SCAN_CALLS = 1500; // skip an RPC whose range cap needs more calls
+
+// archival endpoints known to serve wide eth_getLogs ranges, tried first;
+// the sdk provider list (env-configured in production) is tried after. The
+// sdk's own list is unreliable here: its liveness filter can drop the only
+// wide-range RPC, and most hyperliquid RPCs cap ranges at 1k-10k blocks.
+const PREFERRED_SCAN_RPCS = {
+  hyperliquid: ['https://rpc.purroofgroup.com'],
+};
+
+const toHex = (n) => '0x' + n.toString(16);
+
+const rpcGetLogs = async (rpc, filter) => {
+  const { data } = await axios.post(
+    rpc,
+    { jsonrpc: '2.0', id: 1, method: 'eth_getLogs', params: [filter] },
+    { timeout: 30_000 }
+  );
+  if (data.error)
+    throw new Error(data.error.message ?? JSON.stringify(data.error));
+  return data.result;
+};
+
+// transient failures (429s, timeouts) on one chunk must not kill a whole scan
+const rpcGetLogsWithRetry = async (rpc, filter, attempts = 3) => {
+  for (let i = 1; ; i++) {
+    try {
+      return await rpcGetLogs(rpc, filter);
+    } catch (e) {
+      if (i >= attempts) throw e;
+      await new Promise((r) => setTimeout(r, 500 * i));
+    }
+  }
+};
+
+// Scan one chain against a single RPC. The first window tries the full span;
+// on a range error the chunk shrinks to the cap the RPC names in its error
+// message (else halves), then the remaining windows run concurrently.
+const scanWithRpc = async (rpc, address, start, latest) => {
+  const topics = [[CUSTODY_TOPIC, RETURN_TOPIC]];
+  const span = latest - start + 1;
+  let chunk = span;
+  let logs;
+  for (;;) {
+    try {
+      logs = await rpcGetLogs(rpc, {
+        address,
+        topics,
+        fromBlock: toHex(start),
+        toBlock: toHex(Math.min(start + chunk - 1, latest)),
+      });
+      break;
+    } catch (e) {
+      // the cap is the smallest number >= 1000 in the error message
+      // (other numbers are block heights / the failing span itself)
+      const caps = (String(e.message).match(/\d[\d,]*/g) ?? [])
+        .map((n) => Number(n.replace(/,/g, '')))
+        .filter((n) => n >= 1000 && n < chunk);
+      const next = caps.length ? Math.min(...caps) : Math.floor(chunk / 2);
+      if (next < 1000 || Math.ceil(span / next) > MAX_SCAN_CALLS) throw e;
+      chunk = next;
+    }
+  }
+
+  const ranges = [];
+  for (let b = start + chunk; b <= latest; b += chunk)
+    ranges.push([b, Math.min(b + chunk - 1, latest)]);
+  for (let i = 0; i < ranges.length; i += SCAN_CONCURRENCY) {
+    const batch = await Promise.all(
+      ranges.slice(i, i + SCAN_CONCURRENCY).map(([a, b]) =>
+        rpcGetLogsWithRetry(rpc, {
+          address,
+          topics,
+          fromBlock: toHex(a),
+          toBlock: toHex(b),
+        })
+      )
+    );
+    batch.forEach((l) => logs.push(...l));
+  }
+  return logs;
+};
+
+// One fan-in scan per chain: every vault address and both epoch topics in a
+// single eth_getLogs filter, from the chain's earliest vault deploy block.
+// Public RPCs for one chain enforce very different range caps, so per-request
+// rotation is unreliable — instead the sdk's RPC list is tried one endpoint
+// at a time and the whole scan runs against the first one that works.
+const scanEpochLogs = async (chain, vaults) => {
+  const fromBlocks = vaults
+    .map((v) => DEPLOY_BLOCKS[v.toLowerCase()])
+    .filter(Boolean);
+  if (!fromBlocks.length) return [];
+  const provider = sdk.getProvider(chain);
+  const rpcs = [
+    ...new Set([
+      ...(PREFERRED_SCAN_RPCS[chain] ?? []),
+      ...[...(provider.archivalRPCs ?? []), ...(provider.rpcs ?? [])].map(
+        (r) => r.url
+      ),
+    ]),
+  ].filter((u) => !u.includes('llamarpc.com'));
+  const { number: latest } = await sdk.api.util.getLatestBlock(chain);
+  const start = Math.min(...fromBlocks);
+
+  const errors = [];
+  for (const rpc of rpcs) {
+    try {
+      return await scanWithRpc(rpc, vaults, start, latest);
+    } catch (e) {
+      errors.push(`${rpc}: ${e.message}`);
+    }
+  }
+  throw new Error(`epoch scan failed on ${chain}: ${errors.join(' | ')}`);
+};
+
+// vault (lowercase) -> total days capital was deployed, summed over the
+// custody->return span of every completed epoch; {} on failure
+const getTradingDays = async (chain, vaults) => {
+  try {
+    const logs = await scanEpochLogs(chain, vaults);
+
+    const byVault = {};
+    for (const log of logs) {
+      const vault = log.address.toLowerCase();
+      byVault[vault] = byVault[vault] ?? { custody: {}, returned: {} };
+      const epoch = BigInt(log.topics[1]).toString();
+      const side = log.topics[0] === CUSTODY_TOPIC ? 'custody' : 'returned';
+      byVault[vault][side][epoch] = Number(log.blockNumber);
+    }
+
+    const pairs = [];
+    for (const [vault, { custody, returned }] of Object.entries(byVault)) {
+      for (const [epoch, endBlock] of Object.entries(returned)) {
+        const startBlock = custody[epoch];
+        if (startBlock !== undefined) pairs.push({ vault, startBlock, endBlock });
+      }
+    }
+    if (!pairs.length) return {};
+
+    const blocks = [...new Set(pairs.flatMap((p) => [p.startBlock, p.endBlock]))];
+    const tsByBlock = {};
+    for (let i = 0; i < blocks.length; i += SCAN_CONCURRENCY) {
+      const batch = blocks.slice(i, i + SCAN_CONCURRENCY);
+      const ts = await Promise.all(
+        batch.map((b) => sdk.api.util.getTimestamp(b, chain))
+      );
+      batch.forEach((b, j) => (tsByBlock[b] = ts[j]));
+    }
+
+    const days = {};
+    for (const p of pairs) {
+      const delta = tsByBlock[p.endBlock] - tsByBlock[p.startBlock];
+      if (delta > 0) days[p.vault] = (days[p.vault] ?? 0) + delta / 86400;
+    }
+    return days;
+  } catch (e) {
+    console.error(`d2-finance: trading-days scan failed on ${chain}:`, e.message);
+    return {};
+  }
+};
+
 const chainPools = async (chain, vaults) => {
   const calls = vaults.map((vault) => ({ target: vault }));
   const [totalAssets, assets, symbols, decimals] = await Promise.all([
@@ -90,29 +256,24 @@ const chainPools = async (chain, vaults) => {
   ]);
 
   const now = Math.floor(Date.now() / 1000);
-  const [blockThen] = await utils.getBlocksByTime(
-    [now - LOOKBACK_DAYS * 86400],
-    chain
-  );
-
   const oneShareCalls = vaults.map((vault, i) => ({
     target: vault,
     params: [(10n ** BigInt(decimals.output[i].output ?? 18)).toString()],
   }));
-  const [ppsNow, ppsThen] = await Promise.all([
+  const [ppsNow, deployTimestamps, tradingDaysByVault] = await Promise.all([
     sdk.api.abi.multiCall({
       abi: abis.convertToAssets,
       calls: oneShareCalls,
       chain,
       permitFailure: true,
     }),
-    sdk.api.abi.multiCall({
-      abi: abis.convertToAssets,
-      calls: oneShareCalls,
-      chain,
-      block: blockThen,
-      permitFailure: true,
-    }),
+    Promise.all(
+      vaults.map((vault) => {
+        const deployBlock = DEPLOY_BLOCKS[vault.toLowerCase()];
+        return deployBlock ? getDeployTimestamp(chain, deployBlock) : null;
+      })
+    ),
+    getTradingDays(chain, vaults),
   ]);
 
   const assetAddresses = assets.output.map((o) => o.output);
@@ -137,14 +298,26 @@ const chainPools = async (chain, vaults) => {
       (Number(totalAssets.output[i].output) / 10 ** assetDecimal) * price;
 
     const rawNow = Number(ppsNow.output[i].output);
-    const rawThenOutput = ppsThen.output[i]?.output;
-    const rawThen = rawThenOutput != null ? Number(rawThenOutput) : null;
     const pricePerShare = rawNow / 10 ** assetDecimal;
 
-    const apyBase =
-      rawThen != null && rawThen > 0 && rawNow > 0
-        ? (rawNow / rawThen - 1) * (365 / LOOKBACK_DAYS) * 100
+    // calendar basis: all-time NAV growth annualized since deploy
+    const deployTs = deployTimestamps[i];
+    const daysSinceDeploy = deployTs != null ? (now - deployTs) / 86400 : null;
+    const calendarApr =
+      daysSinceDeploy > 1 && rawNow > 0
+        ? (pricePerShare - 1) * (365 / daysSinceDeploy) * 100
         : null;
+
+    // trading-days basis: same NAV growth annualized over deployed time only
+    const tradingDays = tradingDaysByVault[vault.toLowerCase()];
+    const tradingDaysApr =
+      tradingDays > 0 && rawNow > 0
+        ? (pricePerShare - 1) * (365 / tradingDays) * 100
+        : null;
+
+    // vaults with no completed epoch yet report 0 rather than null so the
+    // pool (and its TVL) still lists
+    const apyBase = tradingDaysApr ?? calendarApr ?? (rawNow > 0 ? 0 : null);
 
     return {
       pool: `${vault}-${chain}`.toLowerCase(),
@@ -153,6 +326,9 @@ const chainPools = async (chain, vaults) => {
       symbol: symbols.output[i].output ?? '',
       tvlUsd,
       apyBase,
+      // calendar-basis figure (deposit-and-hold experience) in the
+      // schema's dedicated since-inception field
+      apyBaseInception: calendarApr,
       underlyingTokens: [asset],
       pricePerShare,
       url: `https://d2.finance/strategies/${vault}`,
