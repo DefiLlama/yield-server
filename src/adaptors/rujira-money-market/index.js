@@ -140,6 +140,8 @@ const getMoneyMarketPools = async () => {
       if (
         totalSupplyUsd === null ||
         totalBorrowUsd === null ||
+        totalSupplyUsd < 0 ||
+        totalBorrowUsd < 0 ||
         totalSupplyUsd < totalBorrowUsd ||
         apyBase === null ||
         (borrower &&
