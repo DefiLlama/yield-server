@@ -521,6 +521,7 @@ const excludedProtocols = [
   { id: '7205', slug: 'permapod' }, // exploited 2026-08, contracts halted, all markets deposit-disabled
   { id: '8243', slug: 'apyee' }, // no deposits since launch, tvl < $5
   { id: '4366', slug: 'javsphere' }, // winding down
+  { id: '7602', slug: 'circuit' }, // hacked, winding down
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
