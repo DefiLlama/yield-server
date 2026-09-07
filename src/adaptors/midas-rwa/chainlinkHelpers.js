@@ -131,11 +131,29 @@ async function getHistoricalPrice(aggregatorAddress, chain, latestRound) {
 
     return historicalData;
   } catch (error) {
+    // Reading a past round through an archive call needs archive state, which
+    // some public RPCs (e.g. Robinhood Chain) do not serve. `getRoundData` is a
+    // plain storage read at head, so fall back to the previous round instead
+    // of dropping the product.
     console.warn(
-      `MidasRWA: Failed to fetch historical price data at block ${historicalBlock} for ${aggregatorAddress}:`,
+      `MidasRWA: Failed to fetch historical price data at block ${historicalBlock} for ${aggregatorAddress}, falling back to previous round:`,
       error.message
     );
-    return null;
+    const previousRoundId = latestRound.roundId - 1;
+    const previousRound = await getRoundById(
+      aggregatorAddress,
+      chain,
+      previousRoundId
+    ).catch(() => null);
+
+    if (!previousRound) {
+      console.warn(
+        `MidasRWA: No previous round data available for round ${previousRoundId}`
+      );
+      return null;
+    }
+
+    return previousRound;
   }
 }
 
