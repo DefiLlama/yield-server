@@ -20,6 +20,9 @@ const ancestorsOf = (campaign, campaignsById) => {
     ancestors.add(String(parentId));
     parentId = campaignsById[String(parentId)]?.parentCampaignId;
   }
+  if (campaign.rootCampaignId != null) {
+    ancestors.add(String(campaign.rootCampaignId));
+  }
   return ancestors;
 };
 
@@ -53,7 +56,9 @@ const toCandidate = (opportunity, campaignsById) => ({
   isBorrow: isBorrowAction(opportunity),
   rewardTokens: [
     ...new Set(
-      opportunity.rewardsRecord?.breakdowns.map((x) => x.token.address) || []
+      opportunity.rewardsRecord?.breakdowns
+        ?.map((x) => x.token?.address)
+        .filter(Boolean) || []
     ),
   ],
   contributions: toContributions(opportunity, campaignsById),
@@ -99,20 +104,24 @@ const resolveRewards = (candidates) => {
   return entry;
 };
 
+const PAGE_SIZE = 100;
+const MAX_PAGES = 50;
+
 const fetchLiveOpportunities = async (protocolId) => {
   const opportunities = [];
-  for (let page = 0; ; page++) {
+  for (let page = 0; page < MAX_PAGES; page++) {
     const data = await merklGet('/v4/opportunities', {
       params: {
         mainProtocolId: protocolId,
         status: 'LIVE',
         campaigns: true,
-        items: 100,
+        items: PAGE_SIZE,
         page,
       },
     });
-    if (!data.length) break;
+    if (!Array.isArray(data) || !data.length) break;
     opportunities.push(...data);
+    if (data.length < PAGE_SIZE) break;
   }
   return opportunities;
 };
