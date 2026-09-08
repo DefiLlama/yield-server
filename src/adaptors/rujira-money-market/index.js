@@ -65,6 +65,7 @@ const GHOST_VAULTS_QUERY = gql`
 const GHOST_CREDIT_QUERY = gql`
   query RujiraGhostCreditVaults {
     ghostCredit {
+      adjustmentThreshold
       vaults {
         borrower {
           available
@@ -89,7 +90,15 @@ const getMoneyMarketPools = async () => {
   ]);
 
   const creditEntries = creditData?.ghostCredit?.vaults;
-  if (!Array.isArray(creditEntries)) {
+  const ltvPercent = toPercent(creditData?.ghostCredit?.adjustmentThreshold);
+  const ltv = ltvPercent === null ? null : ltvPercent / 100;
+
+  if (
+    !Array.isArray(creditEntries) ||
+    ltv === null ||
+    ltv < 0 ||
+    ltv > 1
+  ) {
     throw new Error('Rujira GraphQL returned malformed credit vault data');
   }
 
@@ -171,13 +180,12 @@ const getMoneyMarketPools = async () => {
         }),
         totalSupplyUsd,
         totalBorrowUsd,
+        ltv,
         borrowToken: underlying,
         borrowable,
         underlyingTokens: [underlying],
         token,
-        poolMeta: variantMeta
-          ? `Money Market (${variantMeta.chain})`
-          : 'Money Market',
+        ...(variantMeta && { poolMeta: variantMeta.chain }),
         url: `https://rujira.network/lend/${route}`,
       };
     })
