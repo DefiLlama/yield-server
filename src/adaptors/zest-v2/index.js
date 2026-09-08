@@ -3,36 +3,35 @@ const { getPriceApiUrl } = require('../utils');
 const {
   callReadOnlyFunction,
   contractPrincipalCV,
+  cvToValue,
 } = require('@stacks/transactions');
 const { StacksMainnet } = require('@stacks/network');
 
 const DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7';
+const DATA_READER = 'v0-5-data';
+const SBTC = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token';
+const CHAIN = 'Stacks';
+const URL = 'https://app.zestprotocol.com/market/main';
 
 const POOLS = [
   {
     symbol: 'STX',
     vaultContract: 'v0-vault-stx',
-    assetAddress: 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7',
-    contractName: 'wstx',
+    underlying: `${DEPLOYER}.wstx`,
     decimals: 6,
     priceKeys: ['coingecko:blockstack'],
   },
   {
     symbol: 'sBTC',
     vaultContract: 'v0-vault-sbtc',
-    assetAddress: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4',
-    contractName: 'sbtc-token',
+    underlying: SBTC,
     decimals: 8,
-    priceKeys: [
-      'stacks:SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
-      'coingecko:bitcoin',
-    ],
+    priceKeys: [`stacks:${SBTC}`, 'coingecko:bitcoin'],
   },
   {
     symbol: 'stSTX',
     vaultContract: 'v0-vault-ststx',
-    assetAddress: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG',
-    contractName: 'ststx-token',
+    underlying: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token',
     decimals: 6,
     priceKeys: [
       'stacks:SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token',
@@ -40,10 +39,9 @@ const POOLS = [
     ],
   },
   {
-    symbol: 'USDC',
+    symbol: 'USDCx',
     vaultContract: 'v0-vault-usdc',
-    assetAddress: 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE',
-    contractName: 'usdcx',
+    underlying: 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx',
     decimals: 6,
     priceKeys: [
       'stacks:SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx',
@@ -51,10 +49,9 @@ const POOLS = [
     ],
   },
   {
-    symbol: 'USDH',
+    symbol: 'USDh',
     vaultContract: 'v0-vault-usdh',
-    assetAddress: 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG',
-    contractName: 'usdh-token-v1',
+    underlying: 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1',
     decimals: 8,
     priceKeys: [
       'stacks:SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1',
@@ -64,113 +61,116 @@ const POOLS = [
   {
     symbol: 'stSTXbtc',
     vaultContract: 'v0-vault-ststxbtc',
-    assetAddress: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG',
-    contractName: 'ststxbtc-token-v2',
+    underlying: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2',
     decimals: 6,
     priceKeys: [
-      'stacks:SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2',
+      'stacks:SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2::ststxbtc',
       'coingecko:blockstack',
     ],
   },
+  {
+    symbol: 'stBTC',
+    vaultContract: 'v0-vault-stbtc',
+    underlying: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.stbtc-token',
+    decimals: 8,
+    priceKeys: [`stacks:${SBTC}`, 'coingecko:bitcoin'],
+  },
 ];
 
-async function fetchPrices() {
-  const keys = [...new Set(POOLS.flatMap((p) => p.priceKeys))].join(',');
-  const url = getPriceApiUrl(`/prices/current/${keys}`);
-  const { data } = await axios.get(url);
-  return data.coins;
-}
+const toNum = (cv) => {
+  const v = cvToValue(cv);
+  if (typeof v === 'object' && v !== null && 'value' in v) return Number(v.value);
+  return Number(v);
+};
 
-function getPrice(prices, priceKeys) {
+const readOnly = async (network, contractName, functionName, functionArgs = []) =>
+  callReadOnlyFunction({
+    contractAddress: DEPLOYER,
+    contractName,
+    functionName,
+    functionArgs,
+    network,
+    senderAddress: DEPLOYER,
+  });
+
+const fetchPrices = async () => {
+  const keys = [...new Set(POOLS.flatMap((p) => p.priceKeys))].join(',');
+  const { data } = await axios.get(getPriceApiUrl(`/prices/current/${keys}`));
+  return data.coins;
+};
+
+const getPrice = (prices, priceKeys) => {
   for (const key of priceKeys) {
-    if (prices[key]?.price) return { price: prices[key].price, key };
+    if (prices[key]?.price) return prices[key].price;
   }
   return null;
-}
+};
 
-async function fetchApys(pool, network) {
-  const result = await callReadOnlyFunction({
-    contractAddress: DEPLOYER,
-    contractName: 'v0-1-data',
-    functionName: 'get-asset-apys',
-    network,
-    functionArgs: [contractPrincipalCV(pool.assetAddress, pool.contractName)],
-    senderAddress: DEPLOYER,
-  });
+const fetchRates = async (network, pool) => {
+  const [address, name] = pool.underlying.split('.');
+  const result = await readOnly(network, DATA_READER, 'get-asset-apys', [
+    contractPrincipalCV(address, name),
+  ]);
+  const data = result.value.data;
+  return {
+    supplyApy: Number(data['supply-apy'].value) / 100,
+    borrowApy: Number(data['borrow-apy'].value) / 100,
+  };
+};
 
-  const tupleData = result.value.data;
-  const supplyApy = Number(tupleData['supply-apy'].value) / 100;
-  const borrowApy = Number(tupleData['borrow-apy'].value) / 100;
+const fetchVault = async (network, pool) => {
+  const [assets, debt] = await Promise.all([
+    readOnly(network, pool.vaultContract, 'get-total-assets'),
+    readOnly(network, pool.vaultContract, 'get-debt'),
+  ]);
+  const scale = Math.pow(10, pool.decimals);
+  return { totalAssets: toNum(assets) / scale, totalBorrowed: toNum(debt) / scale };
+};
 
-  return { supplyApy, borrowApy };
-}
+const apy = async () => {
+  const network = new StacksMainnet();
+  const prices = await fetchPrices();
+  const results = [];
 
-async function fetchTotalAssets(pool, network) {
-  const result = await callReadOnlyFunction({
-    contractAddress: DEPLOYER,
-    contractName: pool.vaultContract,
-    functionName: 'get-total-assets',
-    network,
-    functionArgs: [],
-    senderAddress: DEPLOYER,
-  });
-
-  const rawAmount = Number(result.value.value);
-  return rawAmount / Math.pow(10, pool.decimals);
-}
-
-async function getZestV2Pools() {
-  try {
-    const network = new StacksMainnet();
-    const chain = 'Stacks';
-
-    const prices = await fetchPrices();
-
-    const results = [];
-
-    for (const pool of POOLS) {
-      try {
-        const priceResult = getPrice(prices, pool.priceKeys);
-        if (!priceResult) {
-          console.log(`Skipping ${pool.symbol}: price not available`);
-          continue;
-        }
-
-        const [apys, totalAssets] = await Promise.all([
-          fetchApys(pool, network),
-          fetchTotalAssets(pool, network),
-        ]);
-
-        const tvlUsd = totalAssets * priceResult.price;
-
-        results.push({
-          pool: `${DEPLOYER}.${pool.vaultContract}-${chain}`.toLowerCase(),
-          chain: chain,
-          project: 'zest-v2',
-          symbol: pool.symbol,
-          tvlUsd: tvlUsd,
-          apyBase: apys.supplyApy,
-          apyBaseBorrow: apys.borrowApy,
-          borrowToken: `${pool.assetAddress}.${pool.contractName}`,
-          underlyingTokens: [`${pool.assetAddress}.${pool.contractName}`],
-          token: `${pool.assetAddress}.${pool.contractName}`,
-          url: 'https://app.zestprotocol.com/market/main',
-        });
-      } catch (error) {
-        console.log(`Error processing pool ${pool.symbol}: ${error.message}`);
+  for (const pool of POOLS) {
+    try {
+      const price = getPrice(prices, pool.priceKeys);
+      if (!price) {
+        console.log(`Skipping ${pool.symbol}: price not available`);
+        continue;
       }
-    }
+      const [rates, vault] = await Promise.all([
+        fetchRates(network, pool),
+        fetchVault(network, pool),
+      ]);
+      const totalSupplyUsd = vault.totalAssets * price;
+      const totalBorrowUsd = vault.totalBorrowed * price;
 
-    return results;
-  } catch (error) {
-    console.log(`Error in getZestV2Pools: ${error.message}`);
-    return [];
+      results.push({
+        pool: `${DEPLOYER}.${pool.vaultContract}-${CHAIN}`.toLowerCase(),
+        chain: CHAIN,
+        project: 'zest-v2',
+        symbol: pool.symbol,
+        tvlUsd: totalSupplyUsd - totalBorrowUsd,
+        apyBase: rates.supplyApy,
+        apyBaseBorrow: rates.borrowApy,
+        totalSupplyUsd,
+        totalBorrowUsd,
+        borrowToken: pool.underlying,
+        underlyingTokens: [pool.underlying],
+        token: pool.underlying,
+        url: URL,
+      });
+    } catch (error) {
+      console.log(`Error processing pool ${pool.symbol}: ${error.message}`);
+    }
   }
-}
+  return results;
+};
 
 module.exports = {
   protocolId: '7449',
   timetravel: false,
-  apy: getZestV2Pools,
-  url: 'https://app.zestprotocol.com/market/main',
+  apy,
+  url: URL,
 };
