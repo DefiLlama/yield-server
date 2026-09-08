@@ -5,6 +5,13 @@ const address = 'EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ';
 // hGRAM launched at an exchange rate of 1.0 GRAM
 const launchTimestamp = 1698685200;
 
+// Toncenter allows one request per second unauthenticated, and answers a
+// throttled request with an empty result set rather than an error. The
+// exit_code check below turns that into a thrown error rather than a silent
+// bad reading, but a key avoids the situation. Same variable the TVL repo
+// reads in projects/helper/chain/ton.js.
+const apiKey = process.env.TONCENTER_API_KEY;
+
 module.exports = {
   protocolId: '3722',
   timetravel: false,
@@ -21,11 +28,21 @@ module.exports = {
         address,
         method: 'get_treasury_state',
         stack: [],
-      }
+      },
+      apiKey ? { 'X-API-Key': apiKey } : {}
     );
     if (getTreasuryState.exit_code !== 0) {
       throw new Error(
         'Expected a zero exit code, but got ' + getTreasuryState.exit_code
+      );
+    }
+    // The tuple is append-only, so it only ever grows; a short one means the
+    // read did not return what it should have, and the positions below would
+    // be read off the end.
+    if ((getTreasuryState.stack || []).length < 15) {
+      throw new Error(
+        'Expected at least 15 treasury state values, but got ' +
+          (getTreasuryState.stack || []).length
       );
     }
 
