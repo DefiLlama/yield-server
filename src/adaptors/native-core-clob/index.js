@@ -172,7 +172,7 @@ const apy = async () => {
         }),
         token: null,
         poolMeta: 'Native Pool',
-        url: 'https://app.native.org',
+        url: 'https://app.native.org/native-pool',
       };
     })
     .filter(Boolean);
