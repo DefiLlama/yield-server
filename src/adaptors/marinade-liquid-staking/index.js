@@ -25,7 +25,6 @@ const apy = async () => {
       tvlUsd: tvlUsd,
       apyBase: apyValue * 100,
       underlyingTokens: [SOL],
-      searchTokenOverride: MSOL_ADDRESS,
       isIntrinsicSource: true,
     },
   ];

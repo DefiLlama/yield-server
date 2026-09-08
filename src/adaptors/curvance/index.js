@@ -201,9 +201,14 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
       const poolMeta = managerSymbols[manager].join('/');
 
       const staticToken = staticByMarket[market.toLowerCase()];
+    // skip frozen
+      if (staticToken?.mintPaused) {
+        return null;
+      }
       const isBorrowable =
         Boolean(staticToken?.isBorrowable) &&
         Boolean(staticToken?.isListed) &&
+        !staticToken?.borrowPaused &&
         Number(staticToken?.debtCap || 0) > 0;
       const debtCap = Number(staticToken?.debtCap || 0);
       const availableBorrow = isBorrowable ? Math.min(cash, Math.max(debtCap - debt, 0)) : 0;
@@ -212,6 +217,7 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
       const collateralLtv = staticToken ? Number(staticToken.collRatio) / 10000 : 0;
       const collateralEnabled =
         Boolean(staticToken?.isListed) &&
+        !staticToken?.collateralizationPaused &&
         collateralLtv > 0 &&
         Number(staticToken?.collateralCap || 0) > 0;
 
@@ -228,6 +234,8 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
         totalSupplyUsd,
         totalBorrowUsd,
         availableBorrowUsd,
+        ...(Number(staticToken?.collateralCap || 0) > 0 &&
+          { supplyCapUsd: (Number(staticToken.collateralCap) / factor) * price }),
         apyBaseBorrow,
         isBorrowable,
         collateralEnabled,
@@ -264,6 +272,9 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
         symbol: collateralPool.symbol,
         tvlUsd: collateralPool.tvlUsd,
         totalSupplyUsd: collateralPool.totalSupplyUsd,
+        ...(collateralPool.supplyCapUsd !== undefined
+          ? { supplyCapUsd: collateralPool.supplyCapUsd }
+          : {}),
         apyBase: collateralPool.apyBase,
         poolMeta: collateralPool.poolMeta,
         underlyingTokens: collateralPool.underlyingTokens,

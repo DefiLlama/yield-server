@@ -44,7 +44,6 @@ const apy = async () => {
   const [weETHRates, eBTCRates] = await Promise.all([
     Promise.all([
       sdk.api.abi.call({ target: weETH, abi }),
-      sdk.api.abi.call({ target: weETH, abi, block: block1dayAgo }),
       sdk.api.abi.call({ target: weETH, abi, block: block7dayAgo }),
     ]),
     Promise.all([
@@ -54,11 +53,8 @@ const apy = async () => {
     ]),
   ]);
 
-  const apr1d =
-    ((weETHRates[0].output - weETHRates[1].output) / 1e18) * 365 * 100;
-
   const apr7d =
-    ((weETHRates[0].output - weETHRates[2].output) / 1e18 / 7) * 365 * 100;
+    ((weETHRates[0].output - weETHRates[1].output) / weETHRates[1].output / 7) * 365 * 100;
 
   const eBTCRateCurrent = Number(eBTCRates[0].output);
   const eBTCRate1dAgo = Number(eBTCRates[1].output);
@@ -120,7 +116,7 @@ const apy = async () => {
 
   const pricePerShare = Number(weETHRates[0].output) / 1e18;
   const bridgedWeethPools = await getBridgedWeethPools({
-    apyBase: apr1d,
+    apyBase: apr7d,
     apyBase7d: apr7d,
     apyReward: restakingApy,
     pricePerShare,
@@ -133,12 +129,11 @@ const apy = async () => {
       project: 'ether.fi-stake',
       symbol: 'weETH',
       tvlUsd: totalSupply * price,
-      apyBase: apr1d,
+      apyBase: apr7d,
       apyBase7d: apr7d,
       apyReward: restakingApy,
       ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: weETH,
       rewardTokens: [lrt2],
       url: 'https://ether.fi/app/weeth',
       isIntrinsicSource: true
@@ -153,7 +148,6 @@ const apy = async () => {
       apyBase7d: eBTCApyBase7d,
       ...(eBTCRateCurrent / 1e8 > 0 && { pricePerShare: eBTCRateCurrent / 1e8 }),
       underlyingTokens: [LBTC, WBTC],
-      searchTokenOverride: eBTC,
       url: 'https://ether.fi/app/ebtc',
       isIntrinsicSource: true
     },
@@ -203,7 +197,6 @@ const getBridgedWeethPools = async ({ apyBase, apyBase7d, apyReward, pricePerSha
         apyReward,
         ...(pricePerShare > 0 && { pricePerShare }),
         underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-        searchTokenOverride: addr,
         rewardTokens: [lrt2],
         url: 'https://ether.fi/app/weeth',
         isIntrinsicSource: true,

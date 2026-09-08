@@ -15,7 +15,8 @@ const CHAIN_CODES = [
   'ronin',
   'mantle',
   'sonic',
-  'berachain'
+  // 'berachain',
+  'robinhood'
 ]
 const BASE_URL = 'https://kd-market-service-api.kyberengineering.io/';
 

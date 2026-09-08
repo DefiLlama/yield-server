@@ -72,7 +72,7 @@ const getPools = async () => {
       });
 
       // get prices
-      const tokenPrices = (await utils.getPriceApiData(`/prices/current/${[...tokenList]}`)).coins;
+      const tokenPrices = await utils.getPriceApiCoins([...tokenList]);
 
       const chainPools = data.vaults.map((vault) => {
         // calculate tvl

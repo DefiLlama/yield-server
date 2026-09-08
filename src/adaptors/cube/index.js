@@ -1,17 +1,21 @@
 // Cube DEX yield adapter. Lists every enabled Cube pool with its current
 // TVL, fee-derived APY (24h and 7d), volume, and underlying token mints.
 //
-// Data source: https://api.cubee.ee/api/defillama/yields — a small open
+// Data source: https://api.coffer.so/api/defillama/yields — a small open
 // REST endpoint that reads the Cube backend's on-chain swap-event
 // indexer (the same indexer that drives the volume/fee adapters in
 // dimension-adapters).
 
 const utils = require('../utils');
 
-const API_URL = 'https://api.cubee.ee/api/defillama/yields';
+// Cube rebranded to Coffer; keep existing pool IDs and the adapter slug.
+const API_URL = 'https://api.coffer.so/api/defillama/yields';
 
 const apy = async () => {
   const res = await fetch(API_URL);
+  if (!res.ok) {
+    throw new Error(`Cube yields API returned HTTP ${res.status}`);
+  }
   const data = await res.json();
   if (!data || !Array.isArray(data.pools)) {
     throw new Error(`Cube yields API returned invalid response: ${JSON.stringify(data).slice(0, 200)}`);
@@ -39,5 +43,5 @@ const apy = async () => {
 module.exports = {
   protocolId: '7798',
   apy,
-  url: 'https://cubee.ee',
+  url: 'https://coffer.so',
 };

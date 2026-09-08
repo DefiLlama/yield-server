@@ -7,7 +7,7 @@ const config = {
   ethereum: {
     chainName: 'Ethereum',
     USDp: '0x9B3a8f7CEC208e247d97dEE13313690977e24459',
-    sUSDp: '0x0d45b129dc868963025Db79A9074EA9c9e32Cae4',
+    sUSDp: '0xd3a452B305C8285c0Dd7b8537665c734d3D279eF',
   },
   base: {
     chainName: 'Base',

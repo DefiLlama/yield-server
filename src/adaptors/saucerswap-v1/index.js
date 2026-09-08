@@ -50,7 +50,12 @@ const calculateTokenTVLUsd = (token, tokenReserve) => {
 
 const main = async () => {
   const [farmData, poolsData, fiveDAvgData] = await Promise.all(
-    ['farms', 'pools', 'fiveDAvg'].map((key) => utils.getData(apis[key]))
+    // api.saucerswap.finance requires an api key since mid 2026
+    ['farms', 'pools', 'fiveDAvg'].map((key) =>
+      utils.getData(apis[key], null, {
+        'x-api-key': process.env.SAUCERSWAP_API_KEY,
+      })
+    )
   );
   let emissionPriceUsd = {};
   // get emission tokens' id and price from pool data

@@ -4,9 +4,8 @@ const ethers = require('ethers');
 const { config } = require('./config');
 const BigNumber = require('bignumber.js');
 
-// function getEstimatedAPR is misleading, it returns the estimated APY
-const getEstimatedAPR =
-  'function estimatedAPR() external view returns (uint256)';
+const getEstimatedAPY =
+  'function estimatedAPY() external view returns (uint256)';
 const getTotalAssets = 'function totalAssets() external view returns (uint256)';
 
 const getsUSDpData = async (chain, chainConfig) => {
@@ -17,17 +16,17 @@ const getsUSDpData = async (chain, chainConfig) => {
     const provider = new ethers.providers.JsonRpcProvider(
       'https://rpc.hyperliquid.xyz/evm'
     );
-    const abi = [getEstimatedAPR, getTotalAssets];
+    const abi = [getEstimatedAPY, getTotalAssets];
     const contract = new ethers.Contract(sUSDp, abi, provider);
     [estimatedAPY, totalAssets] = await Promise.all([
-      contract.estimatedAPR(),
+      contract.estimatedAPY(),
       contract.totalAssets(),
     ]);
   } else {
     const api = new sdk.ChainApi({ chain });
     [estimatedAPY, totalAssets] = await Promise.all([
       api.call({
-        abi: getEstimatedAPR,
+        abi: getEstimatedAPY,
         target: sUSDp,
       }),
       api.call({

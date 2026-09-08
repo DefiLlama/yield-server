@@ -51,6 +51,7 @@ interface Pool {
   apyBaseBorrow?: number;
   apyRewardBorrow?: number;
   totalSupplyUsd?: number;
+  supplyCapUsd?: number; // protocol supply cap in USD at sample-time price; omit when uncapped (e.g. aave supplyCap of 0), never emit 0
   totalBorrowUsd?: number;
   availableBorrowUsd?: number; // current available borrow liquidity in USD, accounting for caps and constraints; do not zero solely because borrowable is false
   borrowToken?: string; // underlying token address/string the borrower receives; not a debt receipt token

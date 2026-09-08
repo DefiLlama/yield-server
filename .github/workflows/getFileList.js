@@ -9,6 +9,7 @@ const fileSet = new Set();
     root1 === 'adaptors' &&
     dir !== 'test.js' &&
     dir !== 'utils.js' &&
+    dir !== 'checkStablecoin.js' &&
     dir !== 'package.json' &&
     dir !== 'package-lock.json'
   )

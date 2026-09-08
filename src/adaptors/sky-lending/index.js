@@ -487,6 +487,18 @@ const susdsAPY = async () => {
       USDS: '0x6491c05a82219b8d1479057361ff1654749b876b',
       url: 'https://app.sky.money/?network=arbitrumone&widget=savings',
     },
+    {
+      chain: 'optimism',
+      sUSDS: '0xb5B2dc7fd34C249F4be7fB1fCea07950784229e0',
+      USDS: '0x4F13a96EC5C4Cf34e442b46Bbd98a0791F20edC3',
+      url: 'https://app.sky.money/?network=opmainnet&widget=savings',
+    },
+    {
+      chain: 'unichain',
+      sUSDS: '0xA06b10Db9F390990364A3984C04FaDf1c13691b5',
+      USDS: '0x7E10036Acc4B56d4dFCa3b77810356CE52313F9C',
+      url: 'https://app.sky.money/?network=unichain&widget=savings',
+    },
   ];
 
   const priceKeys = configs
@@ -603,6 +615,9 @@ const farmsAPY = async () => {
       stakeToken: SKY,
       rewardToken: SKY,
       poolMeta: 'SKY Staking Engine',
+      // staked SKY can also mint USDS against the LSEV2-SKY-A ilk — expose
+      // the borrow side of the engine with the standard MCD ilk reads
+      ilk: 'LSEV2-SKY-A',
       url: 'https://app.sky.money/?network=ethereum&widget=stake',
     },
   ];
@@ -645,7 +660,7 @@ const farmsAPY = async () => {
           ? ((rewardRate * secPerDay * 365 * priceReward) / tvlUsd) * 100
           : 0;
 
-      return {
+      const pool = {
         pool: farm.address,
         chain: 'ethereum',
         project: 'sky-lending',
@@ -658,10 +673,54 @@ const farmsAPY = async () => {
         rewardTokens: [farm.rewardToken],
         url: farm.url,
       };
+      if (farm.ilk) Object.assign(pool, await ilkBorrowFields(farm.ilk, tvlUsd));
+      return pool;
     })
   );
 
   return pools.filter(Boolean);
+};
+
+// Borrow-side fields for an MCD ilk (jug duty -> stability fee, vat -> debt
+// and ceiling, spot -> max LTV). Used for the staking engine, which mints
+// USDS against staked SKY.
+const ilkBorrowFields = async (ilkName, totalSupplyUsd) => {
+  const ilkId = ethers.utils.formatBytes32String(ilkName);
+  const [jugIlk, vatIlk, spotIlk] = await Promise.all([
+    sdk.api.abi.call({
+      target: MCD_JUG.address,
+      params: [ilkId],
+      abi: MCD_JUG.abis.ilks,
+    }),
+    sdk.api.abi.call({
+      target: MCD_VAT.address,
+      params: [ilkId],
+      abi: MCD_VAT.abis.ilks,
+    }),
+    sdk.api.abi.call({
+      target: MCD_SPOT.address,
+      params: [ilkId],
+      abi: MCD_SPOT.abis.ilks,
+    }),
+  ]);
+
+  const duty = jugIlk.output.duty / 1e27;
+  const totalBorrowUsd =
+    (vatIlk.output.Art / 1e18) * (vatIlk.output.rate / 1e27);
+  const debtCeilingUsd = vatIlk.output.line / 1e45;
+  const liquidationRatio = spotIlk.output.mat / 1e27;
+
+  return {
+    apyBaseBorrow: (Math.pow(duty, SECONDS_PER_YEAR) - 1) * 100,
+    totalSupplyUsd,
+    totalBorrowUsd,
+    debtCeilingUsd,
+    availableBorrowUsd: Math.max(debtCeilingUsd - totalBorrowUsd, 0),
+    ltv: liquidationRatio > 0 ? 1 / liquidationRatio : 0,
+    mintedCoin: 'USDS',
+    borrowToken: '0xdC035D45d973E3EC169d2276DDab16f1e407384F',
+    borrowable: debtCeilingUsd > 0,
+  };
 };
 
 const apy = async () => {

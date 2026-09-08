@@ -38,6 +38,10 @@ async function apy() {
                     const availableBorrowUsd = Number(reserve.borrowCap)
                         ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
                         : tvlUsd;
+                    const supplyCapUsd = new BigNumber(reserve.supplyCap)
+                        .multipliedBy(reserve.priceInMarketReferenceCurrency)
+                        .shiftedBy(-8)
+                        .toNumber();
                     return {
                         pool: `${reserve.yTokenAddress}-${chain}`.toLowerCase(),
                         chain: utils.formatChain(chain),
@@ -47,6 +51,7 @@ async function apy() {
                         apyBase: calculateAPY(reserve.liquidityRate).toNumber() * 100,
                         underlyingTokens: [reserve.underlyingAsset],
                         totalSupplyUsd,
+                        ...(Number(reserve.supplyCap) > 0 && { supplyCapUsd }),
                         totalBorrowUsd,
                         availableBorrowUsd,
                         apyBaseBorrow:

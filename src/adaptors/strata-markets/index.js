@@ -42,6 +42,17 @@ const Addresses = {
     jrPRIME: '0xF4C91F24E20EE8ed5eda905E501A1136334C2F27',
     underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC (verified on-chain)
   },
+  nestopal: {
+    cdo: '0xaE212D8515BA65C719f23dBad6bF73B74d4e4edE',
+    srNOPAL: '0x8a646Edc4633ADBA5Ec87DedaF3Af958e268FE96',
+    jrNOPAL: '0x1b2b8cFEF0b7B1Fad216b55fefeEb0c3349Da141',
+    underlying: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
+    // nOPAL uses zero-projection mode: the AprPairFeed returns (0,0) for
+    // accounting, but the provider exposes the real projected APR via
+    // getAprPairProjected(). CDOLens only reads the feed, so we read the
+    // provider directly when CDOLens returns zeros.
+    provider: '0x1FE39BE01BA0AF9f8D61A8a581eb7Df29c0BCe97',
+  },
 };
 
 const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
@@ -59,17 +70,26 @@ const getTotalSupply = async (tokenAddress, chain = 'ethereum') => {
 };
 
 const getTokenPrice = async (tokenAddress) => {
-try {
+  try {
     const priceKey = `ethereum:${tokenAddress}`;
     const data = await utils.getPriceApiData(`/prices/current/${priceKey}`);
-    return data.coins[priceKey].price;
+    return data.coins[priceKey]?.price ?? null;
   } catch (error) {
-    console.error(`Error fetching price for ${tokenAddress}:`, error);
-    throw error;
+    console.warn(`Price not available for ${tokenAddress}, will use totalAssets fallback`);
+    return null;
   }
 };
 
-const getAprs = async (cdoAddress, chain = 'ethereum') => {
+const getTotalAssets = async (tokenAddress, chain = 'ethereum') => {
+  const { output } = await sdk.api.abi.call({
+    target: tokenAddress,
+    abi: 'function totalAssets() view returns (uint256)',
+    chain,
+  });
+  return output;
+};
+
+const getAprs = async (cdoAddress, chain = 'ethereum', trancheConfig = {}) => {
   try {
     const { output } = await sdk.api.abi.call({
       target: Addresses.lens,
@@ -79,12 +99,63 @@ const getAprs = async (cdoAddress, chain = 'ethereum') => {
       block: 'latest',
     });
     let [base, target, jrt, srt] = output;
+
+    // If CDOLens returns all zeros and a provider is configured, read the
+    // projected APR directly from the provider's getAprPairProjected().
+    // This is needed for markets using zero-projection mode (e.g. nOPAL)
+    // where the feed intentionally returns (0,0) for accounting while the
+    // real base APR is exposed via the provider.
+    if (Number(jrt) === 0 && Number(srt) === 0 && trancheConfig.provider) {
+      const [{ output: projected }, { output: breakdown }, { output: reserveBpsRaw }] = await Promise.all([
+        sdk.api.abi.call({
+          target: trancheConfig.provider,
+          abi: 'function getAprPairProjected() external view returns (int64 aprTarget, int64 aprBase, uint64 updatedAt)',
+          chain,
+        }),
+        sdk.api.abi.call({
+          target: Addresses.lens,
+          abi: 'function getAPRsBreakdown(address cdo) external view returns (int64 base, int64 target, int64 jrt, int64 srt, uint256 tvlRatioSrt, uint256 riskPremium)',
+          params: [cdoAddress],
+          chain,
+        }),
+        sdk.api.abi.call({
+          target: trancheConfig.cdo,
+          abi: 'function accounting() view returns (address)',
+          chain,
+        }).then(({ output: acct }) =>
+          sdk.api.abi.call({
+            target: acct,
+            abi: 'function reserveBps() view returns (uint256)',
+            chain,
+          })
+        ),
+      ]);
+
+      const aprBase = Number(projected.aprBase) / 1e10;
+      const aprTarget = Number(projected.aprTarget) / 1e10;
+      const tvlRatioSrt = Number(breakdown.tvlRatioSrt) / 1e18;
+      const tvlRatioJrt = 1 - tvlRatioSrt;
+      const risk = Number(breakdown.riskPremium) / 1e18;
+      const reserveBps = Number(reserveBpsRaw) / 1e18;
+
+      // Replicate CDOLens formula: aprSrt = max(aprTarget, aprBase * (1 - risk))
+      const aprSrt = Math.max(aprTarget, aprBase * (1 - risk));
+      // Net base after performance fee
+      const netBase = aprBase > 0 && reserveBps > 0 ? aprBase * (1 - reserveBps) : aprBase;
+      // JRT gets the residual: aprJrt = netBase + (netBase - aprSrt) * ratioSrt / ratioJrt
+      const aprJrt = tvlRatioJrt > 0
+        ? netBase + (netBase - aprSrt) * tvlRatioSrt / tvlRatioJrt
+        : netBase;
+
+      return { jrt: aprJrt, srt: aprSrt };
+    }
+
     return {
       jrt: Number(jrt) / 1e10,
       srt: Number(srt) / 1e10,
     };
   } catch (error) {
-    console.error(`Error fetching total supply for ${cdoAddress}:`, error);
+    console.error(`Error fetching APRs for ${cdoAddress}:`, error);
     throw error;
   }
 };
@@ -92,12 +163,22 @@ const getAprs = async (cdoAddress, chain = 'ethereum') => {
 async function loadPool(tranche, symbol, overrides = {}) {
   const cdo = Addresses[tranche].cdo;
   const vault = Addresses[tranche][symbol];
+  const underlying = Addresses[tranche].underlying;
 
-  const [totalSupply, price, aprs] = await Promise.all([
+  const [totalSupply, price, aprs, totalAssetsRaw, underlyingPrice] = await Promise.all([
     getTotalSupply(vault, 'ethereum'),
     getTokenPrice(vault),
-    getAprs(cdo),
+    getAprs(cdo, 'ethereum', Addresses[tranche]),
+    getTotalAssets(vault, 'ethereum'),
+    getTokenPrice(underlying),
   ]);
+
+  // Use vault token price if available, otherwise fall back to
+  // totalAssets * underlying price (accurate for ERC4626 stablecoin vaults)
+  const decimals = ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', '0xCc5C22C7A6BCC25e66726AeF011dDE74289ED203'].includes(underlying) ? 6 : 18;
+  const tvlUsd = price
+    ? totalSupply * price
+    : (totalAssetsRaw / (10 ** decimals)) * (underlyingPrice ?? 1);
 
   const apy = utils.aprToApy(symbol.startsWith('sr') ? aprs.srt : aprs.jrt);
   return {
@@ -105,9 +186,9 @@ async function loadPool(tranche, symbol, overrides = {}) {
     symbol: symbol,
     chain: 'ethereum',
     project: 'strata-markets',
-    tvlUsd: totalSupply * price,
+    tvlUsd,
     apyBase: apy,
-    underlyingTokens: [Addresses[tranche].underlying],
+    underlyingTokens: [underlying],
     ...overrides,
   };
 }
@@ -127,6 +208,8 @@ const apy = async () => {
       loadPool('saturn', 'jrUSDat'),
       loadPool('figure', 'srPRIME'),
       loadPool('figure', 'jrPRIME'),
+      loadPool('nestopal', 'srNOPAL'),
+      loadPool('nestopal', 'jrNOPAL'),
     ]);
   } catch (error) {
     console.error('Error fetching APYs:', error);

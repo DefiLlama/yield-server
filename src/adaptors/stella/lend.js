@@ -8,7 +8,6 @@ const IBaseLendingPoolABI = require('./abi/IBaseLendingPool.json');
 const poolListEndpoint = 'https://graph.stellaxyz.io/api/rest/lending-pools';
 const rewardRateEndpoint =
   'https://blocks.alphainnovationslab.io/lm-lender/reward_rates';
-const priceEndpoint = utils.getPriceApiUrl('/prices/current/');
 
 const rewardVaultAddress = '0xa67CF61b0b9BC39c6df04095A118e53BFb9303c7';
 const alphaTokenAddressARB = '0xc9cbf102c73fb77ec14f8b4c8bd88e050a6b2646';
@@ -22,13 +21,12 @@ const apy = async () => {
 
   const { pools } = await utils.getData(poolListEndpoint);
   const { data: rewardRate } = await utils.getData(rewardRateEndpoint);
+  const priceKeys = pools
+    .map((p) => `arbitrum:${p.underlyingToken}`)
+    .concat(alphaTokenPriceKey)
+    .join(',');
   const priceData = await utils.getData(
-    priceEndpoint +
-      pools
-        .map((p) => `arbitrum:${p.underlyingToken}`)
-        .concat(alphaTokenPriceKey)
-        .join(',') +
-      '?searchWidth=4h'
+    utils.getPriceApiUrl(`/prices/current/${priceKeys}?searchWidth=4h`)
   );
 
   const { output: rewardDistribution } = await sdk.api.abi.call({

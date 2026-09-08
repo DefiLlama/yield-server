@@ -162,6 +162,7 @@ const fetchMarketData = async (target) => {
     const totalBorrowUsd = toTokenAmount(totalBorrow) * price;
     const totalSupplyUsd = tvlUsd + totalBorrowUsd;
     const borrowCapUsd = Number(poolsReserveCaps.output[i].output.borrowCap) * price;
+    const supplyCap = Number(poolsReserveCaps.output[i].output.supplyCap);
     const availableBorrowUsd = Number(poolsReserveCaps.output[i].output.borrowCap)
       ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
       : tvlUsd;
@@ -194,6 +195,7 @@ const fetchMarketData = async (target) => {
       rewardTokens: supplyRewards.rewardTokens,
       underlyingTokens: [pool.tokenAddress],
       totalSupplyUsd,
+      ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
       totalBorrowUsd,
       availableBorrowUsd,
       apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,

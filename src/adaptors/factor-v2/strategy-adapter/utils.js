@@ -21,7 +21,7 @@ function makeReadable(val, dec = 18) {
 async function getCoinDataFromDefillamaAPI(chain, tokenAddress) {
     const coinId = `${chain}:${tokenAddress}`;
     const response = await axios.get(
-        getPriceApiUrl('/prices/current/') + coinId
+        getPriceApiUrl(`/prices/current/${coinId}`)
     );
     const coinData = response.data.coins[coinId];
 

@@ -1,4 +1,5 @@
 const { get, post } = require('./http-helper')
+const utils = require('../utils')
 
 const CARDANO_COINGECKO = {
   iUSD: 'coingecko:iusd',
@@ -66,10 +67,11 @@ async function fetchAssetAnalytics(assetName) {
 }
 
 // Fetch the ADA price in USD
+// (the analytics /api/price endpoint returns 500, which zeroed tvlUsd for every pool)
 async function fetchAdaPriceToUsd() {
   try {
-    const response = await get('https://analytics.indigoprotocol.io/api/price?from=ADA&to=USD');
-    return response.price;
+    const response = await utils.getPriceApiData('/prices/current/coingecko:cardano');
+    return response.coins['coingecko:cardano'].price;
   } catch (error) {
     console.error('Error fetching ADA price:', error);
     return 0;

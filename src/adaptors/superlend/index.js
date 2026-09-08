@@ -153,6 +153,7 @@ const getApy = async () => {
           10 ** underlyingDecimals[i]) *
         price;
       const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const supplyCap = Number(poolsReserveCaps[i].supplyCap);
       const availableBorrowUsd = Number(poolsReserveCaps[i].borrowCap)
         ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
         : tvlUsd;
@@ -173,6 +174,7 @@ const getApy = async () => {
         underlyingTokens: [pool.tokenAddress],
         rewardTokens: apyReward > 0 ? [APPLE_REWARD_TOKEN] : [],
         totalSupplyUsd,
+        ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,

@@ -38,7 +38,6 @@ const apy = async () => {
       apyBase,
       ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: [SOL],
-      searchTokenOverride: ADRASOL_MINT,
       poolMeta: feePct,
       isIntrinsicSource: true,
     },

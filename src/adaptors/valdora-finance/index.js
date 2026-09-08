@@ -99,7 +99,6 @@ const apy = async () => {
       apyBase,
       pricePerShare,
       underlyingTokens: ['uzig'],
-      searchTokenOverride: STZIG_DENOM,
       isIntrinsicSource: true,
       url: 'https://valdora.finance/stake',
     },

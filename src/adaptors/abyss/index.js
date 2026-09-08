@@ -1,8 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-const RPC_URL = 'https://fullnode.mainnet.sui.io';
-
 const VAULT_PACKAGE =
   '0x90a75f641859f4d77a4349d67e518e1dd9ecb4fac079e220fa46b7a7f164e0a5';
 
@@ -46,20 +44,6 @@ const VAULTS = [
 
 const WINDOW_DAYS = 7;
 
-async function suiRpc(method, params) {
-  const { result } = await sdk.util.postJson(RPC_URL, {
-    jsonrpc: '2.0',
-    id: 1,
-    method,
-    params,
-  });
-  return result;
-}
-
-async function fetchObjects(ids) {
-  return suiRpc('sui_multiGetObjects', [ids, { showContent: true }]);
-}
-
 async function getTokenPrices(coinTypes) {
   const keys = coinTypes.map((c) => `sui:${c}`).join(',');
   const data = await sdk.util.fetchJson(
@@ -71,14 +55,12 @@ async function getTokenPrices(coinTypes) {
 // Computes the vault's underlying token balance and exchange rate in one pass
 // ER = underlying_per_atoken, starts at 1.0, grows from pool interest + compounded incentives
 function vaultMetrics(vaultFields, poolFields) {
-  const shares = BigInt(
-    vaultFields.abyss_vault_state.fields.margin_pool_shares
-  );
+  const shares = BigInt(vaultFields.abyss_vault_state.margin_pool_shares);
   const atokenSupply = BigInt(
-    vaultFields.atoken_treasury_cap.fields.total_supply.fields.value
+    vaultFields.atoken_treasury_cap.total_supply.value
   );
-  const poolTotal = BigInt(poolFields.state.fields.total_supply);
-  const poolShares = BigInt(poolFields.state.fields.supply_shares);
+  const poolTotal = BigInt(poolFields.state.total_supply);
+  const poolShares = BigInt(poolFields.state.supply_shares);
 
   if (poolShares === 0n) return { underlying: 0n, er: 1 };
 
@@ -98,19 +80,12 @@ async function paginateEvents(eventType, targetTs, vaultSet) {
   const found = {};
   let cursor = null;
 
-  // Query descending (recent first), stop when past target window
+  // Walk newest to oldest, stop when past target window
   while (true) {
-    const result = await suiRpc('suix_queryEvents', [
-      { MoveEventType: eventType },
-      cursor,
-      50,
-      true,
-    ]);
-    if (!result?.data?.length) break;
+    const page = await utils.suiEvents(eventType, { cursor, limit: 50 });
+    if (!page.events.length) break;
 
-    for (const evt of result.data) {
-      const d = evt.parsedJson;
-      const ts = parseInt(evt.timestampMs);
+    for (const { json: d, ts } of page.events) {
       const vid = d.vault_id;
 
       if (!vaultSet.has(vid) || Number(d.atoken_amount) === 0) continue;
@@ -124,7 +99,7 @@ async function paginateEvents(eventType, targetTs, vaultSet) {
       }
     }
 
-    const oldestTs = parseInt(result.data[result.data.length - 1].timestampMs);
+    const oldestTs = page.events[page.events.length - 1].ts;
 
     // Stop if all vaults found and we're past the window
     if (oldestTs < targetTs && vaultSet.size === Object.keys(found).length)
@@ -132,8 +107,8 @@ async function paginateEvents(eventType, targetTs, vaultSet) {
     // Safety: stop if we've gone 2x past the window
     if (oldestTs < targetTs - WINDOW_DAYS * 86_400_000) break;
 
-    if (!result.hasNextPage) break;
-    cursor = result.nextCursor;
+    if (!page.hasMore) break;
+    cursor = page.cursor;
   }
 
   return found;
@@ -174,8 +149,8 @@ const main = async () => {
 
   const [vaultObjects, poolObjects, coinInfos, historicalERs] =
     await Promise.all([
-      fetchObjects(vaultIds),
-      fetchObjects(poolIds),
+      utils.suiObjectFields(vaultIds),
+      utils.suiObjectFields(poolIds),
       getTokenPrices(coinTypes),
       getHistoricalERs(vaultIds),
     ]);
@@ -186,8 +161,8 @@ const main = async () => {
   for (let i = 0; i < VAULTS.length; i++) {
     try {
       const vault = VAULTS[i];
-      const vaultData = vaultObjects[i]?.data?.content?.fields;
-      const poolData = poolObjects[i]?.data?.content?.fields;
+      const vaultData = vaultObjects[i];
+      const poolData = poolObjects[i];
       const coinInfo = coinInfos[i];
 
       if (!vaultData || !poolData || !coinInfo) continue;

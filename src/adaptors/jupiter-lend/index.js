@@ -90,6 +90,7 @@ const getVaultPools = (vaults) =>
       ltv: Number(vault.collateralFactor) / 1e3,
       borrowable: Number(vault.borrowable) > 0,
       borrowToken: borrowToken.address,
+      borrowMarketOnly: true,
       poolMeta: `${supplyToken.symbol}/${borrowToken.symbol}`,
       url: 'https://jup.ag/lend',
     };

@@ -16,7 +16,8 @@ const CHAINS = {
   monad: 143,
   wc: 480,
   stable: 988,
-  tempo: 4217
+  tempo: 4217,
+  robinhood: 4663
 };
 
 // Maps chain keys to URL slugs used by app.morpho.org
@@ -24,7 +25,8 @@ const CHAINS = {
 const CHAIN_URL_SLUG = {
   hyperliquid: 'hyperevm',
   wc: 'worldchain',
-  optimism: 'opmainnet'
+  optimism: 'opmainnet',
+  robinhood: 'robinhood-chain'
 };
 
 const getChainSlug = (chain) => CHAIN_URL_SLUG[chain] || chain;
@@ -268,6 +270,17 @@ const ALLOWED_ADAPTER_TYPES = ['MetaMorpho', 'MorphoMarketV1'];
 const hasRedWarning = (item) =>
   item.warnings?.some((warning) => warning.level === 'RED');
 
+// Vaults reviewed and kept despite a RED warning: deposit_disabled (at cap) and
+// invalid_name/invalid_symbol don't stop holders earning the reported APY.
+const RED_WARNING_ALLOWLIST = new Set([
+  '0xbeeff033f34c046626b8d0a041844c5d1a5409dd',
+  '0x4ff4186188f8406917293a9e01a1ca16d3cf9e59',
+  '0x78b18e07dc43017fceaabad0751d6464c0f56b25',
+]);
+
+const isAllowlisted = (item) =>
+  RED_WARNING_ALLOWLIST.has(item.address?.toLowerCase());
+
 const buildVaultV2Pools = (earnV2, chain) =>
   earnV2
     // Filter vaults to only include those with allowed adapter types
@@ -375,8 +388,10 @@ const fetchChainData = async (chainId) => {
   });
 
   return {
-    earnV1: vaults.filter((v) => v.state !== null && !hasRedWarning(v)),
-    earnV2: vaultV2s.filter((v) => !hasRedWarning(v)),
+    earnV1: vaults.filter(
+      (v) => v.state !== null && (!hasRedWarning(v) || isAllowlisted(v))
+    ),
+    earnV2: vaultV2s.filter((v) => !hasRedWarning(v) || isAllowlisted(v)),
     borrow: markets.filter((m) => !hasRedWarning(m)),
   };
 };
@@ -501,11 +516,11 @@ const apy = async () => {
         project: 'morpho-blue',
         symbol: market.collateralAsset?.symbol,
         token: null,
-        apy: 0,
+        apyBase: 0,
         tvlUsd: market.state.collateralAssetsUsd || 0,
         underlyingTokens: [market.collateralAsset.address],
         apyBaseBorrow: market.state.borrowApy * 100,
-        totalSupplyUsd: market.state.collateralAssetsUsd ?? 0,
+        totalSupplyUsd: market.state.collateralAssetsUsd ?? undefined,
         totalBorrowUsd: market.state.borrowAssetsUsd ?? 0,
         availableBorrowUsd,
         debtCeilingUsd:
@@ -514,6 +529,7 @@ const apy = async () => {
         mintedCoin: market.loanAsset?.symbol,
         borrowToken: market.loanAsset?.address,
         borrowable: market.lltv > 0,
+        borrowMarketOnly: true,
         url: `https://app.morpho.org/${getChainSlug(chain)}/market/${market.uniqueKey}`,
         apyRewardBorrow,
         rewardTokens: apyRewardBorrow > 0 ? rewardTokens : [],
@@ -543,7 +559,7 @@ const apy = async () => {
     filteredPools,
     'morpho',
     (p) => {
-      const match = p.pool.match(/0x[a-fA-F0-9]{40,}/);
+      const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
       return match ? match[0] : p.pool;
     }
   );

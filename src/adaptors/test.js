@@ -5,7 +5,10 @@ const baseFields = {
   symbol: 'string',
 };
 
+const fs = require('fs');
+
 const adapter = global.adapter;
+const adapterPath = global.adapterPath;
 const apy = global.apy;
 const poolsUrl = global.poolsUrl;
 const protocolId = global.protocolId;
@@ -40,12 +43,14 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'apyBaseBorrow',
       'apyRewardBorrow',
       'totalSupplyUsd',
+      'supplyCapUsd',
       'totalBorrowUsd',
       'ltv',
       'borrowable',
       'borrowFactor',
       'debtCeilingUsd',
       'availableBorrowUsd',
+      'borrowMarketOnly',
       'mintedCoin',
       'borrowToken',
       'apyBase7d',
@@ -203,12 +208,39 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
     expect(protocolId).toBe(String(protocol.id));
   });
 
+  test('Adapter assigns protocolId as a string literal inside module.exports', () => {
+    const v2Pattern =
+      /\bmodule\.exports\s*=\s*\{[\s\S]*?\bprotocolId\s*:\s*['"](\d+)['"]/;
+    const source = fs
+      .readFileSync(adapterPath, 'utf8')
+      .replace(/^\s*\/\/.*$/gm, '');
+
+    const staticId = source.match(v2Pattern)?.[1] ?? null;
+
+    if (staticId === null) {
+      const assignment = source.match(/\bprotocolId\s*:\s*([^,\n}]+)/);
+      throw new Error(
+        assignment
+          ? `protocolId is not a literal that yield-server-v2 can read: \`protocolId: ${assignment[1].trim()}\`. ` +
+            `Inline it, eg: protocolId: '${protocolId}'`
+          : `no \`protocolId: '1234'\` found inside a \`module.exports = { ... }\` object literal`
+      );
+    }
+
+    expect(staticId).toBe(String(protocolId));
+  });
+
   describe('Check additional field data rules', () => {
     // All fields added here are treated as optional
     // If a field is present, it will be checked against its rules
     let additionalFieldRules = {
       totalSupplyUsd: {
         type: 'number',
+      },
+      // supply cap in USD; omitted when uncapped (never 0)
+      supplyCapUsd: {
+        type: 'number',
+        min: 0,
       },
       totalBorrowUsd: {
         type: 'number',

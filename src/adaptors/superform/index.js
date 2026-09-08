@@ -52,24 +52,29 @@ const main = async () => {
         calls: vaultAddresses.map((target) => ({ target })),
         chain,
         block: blockNow,
+        permitFailure: true,
       }),
       sdk.api.abi.multiCall({
         abi: 'uint256:totalSupply',
         calls: vaultAddresses.map((target) => ({ target })),
         chain,
         block: blockNow,
+        permitFailure: true,
       }),
       sdk.api.abi.multiCall({
         abi: 'uint256:totalAssets',
         calls: vaultAddresses.map((target) => ({ target })),
         chain,
         block: blockWeekAgo,
+        // vaults deployed <7d ago have no code at this block
+        permitFailure: true,
       }),
       sdk.api.abi.multiCall({
         abi: 'uint256:totalSupply',
         calls: vaultAddresses.map((target) => ({ target })),
         chain,
         block: blockWeekAgo,
+        permitFailure: true,
       }),
       sdk.api.abi.multiCall({
         abi: 'address:asset',

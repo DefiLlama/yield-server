@@ -37,7 +37,6 @@ const apy = async () => {
         tvlUsd: supplies[i] * price,
         apyBase: apyRaw * 100,
         underlyingTokens: [pool.underlying],
-        searchTokenOverride: pool.mint,
         isIntrinsicSource: true,
       };
     })

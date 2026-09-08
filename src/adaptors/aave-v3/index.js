@@ -166,6 +166,10 @@ const getApy = async (market) => {
         (isGho ? ghoPrice : undefined);
       const decimals = Number(underlyingDecimals[i]);
 
+      // totalSupplyUsd is the claims side (aToken supply). On reserves carrying
+      // a v3.3 bad-debt deficit (pool.getReserveDeficit) it exceeds cash+debt,
+      // which is what the Aave UI shows as "total supplied". Kept as claims on
+      // purpose: it is the quantity the on-chain supply cap validates against.
       const supply = isGho ? p.totalAToken : totalSupply[i];
       const totalSupplyUsd = (supply / 10 ** decimals) * price;
 
@@ -177,6 +181,7 @@ const getApy = async (market) => {
         price;
       const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
       const hasBorrowCap = Number(poolsReserveCaps[i].borrowCap) > 0;
+      const supplyCap = Number(poolsReserveCaps[i].supplyCap);
       // Core Ethereum GHO is minted by the Aave facilitator, so available
       // liquidity is constrained by remaining borrow cap, not reserve cash.
       let availableBorrowUsd = null;
@@ -218,6 +223,7 @@ const getApy = async (market) => {
         apyBase: (p.liquidityRate / 10 ** 27) * 100,
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
+        ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
@@ -268,6 +274,7 @@ const getApyAptos = async () => {
       const tvlUsd = totalSupplyUsd - totalBorrowUsd;
       const borrowCapUsd = Number(r.borrowCap) * priceUsd;
       const hasBorrowCap = Number(r.borrowCap) > 0;
+      const supplyCap = Number(r.supplyCap);
       const availableBorrowUsd = hasBorrowCap
         ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
         : tvlUsd;
@@ -281,6 +288,7 @@ const getApyAptos = async () => {
         apyBase: (Number(r.liquidityRate) / 10 ** 27) * 100,
         underlyingTokens: [r.underlyingAsset],
         totalSupplyUsd,
+        ...(supplyCap > 0 && { supplyCapUsd: supplyCap * priceUsd }),
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: Number(r.variableBorrowRate) / 1e25,

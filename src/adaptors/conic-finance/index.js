@@ -13,7 +13,7 @@ const CRV = '0xD533a949740bb3306d119CC777fa900bA034cd52';
 const CVX = '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B';
 const CNC = '0x9aE380F0272E2162340a5bB646c354271c0F5cFC';
 
-const PRICE_API = utils.getPriceApiUrl('/prices/current');
+const priceUrl = (keys) => utils.getPriceApiUrl(`/prices/current/${keys}`);
 const CURVE_APY_API = 'https://www.convexfinance.com/api/curve-apys';
 const CURVE_POOL_API = 'https://api.curve.finance/api/getPools/ethereum/main';
 
@@ -118,7 +118,7 @@ const apy = async () => {
   ).output.map((o) => o.output);
 
   const priceKeys = [...underlying, CNC].map((i) => `ethereum:${i}`).join(',');
-  const prices = (await utils.getData(`${PRICE_API}/${priceKeys}`)).coins;
+  const prices = (await utils.getData(priceUrl(priceKeys))).coins;
 
   const symbols = (
     await sdk.api.abi.multiCall({

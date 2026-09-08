@@ -56,6 +56,7 @@ const formatPair = (pair, chain, protocol, maxLtv) => {
     poolMeta: `${protocol.charAt(0).toUpperCase() + protocol.slice(1)} - ${pair.pair_collateral_token.symbol} collateral`,
     url: 'https://resupply.fi/supply',
     borrowable: debtCeilingUsd > 0,
+    borrowMarketOnly: true,
   };
 };
 

@@ -112,6 +112,7 @@ const getApy = async (market) => {
           10 ** underlyingDecimals[i]) *
         price;
       const borrowCapUsd = Number(poolsReserveCaps[i].borrowCap) * price;
+      const supplyCap = Number(poolsReserveCaps[i].supplyCap);
       const hasBorrowCap = Number(poolsReserveCaps[i].borrowCap) > 0;
       const availableBorrowUsd = hasBorrowCap
         ? Math.max(Math.min(tvlUsd, borrowCapUsd - totalBorrowUsd), 0)
@@ -128,6 +129,7 @@ const getApy = async (market) => {
         apyBase: (p.liquidityRate / 10 ** 27) * 100,
         underlyingTokens: [pool.tokenAddress],
         totalSupplyUsd,
+        ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
         totalBorrowUsd,
         availableBorrowUsd,
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,

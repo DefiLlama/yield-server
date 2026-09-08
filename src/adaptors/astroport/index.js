@@ -33,35 +33,34 @@ const astroDenoms = {
     'ibc/0EC78B75D318EA0AAB6160A12AEE8F3C7FEA3CFEAD001A3B103E11914709F4CE',
 };
 
+// ASTRO is emitted as a native factory denom but tracked under its IBC denom
 const getRewardTokens = (pool) => {
-  const rewardTokens = [];
-  if (pool?.protocolRewards?.apr > 0) {
-    rewardTokens.push(pool?.rewardTokenSymbol);
-  }
-  if (pool?.astroRewards?.apr > 0) {
-    rewardTokens.push(astroDenoms[pool.chainId]);
-  }
-  return rewardTokens.length > 0 ? rewardTokens : undefined;
+  const rewardTokens = (pool.rewards ?? [])
+    .filter((reward) => reward.yield > 0)
+    .map((reward) =>
+      reward.symbol === 'ASTRO' ? astroDenoms[pool.chainId] : reward.denom
+    );
+  return rewardTokens.length > 0 ? [...new Set(rewardTokens)] : undefined;
 };
 
 const apy = async () => {
-  let results = (
-    await axios.get(
-      'https://app.astroport.fi/api/trpc/pools.getAll?input=%7B%22json%22%3A%7B%22chainId%22%3A%22neutron-1%22%7D%7D'
-    )
-  ).data.result.data.json;
+  const results = (await axios.get('https://api.astroport.fi/api/pools')).data;
 
-  const apy = results
-    ?.filter((pool) => pool?.poolLiquidityUsd && pool?.poolLiquidityUsd > 10000)
+  return results
+    .filter(
+      (pool) =>
+        !pool.isDeregistered &&
+        pool.totalLiquidityUSD > 10000 &&
+        chainIdToNames[pool.chainId]
+    )
     .map((pool) => {
-      const apyBase = pool?.tradingFees?.apy
-        ? new num(pool?.tradingFees?.apy).times(100).dp(6).toNumber()
-        : 0;
       const chain = chainIdToNames[pool.chainId];
-      const astroRewards = pool?.astroRewards?.apr || 0;
-      const protocolRewards = pool?.protocolRewards?.apr || 0;
-      const apyReward = new num(astroRewards)
-        .plus(protocolRewards)
+      const apyBase = new num(pool.yield?.poolFees || 0)
+        .times(100)
+        .dp(6)
+        .toNumber();
+      const apyReward = new num(pool.yield?.astro || 0)
+        .plus(pool.yield?.externalRewards || 0)
         .times(100)
         .dp(6)
         .toNumber();
@@ -71,16 +70,17 @@ const apy = async () => {
         project: 'astroport',
         chain,
         symbol: `${pool.assets[0].symbol}-${pool.assets[1].symbol}`,
-        tvlUsd: pool.poolLiquidityUsd || 0,
+        tvlUsd: pool.totalLiquidityUSD || 0,
         apyBase,
         apyReward,
         rewardTokens: getRewardTokens(pool) ?? null,
-        underlyingTokens: [resolveNeutronToken(pool.assets[0].address), resolveNeutronToken(pool.assets[1].address)],
+        underlyingTokens: [
+          resolveNeutronToken(pool.assets[0].denom),
+          resolveNeutronToken(pool.assets[1].denom),
+        ],
         url: `https://app.astroport.fi/pools/${pool.poolAddress}/provide`,
       };
     });
-
-  return apy;
 };
 
 module.exports = {

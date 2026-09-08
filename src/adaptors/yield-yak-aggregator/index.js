@@ -8,6 +8,7 @@ const CHAIN_CONFIG = {
   '43114': { chain: 'avax', chainName: 'Avalanche' },
   '42161': { chain: 'arbitrum', chainName: 'Arbitrum' },
   '5000': { chain: 'mantle', chainName: 'Mantle' },
+  '8453': { chain: 'base', chainName: 'Base', noFarms: true },
 }
 
 // Yield Yak vaults configuration
@@ -68,6 +69,14 @@ const VAULTS = [
     symbol: 'sSUZ',
     underlyingToken: '0x451532F1C9eb7E4Dc2d493dB52b682C0Acf6F5EF',
     rateDecimals: 18,
+  },
+  {
+    chainId: '8453',
+    address: '0xB5803023B8fa8BFe7d64E373297dFaA24e3B5962',
+    accountant: '0x0D7e98D765E19760499670ba674079442451eeb8',
+    symbol: 'yiUSD',
+    underlyingToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    rateDecimals: 6,
   }
 ];
 
@@ -309,7 +318,9 @@ const getFarms = async (chainId) => {
 }
 
 const getAllFarmData = async () => {
-  const farmPromises = Object.keys(CHAIN_CONFIG).map(chainId => getFarms(chainId));
+  const farmPromises = Object.keys(CHAIN_CONFIG)
+    .filter(chainId => !CHAIN_CONFIG[chainId].noFarms)
+    .map(chainId => getFarms(chainId));
   const farmResults = await Promise.all(farmPromises);
   return farmResults.flat();
 }

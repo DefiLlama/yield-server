@@ -3,9 +3,8 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const CHAIN = 'ethereum';
-const VAULT = '0xb9c1344105faa4681bc7ffd68c5c526da61f2ae8';
+const VAULT = '0xd7956afcff5ebb0a84a2470aed3d8147cc00e617';
 const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
-const ASRT = '0x3d2A8C1CFB03b6aC5C7171076253Bd05622c22e9';
 const BASE_URL = 'https://engine.aarna.ai/api/v2/afi';
 
 const apy = async () => {
@@ -29,11 +28,9 @@ const apy = async () => {
       symbol: 'atvPTMax',
       tvlUsd,
       apyBase: apyData.baseAPY,
-      apyReward: apyData.boostedAPY,
-      rewardTokens: [ASRT],
       underlyingTokens: [USDC],
       poolMeta: 'atvPTMax',
-      url: 'https://app.aarna.ai',
+      url: 'https://engine.aarna.ai/',
     },
   ];
 };

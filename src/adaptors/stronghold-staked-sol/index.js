@@ -30,7 +30,6 @@ const apy = async () => {
       tvlUsd: totalSupply * currentPrice,
       apyBase,
       underlyingTokens: [SOL],
-      searchTokenOverride: STRONGSOL_MINT,
       poolMeta: '2.5% rewards fee',
       isIntrinsicSource: true,
     },

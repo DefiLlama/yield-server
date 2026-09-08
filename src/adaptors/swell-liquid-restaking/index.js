@@ -60,7 +60,6 @@ const apy = async () => {
       ...(apr7d !== undefined && { apyBase7d: apr7d }),
       ...(rate > 0 && { pricePerShare: rate }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: rswETH,
       isIntrinsicSource: true,
     },
   ];

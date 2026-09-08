@@ -22,9 +22,12 @@ const yuzuConfig = {
   },
   ethereum: {
     usdt: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+    usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
     yzUSD: { address: '0x387167e5C088468906Bcd67C06746409a8E44abA', unit: UNIT },
     syzUSD: { address: '0x6DFF69eb720986E98Bb3E8b26cb9E02Ec1a35D12', unit: UNIT },
     yzPP: { address: '0xB2429bA2cfa6387C9A336Da127d34480C069F851', unit: UNIT },
+    yzCash: { address: '0x224e90591A2d63fb66E677D0561Ea4A6Ad1F098D', unit: UNIT },
+    yzSyrup: { address: '0xC9854f2AF89d4d26837004d1e154Bd3C3C1009b1', unit: UNIT },
   },
   monad: {
     usdt: '0xe7cd86e13ac4309349f30b3435a9d337750fc82d',
@@ -68,6 +71,16 @@ const TOKEN_META = {
     symbol: 'yzPrime',
     url: 'https://app.yuzu.money/rwa/yzprime',
     getUnderlyingTokens: () => [yuzuConfig.monad.usdc],
+  },
+  yzCash: {
+    symbol: 'yzCash',
+    url: 'https://app.yuzu.money/marketplace/cash',
+    getUnderlyingTokens: () => [yuzuConfig.ethereum.usdc],
+  },
+  yzSyrup: {
+    symbol: 'yzSyrup',
+    url: 'https://app.yuzu.money/marketplace/syrup',
+    getUnderlyingTokens: () => [yuzuConfig.ethereum.usdc],
   },
 };
 
@@ -151,7 +164,12 @@ const calculateApy = async (chain, token, underlyingAssetUnit) => {
   const [startBlock] = await utils.getBlocksByTime([startTimestamp], chain);
 
   const [startPrice, currentPrice] = await Promise.all([
-    getRedemptionPrice(chain, startBlock, token, underlyingAssetUnit),
+    // Vaults younger than the reference period revert when queried at a
+    // pre-deployment block; fall back to NaN so APY degrades to 0 instead
+    // of rejecting and taking down every pool.
+    getRedemptionPrice(chain, startBlock, token, underlyingAssetUnit).catch(
+      () => NaN,
+    ),
     getRedemptionPrice(chain, currentBlock.block, token, underlyingAssetUnit),
   ]);
 
@@ -196,13 +214,13 @@ const fetchPoolsForToken = async (tokenKey, unit) => {
 };
 
 /**
- * yzPrime is deployed on Monad only and redeems into USDC.
+ * Fetch a single-chain ERC4626-style vault that redeems directly into USDC
+ * (yzPrime on Monad, yzCash on Ethereum).
  * TVL = totalSupply × pricePerShare(USDC) × USDC price.
  */
-const fetchYzPrimePool = async () => {
-  const chain = 'monad';
-  const meta = TOKEN_META.yzPrime;
-  const token = yuzuConfig[chain].yzPrime;
+const fetchSingleChainUsdcVaultPool = async (chain, tokenKey) => {
+  const meta = TOKEN_META[tokenKey];
+  const token = yuzuConfig[chain][tokenKey];
 
   const [totalSupply, apyResult, usdcPrice] = await Promise.all([
     getTotalSupply(chain, token),
@@ -229,13 +247,16 @@ const fetchYzPrimePool = async () => {
 };
 
 const apy = async () => {
-  const [syzUSDPools, yzPPPools, yzPrimePool] = await Promise.all([
-    fetchPoolsForToken('syzUSD', UNIT),
-    fetchPoolsForToken('yzPP', USDT_UNIT),
-    fetchYzPrimePool(),
-  ]);
+  const [syzUSDPools, yzPPPools, yzPrimePool, yzCashPool, yzSyrupPool] =
+    await Promise.all([
+      fetchPoolsForToken('syzUSD', UNIT),
+      fetchPoolsForToken('yzPP', USDT_UNIT),
+      fetchSingleChainUsdcVaultPool('monad', 'yzPrime'),
+      fetchSingleChainUsdcVaultPool('ethereum', 'yzCash'),
+      fetchSingleChainUsdcVaultPool('ethereum', 'yzSyrup'),
+    ]);
 
-  return [...syzUSDPools, ...yzPPPools, yzPrimePool];
+  return [...syzUSDPools, ...yzPPPools, yzPrimePool, yzCashPool, yzSyrupPool];
 };
 
 module.exports = {

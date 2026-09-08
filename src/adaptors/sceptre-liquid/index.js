@@ -7,7 +7,7 @@ const CONFIG = {
   SFLR_ADDRESS: '0x12e605bc104e93b45e1ad99f9e555f659051c2bb',
   WFLR_ADDRESS: '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d',
   FLARE_CHAIN: 'flare',
-  PRICE_API: getPriceApiUrl('/prices/current'),
+  PRICE_URL: (keys) => getPriceApiUrl(`/prices/current/${keys}`),
   REWARDS_API: 'https://rewards.sceptre.fi/v1/flare',
   TIMEOUT_MS: 10000,
   RETRY_ATTEMPTS: 3,
@@ -50,7 +50,7 @@ async function fetchTotalPooledFlr() {
 
 async function fetchFlarePrice() {
   const priceKey = `${CONFIG.FLARE_CHAIN}:${CONFIG.WFLR_ADDRESS.toLowerCase()}`;
-  const pricesResponse = await fetchWithRetry(`${CONFIG.PRICE_API}/${priceKey}`);
+  const pricesResponse = await fetchWithRetry(CONFIG.PRICE_URL(priceKey));
   return new BigNumber(pricesResponse.coins[priceKey].price);
 }
 

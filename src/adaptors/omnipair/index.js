@@ -4,7 +4,7 @@ const { getPriceApiUrl } = require('../utils');
 const API_BASE = 'https://api.indexer.omnipair.fi/api/v1';
 const MARKETS_URL = 'https://www.omnipair.fi/markets';
 const MARKET_URL_BASE = 'https://www.omnipair.fi/market';
-const DEFILLAMA_PRICES_URL = getPriceApiUrl('/prices/current');
+const priceUrl = (keys) => getPriceApiUrl(`/prices/current/${keys}`);
 
 function toNumber(value) {
   const n = Number(value);
@@ -67,7 +67,7 @@ async function fetchDefiLlamaTokenPrices(rawPools) {
   if (!addresses.length) return {};
 
   const coins = addresses.map((address) => `solana:${address}`).join(',');
-  const { data } = await axios.get(`${DEFILLAMA_PRICES_URL}/${coins}`, {
+  const { data } = await axios.get(priceUrl(coins), {
     timeout: 30000,
   });
 

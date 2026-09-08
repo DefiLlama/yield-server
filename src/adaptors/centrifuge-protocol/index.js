@@ -37,6 +37,7 @@ const VAULTS_QUERY = `query($cursor: String) {
         symbol
         decimals
         pool { name }
+        tokenInstances { items { centrifugeId address } }
       }
       asset {
         symbol
@@ -178,6 +179,11 @@ async function processChain(chain, vaults) {
       const shareDecimals = v.token?.decimals;
       if (shareDecimals == null) continue;
       const tokenName = v.token?.name ?? v.token?.symbol ?? 'Unknown';
+      // the receipt token is the share token deployed on this vault's chain,
+      // not the vault address the pool id is built from
+      const shareToken = v.token?.tokenInstances?.items?.find(
+        (t) => t.centrifugeId === v.centrifugeId
+      )?.address;
       const pricePerShare =
         Number(pNow.output) / 10 ** (decimals + 18 - shareDecimals);
 
@@ -186,6 +192,7 @@ async function processChain(chain, vaults) {
         chain: utils.formatChain(chain),
         project: 'centrifuge-protocol',
         symbol: assetSymbol,
+        token: shareToken ?? null,
         tvlUsd,
         apyBase: apyBase7d ?? apyBase ?? null,
         apyBase7d,

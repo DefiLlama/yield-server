@@ -1,5 +1,5 @@
 const { networks, chainAliases } = require('./config');
-const { merklGet } = require('./merkl-client');
+const { merklGet, getRewardApr } = require('./merkl-client');
 
 const getChainAliases = (canonical) =>
   chainAliases[canonical] || [canonical];
@@ -77,9 +77,10 @@ exports.addMerklRewardApy = async (
           pool.rewardsRecord?.breakdowns.map(x => x.token.address) || [],
         ),
       ];
+      const apr = getRewardApr(pool);
       const entry = isBorrow
-        ? { apyRewardBorrow: pool.apr, rewardTokens }
-        : { apyReward: pool.apr, rewardTokens };
+        ? { apyRewardBorrow: apr, rewardTokens }
+        : { apyReward: apr, rewardTokens };
       const id = pool.identifier.toLowerCase();
       // Also index under each token address so adapters keying on a
       // receipt/wrapper token (e.g. an aToken or vault share) can match

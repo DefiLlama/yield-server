@@ -90,7 +90,6 @@ const apy = async () => {
       ...(Number(rateNow.output) / 1e18 > 0 && { pricePerShare: Number(rateNow.output) / 1e18 }),
       tvlUsd: tvlUsd,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: EZETH_CONTRACT_ADDRESS,
       isIntrinsicSource: true,
     },
   ];

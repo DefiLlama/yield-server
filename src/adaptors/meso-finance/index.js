@@ -1,7 +1,7 @@
 const utils = require('../utils');
 
 const NODE_URL = 'https://fullnode.mainnet.aptoslabs.com/v1';
-const COINS_LLAMA_PRICE_URL = utils.getPriceApiUrl('/prices/current/');
+const priceUrl = (keys) => utils.getPriceApiUrl(`/prices/current/${keys}`);
 
 const COINS = [
   ['APT', 'coingecko:aptos', 8, '0x1::aptos_coin::AptosCoin'],
@@ -68,12 +68,12 @@ async function main() {
       const pool = map.get(coinAddr);
 
       const priceRes = await utils.getData(
-        `${COINS_LLAMA_PRICE_URL}${priceId}`
+        priceUrl(priceId)
       );
       let coinPrice = priceRes['coins']?.[priceId]?.['price'];
       if (!coinPrice) {
         const aptosPriceRes = await utils.getData(
-          `${COINS_LLAMA_PRICE_URL}aptos:${coinAddr}`
+          priceUrl(`aptos:${coinAddr}`)
         );
         coinPrice = aptosPriceRes['coins'][`aptos:${coinAddr}`]?.price;
       }
