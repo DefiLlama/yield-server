@@ -29,6 +29,7 @@ const CHAIN_TYPE_AND_NAMES: ByChainTypeAndId<string> = {
     747_474: 'Katana',
     4_326: 'MegaETH',
     1: 'Ethereum',
+    57073: 'Ink',
   },
   aptos: {
     1: 'Aptos',
@@ -196,7 +197,7 @@ module.exports = {
     let page = 1;
     while (true) {
       const response = (await getData(
-        `https://api.metrom.xyz/v2/campaigns/rewards?page=${page}&pageSize=${PAGE_SIZE}&statuses=active`
+        `https://api.metrom.xyz/v2/campaigns/rewards?page=${page}&pageSize=${PAGE_SIZE}&statuses=active`,
       )) as CampaignsResponse;
 
       for (const campaign of response.campaigns) {
@@ -220,7 +221,7 @@ module.exports = {
           processedCampaign = await processCampaign(campaign);
         } catch (err) {
           console.error(
-            `Could not process campaign with id ${campaign.id}: ${err}`
+            `Could not process campaign with id ${campaign.id}: ${err}`,
           );
           continue;
         }
@@ -260,7 +261,7 @@ interface ProcessedCampaign {
 }
 
 async function processCampaign(
-  campaign: Campaign
+  campaign: Campaign,
 ): Promise<ProcessedCampaign | null> {
   switch (campaign.target.type) {
     case 'amm-pool-liquidity': {
@@ -283,7 +284,7 @@ async function processCampaign(
         underlyingTokens: [campaign.target.collateral.address],
         poolMeta: humanizeTargetProtocol(
           'Stability pool on',
-          campaign.target.brand
+          campaign.target.brand,
         ),
       };
     }
@@ -315,7 +316,7 @@ async function processCampaign(
     }
     case 'turtle': {
       const opportunity = await getTurtleOpportunity(
-        campaign.target.opportunityId
+        campaign.target.opportunityId,
       );
       const incentives =
         opportunity?.incentives || campaign.target.incentives || [];
@@ -323,7 +324,7 @@ async function processCampaign(
       return {
         symbol: (opportunity?.name || campaign.target.name).replace(
           /^Katana\s+/i,
-          ''
+          '',
         ),
         underlyingTokens: getTurtleUnderlyingTokens(opportunity),
         url: opportunity?.url,
@@ -359,7 +360,7 @@ async function processCampaign(
         underlyingTokens: [campaign.target.vault.asset],
         poolMeta: humanizeTargetProtocol(
           'Deposit to',
-          campaign.target.vault.name
+          campaign.target.vault.name,
         ),
       };
     }
@@ -370,17 +371,17 @@ async function processCampaign(
 }
 
 async function getTurtleOpportunity(
-  opportunityId: string
+  opportunityId: string,
 ): Promise<TurtleOpportunity | null> {
   if (!opportunityId) return null;
 
   try {
     return (await getData(
-      `${TURTLE_OPPORTUNITY_URL}/${opportunityId}`
+      `${TURTLE_OPPORTUNITY_URL}/${opportunityId}`,
     )) as TurtleOpportunity;
   } catch (err) {
     console.error(
-      `Could not fetch Turtle opportunity with id ${opportunityId}: ${err}`
+      `Could not fetch Turtle opportunity with id ${opportunityId}: ${err}`,
     );
     return null;
   }
@@ -396,7 +397,7 @@ function getTurtleUnderlyingTokens(opportunity?: TurtleOpportunity | null) {
 function getTurtleApyFields(incentives: Incentive[], totalApy?: number) {
   const baseIncentives = incentives.filter(isBaseYieldIncentive);
   const rewardIncentives = incentives.filter(
-    (incentive) => !isBaseYieldIncentive(incentive)
+    (incentive) => !isBaseYieldIncentive(incentive),
   );
   const apyBase = sumIncentives(baseIncentives);
   const apyReward = sumIncentives(rewardIncentives);
@@ -409,7 +410,7 @@ function getTurtleApyFields(incentives: Incentive[], totalApy?: number) {
       ? {
           apyReward,
           rewardTokens: Array.from(
-            new Set(rewardIncentives.map(getRewardToken).filter(Boolean))
+            new Set(rewardIncentives.map(getRewardToken).filter(Boolean)),
           ),
         }
       : {}),
@@ -418,7 +419,7 @@ function getTurtleApyFields(incentives: Incentive[], totalApy?: number) {
 
 function isBaseYieldIncentive(incentive: Incentive) {
   return ['native yield', 'lending yield'].includes(
-    incentive.name.toLowerCase()
+    incentive.name.toLowerCase(),
   );
 }
 
@@ -438,7 +439,7 @@ function getRewardToken(incentive: Incentive) {
 
 function getCampaignApyFields(
   campaign: Campaign,
-  processedCampaign: ProcessedCampaign
+  processedCampaign: ProcessedCampaign,
 ) {
   if (
     Number.isFinite(processedCampaign.apy) ||
