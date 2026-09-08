@@ -1,12 +1,14 @@
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, withRetry } = require('../utils');
 const {
-  callReadOnlyFunction,
+  ClarityType,
   contractPrincipalCV,
-  cvToValue,
+  cvToHex,
+  hexToCV,
 } = require('@stacks/transactions');
-const { StacksMainnet } = require('@stacks/network');
 
+const HIRO = 'https://api.hiro.so';
+const RETRY = { retries: 3, delayMs: 8000 };
 const DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7';
 const DATA_READER = 'v0-5-data';
 const SBTC = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token';
@@ -77,25 +79,25 @@ const POOLS = [
   },
 ];
 
-const toNum = (cv) => {
-  const v = cvToValue(cv);
-  if (typeof v === 'object' && v !== null && 'value' in v) return Number(v.value);
-  return Number(v);
+const unwrap = (cv) => {
+  if (cv.type === ClarityType.ResponseOk) return unwrap(cv.value);
+  if (cv.type === ClarityType.Tuple) return cv.data;
+  return cv;
 };
 
-const readOnly = async (network, contractName, functionName, functionArgs = []) =>
-  callReadOnlyFunction({
-    contractAddress: DEPLOYER,
-    contractName,
-    functionName,
-    functionArgs,
-    network,
-    senderAddress: DEPLOYER,
-  });
+const readOnly = async (contractName, functionName, functionArgs = []) => {
+  const url = `${HIRO}/v2/contracts/call-read/${DEPLOYER}/${contractName}/${functionName}`;
+  const { data } = await withRetry(
+    () => axios.post(url, { sender: DEPLOYER, arguments: functionArgs.map(cvToHex) }),
+    RETRY
+  );
+  if (!data.okay) throw new Error(`${contractName}.${functionName} failed: ${data.cause}`);
+  return unwrap(hexToCV(data.result));
+};
 
 const fetchPrices = async () => {
   const keys = [...new Set(POOLS.flatMap((p) => p.priceKeys))].join(',');
-  const { data } = await axios.get(getPriceApiUrl(`/prices/current/${keys}`));
+  const { data } = await withRetry(() => axios.get(getPriceApiUrl(`/prices/current/${keys}`)), RETRY);
   return data.coins;
 };
 
@@ -106,29 +108,27 @@ const getPrice = (prices, priceKeys) => {
   return null;
 };
 
-const fetchRates = async (network, pool) => {
+const fetchRates = async (pool) => {
   const [address, name] = pool.underlying.split('.');
-  const result = await readOnly(network, DATA_READER, 'get-asset-apys', [
+  const data = await readOnly(DATA_READER, 'get-asset-apys', [
     contractPrincipalCV(address, name),
   ]);
-  const data = result.value.data;
   return {
     supplyApy: Number(data['supply-apy'].value) / 100,
     borrowApy: Number(data['borrow-apy'].value) / 100,
   };
 };
 
-const fetchVault = async (network, pool) => {
+const fetchVault = async (pool) => {
   const [assets, debt] = await Promise.all([
-    readOnly(network, pool.vaultContract, 'get-total-assets'),
-    readOnly(network, pool.vaultContract, 'get-debt'),
+    readOnly(pool.vaultContract, 'get-total-assets'),
+    readOnly(pool.vaultContract, 'get-debt'),
   ]);
   const scale = Math.pow(10, pool.decimals);
-  return { totalAssets: toNum(assets) / scale, totalBorrowed: toNum(debt) / scale };
+  return { totalAssets: Number(assets.value) / scale, totalBorrowed: Number(debt.value) / scale };
 };
 
 const apy = async () => {
-  const network = new StacksMainnet();
   const prices = await fetchPrices();
   const results = [];
 
@@ -140,8 +140,8 @@ const apy = async () => {
         continue;
       }
       const [rates, vault] = await Promise.all([
-        fetchRates(network, pool),
-        fetchVault(network, pool),
+        fetchRates(pool),
+        fetchVault(pool),
       ]);
       const totalSupplyUsd = vault.totalAssets * price;
       const totalBorrowUsd = vault.totalBorrowed * price;

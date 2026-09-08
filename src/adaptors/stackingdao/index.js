@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { hexToCV, cvToValue } = require('@stacks/transactions');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, withRetry } = require('../utils');
 
 const HIRO = 'https://api.hiro.so';
 const DEPLOYER = 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG';
@@ -36,18 +36,7 @@ const STBTC_MIN_SUPPLY = 0.001;
 const TXS_PER_PAGE = 50;
 const MAX_TX_PAGES = 4;
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const withRetry = async (fn, attempts = 4) => {
-  for (let i = 0; ; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (error.response?.status !== 429 || i >= attempts - 1) throw error;
-      await sleep(10000 * (i + 1));
-    }
-  }
-};
+const RETRY = { retries: 3, delayMs: 8000 };
 
 const toNum = (cv) => {
   const v = cvToValue(cv);
@@ -58,16 +47,17 @@ const toNum = (cv) => {
 const readOnly = async (contract, fn, tip) => {
   const [address, name] = contract.split('.');
   const url = `${HIRO}/v2/contracts/call-read/${address}/${name}/${fn}${tip ? `?tip=${tip.replace(/^0x/, '')}` : ''}`;
-  const { data } = await withRetry(() => axios.post(url, { sender: DEPLOYER, arguments: [] }));
+  const { data } = await withRetry(() => axios.post(url, { sender: DEPLOYER, arguments: [] }), RETRY);
   if (!data.okay) throw new Error(`${contract}.${fn} failed: ${data.cause}`);
   return toNum(hexToCV(data.result));
 };
 
-const getJson = async (path) => (await withRetry(() => axios.get(`${HIRO}${path}`))).data;
+const getJson = async (path) => (await withRetry(() => axios.get(`${HIRO}${path}`), RETRY)).data;
 
 const fetchPrices = async () => {
-  const { data } = await axios.get(
-    getPriceApiUrl('/prices/current/coingecko:blockstack,coingecko:bitcoin')
+  const { data } = await withRetry(
+    () => axios.get(getPriceApiUrl('/prices/current/coingecko:blockstack,coingecko:bitcoin')),
+    RETRY
   );
   return {
     stx: data.coins['coingecko:blockstack'].price,
