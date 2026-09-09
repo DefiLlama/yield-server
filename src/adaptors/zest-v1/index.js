@@ -9,6 +9,7 @@ const {
 
 const HIRO = 'https://api.hiro.so';
 const RETRY = { retries: 3, delayMs: 8000 };
+const HTTP = { timeout: 30000 };
 const DEPLOYER = 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N';
 const POOL_READ = 'pool-read-v2-1-4';
 const POOL_VAULT = `${DEPLOYER}.pool-vault`;
@@ -77,7 +78,7 @@ const unwrap = (cv) => {
 const readOnly = async (contractName, functionName, functionArgs = []) => {
   const url = `${HIRO}/v2/contracts/call-read/${DEPLOYER}/${contractName}/${functionName}`;
   const { data } = await withRetry(
-    () => axios.post(url, { sender: DEPLOYER, arguments: functionArgs.map(cvToHex) }),
+    () => axios.post(url, { sender: DEPLOYER, arguments: functionArgs.map(cvToHex) }, HTTP),
     RETRY
   );
   if (!data.okay) throw new Error(`${contractName}.${functionName} failed: ${data.cause}`);
@@ -86,7 +87,7 @@ const readOnly = async (contractName, functionName, functionArgs = []) => {
 
 const fetchPrices = async () => {
   const keys = [...new Set(ASSETS.flatMap((a) => a.priceKeys))].join(',');
-  const { data } = await withRetry(() => axios.get(getPriceApiUrl(`/prices/current/${keys}`)), RETRY);
+  const { data } = await withRetry(() => axios.get(getPriceApiUrl(`/prices/current/${keys}`), HTTP), RETRY);
   return data.coins;
 };
 
@@ -99,7 +100,7 @@ const getPrice = (prices, priceKeys) => {
 
 const fetchVaultBalances = async () => {
   const { data } = await withRetry(
-    () => axios.get(`${HIRO}/extended/v1/address/${POOL_VAULT}/balances`),
+    () => axios.get(`${HIRO}/extended/v1/address/${POOL_VAULT}/balances`, HTTP),
     RETRY
   );
   const balances = { stx: Number(data.stx.balance) };

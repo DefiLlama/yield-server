@@ -37,6 +37,7 @@ const TXS_PER_PAGE = 50;
 const MAX_TX_PAGES = 4;
 
 const RETRY = { retries: 3, delayMs: 8000 };
+const HTTP = { timeout: 30000 };
 
 const toNum = (cv) => {
   const v = cvToValue(cv);
@@ -47,16 +48,16 @@ const toNum = (cv) => {
 const readOnly = async (contract, fn, tip) => {
   const [address, name] = contract.split('.');
   const url = `${HIRO}/v2/contracts/call-read/${address}/${name}/${fn}${tip ? `?tip=${tip.replace(/^0x/, '')}` : ''}`;
-  const { data } = await withRetry(() => axios.post(url, { sender: DEPLOYER, arguments: [] }), RETRY);
+  const { data } = await withRetry(() => axios.post(url, { sender: DEPLOYER, arguments: [] }, HTTP), RETRY);
   if (!data.okay) throw new Error(`${contract}.${fn} failed: ${data.cause}`);
   return toNum(hexToCV(data.result));
 };
 
-const getJson = async (path) => (await withRetry(() => axios.get(`${HIRO}${path}`), RETRY)).data;
+const getJson = async (path) => (await withRetry(() => axios.get(`${HIRO}${path}`, HTTP), RETRY)).data;
 
 const fetchPrices = async () => {
   const { data } = await withRetry(
-    () => axios.get(getPriceApiUrl('/prices/current/coingecko:blockstack,coingecko:bitcoin')),
+    () => axios.get(getPriceApiUrl('/prices/current/coingecko:blockstack,coingecko:bitcoin'), HTTP),
     RETRY
   );
   return {
@@ -119,7 +120,7 @@ const fetchLatestClaimBatch = async () => {
 };
 
 const fetchLstApys = async (prices) => {
-  const [batch, pox, commissionBps, ststxbtcBps, ststxBps, supplyBtcV1, supplyBtcV2, supplyStstx, ratio] =
+  const [batch, pox, commissionBps, ststxbtcBps, ststxBps, supplyBtcV1, supplyBtcV2, supplyStstx, liveEscrow, ratio] =
     await Promise.all([
       fetchLatestClaimBatch(),
       getJson('/v2/pox'),
@@ -129,11 +130,12 @@ const fetchLstApys = async (prices) => {
       readOnly(CONTRACTS.ststxbtcTokenV1, 'get-total-supply'),
       readOnly(CONTRACTS.ststxbtcTokenV2, 'get-total-supply'),
       readOnly(CONTRACTS.ststxToken, 'get-total-supply'),
+      readOnly(CONTRACTS.dataStx, 'get-live-escrow'),
       readOnly(CONTRACTS.dataStx, 'get-stx-per-ststx'),
     ]);
 
   const ststxbtcStx = (supplyBtcV1 + supplyBtcV2) / 1e6;
-  const ststxStx = (supplyStstx / 1e6) * (ratio / 1e6);
+  const ststxStx = (Math.max(supplyStstx - liveEscrow, 0) / 1e6) * (ratio / 1e6);
   const result = { ststxStx, ststxbtcStx, ststx: null, ststxbtc: null };
   if (!batch || batch.grossSats <= 0 || ststxStx <= 0 || ststxbtcStx <= 0) return result;
 
@@ -157,7 +159,10 @@ const resolveTipAtBurnHeight = async (burnHeight) => {
   for (let offset = 0; offset <= 10; offset++) {
     const candidates = offset === 0 ? [burnHeight] : [burnHeight + offset, burnHeight - offset];
     for (const h of candidates) {
-      const data = await getJson(`/extended/v2/burn-blocks/${h}/blocks?limit=1`).catch(() => null);
+      const data = await getJson(`/extended/v2/burn-blocks/${h}/blocks?limit=1`).catch((error) => {
+        if (error.response?.status === 404) return null;
+        throw error;
+      });
       const block = data?.results?.[0];
       if (block?.index_block_hash) return block.index_block_hash;
     }
@@ -166,13 +171,14 @@ const resolveTipAtBurnHeight = async (burnHeight) => {
 };
 
 const fetchStbtc = async (prices) => {
-  const [pox, ratioNow, supplyNow] = await Promise.all([
+  const [pox, ratioNow, supplyNow, pendingShares] = await Promise.all([
     getJson('/v2/pox'),
     readOnly(CONTRACTS.dataStbtc, 'get-sbtc-per-stbtc'),
     readOnly(CONTRACTS.stbtcToken, 'get-total-supply'),
+    readOnly(CONTRACTS.dataStbtc, 'get-pending-shares'),
   ]);
   const ratio = ratioNow / 1e8;
-  const supply = supplyNow / 1e8;
+  const supply = Math.max(supplyNow - pendingShares, 0) / 1e8;
   const result = { tvlUsd: supply * ratio * prices.btc, apy: null };
   if (supply < STBTC_MIN_SUPPLY) return result;
 

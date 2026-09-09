@@ -9,8 +9,10 @@ const {
 
 const HIRO = 'https://api.hiro.so';
 const RETRY = { retries: 3, delayMs: 8000 };
+const HTTP = { timeout: 30000 };
 const DEPLOYER = 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7';
-const DATA_READER = 'v0-5-data';
+const DATA_READER = `${DEPLOYER}.v0-5-data`;
+const STBTC_DATA = 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.data-stbtc-v1';
 const SBTC = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token';
 const CHAIN = 'Stacks';
 const URL = 'https://app.zestprotocol.com/market/main';
@@ -76,6 +78,7 @@ const POOLS = [
     underlying: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.stbtc-token',
     decimals: 8,
     priceKeys: [`stacks:${SBTC}`, 'coingecko:bitcoin'],
+    exchangeRate: { contract: STBTC_DATA, fn: 'get-sbtc-per-stbtc', scale: 1e8 },
   },
 ];
 
@@ -85,20 +88,27 @@ const unwrap = (cv) => {
   return cv;
 };
 
-const readOnly = async (contractName, functionName, functionArgs = []) => {
-  const url = `${HIRO}/v2/contracts/call-read/${DEPLOYER}/${contractName}/${functionName}`;
+const readOnly = async (contractId, functionName, functionArgs = []) => {
+  const [address, name] = contractId.split('.');
+  const url = `${HIRO}/v2/contracts/call-read/${address}/${name}/${functionName}`;
   const { data } = await withRetry(
-    () => axios.post(url, { sender: DEPLOYER, arguments: functionArgs.map(cvToHex) }),
+    () => axios.post(url, { sender: DEPLOYER, arguments: functionArgs.map(cvToHex) }, HTTP),
     RETRY
   );
-  if (!data.okay) throw new Error(`${contractName}.${functionName} failed: ${data.cause}`);
+  if (!data.okay) throw new Error(`${contractId}.${functionName} failed: ${data.cause}`);
   return unwrap(hexToCV(data.result));
 };
 
 const fetchPrices = async () => {
   const keys = [...new Set(POOLS.flatMap((p) => p.priceKeys))].join(',');
-  const { data } = await withRetry(() => axios.get(getPriceApiUrl(`/prices/current/${keys}`)), RETRY);
+  const { data } = await withRetry(() => axios.get(getPriceApiUrl(`/prices/current/${keys}`), HTTP), RETRY);
   return data.coins;
+};
+
+const fetchExchangeRate = async (pool) => {
+  if (!pool.exchangeRate) return 1;
+  const { contract, fn, scale } = pool.exchangeRate;
+  return Number((await readOnly(contract, fn)).value) / scale;
 };
 
 const getPrice = (prices, priceKeys) => {
@@ -121,8 +131,8 @@ const fetchRates = async (pool) => {
 
 const fetchVault = async (pool) => {
   const [assets, debt] = await Promise.all([
-    readOnly(pool.vaultContract, 'get-total-assets'),
-    readOnly(pool.vaultContract, 'get-debt'),
+    readOnly(`${DEPLOYER}.${pool.vaultContract}`, 'get-total-assets'),
+    readOnly(`${DEPLOYER}.${pool.vaultContract}`, 'get-debt'),
   ]);
   const scale = Math.pow(10, pool.decimals);
   return { totalAssets: Number(assets.value) / scale, totalBorrowed: Number(debt.value) / scale };
@@ -134,15 +144,17 @@ const apy = async () => {
 
   for (const pool of POOLS) {
     try {
-      const price = getPrice(prices, pool.priceKeys);
-      if (!price) {
+      const basePrice = getPrice(prices, pool.priceKeys);
+      if (!basePrice) {
         console.log(`Skipping ${pool.symbol}: price not available`);
         continue;
       }
-      const [rates, vault] = await Promise.all([
+      const [rates, vault, exchangeRate] = await Promise.all([
         fetchRates(pool),
         fetchVault(pool),
+        fetchExchangeRate(pool),
       ]);
+      const price = basePrice * exchangeRate;
       const totalSupplyUsd = vault.totalAssets * price;
       const totalBorrowUsd = vault.totalBorrowed * price;
 
