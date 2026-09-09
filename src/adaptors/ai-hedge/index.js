@@ -4,6 +4,10 @@ const LISTINGS_URL =
   process.env.AI_HEDGE_LISTINGS_URL ||
   'https://server-yield.aihedge.finance/api/v1/listings/vaults';
 
+/**
+ * Fetches and formats active AI Hedge ERC-4626 vault yield and TVL metrics.
+ * @returns {Promise<Array<{pool: string, chain: string, project: string, symbol: string, tvlUsd: number, apyBase: number, apyBase7d?: number, underlyingTokens: string[], url: string}>>} Array of formatted pool objects for DeFiLlama
+ */
 async function apy() {
   const vaults = await utils.getData(LISTINGS_URL);
 
