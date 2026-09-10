@@ -1,30 +1,30 @@
-// Cube DEX yield adapter. Lists every enabled Cube pool with its current
+// Coffer DEX yield adapter. Lists every enabled Coffer pool with its current
 // TVL, fee-derived APY (24h and 7d), volume, and underlying token mints.
 //
 // Data source: https://api.coffer.so/api/defillama/yields — a small open
-// REST endpoint that reads the Cube backend's on-chain swap-event
+// REST endpoint that reads the Coffer backend's on-chain swap-event
 // indexer (the same indexer that drives the volume/fee adapters in
 // dimension-adapters).
 
 const utils = require('../utils');
 
-// Cube rebranded to Coffer; keep existing pool IDs and the adapter slug.
+// Cube rebranded to Coffer (protocol id 7798); pool IDs are unchanged.
 const API_URL = 'https://api.coffer.so/api/defillama/yields';
 
 const apy = async () => {
   const res = await fetch(API_URL);
   if (!res.ok) {
-    throw new Error(`Cube yields API returned HTTP ${res.status}`);
+    throw new Error(`Coffer yields API returned HTTP ${res.status}`);
   }
   const data = await res.json();
   if (!data || !Array.isArray(data.pools)) {
-    throw new Error(`Cube yields API returned invalid response: ${JSON.stringify(data).slice(0, 200)}`);
+    throw new Error(`Coffer yields API returned invalid response: ${JSON.stringify(data).slice(0, 200)}`);
   }
 
   const mapped = data.pools.map((p) => ({
     pool: p.pool,
     chain: 'Solana',
-    project: 'cube',
+    project: 'coffer',
     symbol: p.symbol,
     tvlUsd: p.tvlUsd,
     apyBase: p.apyBase,
