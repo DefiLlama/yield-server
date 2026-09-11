@@ -29,31 +29,26 @@ module.exports = {
       );
     }
 
-    await sleep(1000);
-
-    const getTimes = await utils.getData(
-      'https://toncenter.com/api/v3/runGetMethod',
-      {
-        address,
-        method: 'get_times',
-        stack: [],
-      }
-    );
-    if (getTimes.exit_code !== 0) {
-      throw new Error(
-        'Expected a zero exit code, but got ' + getTimes.exit_code
-      );
-    }
-
     // The treasury stores the hGRAM/GRAM exchange rate before and after the
-    // latest round's loan repayments (fixed-point, 1e9 = 1.0). The rate is
-    // updated once per validation round, so the growth between the two rates
-    // accrued over a single round duration.
-    const previousRate = Number(getTreasuryState.stack[11].value);
-    const currentRate = Number(getTreasuryState.stack[12].value);
+    // latest round's loan repayments (fixed-point, 1e9 = 1.0), and alongside
+    // them the interval those two rates grew over.
+    //
+    // get_treasury_state mirrors the treasury's storage order, and an upgrade
+    // on 2026-09-06 inserted deficit at index 5 and round_duration +
+    // last_settled_round after the rate pair, taking the tuple from 21 values
+    // to 24. Every index from 5 on moved.
+    const previousRate = Number(getTreasuryState.stack[12].value);
+    const currentRate = Number(getTreasuryState.stack[13].value);
 
-    const currentRoundSince = Number(getTimes.stack[0].value);
-    const nextRoundSince = Number(getTimes.stack[3].value);
+    // Seconds that current_rate took to grow out of previous_rate, measured on
+    // chain between the last two settled rounds. This used to be worked out
+    // from a second get_times call as next_round_since - current_round_since,
+    // which is a round LENGTH -- not the same thing. The treasury only moves
+    // the rates when a round it lent into settles, so a round in which nothing
+    // was lent widens this interval instead of passing unnoticed, and
+    // annualising by a round length would report an unchanged APY for a pool
+    // whose real rate of growth had halved.
+    const roundDuration = Number(getTreasuryState.stack[14].value);
 
     if (!Number.isFinite(previousRate) || previousRate <= 0) {
       throw new Error('Invalid previous rate: ' + previousRate);
@@ -61,8 +56,6 @@ module.exports = {
     if (!Number.isFinite(currentRate) || currentRate <= 0) {
       throw new Error('Invalid current rate: ' + currentRate);
     }
-
-    const roundDuration = nextRoundSince - currentRoundSince;
     if (!Number.isFinite(roundDuration) || roundDuration <= 0) {
       throw new Error('Invalid round duration: ' + roundDuration);
     }
@@ -90,7 +83,3 @@ module.exports = {
     ];
   },
 };
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

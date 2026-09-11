@@ -24,7 +24,7 @@ const apy = async () => {
   const mapped = data.pools.map((p) => ({
     pool: p.pool,
     chain: 'Solana',
-    project: 'cube',
+    project: 'coffer',
     symbol: p.symbol,
     tvlUsd: p.tvlUsd,
     apyBase: p.apyBase,

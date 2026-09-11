@@ -65,47 +65,28 @@ const safe = async (fn, label) => {
     }
 };
 
-// Underlying staking APR added on top of the vault's convertToAssets delta,
-// since tETH/tAVAX are denominated in wstETH/sAVAX respectively.
-const lidoApr = async () => {
-    const [last, sma] = await Promise.all([
-        getJson('https://eth-api.lido.fi/v1/protocol/steth/apr/last'),
-        getJson('https://eth-api.lido.fi/v1/protocol/steth/apr/sma'),
-    ]);
-    return { apr1d: last.data.apr, apr7d: sma.data.smaApr };
-};
-
-const benqiApr = async () => {
-    const data = await getJson('https://api.benqi.fi/liquidstaking/apr');
-    const apr = Number(data.apr) * 100;
-    return { apr1d: apr, apr7d: apr };
-};
-
 const POOLS = [
     {
         symbol: 'tETH',
         chain: 'ethereum',
         vault: '0xd11c452fc99cf405034ee446803b6f6c1f6d5ed8',
         underlying: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0', // wstETH
-        underlyingApr: lidoApr,
     },
     {
         symbol: 'tAVAX',
         chain: 'avax',
         vault: '0x14A84F1a61cCd7D1BE596A6cc11FE33A36Bc1646',
         underlying: '0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE', // sAVAX
-        underlyingApr: benqiApr,
     },
 ];
 
-const getPool = async ({ symbol, chain, vault, underlying, underlyingApr }) => {
+const getPool = async ({ symbol, chain, vault, underlying }) => {
     const tsNow = Math.floor(Date.now() / 1000);
 
-    const [price, blockNow, blockYesterday, extra] = await Promise.all([
+    const [price, blockNow, blockYesterday] = await Promise.all([
         getPrice(chain, underlying),
         getBlock(chain, tsNow),
         getBlock(chain, tsNow - 86400),
-        underlyingApr(),
     ]);
 
     const [rateNow, rateYesterday, totalAssets] = await Promise.all([
@@ -143,8 +124,8 @@ const getPool = async ({ symbol, chain, vault, underlying, underlyingApr }) => {
         project,
         symbol,
         underlyingTokens: [underlying],
-        apyBase: vaultApr1d + extra.apr1d,
-        apyBase7d: vaultApr7d !== null ? vaultApr7d + extra.apr7d : null,
+        apyBase: vaultApr1d,
+        apyBase7d: vaultApr7d,
         ...(n(rateNow) > 0 && { pricePerShare: n(rateNow) }),
         tvlUsd: n(totalAssets) * price,
     };
