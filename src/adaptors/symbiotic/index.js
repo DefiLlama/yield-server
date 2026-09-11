@@ -30,7 +30,8 @@ const MIN_TVL_USD = 10000;
 // v2 apyBase is price-per-share growth over this window, annualised geometrically since the share
 // price compounds. Curator and protocol fees are taken by minting shares and are counted in
 // totalSupply(), so convertToAssets() is already net of them.
-const LOOKBACK_DAYS = 7;
+const LOOKBACK_DAYS = 1;
+const LOOKBACK_7D_DAYS = 7;
 
 // v1 apyReward is everything distributed inside this sliding window over TVL, annualised
 // linearly — reward tokens are paid out rather than reinvested, so they do not compound.
@@ -132,9 +133,10 @@ const apy = async () => {
   // Resolve blocks from timestamps rather than assuming a slot interval, so the annualisation
   // exponent below uses the elapsed time actually observed.
   const nowTs = Math.floor(Date.now() / 1000);
-  const [tip, lookback, rewardWindow] = await Promise.all([
+  const [tip, lookback, lookback7d, rewardWindow] = await Promise.all([
     getBlockAtTimestamp(nowTs),
     getBlockAtTimestamp(nowTs - LOOKBACK_DAYS * DAY),
+    getBlockAtTimestamp(nowTs - LOOKBACK_7D_DAYS * DAY),
     getBlockAtTimestamp(nowTs - REWARD_WINDOW_DAYS * DAY),
   ]);
 
@@ -194,15 +196,18 @@ const apy = async () => {
 
   // ---- v2: price-per-share growth over LOOKBACK_DAYS ---------------------------------------
   const past = new sdk.ChainApi({ chain: CHAIN, block: lookback.block });
+  const past7d = new sdk.ChainApi({ chain: CHAIN, block: lookback7d.block });
   const elapsedDays = Math.max((tip.ts - lookback.ts) / DAY, 1 / 24);
+  const elapsedDays7d = Math.max((tip.ts - lookback7d.ts) / DAY, 1 / 24);
   // Share decimals are 18 even when the underlying is not (USDC is 6).
   const ppsCalls = v2.map((target, i) => ({
     target,
     params: [(10n ** BigInt(Number(shareDecimals[i]) || 18)).toString()],
   }));
-  const [ppsNow, ppsPast] = await Promise.all([
+  const [ppsNow, ppsPast, ppsPast7d] = await Promise.all([
     api.multiCall({ abi: abi.convertToAssets, calls: ppsCalls, permitFailure: true }),
     past.multiCall({ abi: abi.convertToAssets, calls: ppsCalls, permitFailure: true }),
+    past7d.multiCall({ abi: abi.convertToAssets, calls: ppsCalls, permitFailure: true }),
   ]);
 
   const v2Pools = v2.map((vault, i) => {
@@ -210,12 +215,14 @@ const apy = async () => {
     const tvlUsd = token ? usd(token, toNum(totalAssets[i])) : NaN;
     const now = toNum(ppsNow[i]);
     const then = toNum(ppsPast[i]);
+    const then7d = toNum(ppsPast7d[i]);
     if (!(tvlUsd >= MIN_TVL_USD) || !(now > 0)) return null;
 
     // A vault younger than the window has no historical share price; publish it with apyBase 0
     // rather than withholding the pool. The management fee accrues regardless of performance, so
     // price per share can also fall in a flat week — floor at 0 rather than going negative.
     const growth = then > 0 ? now / then : 1;
+    const growth7d = then7d > 0 ? now / then7d : 1;
     return {
       pool: `${vault}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
@@ -223,6 +230,7 @@ const apy = async () => {
       symbol: assetSymbols[i] || 'UNKNOWN',
       tvlUsd,
       apyBase: growth > 1 ? (growth ** (365 / elapsedDays) - 1) * 100 : 0,
+      apyBase7d: growth7d > 1 ? (growth7d ** (365 / elapsedDays7d) - 1) * 100 : 0,
       // Yield accrues into the share price; there is no separate reward stream.
       apyReward: 0,
       rewardTokens: [],
