@@ -47,7 +47,7 @@ const getApy = async () => {
             return {
                 pool: `${pool_address}-ton`.toLowerCase(),
                 chain: 'Ton',
-                project: 'tonco',
+                project: 'tonco-v1',
                 symbol: pool.symbol,
                 tvlUsd: pool.tvl,
                 apyBase: pool.apyBase,
