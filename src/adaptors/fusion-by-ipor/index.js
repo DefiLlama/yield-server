@@ -62,7 +62,8 @@ async function getTvlUsdByVault(chain, addresses) {
 
 function buildPool(vault, tvlUsd) {
   const chain = CHAIN_BY_ID[vault.chainId];
-  const apyReward = toNumber(vault.vestingApy);
+  // underlyingAssetApy is intentionally left out: DefiLlama manages it on the frontend
+  const apyReward = toNumber(vault.rewardsApy) + toNumber(vault.vestingApy);
 
   return {
     pool: vault.address,
@@ -70,10 +71,7 @@ function buildPool(vault, tvlUsd) {
     project: 'fusion-by-ipor',
     symbol: vault.asset,
     tvlUsd,
-    apyBase:
-      toNumber(vault.apy) +
-      toNumber(vault.underlyingAssetApy) +
-      toNumber(vault.rewardsApy),
+    apyBase: toNumber(vault.apy),
     apyReward,
     underlyingTokens: [vault.assetAddress],
     ...(apyReward > 0 && { rewardTokens: [vault.assetAddress] }),
