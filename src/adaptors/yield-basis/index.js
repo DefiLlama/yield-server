@@ -167,8 +167,12 @@ const getUnstakedRows = ({
         project: PROJECT,
         symbol,
         tvlUsd,
-        apyBase: annualize(pricePerShare, toBigNumber(pps1d[index]), 1),
-        apyBase7d: annualize(pricePerShare, toBigNumber(pps7d[index]), 7),
+        ...(toBigNumber(pps1d[index]).gt(0) && {
+          apyBase: annualize(pricePerShare, toBigNumber(pps1d[index]), 1),
+        }),
+        ...(toBigNumber(pps7d[index]).gt(0) && {
+          apyBase7d: annualize(pricePerShare, toBigNumber(pps7d[index]), 7),
+        }),
         ...(pps > 0 && { pricePerShare: pps }),
         underlyingTokens: [market.asset],
         token: market.lt,
