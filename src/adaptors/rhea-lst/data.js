@@ -1,5 +1,5 @@
 const BigNumber = require('bignumber.js');
-const shared = require('../rhea-lend/data');
+const shared = require('./client');
 const { assertConservation, assertShareIdentity } = require('./math');
 
 const XRHEA_CONTRACT = 'xtoken.rhealab.near';

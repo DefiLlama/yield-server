@@ -1,4 +1,4 @@
-const shared = require('../rhea-lend/data');
+const shared = require('./client');
 const { xrheaSnapshot, rnearSnapshot, nearApy } = require('./data');
 const { value, rate } = require('./math');
 
