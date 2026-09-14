@@ -103,7 +103,6 @@ function buildPool(config, chainPool, indexerPool, quotes, block) {
         volumeUsd24h: indexerPool.volume_24h,
       },
     });
-    throw new Error(`TVL mismatch for pool ${config.id}`);
   }
 
   const apyBase = feeAnnualPercent(indexerPool.fee_volume_24h, tvlUsd);
