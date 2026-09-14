@@ -522,6 +522,7 @@ const excludedProtocols = [
   { id: '8243', slug: 'apyee' }, // no deposits since launch, tvl < $5
   { id: '4366', slug: 'javsphere' }, // winding down
   { id: '7602', slug: 'circuit' }, // hacked, winding down
+  { id: '4019', slug: 'ajna-v2' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
