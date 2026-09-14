@@ -1,4 +1,4 @@
-const data = require('../rhea-lend/data');
+const data = require('./client');
 const { getPools } = require('./pools');
 
 const apy = () => getPools(data);
