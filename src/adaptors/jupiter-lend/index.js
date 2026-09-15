@@ -121,9 +121,12 @@ const getInstancePools = async ({ path, label }) => {
 };
 
 const getApy = async () => {
-  const pools = await Promise.all(INSTANCES.map(getInstancePools));
+  const pools = await Promise.allSettled(INSTANCES.map(getInstancePools));
 
-  return pools.flat().filter(utils.keepFinite);
+  return pools
+    .filter((r) => r.status === 'fulfilled')
+    .flatMap((r) => r.value)
+    .filter(utils.keepFinite);
 };
 
 module.exports = {
