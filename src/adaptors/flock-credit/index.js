@@ -6,7 +6,18 @@ const CHAIN = 'robinhood';
 const URL = 'https://www.ravenhood.xyz/flock-credit';
 
 const USDG = '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168';
-const VEUP_VAULT = '0xd42174d3Db28B0fA2BD25381c3521b18AE9dB490';
+const MARKETS = [
+  {
+    vault: '0xd42174d3Db28B0fA2BD25381c3521b18AE9dB490',
+    meta: 'veUP lending vault',
+    url: `${URL}/veup`,
+  },
+  {
+    vault: '0x747D9aFB9FB5488ccd0886e6A83eB46413010b4c',
+    meta: 'veLUTE lending vault',
+    url: `${URL}/velute`,
+  },
+];
 
 const ASSET_DECIMALS = 6;
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
@@ -16,12 +27,13 @@ const toUsd = (value) => asNumber(value) / 10 ** ASSET_DECIMALS;
 const pricePerShare = (totalAssets, totalSupply, shareDecimals) => {
   const shareUnit = 10n ** BigInt(shareDecimals);
   const shareOffset = 10n ** BigInt(shareDecimals - ASSET_DECIMALS);
-  const raw = (shareUnit * (BigInt(String(totalAssets)) + 1n)) /
+  const raw =
+    (shareUnit * (BigInt(String(totalAssets)) + 1n)) /
     (BigInt(String(totalSupply)) + shareOffset);
   return Number(raw) / 10 ** ASSET_DECIMALS;
 };
 
-const apy = async () => {
+const getMarket = async ({ vault, meta, url }) => {
   const [
     totalAssets,
     totalSupply,
@@ -32,37 +44,37 @@ const apy = async () => {
     shareDecimals,
   ] = await Promise.all([
     sdk.api2.abi.call({
-      target: VEUP_VAULT,
+      target: vault,
       abi: 'uint256:totalAssets',
       chain: CHAIN,
     }),
     sdk.api2.abi.call({
-      target: VEUP_VAULT,
+      target: vault,
       abi: 'uint256:totalSupply',
       chain: CHAIN,
     }),
     sdk.api2.abi.call({
-      target: VEUP_VAULT,
+      target: vault,
       abi: 'uint256:totalManagedDebt',
       chain: CHAIN,
     }),
     sdk.api2.abi.call({
-      target: VEUP_VAULT,
+      target: vault,
       abi: 'uint256:lockedProfit',
       chain: CHAIN,
     }),
     sdk.api2.abi.call({
-      target: VEUP_VAULT,
+      target: vault,
       abi: 'uint256:lastYieldAt',
       chain: CHAIN,
     }),
     sdk.api2.abi.call({
-      target: VEUP_VAULT,
+      target: vault,
       abi: 'uint256:yieldVestingPeriod',
       chain: CHAIN,
     }),
     sdk.api2.abi.call({
-      target: VEUP_VAULT,
+      target: vault,
       abi: 'uint8:decimals',
       chain: CHAIN,
     }),
@@ -70,7 +82,11 @@ const apy = async () => {
 
   const tvlUsd = toUsd(totalAssets);
   const debtUsd = toUsd(totalManagedDebt);
-  const sharePrice = pricePerShare(totalAssets, totalSupply, asNumber(shareDecimals));
+  const sharePrice = pricePerShare(
+    totalAssets,
+    totalSupply,
+    asNumber(shareDecimals)
+  );
   const period = asNumber(yieldVestingPeriod);
   const elapsed = Math.floor(Date.now() / 1000) - asNumber(lastYieldAt);
   const isVesting = period > 0 && elapsed >= 0 && elapsed < period;
@@ -80,23 +96,25 @@ const apy = async () => {
       ? ((toUsd(lockedProfit) / period) * SECONDS_PER_YEAR * 100) / tvlUsd
       : 0;
 
-  return [
-    {
-      pool: `${VEUP_VAULT}-${CHAIN}`.toLowerCase(),
-      chain: utils.formatChain(CHAIN),
-      project: PROJECT,
-      symbol: 'USDG',
-      tvlUsd,
-      apyBase,
-      pricePerShare: sharePrice,
-      totalSupplyUsd: tvlUsd,
-      totalBorrowUsd: debtUsd,
-      underlyingTokens: [USDG],
-      token: VEUP_VAULT,
-      poolMeta: 'veUP lending vault',
-      url: URL,
-    },
-  ];
+  return {
+    pool: `${vault}-${CHAIN}`.toLowerCase(),
+    chain: utils.formatChain(CHAIN),
+    project: PROJECT,
+    symbol: 'USDG',
+    tvlUsd,
+    apyBase,
+    pricePerShare: sharePrice,
+    totalSupplyUsd: tvlUsd,
+    totalBorrowUsd: debtUsd,
+    underlyingTokens: [USDG],
+    token: vault,
+    poolMeta: meta,
+    url,
+  };
+};
+
+const apy = async () => {
+  return Promise.all(MARKETS.map(getMarket));
 };
 
 module.exports = {
