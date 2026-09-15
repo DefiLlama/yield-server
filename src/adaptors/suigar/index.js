@@ -34,7 +34,7 @@ const utils = require('../utils');
 const PROJECT = 'suigar';
 const VAULT =
   '0xa1549d73230118716bc08865b8d62454f360ddaf40eee2158e458e52125d4ef1';
-const LOOKBACK_DAYS = 7;
+const LOOKBACK_DAYS = 30;
 
 const VAULT_DYNAMIC_FIELDS_QUERY = `query ($vault: SuiAddress!, $after: String) {
   object(address: $vault) {
@@ -97,7 +97,7 @@ async function getCheckpoint(sequenceNumber) {
 // Estimate + refine the checkpoint closest to `targetMs` via linear
 // interpolation. Sui's checkpoint cadence is near-constant over a
 // multi-day window, so a calibration read plus one correction pass
-// converges to within minutes — precise enough for a 7-day APY window.
+// converges to within minutes — precise enough for a 30-day APY window.
 async function findCheckpointNear(targetMs) {
   const { checkpoint: latest } = await utils.suiGraphql(
     LATEST_CHECKPOINT_QUERY,
@@ -188,6 +188,10 @@ const getApyData = async () => {
     ]);
     const thenPPS = pricePerShare(thenHouse);
 
+    // Linear (not compounded) annualization: house-edge P&L is lumpy and
+    // this bankroll's realized returns are volatile period to period, so
+    // compounding (utils.aprToApy) would overstate the figure — a simple
+    // scale-to-365-days reading is the more honest one here.
     let apy = 0;
     if (nowPPS && thenPPS && thenPPS.gt(0)) {
       const growth = nowPPS.div(thenPPS).minus(1);
@@ -195,8 +199,7 @@ const getApyData = async () => {
         (Date.now() - Date.parse(targetCheckpoint.timestamp)) /
         (24 * 60 * 60 * 1000);
       if (elapsedDays > 0) {
-        const apr = growth.times(365 / elapsedDays).times(100).toNumber();
-        apy = utils.aprToApy(apr);
+        apy = growth.times(365 / elapsedDays).times(100).toNumber();
       }
     }
 
@@ -210,10 +213,11 @@ const getApyData = async () => {
       chain: utils.formatChain('sui'),
       project: PROJECT,
       symbol: coinInfo.symbol,
-      poolMeta: 'SweetHouse bankroll (public pool APY)',
       apyBase: apy,
       tvlUsd,
+      pricePerShare: nowPPS ? nowPPS.toNumber() : null,
       underlyingTokens: [coinType],
+      url: `https://house.suigar.com/app/pools/${coinInfo.symbol.toLowerCase()}`,
     });
   }
 
