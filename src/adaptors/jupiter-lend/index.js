@@ -3,9 +3,16 @@ const utils = require('../utils');
 
 const BASE_URL = 'https://api.solana.fluid.io/v1';
 
+// The API serves two Jupiter Lend instances on separate programs. The unprefixed
+// path is the main deployment. The /ethena path is the isolated USDe market.
+const INSTANCES = [
+  { path: '', label: null },
+  { path: '/ethena', label: 'Ethena Market' },
+];
+
 const bpsToApr = (bps) => (Number(bps) / 1e4) * 100;
 
-const getEarnPools = (lendingTokens) =>
+const getEarnPools = (lendingTokens, instanceLabel) =>
   lendingTokens.map((token) => {
     const price = Number(token.asset.price);
     const decimals = token.asset.decimals;
@@ -26,7 +33,7 @@ const getEarnPools = (lendingTokens) =>
       apyReward: apyReward > 0 ? apyReward : null,
       rewardTokens: token.rewardsRate ? [token.assetAddress] : undefined,
       underlyingTokens: [token.assetAddress],
-      poolMeta: 'Earn',
+      poolMeta: instanceLabel ? `Earn (${instanceLabel})` : 'Earn',
       url: 'https://jup.ag/lend',
     };
   });
@@ -42,7 +49,7 @@ const calcVaultRewardApy = (vault, side) =>
     .filter((r) => r.side === side)
     .reduce((sum, r) => sum + utils.aprToApy(Number(r.apr) / 100), 0);
 
-const getVaultPools = (vaults) =>
+const getVaultPools = (vaults, instanceLabel) =>
   vaults.map((vault) => {
     const supplyToken = vault.supplyToken;
     const borrowToken = vault.borrowToken;
@@ -91,27 +98,35 @@ const getVaultPools = (vaults) =>
       borrowable: Number(vault.borrowable) > 0,
       borrowToken: borrowToken.address,
       borrowMarketOnly: true,
-      poolMeta: `${supplyToken.symbol}/${borrowToken.symbol}`,
+      poolMeta: instanceLabel
+        ? `${supplyToken.symbol}/${borrowToken.symbol} (${instanceLabel})`
+        : `${supplyToken.symbol}/${borrowToken.symbol}`,
       url: 'https://jup.ag/lend',
     };
   });
 
-const getApy = async () => {
+const getInstancePools = async ({ path, label }) => {
   const [lendingTokens, vaults] = await Promise.all([
-    axios.get(`${BASE_URL}/lending/tokens`).then((r) => r.data),
-    axios.get(`${BASE_URL}/borrowing/vaults`).then((r) => r.data),
+    axios.get(`${BASE_URL}${path}/lending/tokens`).then((r) => r.data),
+    axios.get(`${BASE_URL}${path}/borrowing/vaults`).then((r) => r.data),
   ]);
 
   if (!Array.isArray(lendingTokens) || !Array.isArray(vaults)) {
     throw new Error(
-      `Unexpected API response shape: lendingTokens=${typeof lendingTokens}, vaults=${typeof vaults}`
+      `Unexpected API response shape for ${path || '/'}: lendingTokens=${typeof lendingTokens}, vaults=${typeof vaults}`
     );
   }
 
-  const earnPools = getEarnPools(lendingTokens);
-  const vaultPools = getVaultPools(vaults);
+  return [...getEarnPools(lendingTokens, label), ...getVaultPools(vaults, label)];
+};
 
-  return [...earnPools, ...vaultPools].filter(utils.keepFinite);
+const getApy = async () => {
+  const pools = await Promise.allSettled(INSTANCES.map(getInstancePools));
+
+  return pools
+    .filter((r) => r.status === 'fulfilled')
+    .flatMap((r) => r.value)
+    .filter(utils.keepFinite);
 };
 
 module.exports = {
