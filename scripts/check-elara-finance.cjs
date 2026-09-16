@@ -62,6 +62,14 @@ test('compounds share appreciation and values only accounted staking assets', as
   assert.ok(
     calls.every(({ block, chain }) => block === 123 && chain === 'ethereum')
   );
+  assert.deepEqual(
+    calls.map(({ abi, target }) => [abi, target.toLowerCase()]),
+    [
+      ['uint256:sharePrice', '0xda34688c14ae164e75d902a962e6c45cd9564448'],
+      ['uint256:totalElUSD', '0xda34688c14ae164e75d902a962e6c45cd9564448'],
+      ['erc20:totalSupply', '0x0c5b226e075431646c8fd0a909b430e10416a1de'],
+    ]
+  );
 });
 
 test('reports flat and negative returns without turning losses into rewards', async () => {
