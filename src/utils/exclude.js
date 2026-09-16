@@ -524,6 +524,7 @@ const excludedProtocols = [
   { id: '7602', slug: 'circuit' }, // hacked, winding down
   { id: '4019', slug: 'ajna-v2' },
   { id: '6238', slug: 'smardex-usdn' },
+  { id: '577', slug: 'allbridge-classic' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
