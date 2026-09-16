@@ -215,7 +215,7 @@ const apy = async () => {
       return {
         pool: `${CHEF}-${p.pid}-${CHAIN}`.toLowerCase(),
         chain: utils.formatChain(CHAIN),
-        project: 'motoswap',
+        project: 'motoswap-farm',
         symbol,
         tvlUsd,
         apyReward,
@@ -232,8 +232,8 @@ const apy = async () => {
 };
 
 module.exports = {
-  // Placeholder until the DefiLlama-Adapters listing assigns Motoswap a protocol id.
-  protocolId: '0',
+  // DefiLlama listing id for slug motoswap-farm (DefiLlama-Adapters PR 21035, listed 2026-09-16).
+  protocolId: '8653',
   timetravel: false,
   apy,
   url: FARM_URL,
