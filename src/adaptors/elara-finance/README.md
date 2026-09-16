@@ -22,7 +22,7 @@ This is a separate yield-server submission from the existing TVL and fee adapter
 Focused calculation checks, from the repository root:
 
 ```sh
-node --test scripts/elara-finance.test.js
+node --test scripts/check-elara-finance.cjs
 ```
 
 DefiLlama integration checks:
