@@ -55,7 +55,7 @@ const poolsQuery = gql`
 async function fetchAllPools() {
   let allPools = [];
   let skip = 0;
-  const first = 1000;
+  const first = 100;
 
   while (true) {
     try {
