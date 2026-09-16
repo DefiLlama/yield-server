@@ -206,15 +206,14 @@ const getGraniteMarkets = async () => {
                     url: 'https://app.granite.world',
                 });
             } catch (error) {
-                console.log(`Error processing pool ${market.symbol}: ${error.message}`);
+                throw new Error(`Error processing pool ${market.symbol}: ${error.message}`);
             }
         }
 
         return results;
 
     } catch (error) {
-        console.log(`Error in getGraniteMarkets: ${error.message}`);
-        return [];
+        throw new Error(`Error in getGraniteMarkets: ${error.message}`);
     }
 }
 
