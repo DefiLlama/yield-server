@@ -219,6 +219,7 @@ const getGraniteMarkets = async () => {
 }
 
 module.exports = {
+    protocolId: '6268',
     timetravel: false,
     apy: getGraniteMarkets,
     url: 'https://app.granite.world',
