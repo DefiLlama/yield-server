@@ -39,7 +39,7 @@ async function xrheaPool(height, quotes, client) {
     token: 'xtoken.rhealab.near',
     underlyingTokens: ['token.rhealab.near'],
     tvlUsd: value(metadata.cur_locked_token_amount, 18, price),
-    apy: rate(
+    apyBase: rate(
       metadata.reward_per_sec,
       metadata.cur_locked_token_amount,
       metadata.cur_undistributed_reward_amount
@@ -54,7 +54,7 @@ async function xrheaPool(height, quotes, client) {
 
 async function rnearPool(height, quotes, client) {
   const price = quotePrice(quotes, 'wrap.near');
-  const [snapshot, apy] = await Promise.all([
+  const [snapshot, apyBase] = await Promise.all([
     rnearSnapshot(height, client),
     nearApy(client),
   ]);
@@ -68,11 +68,10 @@ async function rnearPool(height, quotes, client) {
     token: 'lst.rhealab.near',
     underlyingTokens: ['wrap.near'],
     tvlUsd: value(summary.total_staked_near_amount, 24, price),
-    apy,
+    apyBase,
     pricePerShare: value(summary.ft_price, 24, 1),
     isIntrinsicSource: true,
-    poolMeta:
-      'NEAR liquid staking; APY source window and netting are unverified',
+    poolMeta: 'NEAR liquid staking',
     url: 'https://app.rhea.finance/stake',
   };
 }
