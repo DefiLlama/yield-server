@@ -6,7 +6,10 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const { merklGet } = require('../merkl/merkl-client');
 const poolAbi = require('./poolAbi');
 const { aaveStakedTokenDataProviderAbi } = require('./abi');
-const { addNativeSupplyRewards } = require('./native-rewards');
+const {
+  getNativeSupplyRewards,
+  addNativeSupplyRewards,
+} = require('./native-rewards');
 const { isAaveMerklOpportunityEligible } = require('./merkl-rewards');
 
 const {
@@ -56,6 +59,8 @@ const ethereumMarkets = {
   lido: 'Prime Instance',
   horizon: 'Aave Horizon Market',
 };
+
+const nativeRewardsByPool = new Map();
 
 const getApy = async (market) => {
   const chain = ethereumMarkets[market] ? 'ethereum' : market;
@@ -151,7 +156,8 @@ const getApy = async (market) => {
   const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
   const ghoPrice = prices[`ethereum:${GHO}`]?.price;
 
-  return reserveTokens
+  const incentiveReserves = [];
+  const pools = reserveTokens
     .map((pool, i) => {
       const frozen = poolsReservesConfigurationData[i].isFrozen;
       if (frozen) return null;
@@ -211,10 +217,18 @@ const getApy = async (market) => {
 
       const url = `https://app.aave.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_${marketUrlParam}_v3`;
 
+      const poolId = `${aTokens[i].tokenAddress}-${
+        market === 'avax' ? 'avalanche' : market
+      }`.toLowerCase();
+      incentiveReserves.push({
+        poolId,
+        aToken: aTokens[i].tokenAddress,
+        totalSupplyUsd,
+        underlyingPrice: price,
+      });
+
       return {
-        pool: `${aTokens[i].tokenAddress}-${
-          market === 'avax' ? 'avalanche' : market
-        }`.toLowerCase(),
+        pool: poolId,
         chain,
         project: 'aave-v3',
         symbol: pool.symbol,
@@ -240,6 +254,16 @@ const getApy = async (market) => {
       };
     })
     .filter((i) => Boolean(i));
+
+  const nativeRewards = await getNativeSupplyRewards({
+    chain,
+    reserves: incentiveReserves,
+  });
+  for (const reserve of incentiveReserves) {
+    const native = nativeRewards.get(reserve.aToken.toLowerCase());
+    if (native) nativeRewardsByPool.set(reserve.poolId, native);
+  }
+  return pools;
 };
 
 const RAY = 10n ** 27n;
@@ -489,30 +513,11 @@ const correctCeloAaveMerklRewards = async (pools) => {
 };
 
 const apy = async () => {
-  const markets = Object.keys(protocolDataProviders);
-  const loaders = markets
-    .map((market) => () => getApy(market))
-    .concat(getApyAptos);
-  const pools = [];
-  for (let i = 0; i < loaders.length; i += 4) {
-    pools.push(
-      ...await Promise.allSettled(loaders.slice(i, i + 4).map((load) => load()))
-    );
-  }
-  await Promise.all(
-    pools.map(async (result, i) => {
-      if (result.status !== 'rejected') return;
-      try {
-        pools[i] = {
-          status: 'fulfilled',
-          value: await (markets[i] ? getApy(markets[i]) : getApyAptos()),
-        };
-      } catch {
-        console.error(
-          `aave-v3 ${markets[i] || 'aptos'}: market unavailable after retry`
-        );
-      }
-    })
+  nativeRewardsByPool.clear();
+  const pools = await Promise.allSettled(
+    Object.keys(protocolDataProviders)
+      .map(async (market) => getApy(market))
+      .concat([getApyAptos()])
   );
 
   const aavePools = pools
@@ -537,8 +542,10 @@ const apy = async () => {
     isAaveMerklOpportunityEligible
   );
 
-  const correctedMerklRewards = await correctCeloAaveMerklRewards(withMerklRewards);
-  return addNativeSupplyRewards(correctedMerklRewards);
+  return addNativeSupplyRewards(
+    await correctCeloAaveMerklRewards(withMerklRewards),
+    nativeRewardsByPool
+  );
 };
 
 module.exports = {
