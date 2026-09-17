@@ -1,4 +1,5 @@
 const Big = require('bignumber.js');
+const { formatChain } = require('../utils');
 const { lendingAmounts } = require('./math');
 
 const CONTRACT = 'contract.main.burrow.near';
@@ -64,6 +65,15 @@ function hasActiveRewards(asset) {
   );
 }
 
+function collateralLtv(asset) {
+  if (asset.config?.can_use_as_collateral !== true) return 0;
+  const ratio = asset.config.volatility_ratio;
+  if (!Number.isSafeInteger(ratio) || ratio < 0 || ratio > 10000) {
+    throw new Error('Invalid volatility_ratio');
+  }
+  return ratio / 10000;
+}
+
 async function getPools(client, diagnostic = console.warn) {
   const tokenIds = MARKETS.map(({ tokenId }) => tokenId);
   const [assets, quotes] = await Promise.all([
@@ -93,11 +103,12 @@ async function getPools(client, diagnostic = console.warn) {
 
       const row = {
         pool: `rhea-lend-${market.tokenId}-near`,
-        chain: 'NEAR',
+        chain: formatChain('near'),
         project: 'rhea-lend',
         symbol: market.symbol,
         ...lendingAmounts(asset, quote.decimals, quote.price),
         ...borrowYield(asset),
+        ltv: collateralLtv(asset),
         underlyingTokens: [market.tokenId],
         token: null,
         url: `https://app.rhea.finance/tokenDetail/${market.tokenId}?pageType=main`,
