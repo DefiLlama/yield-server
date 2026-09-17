@@ -5,7 +5,7 @@ const { assertConservation, assertShareIdentity } = require('./math');
 const XRHEA_CONTRACT = 'xtoken.rhealab.near';
 const RHEA_TOKEN = 'token.rhealab.near';
 const RNEAR_CONTRACT = 'lst.rhealab.near';
-const RNEAR_APY_URL = 'https://api.rhea.finance/get-rnear-apy';
+const RNEAR_APY_URL = 'https://indexer.ref.finance/proxy/get-rnear-apy';
 
 function object(value, name) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {

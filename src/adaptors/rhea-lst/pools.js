@@ -1,6 +1,7 @@
 const shared = require('./client');
 const { xrheaSnapshot, rnearSnapshot, nearApy } = require('./data');
 const { value, rate } = require('./math');
+const { formatChain } = require('../utils');
 
 const DEFAULT_CLIENT = { ...shared, diagnostic: console.warn };
 const PRICE_IDS = ['token.rhealab.near', 'wrap.near'];
@@ -33,7 +34,7 @@ async function xrheaPool(height, quotes, client) {
 
   return {
     pool: 'rhea-lst-xtoken.rhealab.near-near',
-    chain: 'NEAR',
+    chain: formatChain('near'),
     project: 'rhea-lst',
     symbol: 'XRHEA',
     token: 'xtoken.rhealab.near',
@@ -62,7 +63,7 @@ async function rnearPool(height, quotes, client) {
 
   return {
     pool: 'rhea-lst-lst.rhealab.near-near',
-    chain: 'NEAR',
+    chain: formatChain('near'),
     project: 'rhea-lst',
     symbol: 'rNEAR',
     token: 'lst.rhealab.near',
