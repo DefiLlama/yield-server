@@ -6,6 +6,8 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const { merklGet } = require('../merkl/merkl-client');
 const poolAbi = require('./poolAbi');
 const { aaveStakedTokenDataProviderAbi } = require('./abi');
+const { addNativeSupplyRewards } = require('./native-rewards');
+const { isAaveMerklOpportunityEligible } = require('./merkl-rewards');
 
 const {
   AptosProvider,
@@ -487,10 +489,30 @@ const correctCeloAaveMerklRewards = async (pools) => {
 };
 
 const apy = async () => {
-  const pools = await Promise.allSettled(
-    Object.keys(protocolDataProviders)
-      .map(async (market) => getApy(market))
-      .concat([getApyAptos()])
+  const markets = Object.keys(protocolDataProviders);
+  const loaders = markets
+    .map((market) => () => getApy(market))
+    .concat(getApyAptos);
+  const pools = [];
+  for (let i = 0; i < loaders.length; i += 4) {
+    pools.push(
+      ...await Promise.allSettled(loaders.slice(i, i + 4).map((load) => load()))
+    );
+  }
+  await Promise.all(
+    pools.map(async (result, i) => {
+      if (result.status !== 'rejected') return;
+      try {
+        pools[i] = {
+          status: 'fulfilled',
+          value: await (markets[i] ? getApy(markets[i]) : getApyAptos()),
+        };
+      } catch {
+        console.error(
+          `aave-v3 ${markets[i] || 'aptos'}: market unavailable after retry`
+        );
+      }
+    })
   );
 
   const aavePools = pools
@@ -511,10 +533,12 @@ const apy = async () => {
   const withMerklRewards = await addMerklRewardApy(
     result,
     'aave',
-    (p) => p.pool.split('-')[0]
+    (p) => p.pool.split('-')[0],
+    isAaveMerklOpportunityEligible
   );
 
-  return correctCeloAaveMerklRewards(withMerklRewards);
+  const correctedMerklRewards = await correctCeloAaveMerklRewards(withMerklRewards);
+  return addNativeSupplyRewards(correctedMerklRewards);
 };
 
 module.exports = {

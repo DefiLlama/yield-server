@@ -126,7 +126,12 @@ const fetchLiveOpportunities = async (protocolId) => {
   return opportunities;
 };
 
-exports.addMerklRewardApy = async (pools, protocolId, poolAddressGetter) => {
+exports.addMerklRewardApy = async (
+  pools,
+  protocolId,
+  poolAddressGetter,
+  opportunityFilter
+) => {
   try {
     let opportunities;
     try {
@@ -154,6 +159,7 @@ exports.addMerklRewardApy = async (pools, protocolId, poolAddressGetter) => {
     for (const opportunity of opportunities) {
       const canonical = networks[opportunity.chainId];
       if (!canonical) continue;
+      if (opportunityFilter && !opportunityFilter(opportunity)) continue;
 
       const candidate = toCandidate(opportunity, campaignsById);
       const id = opportunity.identifier.toLowerCase();
