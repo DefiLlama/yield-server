@@ -7,16 +7,33 @@ const REWARDS_BY_ASSET_ABI =
   'function getRewardsByAsset(address) view returns (address[])';
 const REWARDS_DATA_ABI =
   'function getRewardsData(address,address) view returns (uint256 index,uint256 emissionPerSecond,uint256 lastUpdateTimestamp,uint256 distributionEnd)';
+const ASSET_INDEX_ABI =
+  'function getAssetIndex(address,address) view returns (uint256 oldIndex,uint256 newIndex)';
 
 const multiCall = async (chain, abi, calls) => {
-  if (!calls.length) return [];
-  const { output } = await sdk.api.abi.multiCall({
-    chain,
-    abi,
-    calls,
-    permitFailure: true,
-  });
-  return output.map((o) => (o.success ? o.output : undefined));
+  const results = calls.map(() => undefined);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const pending = calls.flatMap((call, i) =>
+      results[i] === undefined ? [{ call, i }] : []
+    );
+    if (!pending.length) break;
+    const { output } = await sdk.api.abi.multiCall({
+      chain,
+      abi,
+      calls: pending.map(({ call }) => call),
+      permitFailure: true,
+    });
+    output.forEach((o, j) => {
+      if (o.success && o.output != null) results[pending[j].i] = o.output;
+    });
+  }
+  const failed = results.filter((r) => r === undefined).length;
+  if (failed) {
+    console.error(
+      `aave-v3 ${chain}: ${failed}/${calls.length} native reward reads failed (${abi.split('(')[0]})`
+    );
+  }
+  return results;
 };
 
 const getNativeSupplyRewards = async ({ chain, reserves }) => {
@@ -44,20 +61,21 @@ const getNativeSupplyRewards = async ({ chain, reserves }) => {
         reward: reward.toLowerCase(),
       }))
     );
-    const streamData = await multiCall(
-      chain,
-      REWARDS_DATA_ABI,
-      streams.map((s) => ({
-        target: s.controller,
-        params: [s.aToken, s.reward],
-      }))
-    );
+    const streamCalls = streams.map((s) => ({
+      target: s.controller,
+      params: [s.aToken, s.reward],
+    }));
+    const [streamData, assetIndexes] = await Promise.all([
+      multiCall(chain, REWARDS_DATA_ABI, streamCalls),
+      multiCall(chain, ASSET_INDEX_ABI, streamCalls),
+    ]);
     const live = streams.flatMap((stream, i) => {
       const data = streamData[i];
-      if (!data) return [];
+      if (!data || !assetIndexes[i]) return [];
       const emissionPerSecond = Number(data.emissionPerSecond);
       const distributionEnd = Number(data.distributionEnd);
-      return emissionPerSecond > 0 && distributionEnd > now
+      const accruing = Number(assetIndexes[i].newIndex) > 0;
+      return emissionPerSecond > 0 && distributionEnd > now && accruing
         ? [{ ...stream, emissionPerSecond }]
         : [];
     });
