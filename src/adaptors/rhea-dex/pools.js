@@ -1,3 +1,4 @@
+const { formatChain } = require('../utils');
 const { lpTvl, feeAnnualPercent } = require('./math');
 
 const CONTRACT = 'v2.ref-finance.near';
@@ -109,7 +110,7 @@ function buildPool(config, chainPool, indexerPool, quotes, block) {
   const volumeUsd1d = finiteNumber(indexerPool.volume_24h);
   const row = {
     pool: `rhea-dex-${CONTRACT}-${config.id}-near`,
-    chain: 'NEAR',
+    chain: formatChain('near'),
     project: 'rhea-dex',
     symbol: tokenIds.map((tokenId) => TOKENS[tokenId]).join('-'),
     tvlUsd,
