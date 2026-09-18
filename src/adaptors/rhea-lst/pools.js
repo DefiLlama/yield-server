@@ -20,11 +20,9 @@ function quotePrice(quotes, tokenId) {
   return quote.price;
 }
 
-function feeSchedule(exitFees) {
-  return Object.entries(exitFees)
-    .sort(([a], [b]) => Number(a) - Number(b))
-    .map(([days, bps]) => `${days}d ${bps / 100}%`)
-    .join(', ');
+function exitFeeSummary(exitFees) {
+  const maxFee = Math.max(...Object.values(exitFees)) / 100;
+  return `exit fee up to ${maxFee}%`;
 }
 
 async function xrheaPool(height, quotes, client) {
@@ -46,9 +44,7 @@ async function xrheaPool(height, quotes, client) {
       metadata.cur_undistributed_reward_amount
     ),
     pricePerShare: value(snapshot.virtualPrice, 8, 1),
-    poolMeta:
-      'RHEA staking; current reward annualization before position-dependent exit fees; ' +
-      `cooldown earns no yield; exit fees: ${feeSchedule(snapshot.exitFees)}`,
+    poolMeta: exitFeeSummary(snapshot.exitFees),
     url: 'https://app.rhea.finance/stake',
   };
 }
@@ -72,7 +68,6 @@ async function rnearPool(height, quotes, client) {
     apyBase,
     pricePerShare: value(summary.ft_price, 24, 1),
     isIntrinsicSource: true,
-    poolMeta: 'NEAR liquid staking',
     url: 'https://app.rhea.finance/stake',
   };
 }
