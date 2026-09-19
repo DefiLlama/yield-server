@@ -5,12 +5,16 @@ const utils = require('../utils');
 
 const CHAIN = 'ethereum';
 const PROJECT = 'yield-basis';
-const URL = 'https://app.yieldbasis.com/';
+const URL = 'https://yieldbasis.com';
 const FACTORY = '0x370a449FeBb9411c95bf897021377fe0B7D100c0';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DAY = 24 * 60 * 60;
 const DAYS_PER_YEAR = 365;
 const ONE = new BigNumber(1e18);
+
+// Each market has its own page on the app: /earn/<ltAddress>
+// (/market/<ltAddress> redirects there).
+const marketUrl = (lt) => `${URL}/earn/${lt}`;
 
 const ABI = {
   marketCount: 'uint256:market_count',
@@ -177,7 +181,7 @@ const getUnstakedRows = ({
         underlyingTokens: [market.asset],
         token: market.lt,
         poolMeta: `Unstaked LT, market #${market.id}, Curve pool ${market.cryptopool}`,
-        url: URL,
+        url: marketUrl(market.lt),
       };
     })
     .filter(Boolean);
@@ -246,7 +250,7 @@ const getStakedRows = ({
         underlyingTokens: [market.asset],
         token: market.staker,
         poolMeta: `Staked gauge, market #${market.id}, Curve pool ${market.cryptopool}`,
-        url: URL,
+        url: marketUrl(market.lt),
       };
     })
     .filter(Boolean);
