@@ -13,18 +13,32 @@ const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
 
 const asNumber = (value) => Number(String(value));
 const toUsd = (value) => asNumber(value) / 10 ** ASSET_DECIMALS;
+const pricePerShare = (totalAssets, totalSupply, shareDecimals) => {
+  const shareUnit = 10n ** BigInt(shareDecimals);
+  const shareOffset = 10n ** BigInt(shareDecimals - ASSET_DECIMALS);
+  const raw = (shareUnit * (BigInt(String(totalAssets)) + 1n)) /
+    (BigInt(String(totalSupply)) + shareOffset);
+  return Number(raw) / 10 ** ASSET_DECIMALS;
+};
 
 const apy = async () => {
   const [
     totalAssets,
+    totalSupply,
     totalManagedDebt,
     lockedProfit,
     lastYieldAt,
     yieldVestingPeriod,
+    shareDecimals,
   ] = await Promise.all([
     sdk.api2.abi.call({
       target: VEUP_VAULT,
       abi: 'uint256:totalAssets',
+      chain: CHAIN,
+    }),
+    sdk.api2.abi.call({
+      target: VEUP_VAULT,
+      abi: 'uint256:totalSupply',
       chain: CHAIN,
     }),
     sdk.api2.abi.call({
@@ -47,10 +61,16 @@ const apy = async () => {
       abi: 'uint256:yieldVestingPeriod',
       chain: CHAIN,
     }),
+    sdk.api2.abi.call({
+      target: VEUP_VAULT,
+      abi: 'uint8:decimals',
+      chain: CHAIN,
+    }),
   ]);
 
   const tvlUsd = toUsd(totalAssets);
   const debtUsd = toUsd(totalManagedDebt);
+  const sharePrice = pricePerShare(totalAssets, totalSupply, asNumber(shareDecimals));
   const period = asNumber(yieldVestingPeriod);
   const elapsed = Math.floor(Date.now() / 1000) - asNumber(lastYieldAt);
   const isVesting = period > 0 && elapsed >= 0 && elapsed < period;
@@ -68,6 +88,7 @@ const apy = async () => {
       symbol: 'USDG',
       tvlUsd,
       apyBase,
+      pricePerShare: sharePrice,
       totalSupplyUsd: tvlUsd,
       totalBorrowUsd: debtUsd,
       underlyingTokens: [USDG],
