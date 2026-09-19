@@ -121,7 +121,6 @@ const getUnstakedRows = ({
   markets,
   prices,
   ppsNow,
-  pps1d,
   pps7d,
   updatedBalances,
   totalSupplies,
@@ -171,11 +170,8 @@ const getUnstakedRows = ({
         project: PROJECT,
         symbol,
         tvlUsd,
-        ...(toBigNumber(pps1d[index]).gt(0) && {
-          apyBase: annualize(pricePerShare, toBigNumber(pps1d[index]), 1),
-        }),
         ...(toBigNumber(pps7d[index]).gt(0) && {
-          apyBase7d: annualize(pricePerShare, toBigNumber(pps7d[index]), 7),
+          apyBase: annualize(pricePerShare, toBigNumber(pps7d[index]), 7),
         }),
         ...(pps > 0 && { pricePerShare: pps }),
         underlyingTokens: [market.asset],
@@ -258,16 +254,14 @@ const getStakedRows = ({
 
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
-  const [blockNow, block1d, block7d, markets, gaugeController] =
-    await Promise.all([
-      getBlock(now),
-      getBlock(now - DAY),
-      getBlock(now - 7 * DAY),
-      getMarkets(),
-      sdk.api.abi
-        .call({ target: FACTORY, abi: ABI.gaugeController, chain: CHAIN })
-        .then((res) => toAddress(res.output)),
-    ]);
+  const [blockNow, block7d, markets, gaugeController] = await Promise.all([
+    getBlock(now),
+    getBlock(now - 7 * DAY),
+    getMarkets(),
+    sdk.api.abi
+      .call({ target: FACTORY, abi: ABI.gaugeController, chain: CHAIN })
+      .then((res) => toAddress(res.output)),
+  ]);
 
   if (markets.length === 0) return [];
 
@@ -283,7 +277,6 @@ const apy = async () => {
   const [
     prices,
     ppsNow,
-    pps1d,
     pps7d,
     totalSupplies,
     updatedBalances,
@@ -293,7 +286,6 @@ const apy = async () => {
   ] = await Promise.all([
     getTokenPrices([...markets.map((market) => market.asset), ybToken]),
     multiCall({ abi: ABI.pricePerShare, calls: ltCalls, block: blockNow }),
-    multiCall({ abi: ABI.pricePerShare, calls: ltCalls, block: block1d }),
     multiCall({ abi: ABI.pricePerShare, calls: ltCalls, block: block7d }),
     multiCall({ abi: ABI.totalSupply, calls: ltCalls, block: blockNow }),
     multiCall({ abi: ABI.updatedBalances, calls: ltCalls, block: blockNow }),
@@ -328,7 +320,6 @@ const apy = async () => {
       markets,
       prices,
       ppsNow,
-      pps1d,
       pps7d,
       updatedBalances,
       totalSupplies,
