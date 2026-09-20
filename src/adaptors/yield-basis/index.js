@@ -96,7 +96,6 @@ const getMarkets = async () => {
     .map((market, index) => ({
       id: ids[index],
       asset: toAddress(tupleValue(market, 'asset_token', 0)),
-      cryptopool: toAddress(tupleValue(market, 'cryptopool', 1)),
       lt: toAddress(tupleValue(market, 'lt', 3)),
       staker: toAddress(tupleValue(market, 'staker', 6)),
     }))
@@ -175,7 +174,7 @@ const getUnstakedRows = ({
         ...(pps > 0 && { pricePerShare: pps }),
         underlyingTokens: [market.asset],
         token: market.lt,
-        poolMeta: `Unstaked LT, market #${market.id}, Curve pool ${market.cryptopool}`,
+        poolMeta: `Unstaked #${market.id}`,
         url: marketUrl(market.lt),
       };
     })
@@ -244,7 +243,7 @@ const getStakedRows = ({
         rewardTokens: [ybToken],
         underlyingTokens: [market.asset],
         token: market.staker,
-        poolMeta: `Staked gauge, market #${market.id}, Curve pool ${market.cryptopool}`,
+        poolMeta: `Staked #${market.id}`,
         url: marketUrl(market.lt),
       };
     })
