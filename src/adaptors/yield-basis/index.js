@@ -25,7 +25,6 @@ const ABI = {
   previewEmissions:
     'function preview_emissions(address gauge, uint256 at_time) view returns (uint256)',
   pricePerShare: 'uint256:pricePerShare',
-  isKilled: 'bool:is_killed',
   totalSupply: 'erc20:totalSupply',
   symbol: 'erc20:symbol',
   updatedBalances:
@@ -103,12 +102,14 @@ const getMarkets = async () => {
     }))
     .filter((market) => isAddress(market.asset) && isAddress(market.lt));
 
-  const killed = await multiCall({
-    abi: ABI.isKilled,
+  const updatedBalances = await multiCall({
+    abi: ABI.updatedBalances,
     calls: parsed.map((market) => ({ target: market.lt })),
   });
 
-  return parsed.filter((_, index) => killed[index] !== true);
+  // updated_balances() doesn't exist on the v1 LTs; without it the staked/unstaked
+  // split can't be computed, so skip those markets rather than book everything as unstaked.
+  return parsed.filter((_, index) => updatedBalances[index] != null);
 };
 
 const getTokenPrices = async (tokens) => {
@@ -132,9 +133,7 @@ const getUnstakedRows = ({
       const pricePerShare = toBigNumber(ppsNow[index]);
       const totalSupply = toBigNumber(totalSupplies[index]);
       const updated = updatedBalances[index];
-      const updatedSupply = toBigNumber(
-        tupleValue(updated, 'supply', 0) ?? totalSupply
-      );
+      const updatedSupply = toBigNumber(tupleValue(updated, 'supply', 0));
       const stakedBalance = BigNumber.min(
         toBigNumber(tupleValue(updated, 'staker_balance', 1)),
         updatedSupply
