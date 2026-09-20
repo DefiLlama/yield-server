@@ -92,4 +92,4 @@ const apy = async () => {
   return pools;
 };
 
-module.exports = { timetravel: false, apy, url: "https://parestocks.com" };
+module.exports = { timetravel: false, apy, url: "https://parestocks.com", protocolId: "8703" };
