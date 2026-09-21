@@ -123,8 +123,6 @@ const excludedProtocols = [
   { id: '490', slug: 'plenty' },
   { id: '944', slug: 'platypus-finance' },
   { id: '373', slug: 'biswap-v2' },
-  { id: '1546', slug: 'burrow' }, // current slug: rhea-lend
-  { id: '541', slug: 'ref-finance' }, // current slug: rhea-dex
   { id: '2601', slug: 'shoebill-v1' },
   { id: '2773', slug: 'auragi-finance' },
   { id: '234', slug: 'notional-v2' },
