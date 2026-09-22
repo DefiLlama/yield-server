@@ -31,7 +31,7 @@ const apy = async () => {
       return {
         pool: poolAddress,
         chain,
-        project: 'gmtrade',
+        project: 'gmx-solana',
         symbol: p.symbol,
         tvlUsd: parseNumberOrNaN(p.tvl_usd),
         apyBase: parseNumberOrNaN(p.apy_base),
