@@ -2497,6 +2497,17 @@ const excludePools = [
   'moonbeam-vglmr', // vGLMR, retiring
   'moonriver-vmovr', // vMOVR, retiring
   '0x3d71ad2852676f8a3644a37a2932e678c0b80cf3',
+  // curve pools on Curve's own blacklist (https://prices.curve.finance/v1/chains/pool_filters), 2026-09-22
+  '0x06364f10B501e868329afBc005b3492902d6C763-ethereum',
+  '0x18042f2FaB99af6E374e4f5F3c2218102993cc23-ethereum',
+  '0x3f833Ed02629545DD78AFc3D585f7F3918a3De62-fantom',
+  '0x509C6c89Fbf48b968B52C8069607C729464C78b6-ethereum',
+  '0x706dDBd9F2aaD43F50162a89A1cFF30a7942Ca97-ethereum',
+  '0x79a8C46DeA5aDa233ABaFFD40F3A0A2B1e5A4F27-ethereum',
+  '0x85Bbd07eC4d0FC23C42b6Ca4aF266EAEC65342fB-arbitrum',
+  '0xBfb55Ae4e43C28674efD8A31A206e67C08484E2A-ethereum',
+  '0xF84BA2f9940973eD1E8ec579Be7856076E365cB5-arbitrum',
+  '0xFE3C78D947b329160496E192b4Cf417bB86272Ed-ethereum',
 ];
 
 const boundaries = {
