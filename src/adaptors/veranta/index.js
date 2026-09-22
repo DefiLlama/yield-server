@@ -31,7 +31,7 @@ const main = async (timestamp = null) => {
     {
       pool: `AVANTIS-${ADDRESSES.base.AvantisVault}-base`.toLowerCase(),
       chain: 'base',
-      project: 'avantis',
+      project: 'veranta',
       symbol: 'USDC',
       poolMeta: 'vault',
       tvlUsd: vaultTvl,
