@@ -532,6 +532,29 @@ const excludedProtocols = [
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
 
 const excludePools = [
+  // burrow -> rhea-lend rename (2026-09-22): legacy markets the rhea-lend adapter no longer serves
+  'burrow-pool-2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near',
+  'burrow-pool-4691937a7508860f876c9c0a2a617e7d9e945d4b.factory.bridge.near',
+  'burrow-pool-aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near',
+  'burrow-pool-aurora',
+  'burrow-pool-eth.bridge.near',
+  'burrow-pool-linear-protocol.near',
+  'burrow-pool-lst.rhealab.near',
+  'burrow-pool-meta-pool.near',
+  'burrow-pool-meta-token.near',
+  'burrow-pool-nbtc.bridge.near',
+  'burrow-pool-token.burrow.near',
+  'burrow-pool-usn',
+  'burrow-pool-v2-nearx.stader-labs.near',
+  'burrow-pool-wrap.near',
+  'burrow-pool-zec.omft.near',
+  // duplicate keys minted by PR #3000 before the adapter was pointed back at the burrow-pool-* ids
+  'rhea-lend-17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1-near',
+  'rhea-lend-6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near-near',
+  'rhea-lend-853d955acef822db058eb8505911ed77f175b99e.factory.bridge.near-near',
+  'rhea-lend-a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near-near',
+  'rhea-lend-dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near-near',
+  'rhea-lend-usdt.tether-token.near-near',
   '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
   'DWmAv5wMun4AHxigbwuJygfmXBBe9WofXAtrMCRJExfb', // Solend COOL coin pool
   // ripae pools (reported by MathieuB as scam project, and definitely not noIL!)

@@ -102,7 +102,7 @@ async function getPools(client, diagnostic = console.warn) {
       if (!quote) throw new Error('price missing');
 
       const row = {
-        pool: `rhea-lend-${market.tokenId}-near`,
+        pool: `burrow-pool-${market.tokenId}`,
         chain: formatChain('near'),
         project: 'rhea-lend',
         symbol: market.symbol,
