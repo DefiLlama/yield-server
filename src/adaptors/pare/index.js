@@ -4,29 +4,58 @@
 //    holding to maturity, where it redeems for one stock token;
 //  - the pToken/USDG liquidity pools: the 0.3% Uniswap v3 fee tier plus Merkl rewards in USDG,
 //    as Merkl reports them for the pool, over the pool's whole TVL.
+// Nothing about a series is written here. The SeriesRegistry contract lists the live vaults; each
+// vault names its stock, its pToken and its maturity; the tokens name themselves; the Uniswap
+// factory names the pools. A new series appears here when PARE lists it in the registry.
 const sdk = require("@defillama/sdk");
 const utils = require("../utils");
 
 const CHAIN = "robinhood";
 const CHAIN_ID = 4663;
-const MATURITY = 1830211200; // 2027-12-31 00:00 UTC
 const USDG = "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168"; // Global Dollar (Paxos), 6 decimals
-const SERIES = [
-  { symbol: "pSPY-DEC27",  stock: "0x117cc2133c37B721F49dE2A7a74833232B3B4C0C", stockSymbol: "SPY",  pt: "0x1d0d084ee243eC25876547E69Ca54A499E253ac9", vault: "0xa0f77015E46e45c1A12B73466A08711a28Dac1A7", pool: "0x1506CeAF13B25757713dd128e98980F49fCE4d25" },
-  { symbol: "pAAPL-DEC27", stock: "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9", stockSymbol: "AAPL", pt: "0xa674f5Ac6c5b89A64b631378a8f5703804F18aa7", vault: "0x131179E65Ab5C0538f5191920233Fd9Dc31930d1", pool: "0x03A4d0C68353D71E56D67D83fDc0318a1a01Ba34" },
-  { symbol: "pQQQ-DEC27",  stock: "0xD5f3879160bc7c32ebb4dC785F8a4F505888de68", stockSymbol: "QQQ",  pt: "0xadA9e22Cba6D1802d06400E883f5b4d663a85853", vault: "0xAb8e536C9E7c76C1045EDEb6096e9B37B26B4372", pool: "0x9D0963AB5Bfdb22EC917fb7eE6e3702523F512d1" },
-  { symbol: "pPFE-DEC27",  stock: "0x7066A64c24e4206CD62E83bf198c1E7EB361F51e", stockSymbol: "PFE",  pt: "0x2574d6E64bC2c4326cB35d8a2B2126FD300a7F79", vault: "0x1aC9599B91973A3d5d75F7594a47382223FEC0F5", pool: "0xaAE222E92441323c602247d5B0c9BE1554aD68f8",
-    // the pToken's dollar pool: Uniswap v3, 0.3% tier, Merkl rewards in USDG from 2026-09-20
-    usdgPool: "0x074d4AC450A88EfC26c2dAb28a5144A1F56f626c" },
-];
+const UNI_FACTORY = "0x1f7d7550B1b028f7571E69A784071F0205FD2EfA"; // Uniswap v3 on Robinhood Chain
+const PT_STOCK_FEE = 500;  // the pToken/stock pools: 0.05% tier
+const PT_USDG_FEE = 3000;  // the pToken/USDG pools: 0.3% tier
+const REGISTRY = "0x44aB19D42E45CA53E380A7E6CFa95e87a4c0E4A5"; // SeriesRegistry: vaults() lists every live StripVault
+const ZERO = "0x0000000000000000000000000000000000000000";
 
 const ABI = {
   slot0: "function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16, uint16, uint16, uint8, bool)",
   token0: "function token0() view returns (address)",
   balanceOf: "function balanceOf(address) view returns (uint256)",
+  symbol: "function symbol() view returns (string)",
+  stock: "function stock() view returns (address)",
+  pt: "function pt() view returns (address)",
+  maturity: "function maturity() view returns (uint64)",
+  getPool: "function getPool(address, address, uint24) view returns (address)",
+  vaults: "function vaults() view returns (address[])",
 };
 
 const call = (target, abi, params) => sdk.api2.abi.call({ target, abi, params, chain: CHAIN });
+const multi = (abi, calls) => sdk.api2.abi.multiCall({ abi, calls, chain: CHAIN });
+const dateOf = (ts) => new Date(ts * 1000).toISOString().slice(0, 10); // 2027-12-31
+
+// Every series from its vault: stock, pToken, maturity, the symbols, and the two Uniswap pools.
+async function series() {
+  const VAULTS = await call(REGISTRY, ABI.vaults);
+  if (!VAULTS.length) return [];
+  const [stocks, pts, maturities] = await Promise.all([
+    multi(ABI.stock, VAULTS.map((target) => ({ target }))),
+    multi(ABI.pt, VAULTS.map((target) => ({ target }))),
+    multi(ABI.maturity, VAULTS.map((target) => ({ target }))),
+  ]);
+  const [ptSymbols, stockSymbols, pools, usdgPools] = await Promise.all([
+    multi(ABI.symbol, pts.map((target) => ({ target }))),
+    multi(ABI.symbol, stocks.map((target) => ({ target }))),
+    multi(ABI.getPool, pts.map((pt, i) => ({ target: UNI_FACTORY, params: [pt, stocks[i], PT_STOCK_FEE] }))),
+    multi(ABI.getPool, pts.map((pt) => ({ target: UNI_FACTORY, params: [pt, USDG, PT_USDG_FEE] }))),
+  ]);
+  return VAULTS.map((vault, i) => ({
+    vault, stock: stocks[i], pt: pts[i], maturity: Number(maturities[i]), symbol: ptSymbols[i], stockSymbol: stockSymbols[i],
+    pool: pools[i] && pools[i] !== ZERO ? pools[i] : null,
+    usdgPool: usdgPools[i] && usdgPools[i] !== ZERO ? usdgPools[i] : null,
+  }));
+}
 
 // Merkl's live campaigns on one pool: daily USDG rewards, as their API reports them.
 async function merklDailyUsd(pool) {
@@ -38,12 +67,14 @@ async function merklDailyUsd(pool) {
 
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
-  const years = (MATURITY - now) / (365.25 * 86400);
+  const SERIES = await series();
   const prices = await utils.getPrices([...SERIES.map((s) => s.stock), USDG], CHAIN);
   const usdgUsd = prices.pricesByAddress[USDG.toLowerCase()] || 1; // a dollar stablecoin; 1 until DefiLlama prices it
 
   const pools = [];
   for (const s of SERIES) {
+    const years = (s.maturity - now) / (365.25 * 86400);
+    if (!s.pool || years <= 0) continue; // no market yet, or matured: nothing to earn
     const [slot0, token0, held] = await Promise.all([
       call(s.pool, ABI.slot0), call(s.pool, ABI.token0), call(s.stock, ABI.balanceOf, [s.vault]),
     ]);
@@ -61,7 +92,7 @@ const apy = async () => {
       tvlUsd: (Number(held) / 1e18) * stockUsd,
       apyBase: fixed,
       underlyingTokens: [s.stock],
-      poolMeta: `fixed to 2027-12-31, redeems 1 ${s.stockSymbol}`,
+      poolMeta: `matures ${dateOf(s.maturity)}`,
       url: `https://parestocks.com/app?series=${s.stockSymbol.toLowerCase()}`,
     });
 
@@ -85,11 +116,11 @@ const apy = async () => {
       apyReward: daily > 0 ? (daily * 365 / tvlUsd) * 100 : 0,
       rewardTokens: daily > 0 ? [USDG] : [],
       underlyingTokens: [s.pt, USDG],
-      poolMeta: "Uniswap v3 0.3% tier; the pToken climbs to 1 stock token by 2027-12-31",
+      poolMeta: "0.3% tier",
       url: "https://parestocks.com/dividend-lp",
     });
   }
   return pools;
 };
 
-module.exports = { timetravel: false, apy, url: "https://parestocks.com", protocolId: "8703" };
+module.exports = { timetravel: false, apy, url: "https://parestocks.com", protocolId: "8703" }; // DefiLlama protocol id for PARE
