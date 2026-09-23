@@ -62,13 +62,11 @@ const fetchActiveProtocols = async () => {
 
 /**
  * Calculates the decimal adjustment factor for price calculation
- * When the LPN token has more decimals than the stable quote (6),
- * we need to multiply the price by 10^(lpn_decimals - stable_decimals)
+ * The oracle quotes smallest-unit LPN against smallest-unit stable (6),
+ * so the price must be scaled by 10^(lpn_decimals - stable_decimals)
  */
-const getDecimalAdjustment = (lpnDecimals) => {
-  const decimalDiff = lpnDecimals - STABLE_QUOTE_DECIMALS;
-  return decimalDiff > 0 ? Math.pow(10, decimalDiff) : 1;
-};
+const getDecimalAdjustment = (lpnDecimals) =>
+  new BigNumber(10).pow(lpnDecimals - STABLE_QUOTE_DECIMALS);
 
 const getApy = async () => {
   // Fetch active protocols dynamically from ETL
