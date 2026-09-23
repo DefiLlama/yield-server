@@ -44,15 +44,24 @@ const main = async () => {
     (p) => !(p.project === 'aave-v2' && p.poolMeta === 'frozen')
   );
 
-  // remove expired pendle pools (expiration is in poolMeta)
+  // remove expired Pendle pools (expiration is in poolMeta)
   data = data.filter((p) => {
-    if (p.project !== 'pendle') return true;
+    if (p.project !== 'pendle' && p.project !== 'pendle-v2') return true;
 
-    const match = p.poolMeta?.match(/(\d{2}[A-Z]{3}\d{4})/);
-    if (!Array.isArray(match) || match.length < 2) return true; // keep if no valid match
+    const match = p.poolMeta?.toUpperCase().match(
+      /(\d{2})([A-Z]{3,4})(\d{4})/
+    );
+    if (!match) return true; // keep existing behavior when no date is present
 
-    const date = new Date(match[1]);
-    return !isNaN(date) && date > new Date(); // keep if valid future date
+    const months = [
+      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+    ];
+    const month = match[2] === 'SEPT' ? 8 : months.indexOf(match[2]);
+    if (month < 0) return false;
+
+    const expiry = Date.UTC(Number(match[3]), month, Number(match[1]));
+    return expiry > Date.now();
   });
 
   // remove past Merkl pools
