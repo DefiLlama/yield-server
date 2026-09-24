@@ -11,7 +11,7 @@ const NOLUS_COINGECKO = {
   USDC: 'coingecko:usd-coin',
   BTC: 'coingecko:bitcoin',
   SOL: 'coingecko:solana',
-  CB_BTC: 'coingecko:coinbase-wrapped-btc',
+  CBBTC: 'coingecko:coinbase-wrapped-btc',
   WETH: 'coingecko:weth',
 };
 
@@ -44,6 +44,7 @@ const fetchActiveProtocols = async () => {
     USDC_AXELAR: { symbol: 'USDC', meta: 'Axelar' },
     ALL_SOL: { symbol: 'SOL', meta: 'Alloyed' },
     ALL_BTC: { symbol: 'BTC', meta: 'Alloyed' },
+    CB_BTC: { symbol: 'CBBTC', meta: '' },
   };
 
   return protocols
