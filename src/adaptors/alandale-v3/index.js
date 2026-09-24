@@ -6,7 +6,7 @@ const PROJECT = 'alandale-v3';
 const CHAIN = 'robinhood';
 const URL = 'https://app.alandale.xyz';
 const SUBGRAPH =
-  'https://api.goldsky.com/api/public/project_cms6oy9216bwr01wahoyxhk79/subgraphs/alandale-cl-mainnet/1.0.0/gn';
+  'https://api.goldsky.com/api/public/project_cms6oy9216bwr01wahoyxhk79/subgraphs/alandale-cl-mainnet/1.1.0/gn';
 
 const VOTER = '0x4cF1c47B95031cD2bb1d102021D8Ede60392971C';
 const MINTER = '0x782355E7771A9Aa0834de4Ae981DCF3b7aeC11e6';
