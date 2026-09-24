@@ -123,31 +123,53 @@ const claimedSats = async (txId) => {
   }, 0);
 };
 
-const fetchLatestClaimBatch = async () => {
+// How many of a cycle's two pox-5 distributions a claim batch covers.
+// Distribution k of a cycle is computed at cycleStart + k * (cycleLength / 2)
+// and claimed shortly after, and pox-5 accumulates unclaimed rewards within
+// the cycle, so the batch covers the HIGHEST distribution any claim reached.
+const coveredDistributions = (cycleId, claimBurnHeights, pox) => {
+  const cycleStart = pox.first_burnchain_block_height + cycleId * pox.reward_cycle_length;
+  const interval = pox.reward_cycle_length / DISTRIBUTIONS_PER_CYCLE;
+  return claimBurnHeights.reduce((acc, height) => {
+    const index = Math.floor((height - cycleStart) / interval);
+    if (index < 1) return acc;
+    return Math.max(acc, Math.min(index, DISTRIBUTIONS_PER_CYCLE));
+  }, 0);
+};
+
+const fetchLatestClaimBatch = async (pox) => {
   const claims = [];
   for (const manager of ALL_MANAGERS) {
     claims.push(...(await fetchManagerClaims(manager)));
   }
-  if (!claims.length) return null;
-  const cycleId = Math.max(...claims.map((c) => c.cycleId));
-  const batch = claims.filter((c) => c.cycleId === cycleId);
-  let grossSats = 0;
-  // Burn heights of the claims that actually moved sBTC; they tell which of
-  // the cycle's distributions the batch covers.
-  const claimBurnHeights = [];
-  for (const claim of batch) {
-    const sats = await claimedSats(claim.txId);
-    if (sats > 0) claimBurnHeights.push(claim.burnHeight);
-    grossSats += sats;
+  // Newest cycle first; the first one with a usable reward batch wins. A
+  // zero-sat or pre-distribution batch on the newest cycle must not suppress
+  // both LST pools while an older usable cycle exists.
+  const cycleIds = [...new Set(claims.map((c) => c.cycleId))].sort((a, b) => b - a);
+  for (const cycleId of cycleIds) {
+    const batch = claims.filter((c) => c.cycleId === cycleId);
+    let grossSats = 0;
+    // Burn heights of the claims that actually moved sBTC; they tell which of
+    // the cycle's distributions the batch covers.
+    const claimBurnHeights = [];
+    for (const claim of batch) {
+      const sats = await claimedSats(claim.txId);
+      if (sats > 0) claimBurnHeights.push(claim.burnHeight);
+      grossSats += sats;
+    }
+    const covered = coveredDistributions(cycleId, claimBurnHeights, pox);
+    if (grossSats > 0 && covered > 0) {
+      return { cycleId, grossSats, claimBurnHeights, covered };
+    }
   }
-  return { cycleId, grossSats, claimBurnHeights };
+  return null;
 };
 
 const fetchLstApys = async (prices) => {
-  const [batch, pox, commissionBps, ststxbtcBps, ststxBps, supplyBtcV1, supplyBtcV2, supplyStstx, liveEscrow, ratio] =
+  const pox = await getJson('/v2/pox');
+  const [batch, commissionBps, ststxbtcBps, ststxBps, supplyBtcV1, supplyBtcV2, supplyStstx, liveEscrow, ratio] =
     await Promise.all([
-      fetchLatestClaimBatch(),
-      getJson('/v2/pox'),
+      fetchLatestClaimBatch(pox),
       readOnly(CONTRACTS.poolData, 'get-pool-commission'),
       readOnly(CONTRACTS.rewards, 'get-ststxbtc-bps'),
       readOnly(CONTRACTS.rewards, 'get-ststx-bps'),
@@ -172,26 +194,14 @@ const fetchLstApys = async (prices) => {
     ststx: null,
     ststxbtc: null,
   };
-  if (!batch || batch.grossSats <= 0 || ststxStx <= 0 || ststxbtcStx <= 0) return result;
+  if (!batch || ststxStx <= 0 || ststxbtcStx <= 0) return result;
 
   // pox-5 pays a cycle in discrete distributions (two: at the half-cycle and
   // at the end), not continuously, so a partial cycle is projected by how
-  // many of them the batch covers. Distribution k of a cycle is computed at
-  // cycleStart + k * (cycleLength / 2) and claimed shortly after, and pox-5
-  // accumulates unclaimed rewards within the cycle, so the batch covers the
-  // HIGHEST distribution any of its claims reached. Projecting off
-  // reward-phase progress instead freezes the multiplier once claims stop
-  // landing (a finished cycle would stay scaled up for days).
-  const cycleStart = pox.first_burnchain_block_height + batch.cycleId * pox.reward_cycle_length;
-  const interval = pox.reward_cycle_length / DISTRIBUTIONS_PER_CYCLE;
-  const covered = batch.claimBurnHeights.reduce((acc, height) => {
-    const index = Math.floor((height - cycleStart) / interval);
-    if (index < 1) return acc;
-    return Math.max(acc, Math.min(index, DISTRIBUTIONS_PER_CYCLE));
-  }, 0);
-  if (covered <= 0) return result;
-
-  const multiplier = DISTRIBUTIONS_PER_CYCLE / covered;
+  // many of them the batch covers. Projecting off reward-phase progress
+  // instead freezes the multiplier once claims stop landing (a finished cycle
+  // would stay scaled up for days).
+  const multiplier = DISTRIBUTIONS_PER_CYCLE / batch.covered;
   const netPerCycle = batch.grossSats * multiplier * (1 - commissionBps / 1e4);
   const annualBtc = (netPerCycle * CYCLES_PER_YEAR) / 1e8;
   const apy = (bps, poolStx) => (((annualBtc * bps) / 1e4) * prices.btc) / (poolStx * prices.stx) * 100;
@@ -222,11 +232,15 @@ const fetchStbtc = async (prices) => {
   // what the two STX LSTs leave: the contract's remainder). The APY is then
   // the compound growth from the start of the reward stream, annualized —
   // the same source as the protocol's own stats, unlike a trailing window,
-  // which read ~51% low.
+  // which read ~51% low. get-sbtc-per-stbtc divides active backing by
+  // total supply minus pending shares, so the accrued addition uses the same
+  // active-share denominator. get-ready-to-release is a scheduled amount; the
+  // contract takes commission on newly claimed rewards, not here.
+  const activeShares = Math.max(supplyNow - pendingShares, 0);
   const shareBps = Math.max(0, 1e4 - ststxbtcBps - ststxBps);
   const effective =
-    readySats > 0 && shareBps > 0 && supplyNow > 0
-      ? ratio + (readySats * shareBps) / 1e4 / supplyNow
+    readySats > 0 && shareBps > 0 && activeShares > 0
+      ? ratio + (readySats * shareBps) / 1e4 / activeShares
       : ratio;
   const elapsedMs = Date.now() - STBTC_REWARDS_START.timestampMs;
   if (elapsedMs <= 0 || effective <= 0) return result;
