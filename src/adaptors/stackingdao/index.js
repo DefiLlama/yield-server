@@ -18,6 +18,11 @@ const CONTRACTS = {
   poolData: `${DEPLOYER}.data-pools-stbtc-v1`,
 };
 
+// The claim scan list. SIGNERS only covers the public roster; the bond
+// managers stake through bond events, also claim, and the contract's split
+// bps are shares of EVERYTHING that lands in the rewards contract — leaving
+// their claims out under-reports both LSTs (protocol sees ~a quarter more
+// pot since the bond era began).
 const SIGNER_MANAGERS = [
   'stacking-dao',
   'juicy-stake',
@@ -28,10 +33,26 @@ const SIGNER_MANAGERS = [
   'blockdaemon',
 ].map((slug) => `${DEPLOYER}.signer-manager-${slug}-v1`);
 
+// pox-5 bond periods overlap six at a time; one signer manager per slot.
+const BOND_MANAGERS = Array.from(
+  { length: 6 },
+  (_, i) => `${DEPLOYER}.signer-manager-bond-${i + 1}-v2`
+);
+
+const ALL_MANAGERS = [...SIGNER_MANAGERS, ...BOND_MANAGERS];
+
 const CYCLES_PER_YEAR = 25;
-const REWARD_PHASE_PAYOUT_FRACTION = 0.95;
-const BURN_BLOCKS_PER_DAY = 144;
-const STBTC_WINDOWS_DAYS = [30, 14, 7];
+// pox-5 computes a cycle's rewards twice: at the half-cycle and at the end.
+const DISTRIBUTIONS_PER_CYCLE = 2;
+// Start of the stBTC reward stream: the first real process-rewards payment
+// (burn block 967405). Before it the reserve was paid 1 satoshi a round, so
+// the APY is the ratio growth since this point, annualized. The ratio is read
+// at that block, so the first catch-up payment is already in it.
+const STBTC_REWARDS_START = {
+  timestampMs: Date.parse('2026-09-17T11:52:22Z'),
+  ratio: 1.00117674,
+};
+const MS_PER_YEAR = 365 * 86_400_000;
 const STBTC_MIN_SUPPLY = 0.001;
 const TXS_PER_PAGE = 50;
 const MAX_TX_PAGES = 4;
@@ -104,19 +125,22 @@ const claimedSats = async (txId) => {
 
 const fetchLatestClaimBatch = async () => {
   const claims = [];
-  for (const manager of SIGNER_MANAGERS) {
+  for (const manager of ALL_MANAGERS) {
     claims.push(...(await fetchManagerClaims(manager)));
   }
   if (!claims.length) return null;
   const cycleId = Math.max(...claims.map((c) => c.cycleId));
   const batch = claims.filter((c) => c.cycleId === cycleId);
   let grossSats = 0;
-  for (const claim of batch) grossSats += await claimedSats(claim.txId);
-  return {
-    cycleId,
-    grossSats,
-    burnHeight: Math.max(...batch.map((c) => c.burnHeight)),
-  };
+  // Burn heights of the claims that actually moved sBTC; they tell which of
+  // the cycle's distributions the batch covers.
+  const claimBurnHeights = [];
+  for (const claim of batch) {
+    const sats = await claimedSats(claim.txId);
+    if (sats > 0) claimBurnHeights.push(claim.burnHeight);
+    grossSats += sats;
+  }
+  return { cycleId, grossSats, claimBurnHeights };
 };
 
 const fetchLstApys = async (prices) => {
@@ -135,16 +159,39 @@ const fetchLstApys = async (prices) => {
     ]);
 
   const ststxbtcStx = (supplyBtcV1 + supplyBtcV2) / 1e6;
-  const ststxStx = (Math.max(supplyStstx - liveEscrow, 0) / 1e6) * (ratio / 1e6);
-  const result = { ststxStx, ststxbtcStx, ststx: null, ststxbtc: null };
+  // APY denominator follows the protocol's own arithmetic (total supply times
+  // the exchange rate); TVL uses the active supply. stSTXbtc is non-rebasing,
+  // so 1 stSTXbtc is 1 STX.
+  const ststxStx = (supplyStstx / 1e6) * (ratio / 1e6);
+  const tvlStstxStx = (Math.max(supplyStstx - liveEscrow, 0) / 1e6) * (ratio / 1e6);
+  const result = {
+    ststxStx,
+    tvlStstxStx,
+    ststxbtcStx,
+    pricePerShareStstx: ratio / 1e6,
+    ststx: null,
+    ststxbtc: null,
+  };
   if (!batch || batch.grossSats <= 0 || ststxStx <= 0 || ststxbtcStx <= 0) return result;
 
+  // pox-5 pays a cycle in discrete distributions (two: at the half-cycle and
+  // at the end), not continuously, so a partial cycle is projected by how
+  // many of them the batch covers. Distribution k of a cycle is computed at
+  // cycleStart + k * (cycleLength / 2) and claimed shortly after, and pox-5
+  // accumulates unclaimed rewards within the cycle, so the batch covers the
+  // HIGHEST distribution any of its claims reached. Projecting off
+  // reward-phase progress instead freezes the multiplier once claims stop
+  // landing (a finished cycle would stay scaled up for days).
   const cycleStart = pox.first_burnchain_block_height + batch.cycleId * pox.reward_cycle_length;
-  const elapsed = Math.min(Math.max(batch.burnHeight - cycleStart, 0), pox.reward_phase_block_length);
-  const progress = elapsed / pox.reward_phase_block_length;
-  if (progress <= 0) return result;
+  const interval = pox.reward_cycle_length / DISTRIBUTIONS_PER_CYCLE;
+  const covered = batch.claimBurnHeights.reduce((acc, height) => {
+    const index = Math.floor((height - cycleStart) / interval);
+    if (index < 1) return acc;
+    return Math.max(acc, Math.min(index, DISTRIBUTIONS_PER_CYCLE));
+  }, 0);
+  if (covered <= 0) return result;
 
-  const multiplier = Math.max(REWARD_PHASE_PAYOUT_FRACTION / progress, 1);
+  const multiplier = DISTRIBUTIONS_PER_CYCLE / covered;
   const netPerCycle = batch.grossSats * multiplier * (1 - commissionBps / 1e4);
   const annualBtc = (netPerCycle * CYCLES_PER_YEAR) / 1e8;
   const apy = (bps, poolStx) => (((annualBtc * bps) / 1e4) * prices.btc) / (poolStx * prices.stx) * 100;
@@ -155,48 +202,36 @@ const fetchLstApys = async (prices) => {
   return result;
 };
 
-const resolveTipAtBurnHeight = async (burnHeight) => {
-  for (let offset = 0; offset <= 10; offset++) {
-    const candidates = offset === 0 ? [burnHeight] : [burnHeight + offset, burnHeight - offset];
-    for (const h of candidates) {
-      const data = await getJson(`/extended/v2/burn-blocks/${h}/blocks?limit=1`).catch((error) => {
-        if (error.response?.status === 404) return null;
-        throw error;
-      });
-      const block = data?.results?.[0];
-      if (block?.index_block_hash) return block.index_block_hash;
-    }
-  }
-  return null;
-};
-
 const fetchStbtc = async (prices) => {
-  const [pox, ratioNow, supplyNow, pendingShares] = await Promise.all([
-    getJson('/v2/pox'),
+  const [ratioRaw, supplyNow, pendingShares, readySats, ststxbtcBps, ststxBps] = await Promise.all([
     readOnly(CONTRACTS.dataStbtc, 'get-sbtc-per-stbtc'),
     readOnly(CONTRACTS.stbtcToken, 'get-total-supply'),
     readOnly(CONTRACTS.dataStbtc, 'get-pending-shares'),
+    readOnly(CONTRACTS.rewards, 'get-ready-to-release'),
+    readOnly(CONTRACTS.rewards, 'get-ststxbtc-bps'),
+    readOnly(CONTRACTS.rewards, 'get-ststx-bps'),
   ]);
-  const ratio = ratioNow / 1e8;
+  const ratio = ratioRaw / 1e8;
   const supply = Math.max(supplyNow - pendingShares, 0) / 1e8;
-  const result = { tvlUsd: supply * ratio * prices.btc, apy: null };
+  const result = { tvlUsd: supply * ratio * prices.btc, apy: null, pricePerShare: ratio };
   if (supply < STBTC_MIN_SUPPLY) return result;
 
-  for (const days of STBTC_WINDOWS_DAYS) {
-    const tip = await resolveTipAtBurnHeight(pox.current_burnchain_block_height - days * BURN_BLOCKS_PER_DAY);
-    if (!tip) continue;
-    const [ratioPast, supplyPast] = await Promise.all([
-      readOnly(CONTRACTS.dataStbtc, 'get-sbtc-per-stbtc', tip).catch(() => null),
-      readOnly(CONTRACTS.stbtcToken, 'get-total-supply', tip).catch(() => null),
-    ]);
-    if (!ratioPast || ratioPast <= 0 || ratioNow <= ratioPast) continue;
-    if (!supplyPast || supplyPast / 1e8 < STBTC_MIN_SUPPLY) continue;
-    const apy = (Math.pow(ratioNow / ratioPast, 365 / days) - 1) * 100;
-    if (Number.isFinite(apy) && apy > 0 && apy < 100) {
-      result.apy = apy;
-      break;
-    }
-  }
+  // stBTC is a ratio-growth vault. Between releases the on-chain ratio lags
+  // what holders have actually earned, so add stBTC's share of the rewards
+  // accrued on the stream but not yet released (its share of every release is
+  // what the two STX LSTs leave: the contract's remainder). The APY is then
+  // the compound growth from the start of the reward stream, annualized —
+  // the same source as the protocol's own stats, unlike a trailing window,
+  // which read ~51% low.
+  const shareBps = Math.max(0, 1e4 - ststxbtcBps - ststxBps);
+  const effective =
+    readySats > 0 && shareBps > 0 && supplyNow > 0
+      ? ratio + (readySats * shareBps) / 1e4 / supplyNow
+      : ratio;
+  const elapsedMs = Date.now() - STBTC_REWARDS_START.timestampMs;
+  if (elapsedMs <= 0 || effective <= 0) return result;
+  const apy = (Math.pow(effective / STBTC_REWARDS_START.ratio, MS_PER_YEAR / elapsedMs) - 1) * 100;
+  if (Number.isFinite(apy) && apy > 0 && apy < 100) result.apy = apy;
   return result;
 };
 
@@ -221,8 +256,10 @@ const apy = async () => {
       chain: CHAIN,
       project: 'stackingdao',
       symbol: 'stSTX',
-      tvlUsd: lst.ststxStx * prices.stx,
+      tvlUsd: lst.tvlStstxStx * prices.stx,
       apyBase: lst.ststx,
+      isIntrinsicSource: true,
+      pricePerShare: lst.pricePerShareStstx,
       underlyingTokens: ['coingecko:blockstack'],
       token: CONTRACTS.ststxToken,
       url: `${URL}/stack`,
@@ -236,6 +273,9 @@ const apy = async () => {
       symbol: 'stSTXbtc',
       tvlUsd: lst.ststxbtcStx * prices.stx,
       apyBase: lst.ststxbtc,
+      isIntrinsicSource: true,
+      // non-rebasing: 1 stSTXbtc redeems for 1 STX
+      pricePerShare: 1,
       underlyingTokens: ['coingecko:blockstack'],
       token: CONTRACTS.ststxbtcTokenV2,
       url: `${URL}/stack`,
@@ -249,6 +289,8 @@ const apy = async () => {
       symbol: 'stBTC',
       tvlUsd: stbtc.tvlUsd,
       apyBase: stbtc.apy,
+      isIntrinsicSource: true,
+      pricePerShare: stbtc.pricePerShare,
       underlyingTokens: ['SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token'],
       token: CONTRACTS.stbtcToken,
       url: `${URL}/stack`,

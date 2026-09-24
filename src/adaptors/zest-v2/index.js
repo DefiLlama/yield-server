@@ -5,6 +5,7 @@ const {
   contractPrincipalCV,
   cvToHex,
   hexToCV,
+  uintCV,
 } = require('@stacks/transactions');
 
 const HIRO = 'https://api.hiro.so';
@@ -22,6 +23,8 @@ const POOLS = [
     symbol: 'STX',
     vaultContract: 'v0-vault-stx',
     underlying: `${DEPLOYER}.wstx`,
+    // collateral asset id the market's egroups are masked on (zSTX)
+    collateralId: 1,
     decimals: 6,
     priceKeys: ['coingecko:blockstack'],
   },
@@ -29,6 +32,7 @@ const POOLS = [
     symbol: 'sBTC',
     vaultContract: 'v0-vault-sbtc',
     underlying: SBTC,
+    collateralId: 2,
     decimals: 8,
     priceKeys: [`stacks:${SBTC}`, 'coingecko:bitcoin'],
   },
@@ -36,6 +40,8 @@ const POOLS = [
     symbol: 'stSTX',
     vaultContract: 'v0-vault-ststx',
     underlying: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token',
+    // zstSTX
+    collateralId: 5,
     decimals: 6,
     priceKeys: [
       'stacks:SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token',
@@ -46,6 +52,8 @@ const POOLS = [
     symbol: 'USDCx',
     vaultContract: 'v0-vault-usdc',
     underlying: 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx',
+    // zUSDC
+    collateralId: 7,
     decimals: 6,
     priceKeys: [
       'stacks:SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx',
@@ -56,6 +64,8 @@ const POOLS = [
     symbol: 'USDh',
     vaultContract: 'v0-vault-usdh',
     underlying: 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1',
+    // USDh is borrow-only: no egroup covers it, so no LTV
+    collateralId: null,
     decimals: 8,
     priceKeys: [
       'stacks:SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1',
@@ -66,6 +76,8 @@ const POOLS = [
     symbol: 'stSTXbtc',
     vaultContract: 'v0-vault-ststxbtc',
     underlying: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2',
+    // zstSTXbtc
+    collateralId: 11,
     decimals: 6,
     priceKeys: [
       'stacks:SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2::ststxbtc',
@@ -76,6 +88,8 @@ const POOLS = [
     symbol: 'stBTC',
     vaultContract: 'v0-vault-stbtc',
     underlying: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.stbtc-token',
+    // zstBTC
+    collateralId: 13,
     decimals: 8,
     priceKeys: [`stacks:${SBTC}`, 'coingecko:bitcoin'],
     exchangeRate: { contract: STBTC_DATA, fn: 'get-sbtc-per-stbtc', scale: 1e8 },
@@ -129,6 +143,32 @@ const fetchRates = async (pool) => {
   };
 };
 
+const EGROUPS = `${DEPLOYER}.v0-egroup`;
+
+// Borrow LTV for the pool's collateral, read live from the efficiency-group
+// registry: v0-egroup.resolve masks on 2^assetId and returns the ACTIVE group
+// for that collateral (superseded groups exist on chain but resolve skips
+// them). LTV-BORROW is a (buff 2) in bps. Null when the collateral has no
+// egroup (e.g. USDh is borrow-only).
+const fetchLtv = async (collateralId) => {
+  if (collateralId == null) return null;
+  const mask = BigInt(2) ** BigInt(collateralId);
+  const [address, name] = EGROUPS.split('.');
+  const url = `${HIRO}/v2/contracts/call-read/${address}/${name}/resolve`;
+  const { data } = await withRetry(
+    () => axios.post(url, { sender: DEPLOYER, arguments: [cvToHex(uintCV(mask))] }, HTTP),
+    RETRY
+  );
+  if (!data.okay) return null;
+  const cv = hexToCV(data.result);
+  if (cv.type !== ClarityType.ResponseOk) return null;
+  const tuple = cv.value.type === ClarityType.Tuple ? cv.value.data : cv.value;
+  const ltv = tuple['LTV-BORROW'];
+  if (!ltv) return null;
+  const bytes = ltv.buffer ?? ltv.data ?? ltv.value;
+  return [...bytes].reduce((acc, byte) => acc * 256 + byte, 0) / 1e4;
+};
+
 const fetchVault = async (pool) => {
   const [assets, debt] = await Promise.all([
     readOnly(`${DEPLOYER}.${pool.vaultContract}`, 'get-total-assets'),
@@ -149,10 +189,14 @@ const apy = async () => {
         console.log(`Skipping ${pool.symbol}: price not available`);
         continue;
       }
-      const [rates, vault, exchangeRate] = await Promise.all([
+      const [rates, vault, exchangeRate, ltv] = await Promise.all([
         fetchRates(pool),
         fetchVault(pool),
         fetchExchangeRate(pool),
+        fetchLtv(pool.collateralId).catch((error) => {
+          console.log(`LTV read failed for ${pool.symbol}: ${error.message}`);
+          return null;
+        }),
       ]);
       const price = basePrice * exchangeRate;
       const totalSupplyUsd = vault.totalAssets * price;
@@ -168,6 +212,7 @@ const apy = async () => {
         apyBaseBorrow: rates.borrowApy,
         totalSupplyUsd,
         totalBorrowUsd,
+        ...(ltv != null ? { ltv } : {}),
         borrowToken: pool.underlying,
         underlyingTokens: [pool.underlying],
         token: pool.underlying,
