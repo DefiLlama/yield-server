@@ -9,6 +9,7 @@
 // factory names the pools. A new series appears here when PARE lists it in the registry.
 const sdk = require("@defillama/sdk");
 const utils = require("../utils");
+const { merklGet } = require("../merkl/merkl-client");
 
 const CHAIN = "robinhood";
 const CHAIN_ID = 4663;
@@ -58,11 +59,16 @@ async function series() {
 }
 
 // Merkl's live campaigns on one pool: daily USDG rewards, as their API reports them.
+// null when Merkl can't be read, so the pool is skipped rather than published at 0%.
 async function merklDailyUsd(pool) {
   try {
-    const list = await utils.getData(`https://api.merkl.xyz/v4/opportunities?chainId=${CHAIN_ID}&status=LIVE&identifier=${pool.toLowerCase()}`);
-    return (Array.isArray(list) ? list : []).reduce((a, o) => a + (Number(o.dailyRewards) || 0), 0);
-  } catch { return 0; }
+    const list = await merklGet(`/v4/opportunities?chainId=${CHAIN_ID}&status=LIVE&identifier=${pool.toLowerCase()}`);
+    if (!Array.isArray(list)) throw new Error("unexpected response");
+    return list.reduce((a, o) => a + (Number(o.dailyRewards) || 0), 0);
+  } catch (e) {
+    console.error(`pare: Merkl read failed for ${pool}: ${e.message}`);
+    return null;
+  }
 }
 
 const apy = async () => {
@@ -92,7 +98,7 @@ const apy = async () => {
       tvlUsd: (Number(held) / 1e18) * stockUsd,
       apyBase: fixed,
       underlyingTokens: [s.stock],
-      poolMeta: `matures ${dateOf(s.maturity)}`,
+      poolMeta: `fixed to ${dateOf(s.maturity)}, redeems 1 ${s.stockSymbol}`,
       url: `https://parestocks.com/app?series=${s.stockSymbol.toLowerCase()}`,
     });
 
@@ -103,6 +109,7 @@ const apy = async () => {
       call(s.usdgPool, ABI.slot0), call(s.usdgPool, ABI.token0),
       call(s.pt, ABI.balanceOf, [s.usdgPool]), call(USDG, ABI.balanceOf, [s.usdgPool]), merklDailyUsd(s.usdgPool),
     ]);
+    if (daily === null) continue;
     const praw = (Number(ps0.sqrtPriceX96) / 2 ** 96) ** 2;
     const usdgPerPt = (pt0.toLowerCase() === s.pt.toLowerCase() ? praw : 1 / praw) * 1e12;
     const tvlUsd = (Number(ptHeld) / 1e18) * usdgPerPt * usdgUsd + (Number(usdgHeld) / 1e6) * usdgUsd;
@@ -116,7 +123,7 @@ const apy = async () => {
       apyReward: daily > 0 ? (daily * 365 / tvlUsd) * 100 : 0,
       rewardTokens: daily > 0 ? [USDG] : [],
       underlyingTokens: [s.pt, USDG],
-      poolMeta: "0.3% tier",
+      poolMeta: `Uniswap v3 0.3%, accretes to 1 ${s.stockSymbol}`,
       url: "https://parestocks.com/dividend-lp",
     });
   }
