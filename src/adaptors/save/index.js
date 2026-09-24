@@ -8,6 +8,13 @@ const reservesEndpoint = `${baseUrl}/v1/reserves`;
 // api formats rates with thousands separators, e.g. "1,079.52"
 const parseRate = (value) => Number(String(value).replace(/,/g, ''));
 
+// fully borrowed reserves (bad debt) are unwithdrawable and quote max-curve rates
+const isFullyBorrowed = ({ liquidity }) => {
+  const available = Number(liquidity.availableAmount);
+  const borrowed = Number(liquidity.borrowedAmountWads) / 1e18;
+  return borrowed > 0 && available / (available + borrowed) < 0.001;
+};
+
 const main = async () => {
   const configResponse = await fetch(`${configEndpoint}?deployment=production`);
 
@@ -39,7 +46,8 @@ const main = async () => {
   );
   const reserveRows = reserves
     .flat()
-    .filter((reserveData) => configsByAddress.has(reserveData.reserve.address));
+    .filter((reserveData) => configsByAddress.has(reserveData.reserve.address))
+    .filter((reserveData) => !isFullyBorrowed(reserveData.reserve));
 
   return reserveRows.map((reserveData) => {
     const reserveConfig = configsByAddress.get(reserveData.reserve.address);
