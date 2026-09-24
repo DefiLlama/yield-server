@@ -252,6 +252,12 @@ exports.formatChain = (chain) => {
       chain.toLowerCase() === 'hyperliquid')
   )
     return 'Hyperliquid L1';
+  if (
+    chain &&
+    (chain.toLowerCase() === 'native_core' ||
+      chain.toLowerCase() === 'native-core')
+  )
+    return 'Native Core';
   if (chain && chain.toLowerCase() === 'core') return 'CORE';
   if (chain && chain.toLowerCase() === 'cronos_zkevm') return 'Cronos zkEVM';
   if (chain && chain.toLowerCase() === 'echelon_initia')
