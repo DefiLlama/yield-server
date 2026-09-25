@@ -527,6 +527,7 @@ const excludedProtocols = [
   { id: '7419', slug: 'zentra-finance' },
   { id: '2864', slug: 'thena-fusion' },
   { id: '1986', slug: 'canto-lending' },
+  { id: '7451', slug: 'acre' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
