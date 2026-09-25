@@ -1,169 +1,168 @@
-const { callReadOnlyFunction, contractPrincipalCV } = require("@stacks/transactions");
-const { StacksMainnet } = require("@stacks/network");
+const axios = require('axios');
+const { getPriceApiUrl, withRetry } = require('../utils');
+const {
+  ClarityType,
+  contractPrincipalCV,
+  cvToHex,
+  hexToCV,
+} = require('@stacks/transactions');
 
-const STACKS_COINGECKO = {
-  STX: 'coingecko:blockstack',
-  stSTX: 'coingecko:blockstack',
-  aeUSDC: 'coingecko:usd-coin',
-  DIKO: 'coingecko:arkadiko-protocol',
+const HIRO = 'https://api.hiro.so';
+const RETRY = { retries: 3, delayMs: 8000 };
+const HTTP = { timeout: 30000 };
+const DEPLOYER = 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N';
+const POOL_READ = 'pool-read-v2-1-4';
+const POOL_VAULT = `${DEPLOYER}.pool-vault`;
+const CHAIN = 'Stacks';
+const URL = 'https://app.zestprotocol.com/market/legacy';
+const RATE_SCALE = 1e6;
+
+const ASSETS = [
+  {
+    symbol: 'sBTC',
+    contract: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
+    decimals: 8,
+    priceKeys: ['stacks:SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token', 'coingecko:bitcoin'],
+  },
+  {
+    symbol: 'STX',
+    contract: `${DEPLOYER}.wstx`,
+    decimals: 6,
+    priceKeys: ['coingecko:blockstack'],
+    native: true,
+  },
+  {
+    symbol: 'stSTX',
+    contract: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token',
+    decimals: 6,
+    priceKeys: ['stacks:SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststx-token', 'coingecko:blockstack'],
+  },
+  {
+    symbol: 'stSTXbtc',
+    contract: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2',
+    decimals: 6,
+    priceKeys: ['stacks:SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG.ststxbtc-token-v2::ststxbtc', 'coingecko:blockstack'],
+  },
+  {
+    symbol: 'aeUSDC',
+    contract: 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc',
+    decimals: 6,
+    priceKeys: ['stacks:SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc', 'coingecko:usd-coin'],
+  },
+  {
+    symbol: 'USDh',
+    contract: 'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1',
+    decimals: 8,
+    priceKeys: ['stacks:SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1', 'coingecko:usd-coin'],
+  },
+  {
+    symbol: 'USDT',
+    contract: 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt',
+    decimals: 8,
+    priceKeys: ['stacks:SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt', 'coingecko:tether'],
+  },
+  {
+    symbol: 'ALEX',
+    contract: 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex',
+    decimals: 8,
+    priceKeys: ['stacks:SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex', 'coingecko:alexgo'],
+  },
+];
+
+const unwrap = (cv) => {
+  if (cv.type === ClarityType.ResponseOk) return unwrap(cv.value);
+  if (cv.type === ClarityType.Tuple) return cv.data;
+  return cv;
 };
 
-const AssetConfig = {
-    stSTX: {
-        assetAddress: 'SP4SZE494VC2YC5JYG7AYFQ44F5Q4PYV7DVMDPBG',
-        contractName: 'ststx-token',
-        oracleContractName: 'ststx-oracle-v1-4',
-        decimals: 6,
-    },
-    aeUSDC: {
-        assetAddress: 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K',
-        contractName: 'token-aeusdc',
-        oracleContractName: 'aeusdc-oracle-v1-0',
-        decimals: 6,
-    },
-    STX: {
-        assetAddress: 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N',
-        contractName: 'wstx',
-        oracleContractName: 'stx-oracle-v1-3',
-        decimals: 6,
-    },
-    DIKO: {
-        assetAddress: 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR',
-        contractName: 'arkadiko-token',
-        oracleContractName: 'diko-oracle-v1-1',
-        decimals: 6,
-    },
-}
+const readOnly = async (contractName, functionName, functionArgs = []) => {
+  const url = `${HIRO}/v2/contracts/call-read/${DEPLOYER}/${contractName}/${functionName}`;
+  const { data } = await withRetry(
+    () => axios.post(url, { sender: DEPLOYER, arguments: functionArgs.map(cvToHex) }, HTTP),
+    RETRY
+  );
+  if (!data.okay) throw new Error(`${contractName}.${functionName} failed: ${data.cause}`);
+  return unwrap(hexToCV(data.result));
+};
 
-async function getAddressBalances() {
-    try {
-        const response = await fetch(
-            "https://api.hiro.so/extended/v1/address/SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-vault/balances",
-            {
-                method: "GET",
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
+const fetchPrices = async () => {
+  const keys = [...new Set(ASSETS.flatMap((a) => a.priceKeys))].join(',');
+  const { data } = await withRetry(() => axios.get(getPriceApiUrl(`/prices/current/${keys}`), HTTP), RETRY);
+  return data.coins;
+};
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        // Process the balances
-        const processedBalances = {
-            STX: Number(data.stx.balance) / Math.pow(10, 6) // STX has 6 decimals
-        };
-
-        // Process fungible tokens
-        Object.entries(data.fungible_tokens).forEach(([fullTokenId, tokenData]) => {
-            const [addressAndContract] = fullTokenId.split('::');
-            const [address, contractName] = addressAndContract.split('.');
-
-            const matchingAsset = Object.entries(AssetConfig).find(([_, config]) => 
-                config.assetAddress === address && config.contractName === contractName
-            );
-
-            if (matchingAsset) {
-                const [assetKey, config] = matchingAsset;
-                processedBalances[assetKey] = Number(tokenData.balance) / Math.pow(10, config.decimals);
-            }
-        });
-
-        return processedBalances;
-    } catch (error) {
-        console.error('Error fetching address balances:', error);
-    }
-}
-
-async function getZestPools() {
-  try {
-    const contractAddress = 'SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N';
-    const network = new StacksMainnet();
-
-    const chain = 'Stacks';
-
-    const pools = [];
-
-    const balances = await getAddressBalances();
-    // Reserve data
-    for (const [assetKey, asset] of Object.entries(AssetConfig)) {
-        const {assetAddress, contractName, oracleContractName} = asset;
-
-        let supplyApy = 0.0;
-        let tvlUsd = 0.0;
-        let price = 0.0;
-
-        // Fetch yields
-        try {
-            const reserveData = await callReadOnlyFunction({
-                contractAddress,
-                contractName: 'pool-read-v1-3-2',
-                functionName: 'get-reserve-data',
-                network,
-                functionArgs: [
-                    contractPrincipalCV(assetAddress, contractName),
-                ],
-                senderAddress: contractAddress,
-            });
-
-            if (reserveData.data) {
-                supplyApy = Number(reserveData.data['current-liquidity-rate'].value) / 1000000;
-                borrowApy = Number(reserveData.data['current-variable-borrow-rate'].value) / 1000000;
-                ltv = Number(reserveData.data['base-ltv-as-collateral'].value) / 100000000;
-            }
-
-        } catch (error) {
-            console.log(`Error fetching yields: ${error}`);
-        }
-
-        try {
-            const result = await callReadOnlyFunction({
-                contractAddress,
-                contractName: oracleContractName,
-                functionName: 'get-price',
-                network,
-                functionArgs: [],
-                senderAddress: contractAddress,
-            });
-
-            // Get price and calculate TVL using the balance
-            price = Number(result.value) / 100000000;
-            const assetBalance = balances[assetKey] || 0;
-            tvlUsd = price * assetBalance;
-            
-        } catch (error) {
-            console.log(`Error fetching TVL: ${error}`);
-        }
-
-        pools.push({
-            pool: `${assetAddress}.${contractName}-${chain}`.toLowerCase(),
-            chain: chain,
-            project: 'zest-v1',
-            symbol: assetKey,
-            tvlUsd: tvlUsd,
-            apyBase: supplyApy,
-            underlyingTokens: [STACKS_COINGECKO[assetKey] || `${assetAddress}.${contractName}`],
-        });
-    }
-  return pools;
-  } catch (e) {
-    if (e instanceof Error) {
-        if (!e.message.includes('UnwrapFailure')) {
-            console.log(e);
-        }
-    }
-    return [];
+const getPrice = (prices, priceKeys) => {
+  for (const key of priceKeys) {
+    if (prices[key]?.price) return prices[key].price;
   }
+  return null;
+};
 
-}
+const fetchVaultBalances = async () => {
+  const { data } = await withRetry(
+    () => axios.get(`${HIRO}/extended/v1/address/${POOL_VAULT}/balances`, HTTP),
+    RETRY
+  );
+  const balances = { stx: Number(data.stx.balance) };
+  Object.entries(data.fungible_tokens || {}).forEach(([assetId, tokenData]) => {
+    balances[assetId.split('::')[0]] = Number(tokenData.balance);
+  });
+  return balances;
+};
+
+const fetchReserve = async (asset) => {
+  const [address, name] = asset.contract.split('.');
+  const data = await readOnly(POOL_READ, 'get-reserve-data', [contractPrincipalCV(address, name)]);
+  return {
+    supplyApy: Number(data['current-liquidity-rate'].value) / RATE_SCALE,
+    borrowApy: Number(data['current-variable-borrow-rate'].value) / RATE_SCALE,
+    ltv: Number(data['base-ltv-as-collateral'].value) / 1e8,
+    totalBorrowed: Number(data['total-borrows-variable'].value) + Number(data['total-borrows-stable'].value),
+  };
+};
+
+const apy = async () => {
+  const [prices, balances] = await Promise.all([fetchPrices(), fetchVaultBalances()]);
+  const pools = [];
+
+  for (const asset of ASSETS) {
+    try {
+      const price = getPrice(prices, asset.priceKeys);
+      if (!price) {
+        console.log(`Skipping ${asset.symbol}: price not available`);
+        continue;
+      }
+      const reserve = await fetchReserve(asset);
+      const scale = Math.pow(10, asset.decimals);
+      const available = (asset.native ? balances.stx : balances[asset.contract] || 0) / scale;
+      const totalBorrowUsd = (reserve.totalBorrowed / scale) * price;
+      const tvlUsd = available * price;
+
+      pools.push({
+        pool: `${asset.contract}-${CHAIN}`.toLowerCase(),
+        chain: CHAIN,
+        project: 'zest-v1',
+        symbol: asset.symbol,
+        tvlUsd,
+        apyBase: reserve.supplyApy,
+        apyBaseBorrow: reserve.borrowApy,
+        totalSupplyUsd: tvlUsd + totalBorrowUsd,
+        totalBorrowUsd,
+        ltv: reserve.ltv,
+        underlyingTokens: [asset.contract],
+        token: asset.contract,
+        url: URL,
+      });
+    } catch (error) {
+      console.log(`Error processing ${asset.symbol}: ${error.message}`);
+    }
+  }
+  return pools;
+};
 
 module.exports = {
   protocolId: '4420',
   timetravel: false,
-  apy: getZestPools,
-  url: 'https://app.zestprotocol.com/assets',
+  apy,
+  url: URL,
 };
