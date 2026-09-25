@@ -25,18 +25,39 @@ function main() {
   const failed = /FAIL\s+.*test\.js/.test(file);
 
   const MAX_FAILURE_DETAIL_CHARS = 20000;
+  const MAX_POOL_DETAIL_CHARS = 20000;
 
-  // On success: everything from "Test Suites:" onward (includes pool output from
-  // afterTests.js). On failure: the jest failure blocks too, capped, so the
-  // reason is visible in the comment and not just the counts.
+  // On success: everything from "Test Suites:" onward. On failure: the jest
+  // failure blocks too, capped, so the reason is visible in the comment and
+  // not just the counts.
   const summaryIndex = file.indexOf('Test Suites:');
   if (summaryIndex === -1) return;
+
+  // afterTests.js (a jest globalTeardown) writes the pool summary to stdout
+  // while jest buffers its reporter output and writes it to stderr, so on
+  // Node 24 the pool block lands BEFORE the jest summary and slicing from
+  // "Test Suites:" drops it. Take the block explicitly and stitch it on,
+  // skipping the per-test lines in between: including them pushed the comment
+  // past GitHub's 65536-character limit, so it failed to post at all.
+  const poolIndex = file.indexOf('Nb of pools:');
+  let poolDetail = '';
+  if (poolIndex !== -1 && poolIndex < summaryIndex) {
+    const rest = file.slice(poolIndex);
+    const reporterStart = rest.match(/\n\s*(?:✓|✗|✕|PASS|FAIL|Test Suites:)/);
+    poolDetail = (reporterStart ? rest.slice(0, reporterStart.index) : rest).trimEnd();
+    if (poolDetail.length > MAX_POOL_DETAIL_CHARS) {
+      poolDetail =
+        poolDetail.substring(0, MAX_POOL_DETAIL_CHARS) +
+        '\n\n... pool output truncated ...';
+    }
+    poolDetail += '\n\n';
+  }
 
   const failureIndex = file.indexOf('●');
   const hasFailureDetail =
     failed && failureIndex !== -1 && failureIndex < summaryIndex;
 
-  let output = file.substring(summaryIndex);
+  let output = poolDetail + file.substring(summaryIndex);
   if (hasFailureDetail) {
     let detail = trimFailureDetail(file.substring(failureIndex, summaryIndex));
     if (detail.length > MAX_FAILURE_DETAIL_CHARS) {
