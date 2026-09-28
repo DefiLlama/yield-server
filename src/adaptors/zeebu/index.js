@@ -157,7 +157,7 @@ const apy = async () => {
       rewardTokens: REWARD_TOKENS[chain],
       underlyingTokens: [ZBU[chain]],
       poolMeta: 'Zeebu Staking Rewards',
-      url: 'https://zeebu.fi/',
+      url: 'https://www.zeebu.com/',
     });
   }
 
