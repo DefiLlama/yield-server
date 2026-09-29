@@ -46,18 +46,28 @@ const apy = async () => {
   ]);
 
   if (BigInt(supply.output) === 0n) return [];
-  const elusdPrice = prices.coins[priceKey]?.price;
-  if (!Number.isFinite(elusdPrice) || elusdPrice <= 0)
+
+  const elusdPrice = prices.coins[priceKey]?.price || 1;
+
+  if (!Number.isFinite(elusdPrice) || elusdPrice <= 0) {
     throw new Error('DefiLlama price unavailable for elUSD');
+  }
+
   const sharePrice = BigInt(price.output);
   const oldSharePrice = BigInt(previousPrice.output);
   const elapsed = timestamp - previousBlock.timestamp;
-  if (oldSharePrice <= 0n || elapsed <= 0)
+
+  if (oldSharePrice <= 0n || elapsed <= 0) {
     throw new Error('Invalid sElUSD yield window');
+  }
+
   const periodReturn =
     Number(((sharePrice - oldSharePrice) * SCALE) / oldSharePrice) / 1e18;
   const apyBase = (Math.pow(1 + periodReturn, YEAR / elapsed) - 1) * 100;
-  if (!Number.isFinite(apyBase)) throw new Error('Invalid sElUSD APY');
+
+  if (!Number.isFinite(apyBase)) {
+    throw new Error('Invalid sElUSD APY');
+  }
 
   return [
     {
