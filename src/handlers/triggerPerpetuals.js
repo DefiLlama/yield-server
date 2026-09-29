@@ -1,8 +1,5 @@
 const binance = require('../perpetuals/binance');
-const bybit = require('../perpetuals/bybit');
-const dydx = require('../perpetuals/dydx');
 const okx = require('../perpetuals/okx');
-const synthetix = require('../perpetuals/synthetix');
 
 const { insertPerp } = require('../queries/perp');
 
@@ -14,10 +11,7 @@ const main = async () => {
   const perps = (
     await Promise.allSettled([
       binance.getPerpData(),
-      bybit.getPerpData(),
-      dydx.getPerpData(),
       okx.getPerpData(),
-      synthetix.getPerpData(),
     ])
   )
     .filter((c) => c.status === 'fulfilled')
