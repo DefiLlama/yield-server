@@ -26,6 +26,7 @@ const extraPools = {
     monad: [
         '0x36eDbF0C834591BFdfCaC0Ef9605528c75c406aA', // earnAUSD
         '0x5E7568bf8DF8792aE467eCf5638d7c4D18A1881C', // earnMON
+        '0x42B3b62a6685E3a3F93483715Ef4300f5E7336CC', // earnAUSDloop
     ],
 };
 
@@ -48,6 +49,15 @@ const customVaults = {
         totalAssetsAbi: { inputs: [], name: 'getTotalAssets', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
         sharePriceAbi: { inputs: [], name: 'getSharePrice', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
         merklIdentifier: '0x8FA1365f6E39B7404737721a356B1d4a7b11cA7D', // lpTokenAddress used by Merkl
+    },
+    '0x42B3b62a6685E3a3F93483715Ef4300f5E7336CC': {
+        symbol: 'earnAUSDloop',
+        decimals: 6,
+        underlying: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', // USDC
+        underlyingDecimals: 6,
+        totalAssetsAbi: { inputs: [], name: 'getTotalAssets', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
+        sharePriceAbi: { inputs: [], name: 'getSharePrice', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
+        merklIdentifier: '0xEA7e0955D410C5BA9dAc457539EF0FA53a1399Ed', // lpTokenAddress used by Merkl
     },
 };
 
