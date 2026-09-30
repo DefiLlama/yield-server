@@ -5,7 +5,6 @@ const POOL_API_URL = 'https://api-ui.native.org/api/v3/earn';
 const CORE_INFO_URL = 'https://api.native.org/info';
 const CORE_REGISTRY_URL = 'https://api-ui.native.org/api/v3/core/registry';
 const USD_SCALE = 10n ** 8n;
-const POOL_CHAIN = 'native_core';
 const CHAIN_PRIORITY = ['ethereum', 'bsc', 'base', 'arbitrum', 'morph'];
 const REQUEST_CONFIG = {
   headers: {
@@ -54,10 +53,7 @@ const fetchMarkPrices = async () => {
   }
 
   return new Map(
-    data.mark_prices.map(({ asset_id: assetId, usd_atoms: usdAtoms }) => [
-      assetId,
-      usdAtoms,
-    ])
+    data.mark_prices.map((price) => [price?.asset_id, price?.usd_atoms])
   );
 };
 
@@ -71,16 +67,16 @@ const fetchUnderlyings = async () => {
   }
 
   const chains = [...data.data.chains].sort(
-    (a, b) => getChainPriority(a.chainKey) - getChainPriority(b.chainKey)
+    (a, b) => getChainPriority(a?.chainKey) - getChainPriority(b?.chainKey)
   );
   const underlyingsByAssetId = new Map();
 
   for (const chain of chains) {
-    if (!chain.enabled || !Array.isArray(chain.underlyings)) continue;
+    if (!chain?.enabled || !Array.isArray(chain.underlyings)) continue;
 
     for (const underlying of chain.underlyings) {
       if (
-        !underlying.enabled ||
+        !underlying?.enabled ||
         !Number.isInteger(underlying.assetId) ||
         typeof underlying.nativeSymbol !== 'string' ||
         !/^0x[a-fA-F0-9]{40}$/.test(underlying.address) ||
@@ -120,10 +116,11 @@ const calculateTvlUsd = (amount, decimals, usdAtoms) => {
 };
 
 const formatApy = (projectedApy) => {
-  if (projectedApy === undefined) return 0;
+  if (projectedApy == null) return null;
 
   const apy = Number(projectedApy) * 100;
-  return Number.isFinite(apy) && apy >= 0 ? apy : 0;
+  // Native also reports "0" when a rate cannot be computed yet.
+  return Number.isFinite(apy) && apy > 0 ? apy : null;
 };
 
 const apy = async () => {
@@ -140,7 +137,7 @@ const apy = async () => {
   return config.assets
     .map((asset) => {
       if (
-        typeof asset.symbol !== 'string' ||
+        typeof asset?.symbol !== 'string' ||
         !Number.isInteger(asset.asset_id)
       ) {
         return null;
@@ -158,17 +155,19 @@ const apy = async () => {
       const underlying = underlyingsByAssetId.get(asset.asset_id);
       const underlyingToken =
         underlying?.symbol === symbol ? underlying.address : undefined;
+      const apyBase = formatApy(asset.projected_fee_apy);
+
+      if (apyBase == null) return null;
 
       return {
         pool: `native-core-clob-${asset.asset_id}`,
-        chain: utils.formatChain(POOL_CHAIN),
+        chain: 'Native Core',
         project: 'native-core-clob',
         symbol,
         tvlUsd,
-        apyBase: formatApy(asset.projected_apy),
+        apyBase,
         ...(underlyingToken && {
           underlyingTokens: [underlyingToken],
-          searchTokenOverride: underlyingToken,
         }),
         token: null,
         poolMeta: 'Native Pool',
