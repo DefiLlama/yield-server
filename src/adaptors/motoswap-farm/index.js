@@ -2,33 +2,34 @@ const sdk = require('@defillama/sdk');
 const { default: BigNumber } = require('bignumber.js');
 const utils = require('../utils');
 
-// Motoswap Vampire Attack farms on Ethereum mainnet.
-// VampChef is a MasterChef-style contract with a flat per-second emission
-// over a fixed window (emissionStart -> emissionEnd). Rewards are paid in MOTO.
-// Half of every harvest is liquid, the other half streams over 180 days
-// through RewardVestingEscrow; only the liquid half is counted in apyReward.
+// Motoswap farms on Ethereum mainnet.
+// MasterChef stakes Motoswap LP tokens (Uniswap v2 math pairs from the Motoswap factory) and pays MOTO on a
+// halving schedule. Half of every harvest is liquid, the other half streams over 180 days through
+// RewardVestingEscrow; only the liquid half is counted in apyReward.
+// apyBase is the pair's LP fee (factory swapFeeBps) earned over the last 24 hours, from the pair Swap events.
+// The launch farming campaign (VampChef 0x51e648f08a9a08A724591938d9cbc483C809aCA4) ended on 2026-09-28.
 
 const CHAIN = 'ethereum';
-const CHEF = '0x51e648f08a9a08A724591938d9cbc483C809aCA4';
+const CHEF = '0x939f348b6658cE4DB7CDe088341b00DE341Fe085';
+const FACTORY = '0x81C9CBC47d700dA1777aBd831D8dA3f526DfAe24';
 const MOTO = '0xBd965230588EAA536dE6aA45E8ebbc01638535e0';
 const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
-const MOTO_WETH_LP = '0xAD1a21F61d653c6101b92c335f61140459C81C79';
+const MOTO_WETH_PAIR = '0x302C53B6176F750e5547D775645dc8778524fCc1'; // Motoswap MOTO/WETH pair
 const FARM_URL = 'https://motoswap.org/farm';
 
 const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
-// Share of each harvest paid out liquid at harvest time. The remaining share is
-// escrowed and streamed linearly over 180 days, so it is excluded from apyReward.
+const DAY = 24 * 60 * 60;
+// Share of each harvest paid out liquid. This is a constant in the contract with no getter:
+// MasterChef._safeRewardTransfer sends `_amount / 2` to RewardVestingEscrow (180 day stream) and the rest liquid.
 const LIQUID_REWARD_SHARE = 0.5;
 
 const chefAbi = {
   poolLength: 'uint256:poolLength',
   totalAllocPoint: 'uint256:totalAllocPoint',
-  rewardPerSecond: 'uint256:rewardPerSecond',
-  emissionStart: 'uint64:emissionStart',
-  emissionEnd: 'uint64:emissionEnd',
+  currentRewardPerSecond: 'uint256:currentRewardPerSecond',
   rewardToken: 'address:rewardToken',
   poolInfo:
-    'function poolInfo(uint256) view returns (address lpToken, uint256 allocPoint, uint256 lastRewardTime, uint256 accRewardPerShare, uint256 lpSupply)',
+    'function poolInfo(uint256) view returns (address lpToken, uint256 allocPoint, uint256 lastRewardTime, uint256 accRewardPerShare, uint256 lpSupply, uint16 depositFeeBps)',
 };
 
 const pairAbi = {
@@ -39,35 +40,48 @@ const pairAbi = {
   totalSupply: 'uint256:totalSupply',
 };
 
+const SWAP_EVENT =
+  'event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)';
+
 const call = async (target, abi, params) =>
   (await sdk.api.abi.call({ target, abi, params, chain: CHAIN })).output;
 
-const multiCall = async (abi, calls, permitFailure = false) =>
+const multiCall = async (abi, calls) =>
   (
     await sdk.api.abi.multiCall({
       abi,
       calls,
       chain: CHAIN,
-      permitFailure,
     })
   ).output.map((r) => r.output);
 
-const apy = async () => {
-  const [
-    poolLength,
-    totalAllocPoint,
-    rewardPerSecond,
-    emissionStart,
-    emissionEnd,
-    rewardToken,
-  ] = await Promise.all([
-    call(CHEF, chefAbi.poolLength),
-    call(CHEF, chefAbi.totalAllocPoint),
-    call(CHEF, chefAbi.rewardPerSecond),
-    call(CHEF, chefAbi.emissionStart),
-    call(CHEF, chefAbi.emissionEnd),
-    call(CHEF, chefAbi.rewardToken),
+// MOTO from the DefiLlama coins API. If the coins API has no MOTO price, MOTO is priced from the
+// Motoswap MOTO/WETH pair reserves, where its liquidity sits.
+const getMotoPrice = async (prices) => {
+  const motoPrice = prices[MOTO.toLowerCase()];
+  if (motoPrice) return motoPrice;
+  const wethPrice = prices[WETH.toLowerCase()];
+  if (!wethPrice) return undefined;
+  const [token0, reserves] = await Promise.all([
+    call(MOTO_WETH_PAIR, pairAbi.token0),
+    call(MOTO_WETH_PAIR, pairAbi.getReserves),
   ]);
+  const motoIs0 = token0.toLowerCase() === MOTO.toLowerCase();
+  const motoReserve = new BigNumber(motoIs0 ? reserves._reserve0 : reserves._reserve1);
+  const wethReserve = new BigNumber(motoIs0 ? reserves._reserve1 : reserves._reserve0);
+  if (motoReserve.isZero()) return undefined;
+  return wethReserve.div(motoReserve).times(wethPrice).toNumber(); // both 18 decimals
+};
+
+const apy = async () => {
+  const [poolLength, totalAllocPoint, rewardPerSecond, rewardToken, swapFeeBps] =
+    await Promise.all([
+      call(CHEF, chefAbi.poolLength),
+      call(CHEF, chefAbi.totalAllocPoint),
+      call(CHEF, chefAbi.currentRewardPerSecond),
+      call(CHEF, chefAbi.rewardToken),
+      call(FACTORY, 'uint256:swapFeeBps'),
+    ]);
 
   const poolInfos = await multiCall(
     chefAbi.poolInfo,
@@ -77,7 +91,7 @@ const apy = async () => {
     }))
   );
 
-  // Only pools with a non-zero weight earn rewards; the rest are staged.
+  // Only pools with a non-zero weight are farms; the rest are staged.
   const pools = poolInfos
     .map((info, pid) => ({
       pid,
@@ -89,142 +103,112 @@ const apy = async () => {
 
   if (pools.length === 0) return [];
 
-  // Uniswap V2 pair reads. A single-sided pool holds the MOTO token itself,
-  // which has no token0(), so those calls are allowed to fail.
   const lpCalls = pools.map((p) => ({ target: p.lpToken }));
   const [token0s, token1s, reserves, lpTotalSupplies] = await Promise.all([
-    multiCall(pairAbi.token0, lpCalls, true),
-    multiCall(pairAbi.token1, lpCalls, true),
-    multiCall(pairAbi.getReserves, lpCalls, true),
-    multiCall(pairAbi.totalSupply, lpCalls, true),
+    multiCall(pairAbi.token0, lpCalls),
+    multiCall(pairAbi.token1, lpCalls),
+    multiCall(pairAbi.getReserves, lpCalls),
+    multiCall(pairAbi.totalSupply, lpCalls),
   ]);
 
-  const isPair = pools.map((_, i) =>
-    Boolean(token0s[i] && token1s[i] && reserves[i])
-  );
-
-  const underlying = new Set([MOTO.toLowerCase(), WETH.toLowerCase()]);
-  pools.forEach((p, i) => {
-    if (isPair[i]) {
-      underlying.add(token0s[i].toLowerCase());
-      underlying.add(token1s[i].toLowerCase());
-    } else {
-      underlying.add(p.lpToken.toLowerCase());
-    }
-  });
-  const underlyingList = [...underlying];
-
+  const tokens = [
+    ...new Set([
+      MOTO.toLowerCase(),
+      WETH.toLowerCase(),
+      ...token0s.map((t) => t.toLowerCase()),
+      ...token1s.map((t) => t.toLowerCase()),
+    ]),
+  ];
   const [symbols, decimals] = await Promise.all([
-    multiCall(
-      'erc20:symbol',
-      underlyingList.map((t) => ({ target: t }))
-    ),
-    multiCall(
-      'erc20:decimals',
-      underlyingList.map((t) => ({ target: t }))
-    ),
+    multiCall('erc20:symbol', tokens.map((t) => ({ target: t }))),
+    multiCall('erc20:decimals', tokens.map((t) => ({ target: t }))),
   ]);
   const meta = {};
-  underlyingList.forEach((t, i) => {
+  tokens.forEach((t, i) => {
     meta[t] = { symbol: symbols[i], decimals: Number(decimals[i]) };
   });
 
-  // Prices: WETH and the stable quote tokens from the DefiLlama coins API.
-  // MOTO is priced from the MOTO/WETH Uniswap V2 pool reserves.
-  const { pricesByAddress } = await utils.getPrices(
-    underlyingList.filter((t) => t !== MOTO.toLowerCase()),
-    CHAIN
-  );
+  const { pricesByAddress } = await utils.getPrices(tokens, CHAIN);
   const prices = { ...pricesByAddress };
-
-  const [motoWethToken0, motoWethReserves] = await Promise.all([
-    call(MOTO_WETH_LP, pairAbi.token0),
-    call(MOTO_WETH_LP, pairAbi.getReserves),
-  ]);
-  const motoIsToken0 = motoWethToken0.toLowerCase() === MOTO.toLowerCase();
-  const motoReserve = new BigNumber(
-    motoIsToken0 ? motoWethReserves._reserve0 : motoWethReserves._reserve1
-  ).div(1e18);
-  const wethReserve = new BigNumber(
-    motoIsToken0 ? motoWethReserves._reserve1 : motoWethReserves._reserve0
-  ).div(1e18);
-  const wethPrice = prices[WETH.toLowerCase()];
-  if (!wethPrice || motoReserve.isZero()) return [];
-  const motoPrice = wethReserve.div(motoReserve).times(wethPrice).toNumber();
+  const motoPrice = await getMotoPrice(prices);
+  if (!motoPrice) return [];
   prices[MOTO.toLowerCase()] = motoPrice;
 
+  // LP fees over the last 24 hours, from the pair Swap events (the fee is taken on the input token).
   const now = Math.floor(Date.now() / 1000);
-  const emissionLive =
-    Number(emissionStart) > 0 &&
-    now >= Number(emissionStart) &&
-    now < Number(emissionEnd);
-  const rewardPerYear = emissionLive
-    ? new BigNumber(rewardPerSecond).div(1e18).times(SECONDS_PER_YEAR)
-    : new BigNumber(0);
-  const rewardPrice = prices[rewardToken.toLowerCase()] ?? motoPrice;
+  const [fromBlock, toBlock] = await utils.getBlocksByTime([now - DAY, now], CHAIN);
+  const swapLogs = await Promise.all(
+    pools.map((p) =>
+      sdk.getEventLogs({
+        target: p.lpToken,
+        eventAbi: SWAP_EVENT,
+        fromBlock,
+        toBlock,
+        chain: CHAIN,
+        onlyArgs: true,
+      })
+    )
+  );
+  const lpFeeRate = Number(swapFeeBps) / 10000;
+
+  const rewardPerYear = new BigNumber(rewardPerSecond)
+    .div(10 ** (meta[rewardToken.toLowerCase()]?.decimals ?? 18))
+    .times(SECONDS_PER_YEAR);
+  const rewardPrice = prices[rewardToken.toLowerCase()];
 
   return pools
     .map((p, i) => {
-      let tvlUsd;
-      let symbol;
-      let underlyingTokens;
+      const t0 = token0s[i].toLowerCase();
+      const t1 = token1s[i].toLowerCase();
+      const p0 = prices[t0];
+      const p1 = prices[t1];
+      if (!p0 || !p1) return null;
+      const d0 = 10 ** meta[t0].decimals;
+      const d1 = 10 ** meta[t1].decimals;
 
-      if (isPair[i]) {
-        const t0 = token0s[i].toLowerCase();
-        const t1 = token1s[i].toLowerCase();
-        const r0 = new BigNumber(reserves[i]._reserve0).div(
-          10 ** meta[t0].decimals
-        );
-        const r1 = new BigNumber(reserves[i]._reserve1).div(
-          10 ** meta[t1].decimals
-        );
-        const p0 = prices[t0];
-        const p1 = prices[t1];
-        let pairUsd;
-        if (p0 && p1) pairUsd = r0.times(p0).plus(r1.times(p1));
-        else if (p0) pairUsd = r0.times(p0).times(2);
-        else if (p1) pairUsd = r1.times(p1).times(2);
-        else return null;
-        const supply = new BigNumber(lpTotalSupplies[i]);
-        const stakedShare = supply.isZero()
-          ? new BigNumber(0)
-          : new BigNumber(p.lpSupply).div(supply);
-        tvlUsd = pairUsd.times(stakedShare).toNumber();
-        symbol = `${meta[t0].symbol}-${meta[t1].symbol}`;
-        underlyingTokens = [token0s[i], token1s[i]];
-      } else {
-        const t = p.lpToken.toLowerCase();
-        const price = prices[t];
-        if (!price) return null;
-        tvlUsd = new BigNumber(p.lpSupply)
-          .div(10 ** meta[t].decimals)
-          .times(price)
-          .toNumber();
-        symbol = meta[t].symbol;
-        underlyingTokens = [p.lpToken];
-      }
+      const tvlUsd = new BigNumber(reserves[i]._reserve0)
+        .div(d0)
+        .times(p0)
+        .plus(new BigNumber(reserves[i]._reserve1).div(d1).times(p1))
+        .toNumber();
 
-      const poolRewardUsdPerYear = rewardPerYear
-        .times(p.allocPoint)
-        .div(Number(totalAllocPoint))
-        .times(rewardPrice)
-        .times(LIQUID_REWARD_SHARE);
+      const volumeInUsd = swapLogs[i].reduce(
+        (sum, log) =>
+          sum
+            .plus(new BigNumber(log.amount0In.toString()).div(d0).times(p0))
+            .plus(new BigNumber(log.amount1In.toString()).div(d1).times(p1)),
+        new BigNumber(0)
+      );
+      const feesUsd24h = volumeInUsd.times(lpFeeRate).toNumber();
+      const apyBase = tvlUsd > 0 ? (feesUsd24h * 365 * 100) / tvlUsd : 0;
+
+      const supply = new BigNumber(lpTotalSupplies[i]);
+      const stakedUsd = supply.isZero()
+        ? 0
+        : new BigNumber(p.lpSupply).div(supply).times(tvlUsd).toNumber();
+      const poolRewardUsdPerYear = rewardPrice
+        ? rewardPerYear
+            .times(p.allocPoint)
+            .div(Number(totalAllocPoint))
+            .times(rewardPrice)
+            .times(LIQUID_REWARD_SHARE)
+            .toNumber()
+        : 0;
       const apyReward =
-        tvlUsd > 0 ? poolRewardUsdPerYear.div(tvlUsd).times(100).toNumber() : 0;
+        stakedUsd > 0 ? (poolRewardUsdPerYear / stakedUsd) * 100 : 0;
 
       return {
         pool: `${CHEF}-${p.pid}-${CHAIN}`.toLowerCase(),
         chain: utils.formatChain(CHAIN),
         project: 'motoswap-farm',
-        symbol,
+        symbol: `${meta[t0].symbol}-${meta[t1].symbol}`,
         tvlUsd,
+        apyBase,
         apyReward,
-        rewardTokens: [rewardToken],
-        underlyingTokens,
+        rewardTokens: apyReward > 0 ? [rewardToken] : [],
+        underlyingTokens: [token0s[i], token1s[i]],
         token: p.lpToken.toLowerCase(),
-        poolMeta: isPair[i]
-          ? 'Vampire Attack farm'
-          : 'Vampire Attack single-sided',
+        poolMeta: 'Motoswap farm',
         url: FARM_URL,
       };
     })
