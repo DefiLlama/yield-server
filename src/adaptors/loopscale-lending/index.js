@@ -10,7 +10,7 @@ const getApy = async () => {
         vaultApys.push({
             pool: vault.vaultAddress,
             chain: 'Solana',
-            project: 'loopscale',
+            project: 'loopscale-lending',
             symbol: vault.vaultSymbol,
             underlyingTokens: [vault.principalMint],
             tvlUsd: Number(vault.principalDepositsUsd - vault.principalDeployedUsd),
