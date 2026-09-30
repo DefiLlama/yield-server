@@ -218,8 +218,8 @@ const windowStart = (end, startDate) =>
     Math.floor(Date.parse(startDate) / 1000) || 0
   );
 
-const annualise = (ppsNow, ppsThen, seconds) =>
-  ((ppsNow / ppsThen) ** ((365 * DAY) / seconds) - 1) * 100;
+const annualise = (pricePerShareNow, pricePerShareThen, seconds) =>
+  ((pricePerShareNow / pricePerShareThen) ** ((365 * DAY) / seconds) - 1) * 100;
 
 const getVoltrVault = async ({ address, startDate }) => {
   const [account] = await getAccounts([address]);
@@ -305,7 +305,7 @@ const getErc4626Vault = async ({ address: target, chain, startDate }) => {
   // Before the first deposit the vault reports a 1:1 placeholder price.
   if (!(Number(supplyThen) > 0)) return null;
 
-  const [assetsNow, ppsNow, ppsThen] = await Promise.all([
+  const [assetsNow, pricePerShareNow, pricePerShareThen] = await Promise.all([
     call(CONVERT_TO_ASSETS, { block: blockNow.height, params: [supplyNow] }),
     call(CONVERT_TO_ASSETS, { block: blockNow.height, params: [oneShare] }),
     call(CONVERT_TO_ASSETS, { block: blockThen.height, params: [oneShare] }),
@@ -314,10 +314,10 @@ const getErc4626Vault = async ({ address: target, chain, startDate }) => {
   return {
     asset,
     assets: Number(assetsNow) / 10 ** assetDecimals,
-    pricePerShare: Number(ppsNow) / 10 ** assetDecimals,
+    pricePerShare: Number(pricePerShareNow) / 10 ** assetDecimals,
     apyBase: annualise(
-      Number(ppsNow),
-      Number(ppsThen),
+      Number(pricePerShareNow),
+      Number(pricePerShareThen),
       blockNow.timestamp - blockThen.timestamp
     ),
     token: target.toLowerCase(),
