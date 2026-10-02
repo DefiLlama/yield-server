@@ -530,6 +530,8 @@ const excludedProtocols = [
   { id: '7451', slug: 'acre' },
   { id: '2825', slug: 'nostra-money-market' },
   { id: '4053', slug: 'nostra-pools' },
+  { id: '4537', slug: 'venomstake' }, // venom mainnet migration (venom.foundation/migration): api.venomstake.com gone, stVENOM to be unstaked; new staking contract pending, re-add with a rebuilt adapter
+  { id: '4430', slug: 'web3.world' }, // venom mainnet migration (venom.foundation/migration): api.web3.world gone; moving to new chain, re-add once its new api/contracts are live
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
