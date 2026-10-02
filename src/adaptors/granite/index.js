@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { callReadOnlyFunction } = require('@stacks/transactions');
+const { callReadOnlyFunction, contractPrincipalCV } = require('@stacks/transactions');
 
 /* Constants */
 
@@ -21,6 +21,10 @@ const MARKETS = [
             asset: {
                 contractAddress: 'SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE',
                 contractName: 'usdcx'
+            },
+            collateral: {
+                contractAddress: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4',
+                contractName: 'sbtc-token',
             },
             state: {
                 contractAddress: 'SP3M2BYF7RGF8WKW5FVDNJ6WR8D7AR9BHDXAKPXZE',
@@ -81,28 +85,6 @@ const calculateBorrowAPY = (
     return (1 + borrowApr / SECONDS_IN_A_YEAR) ** SECONDS_IN_A_YEAR - 1;
 };
 
-const computeTotalEarning = (
-    shares,
-    totalAssetsAccrued,
-    totalLpShares,
-    reserveBalance
-) => {
-    return Math.max(
-        0,
-        convertLpSharesToAssets(shares, totalLpShares, totalAssetsAccrued) -
-        reserveBalance
-    );
-};
-
-const convertLpSharesToAssets = (
-    shares,
-    totalLpShares,
-    totalAssetsAccrued
-) => {
-    if (totalAssetsAccrued == 0) return 0;
-    return (shares * totalAssetsAccrued) / totalLpShares;
-};
-
 /* Contract read helper */
 
 const callReadOnly = async (contract, functionName, functionArgs) => {
@@ -150,25 +132,18 @@ const getGraniteMarkets = async () => {
                     continue;
                 }
 
-                const { totalAssets, totalShares } = await callReadOnly(market.contracts.state, 'get-lp-params', [])
-                    .then(r => ({
-                        totalAssets: Number(r.data['total-assets'].value) / Math.pow(10, market.decimals),
-                        totalShares: Number(r.data['total-shares'].value) / Math.pow(10, market.decimals)
-                    }));
+                const totalAssets = await callReadOnly(market.contracts.state, 'get-lp-params', [])
+                    .then(r => Number(r.data['total-assets'].value) / Math.pow(10, market.decimals));
 
-                const { openInterest } = await callReadOnly(market.contracts.state, 'get-debt-params', [])
-                    .then(r => ({
-                        openInterest: Number(r.data['open-interest'].value) / Math.pow(10, market.decimals),
-                    }));
+                const openInterest = await callReadOnly(market.contracts.state, 'get-debt-params', [])
+                    .then(r => Number(r.data['open-interest'].value) / Math.pow(10, market.decimals));
 
-                const { totalAssetsAccrued, reserveBalance, protocolReservePercentage } = await callReadOnly(market.contracts.util, 'get-market-state', [])
+                const { totalAssetsAccrued, protocolReservePercentage } = await callReadOnly(market.contracts.util, 'get-market-state', [])
                     .then(r => ({
                         totalAssets: Number(r.value.data['total-assets'].value),
-                        reserveBalance: Number(r.value.data['reserve-balance'].value),
                         protocolReservePercentage: Number(r.value.data['on-chain-accrue-params'].data['protocol-reserve-percentage'].value)
                     })).then(r => ({
                         totalAssetsAccrued: r.totalAssets / Math.pow(10, market.decimals),
-                        reserveBalance: r.reserveBalance / Math.pow(10, market.decimals),
                         protocolReservePercentage: r.protocolReservePercentage / ONE_8
                     }));
 
@@ -182,16 +157,22 @@ const getGraniteMarkets = async () => {
                         slope2: Number(r.data['ir-slope-2'].value) / ONE_12,
                     }));
 
+                const collateralInfo = await callReadOnly(
+                    market.contracts.state,
+                    'get-collateral',
+                    [contractPrincipalCV(market.contracts.collateral.contractAddress, market.contracts.collateral.contractName)]
+                );
+                const ltv = Number(collateralInfo.value.data['max-ltv'].value) / ONE_8;
+
                 const borrowApy = calculateBorrowAPY(utilizationRate, irParams) * 100;
 
                 const supplyApy = calculateLpAPY(utilizationRate, irParams, protocolReservePercentage) * 100;
 
-                const tvlUsd = computeTotalEarning(
-                    totalShares,
-                    totalAssetsAccrued,
-                    totalShares,
-                    reserveBalance
-                ) * priceResult.price;
+                const tvlUsd = (totalAssetsAccrued - openInterest) * priceResult.price;
+
+                const totalSupplyUsd = totalAssetsAccrued * priceResult.price;
+
+                const totalBorrowUsd = openInterest * priceResult.price;
 
                 results.push({
                     pool: `${market.contracts.state.contractAddress}.${market.contracts.state.contractName}-${CHAIN}`.toLowerCase(),
@@ -199,8 +180,11 @@ const getGraniteMarkets = async () => {
                     project: 'granite',
                     symbol: market.symbol,
                     tvlUsd: tvlUsd,
+                    totalSupplyUsd,
+                    totalBorrowUsd,
                     apyBase: supplyApy,
                     apyBaseBorrow: borrowApy,
+                    ltv,
                     underlyingTokens: [`${market.contracts.asset.contractAddress}.${market.contracts.asset.contractName}`],
                     token: `${market.contracts.asset.contractAddress}.${market.contracts.asset.contractName}`,
                     url: 'https://app.granite.world',
