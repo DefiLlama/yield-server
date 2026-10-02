@@ -210,6 +210,7 @@ exports.parseAddress = validateAndParseAddress;
 exports.number = starknetNumber;
 
 exports.formatChain = (chain) => {
+  if (!chain) return chain;
   if (chain && chain.toLowerCase() === 'xdai') return 'Gnosis';
   if (chain && chain.toLowerCase() === 'kcc') return 'KCC';
   if (chain && chain.toLowerCase() === 'okexchain') return 'OKExChain';
