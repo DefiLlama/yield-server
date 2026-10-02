@@ -138,14 +138,18 @@ const getGraniteMarkets = async () => {
                 const openInterest = await callReadOnly(market.contracts.state, 'get-debt-params', [])
                     .then(r => Number(r.data['open-interest'].value) / Math.pow(10, market.decimals));
 
-                const { totalAssetsAccrued, protocolReservePercentage } = await callReadOnly(market.contracts.util, 'get-market-state', [])
-                    .then(r => ({
-                        totalAssets: Number(r.value.data['total-assets'].value),
-                        protocolReservePercentage: Number(r.value.data['on-chain-accrue-params'].data['protocol-reserve-percentage'].value)
-                    })).then(r => ({
-                        totalAssetsAccrued: r.totalAssets / Math.pow(10, market.decimals),
-                        protocolReservePercentage: r.protocolReservePercentage / ONE_8
-                    }));
+                const marketState = await callReadOnly(market.contracts.util, 'get-market-state', [])
+                    .then(r => r.value.data);
+
+                const scale = Math.pow(10, market.decimals);
+                
+                const protocolReservePercentage =
+                    Number(marketState['on-chain-accrue-params'].data['protocol-reserve-percentage'].value) / ONE_8;
+                
+                const openInterestAccrued =
+                    (Number(marketState['lp-open-interest'].value) +
+                        Number(marketState['staked-open-interest'].value) +
+                        Number(marketState['protocol-open-interest'].value)) / scale;
 
                 const utilizationRate = computeUtilizationRate(openInterest, totalAssets);
 
@@ -168,11 +172,10 @@ const getGraniteMarkets = async () => {
 
                 const supplyApy = calculateLpAPY(utilizationRate, irParams, protocolReservePercentage) * 100;
 
-                const tvlUsd = (totalAssetsAccrued - openInterest) * priceResult.price;
-
-                const totalSupplyUsd = totalAssetsAccrued * priceResult.price;
-
-                const totalBorrowUsd = openInterest * priceResult.price;
+                const tvlUsd =
+                    (Number(marketState['market-token-balance'].value) / scale) * priceResult.price;
+                const totalBorrowUsd = openInterestAccrued * priceResult.price;
+                const totalSupplyUsd = tvlUsd + totalBorrowUsd;
 
                 results.push({
                     pool: `${market.contracts.state.contractAddress}.${market.contracts.state.contractName}-${CHAIN}`.toLowerCase(),
