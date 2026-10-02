@@ -57,7 +57,7 @@ const main = async () => {
   const promised = vaults
 
     .map(async (vault) => {
-      const chain = vault.chain;
+      const chain = getChainName(vault.chainId, vault.chain);
       const platform = vault.platform;
 
       return {
