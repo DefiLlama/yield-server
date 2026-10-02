@@ -55,6 +55,12 @@ const MARKETS = [
       return perHyusd * hyusdPrice; // eHYUSD -> hyUSD -> USD
     },
   },
+  {
+    symbol: 'PRIME',
+    underlying: '3b8X44fLF9ooXaUm3hhSgjpmVs6rZZ3pPoGnGahc3Uu7',
+    senior: 'By42A3QzVt1KERdnJcPESGWR3YoN2GSbzZroQFGJ6Qjm',
+    junior: 'AAyszkQtxXEgFPwq6E19TkcuyJpK9gpxofk9LZzhdE9j',
+  },
 ];
 
 // A token's balance (raw) held by `owner`, summed across its token accounts.
