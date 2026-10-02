@@ -174,8 +174,11 @@ const getGraniteMarkets = async () => {
 
                 const tvlUsd =
                     (Number(marketState['market-token-balance'].value) / scale) * priceResult.price;
+                
                 const totalBorrowUsd = openInterestAccrued * priceResult.price;
-                const totalSupplyUsd = tvlUsd + totalBorrowUsd;
+
+                const totalSupplyUsd =
+                    (Number(marketState['total-assets'].value) / scale) * priceResult.price;
 
                 results.push({
                     pool: `${market.contracts.state.contractAddress}.${market.contracts.state.contractName}-${CHAIN}`.toLowerCase(),
