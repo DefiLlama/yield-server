@@ -1,140 +1,116 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
+const CHAIN = 'ethereum';
 const SUSDAT_ADDRESS = '0xD166337499E176bbC38a1FBd113Ab144e5bd2Df7';
 const USDAT_ADDRESS = '0x23238f20b894f29041f48D88eE91131C395Aaa71';
-const STRC_PRICE_ORACLE_ADDRESS = '0x5f7eCD0D045c393da6cb6c933c671AC305A871BF';
+const STRCON_MODULE = '0x3C0f0b502aa7C2ed85620f7f52B8eFb8049b1ECf';
+const STRCON_ADDRESS = '0xECABE1Ff8a9e1dC55899cf58dac8497ecE5Ae84c';
+const SVALUE_ORACLE = '0x9BC39DB6fbB44B91a48b8D5A6C208B82B1741bE6';
 
-const abi = {
-  totalAssets: {
-    inputs: [],
-    name: 'totalAssets',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  convertToAssets: {
-    inputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
-    name: 'convertToAssets',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  vestingAmount: 'uint256:vestingAmount',
-  usdatBalance: 'uint256:usdatBalance',
-  vestingPeriod: 'uint256:vestingPeriod',
-  getStrcPrice: {
-    inputs: [],
-    name: 'getPrice',
-    outputs: [
-      { internalType: 'uint256', name: '', type: 'uint256' },
-      { internalType: 'uint8', name: '', type: 'uint8' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-};
-
+const SVALUE_UPDATED =
+  'event SValueUpdated(address indexed asset, uint256 oldSValue, uint256 newSValue)';
+const EVENT_LOOKBACK_SECONDS = 31 * 86400;
+const CHAIN_TIP_PADDING_BLOCKS = 20;
 const ONE_E18 = '1000000000000000000';
 
-const getSaturnApy = ({
-  totalAssets,
-  vestingAmount,
-  usdatBalance,
-  strcPrice,
-  vestingPeriod,
-}) => {
-  const totalAssetsNum = Number(totalAssets);
-  const vestingAmountNum = Number(vestingAmount);
-  const usdatBalanceNum = Number(usdatBalance);
-  const vestingPeriodDays = Number(vestingPeriod) / 86400;
+const call = (label, params) =>
+  sdk.api.abi
+    .call({ chain: CHAIN, ...params })
+    .then((r) => r.output)
+    .catch((err) => {
+      console.error(`saturn: ${label} failed: ${err.message || err}`);
+      return null;
+    });
 
-  if (
-    totalAssetsNum <= 0 ||
-    vestingAmountNum <= 0 ||
-    strcPrice <= 0 ||
-    vestingPeriodDays <= 0
-  ) {
-    return 0;
+const getStrconSValueSteps = async () => {
+  const head = (await sdk.api.util.getLatestBlock(CHAIN)).number;
+  const toBlock = head - CHAIN_TIP_PADDING_BLOCKS;
+  const [fromBlock] = await utils.getBlocksByTime(
+    [Math.floor(Date.now() / 1000) - EVENT_LOOKBACK_SECONDS],
+    CHAIN
+  );
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const logs = await sdk.getEventLogs({
+      chain: CHAIN,
+      target: SVALUE_ORACLE,
+      eventAbi: SVALUE_UPDATED,
+      fromBlock,
+      toBlock,
+    });
+    const steps = logs.filter(
+      (l) => l.args.asset.toLowerCase() === STRCON_ADDRESS.toLowerCase()
+    );
+    if (steps.length >= 2) return steps.sort((a, b) => a.blockNumber - b.blockNumber);
   }
+  return [];
+};
 
-  const vestingYield =
-    (vestingAmountNum * strcPrice * 365 * 100) /
-    (totalAssetsNum * vestingPeriodDays);
-  const strcShare = Math.max(totalAssetsNum - usdatBalanceNum, 0) / totalAssetsNum;
-  const discountYield =
-    strcPrice < 100 ? ((100 - strcPrice) / strcPrice) * strcShare * 100 : 0;
-
-  return vestingYield + discountYield;
+// STRCon reinvests STRC dividends into its sValue, stepped twice a month; the
+// latest step's growth over the time since the previous step is the current
+// dividend yield, free of STRC's price moves.
+const getStrconDividendApy = async () => {
+  const steps = await getStrconSValueSteps();
+  if (steps.length < 2) {
+    console.error('saturn: fewer than 2 STRCon sValue steps in lookback');
+    return undefined;
+  }
+  const [prev, last] = steps.slice(-2);
+  const [prevTs, lastTs] = await Promise.all(
+    [prev, last].map((l) => sdk.api.util.getTimestamp(l.blockNumber, CHAIN))
+  );
+  const periodDays = (lastTs - prevTs) / 86400;
+  const growth = Number(last.args.newSValue) / Number(last.args.oldSValue);
+  if (!(periodDays > 0) || !(growth > 0)) return undefined;
+  return (growth ** (365 / periodDays) - 1) * 100;
 };
 
 const main = async () => {
-  const [
-    totalAssets,
-    rateNow,
-    vestingAmount,
-    usdatBalance,
-    vestingPeriod,
-    strcPriceData,
-  ] = await Promise.all([
-    sdk.api.abi.call({
+  const [totalAssets, rateNow, strconValue, dividendApy] = await Promise.all([
+    call('totalAssets', { target: SUSDAT_ADDRESS, abi: 'uint256:totalAssets' }),
+    call('convertToAssets', {
       target: SUSDAT_ADDRESS,
-      chain: 'ethereum',
-      abi: abi.totalAssets,
-    }),
-    sdk.api.abi.call({
-      target: SUSDAT_ADDRESS,
-      abi: abi.convertToAssets,
+      abi: 'function convertToAssets(uint256) view returns (uint256)',
       params: [ONE_E18],
-      chain: 'ethereum',
     }),
-    sdk.api.abi.call({
-      target: SUSDAT_ADDRESS,
-      chain: 'ethereum',
-      abi: abi.vestingAmount,
-    }),
-    sdk.api.abi.call({
-      target: SUSDAT_ADDRESS,
-      chain: 'ethereum',
-      abi: abi.usdatBalance,
-    }),
-    sdk.api.abi.call({
-      target: SUSDAT_ADDRESS,
-      chain: 'ethereum',
-      abi: abi.vestingPeriod,
-    }),
-    sdk.api.abi.call({
-      target: STRC_PRICE_ORACLE_ADDRESS,
-      chain: 'ethereum',
-      abi: abi.getStrcPrice,
+    call('recognizedValue', { target: STRCON_MODULE, abi: 'uint256:recognizedValue' }),
+    getStrconDividendApy().catch((err) => {
+      console.error(`saturn: sValue steps failed: ${err.message || err}`);
+      return undefined;
     }),
   ]);
 
-  const [strcPriceRaw, strcPriceDecimals] = strcPriceData.output;
-  const strcPrice = Number(strcPriceRaw) / 10 ** Number(strcPriceDecimals);
-  const apyBase = getSaturnApy({
-    totalAssets: totalAssets.output,
-    vestingAmount: vestingAmount.output,
-    usdatBalance: usdatBalance.output,
-    strcPrice,
-    vestingPeriod: vestingPeriod.output,
-  });
+  if (!(Number(totalAssets) > 0)) {
+    console.error('saturn: no totalAssets, skipping pool');
+    return [];
+  }
 
-  const priceKey = `ethereum:${USDAT_ADDRESS}`;
-  const usdatPrice = (await utils.getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey]?.price;
+  const priceKey = `${CHAIN}:${USDAT_ADDRESS}`;
+  const usdatPrice = await utils
+    .getPriceApiData(`/prices/current/${priceKey}`)
+    .then((r) => r.coins[priceKey]?.price)
+    .catch((err) => console.error(`saturn: price lookup failed: ${err.message || err}`));
+  if (!(usdatPrice > 0)) {
+    console.error('saturn: no USDat price, skipping pool');
+    return [];
+  }
 
-  const tvlUsd = (totalAssets.output / 1e6) * usdatPrice;
+  const strconShare =
+    strconValue === null ? null : Math.min(Number(strconValue) / Number(totalAssets), 1);
+  const apyBase =
+    dividendApy === undefined || strconShare === null ? undefined : dividendApy * strconShare;
+  const pricePerShare = Number(rateNow) / 1e6;
 
   return [
     {
       pool: SUSDAT_ADDRESS,
-      chain: utils.formatChain('ethereum'),
+      chain: utils.formatChain(CHAIN),
       project: 'saturn',
       symbol: 'sUSDat',
-      tvlUsd,
+      tvlUsd: (Number(totalAssets) / 1e6) * usdatPrice,
       apyBase,
-      // USDat is 6-dec; sUSDat shares are 18-dec.
-      ...(Number(rateNow.output) / 1e6 > 0 && { pricePerShare: Number(rateNow.output) / 1e6 }),
+      ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: [USDAT_ADDRESS],
     },
   ];
