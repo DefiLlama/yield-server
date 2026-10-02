@@ -24,4 +24,4 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
         working-directory: src/adaptors
       - name: Check share-value calculations
-        run: node --test src/adaptors/shift-protocol/metrics.test.cjs
+        run: node --test src/adaptors/shift-protocol/*.test.cjs

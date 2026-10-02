@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { DAY, findPast, metrics } = require('./metrics');
+const risexApy = require('./risex');
 
 const CHAIN = 'arbitrum';
 const VAULT = '0x956bdd9c18b786b082fd50c52722d254f0cb6964';
@@ -18,7 +19,7 @@ const HISTORY_ABI =
 // pending, unclaimed fees are not accrued here. No additional fee haircut:
 // that would double-count dilution already reflected in posted share values.
 // Points and separately distributed rewards are excluded.
-const apy = async (timestamp) => {
+const ltllpApy = async (timestamp) => {
   const anchor = timestamp
     ? await sdk.api.util.lookupBlock(Number(timestamp), { chain: CHAIN })
     : await sdk.api.util.getLatestBlock(CHAIN);
@@ -100,6 +101,20 @@ const apy = async (timestamp) => {
       url: URL,
     },
   ];
+};
+
+const apy = async (timestamp) => {
+  const results = await Promise.allSettled([
+    ltllpApy(timestamp),
+    risexApy(timestamp),
+  ]);
+  return results.flatMap((result, i) => {
+    if (result.status === 'fulfilled') return result.value;
+    console.error(
+      `Shift ${['ltLLP', 'risexUSDC'][i]}: ${result.reason.message}`
+    );
+    return [];
+  });
 };
 
 module.exports = { protocolId: '6901', timetravel: true, apy, url: URL };
