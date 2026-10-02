@@ -1,6 +1,5 @@
-// Jest discovers .test.js in the normal adapter CI run; node --test remains
-// available for running the calculation regressions without live API calls.
-const test = globalThis.test || require('node:test').test;
+// Keep these independent of the adapter harness's single-suite Jest globals.
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { metrics, DAY } = require('./metrics');
 
