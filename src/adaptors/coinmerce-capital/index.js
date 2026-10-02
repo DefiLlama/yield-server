@@ -3,7 +3,7 @@ const utils = require('../utils');
 
 const CHAIN = 'hyperliquid';
 const MIN_TVL_USD = 1000;
-const LOOKBACK_DAYS = 7;
+const LOOKBACK_DAYS = 30;
 const SECONDS_PER_DAY = 86400;
 const SECONDS_PER_YEAR = 365 * SECONDS_PER_DAY;
 
@@ -12,7 +12,6 @@ const SECONDS_PER_YEAR = 365 * SECONDS_PER_DAY;
 const VAULTS = [
   {
     address: '0xcfe06d2499aE635830D11859941e76354D5717CC',
-    name: 'Coinmerce Capital USDC (co-curated with Clearstar)',
     url: 'https://app.upshift.finance/vaults/hyperevm/coinmerce-capital-usdc',
   },
 ];
@@ -84,7 +83,6 @@ const apy = async () => {
       pool: `${vault.address}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: 'coinmerce-capital',
-      poolMeta: vault.name,
       url: vault.url,
       symbol: info.symbol,
       tvlUsd: (Number(held) / scale) * info.price,
