@@ -1,48 +1,61 @@
 const axios = require('axios');
 const utils = require('../utils');
 
-// Reflect Tranches: senior + junior tranches over yield-bearing stablecoins. APY is computed from
-// raw on-chain state + the underlying's own yield — no protocol API.
+// Reflect Tranches: senior + junior tranches over yield-bearing stablecoins.
 //
 // Per market:
-//   base       = the underlying's own yield, from DefiLlama's public price history.
-//   incentives = extra underlying airdropped (~every minute) into the SENIOR vault by the shared
-//                distributor, measured on-chain from its recent transfers.
-// The senior vault's interest (base + airdrops) is split by the on-chain fee: senior holders keep
-// (1 - fee); the fee share is routed to the junior market.
+//   base       = the underlying stablecoin's own yield, measured from its exchange rate over a
+//                30-day window (long enough that short-term price wobble doesn't get amplified by
+//                annualisation). Where the underlying exposes an on-chain exchange rate we read it
+//                directly; otherwise we use DefiLlama's price history for the same quantity.
+//   incentives = extra underlying airdropped into the SENIOR vault by Reflect's incentive campaign
+//                (committed, funded monthly), measured on-chain from the distributor's transfers.
+// The senior's interest (base + incentives) is split by the on-chain fee: senior holders keep
+// (1 - fee); the fee share is routed to the junior, so the junior is leveraged on the senior:
 //   seniorApy = (base + airdropApy) * (1 - fee)
-//   juniorApy = base + (base + airdropApy) * fee * seniorTvl/juniorTvl
-// apyBase = organic portion; apyReward = airdrop-driven portion (rewardTokens = the underlying).
+//   juniorApy = (base + airdropApy) * leverage,  leverage = 1 + fee * seniorTvl/juniorTvl
+// apyBase = organic portion; apyReward = incentive portion (rewardTokens = the underlying).
 const RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const DISTRIBUTOR = 'SnR6nnALuz5VTw1uxuhXYVz4RbhEHSsk13JKvF5Fsbi'; // shared incentive distributor (all markets)
-const AIRDROP_SIGS = 1000; // distributor signatures to span (~1/min => ~16h window)
-const AIRDROP_SAMPLE = 20; // of those, how many to fetch to estimate average airdrop sizes
 const URL = 'https://tranches.reflect.money';
+const BASE_WINDOW_DAYS = 30; // lookback for the underlying's own yield (smooths short-term noise)
+const REWARD_WINDOW_DAYS = 2; // trailing window over which the incentive inflow is averaged
+const REWARD_SAMPLE = 120; // distributor transfers sampled within that window to estimate the rate
 
-// Add a new market by appending an entry.
+// Hylo's hyUSD (the asset eHYUSD is a yield-bearing claim on) and eHYUSD's issuer-held hyUSD reserve.
+const HYUSD_MINT = '5YMkXAYccHSGnHn9nob9xEvv6Pvka9DZWH7nTbotTu9E';
+const EHYUSD_HYUSD_RESERVE = 'EqozKyMj7FVnLHc2cJj3VC25aBr4AhVh1cGM2WDajGe9';
+
+const rpc = async (method, params) =>
+  (await axios.post(RPC, { jsonrpc: '2.0', id: 1, method, params })).data.result;
+
+// Add a new market by appending an entry. `onchainRate(hyusdPrice)` is optional: when present it
+// returns the underlying's current USD price from its on-chain exchange rate; otherwise the current
+// DefiLlama price is used. (syrupUSDC is CCIP-bridged, so it has no native Solana NAV to read; its
+// rate on Solana is a market price equal to DefiLlama's, so we use DefiLlama for it.)
 const MARKETS = [
-  { symbol: 'syrupUSDC', underlying: 'AvZZF1YaZDziPY2RCK4oJrRVrbN3mTD9NL24hPeaZeUj', senior: 'FD4YydhzPpSmXwnHsX1oJBE4er4m9mg4ezaBN9cXgQbz', junior: '5dVxqyK1m3f4ZiPjZEhwgTLH5wZrU79d4Bsd67pgQk46' },
-  { symbol: 'eHYUSD', underlying: 'HnnGv3HrSqjRpgdFmx7vQGjntNEoex1SU4e9Lxcxuihz', senior: 'DHEFndu3LxDkuQSzxz5HQ1N2UEm2c6evRzRSsyLL8S7i', junior: 'GtMx2AbDG4HgSwD4biU3PB73fWDkX8kYx1yX44RRZvLq' },
+  {
+    symbol: 'syrupUSDC',
+    underlying: 'AvZZF1YaZDziPY2RCK4oJrRVrbN3mTD9NL24hPeaZeUj',
+    senior: 'FD4YydhzPpSmXwnHsX1oJBE4er4m9mg4ezaBN9cXgQbz',
+    junior: '5dVxqyK1m3f4ZiPjZEhwgTLH5wZrU79d4Bsd67pgQk46',
+  },
+  {
+    symbol: 'eHYUSD',
+    underlying: 'HnnGv3HrSqjRpgdFmx7vQGjntNEoex1SU4e9Lxcxuihz',
+    senior: 'DHEFndu3LxDkuQSzxz5HQ1N2UEm2c6evRzRSsyLL8S7i',
+    junior: 'GtMx2AbDG4HgSwD4biU3PB73fWDkX8kYx1yX44RRZvLq',
+    // eHYUSD (Hylo) is a yield-bearing claim on hyUSD: rate = issuer hyUSD reserve / eHYUSD supply.
+    onchainRate: async (hyusdPrice) => {
+      const [supply, reserve] = await Promise.all([
+        rpc('getTokenSupply', ['HnnGv3HrSqjRpgdFmx7vQGjntNEoex1SU4e9Lxcxuihz']),
+        rpc('getTokenAccountBalance', [EHYUSD_HYUSD_RESERVE]),
+      ]);
+      const perHyusd = Number(reserve.value.amount) / Number(supply.value.amount);
+      return perHyusd * hyusdPrice; // eHYUSD -> hyUSD -> USD
+    },
+  },
 ];
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-// JSON-RPC call with backoff on rate-limit / transient errors. Public RPCs (used when
-// SOLANA_RPC is unset, e.g. in CI) throttle bursts with 429s, so retry rather than fail.
-const rpc = async (method, params, tries = 6) => {
-  for (let i = 0; ; i++) {
-    try {
-      const { data } = await axios.post(RPC, { jsonrpc: '2.0', id: 1, method, params });
-      if (data.error) throw new Error(data.error.message);
-      return data.result;
-    } catch (e) {
-      const status = e.response?.status;
-      const retryable = !status || status === 429 || status >= 500;
-      if (i >= tries - 1 || !retryable) throw e;
-      await sleep(500 * 2 ** i); // 0.5s, 1s, 2s, 4s, 8s
-    }
-  }
-};
 
 // A token's balance (raw) held by `owner`, summed across its token accounts.
 const heldToken = async (owner, mint) => {
@@ -50,27 +63,37 @@ const heldToken = async (owner, mint) => {
   return (res?.value || []).reduce((s, a) => s + Number(a.account.data.parsed.info.tokenAmount.amount), 0);
 };
 
-// Sample the shared distributor once and return annualised inflow per `${owner}|${mint}` (raw).
-// The distributor sends every market's underlying to its senior vault, so one scan covers all markets.
+// Sample the shared distributor over the trailing window and return annualised inflow per
+// `${owner}|${mint}` (raw). The distributor sends every market's underlying to its senior vault,
+// so one scan covers all markets. Averaging over a multi-day window keeps the incentive APR stable
+// even though individual airdrops land in discrete lumps.
 const airdropRatesPerYear = async () => {
-  const sigs = await rpc('getSignaturesForAddress', [DISTRIBUTOR, { limit: AIRDROP_SIGS }]);
-  if (!sigs || sigs.length < 2) return {};
-  const timed = sigs.filter((s) => s.blockTime);
+  const cutoff = Math.floor(Date.now() / 1000) - REWARD_WINDOW_DAYS * 86400;
+  let before;
+  const all = [];
+  for (let page = 0; page < 8; page++) {
+    const sigs = await rpc('getSignaturesForAddress', [DISTRIBUTOR, { limit: 1000, ...(before && { before }) }]);
+    if (!sigs || !sigs.length) break;
+    for (const s of sigs) if (s.blockTime >= cutoff) all.push(s);
+    before = sigs[sigs.length - 1].signature;
+    if (sigs[sigs.length - 1].blockTime < cutoff) break;
+  }
+  const timed = all.filter((s) => s.blockTime);
+  if (timed.length < 2) return {};
   const spanSec = timed[0].blockTime - timed[timed.length - 1].blockTime;
   if (!(spanSec > 0)) return {};
 
-  const step = Math.max(1, Math.floor(sigs.length / AIRDROP_SAMPLE));
-  const sample = sigs.filter((_, i) => i % step === 0).slice(0, AIRDROP_SAMPLE);
+  const step = Math.max(1, Math.floor(all.length / REWARD_SAMPLE));
+  const sample = all.filter((_, i) => i % step === 0).slice(0, REWARD_SAMPLE);
   // Fetch in small chunks rather than all at once, so we don't burst the RPC.
   const txs = [];
-  for (let i = 0; i < sample.length; i += 5) {
+  for (let i = 0; i < sample.length; i += 10) {
     const chunk = await Promise.all(
-      sample.slice(i, i + 5).map((s) =>
+      sample.slice(i, i + 10).map((s) =>
         rpc('getTransaction', [s.signature, { maxSupportedTransactionVersion: 0, encoding: 'jsonParsed' }]).catch(() => null)
       )
     );
     txs.push(...chunk);
-    await sleep(150);
   }
 
   const sampled = {}; // `${owner}|${mint}` -> summed positive delta across parsed txs
@@ -90,10 +113,9 @@ const airdropRatesPerYear = async () => {
   }
   if (!parsed) return {};
 
-  // Extrapolate the parsed sample to all signatures over the span, then annualise.
-  // Scaling by `parsed` (not the requested sample size) keeps the estimate correct even if
-  // some getTransaction calls failed.
-  const scale = (sigs.length / parsed / spanSec) * (365 * 24 * 60 * 60);
+  // Extrapolate the parsed sample to all signatures over the span, then annualise. Scaling by
+  // `parsed` (not the requested sample size) keeps the estimate correct even if some fetches failed.
+  const scale = (all.length / parsed / spanSec) * (365 * 24 * 60 * 60);
   const rates = {};
   for (const k of Object.keys(sampled)) rates[k] = sampled[k] * scale;
   return rates;
@@ -102,38 +124,42 @@ const airdropRatesPerYear = async () => {
 const apy = async () => {
   const rates = await airdropRatesPerYear();
 
-  const keys = MARKETS.map((m) => `solana:${m.underlying}`).join(',');
   const now = Math.floor(Date.now() / 1000);
-  const cur = (await utils.getPriceApiData(`/prices/current/${keys}`)).coins;
-  const hist = (await utils.getPriceApiData(`/prices/historical/${now - 7 * 86400}/${keys}`)).coins;
+  const curKeys = [...MARKETS.map((m) => `solana:${m.underlying}`), `solana:${HYUSD_MINT}`].join(',');
+  const histKeys = MARKETS.map((m) => `solana:${m.underlying}`).join(',');
+  const cur = (await utils.getPriceApiData(`/prices/current/${curKeys}`)).coins;
+  const hist = (await utils.getPriceApiData(`/prices/historical/${now - BASE_WINDOW_DAYS * 86400}/${histKeys}`)).coins;
+  const hyusdPrice = cur[`solana:${HYUSD_MINT}`]?.price;
 
   const pools = [];
   for (const m of MARKETS) {
     const key = `solana:${m.underlying}`;
-    const priceNow = cur[key]?.price;
-    const price7d = hist[key]?.price;
-    if (!priceNow || !price7d) continue;
+    const price30d = hist[key]?.price;
+    const priceNow = m.onchainRate ? await m.onchainRate(hyusdPrice) : cur[key]?.price;
+    if (!priceNow || !price30d) continue;
 
-    const info = await rpc('getAccountInfo', [m.senior, { encoding: 'base64' }]);
-    const fee = Buffer.from(info.value.data[0], 'base64').readUInt16LE(64) / 10000; // senior market fee (bps) at offset 64
+    const state = await rpc('getAccountInfo', [m.senior, { encoding: 'base64' }]);
+    const fee = Buffer.from(state.value.data[0], 'base64').readUInt16LE(64) / 10000; // senior market fee (bps) at offset 64
     const [seniorRaw, juniorRaw] = await Promise.all([heldToken(m.senior, m.underlying), heldToken(m.junior, m.underlying)]);
     if (!seniorRaw) continue;
 
-    const base = ((priceNow / price7d) ** (365 / 7) - 1) * 100;
+    const base = ((priceNow / price30d) ** (365 / BASE_WINDOW_DAYS) - 1) * 100;
     const airdropApy = ((rates[`${m.senior}|${m.underlying}`] || 0) / seniorRaw) * 100;
     const ratio = juniorRaw > 0 ? seniorRaw / juniorRaw : 0;
+    const leverage = 1 + fee * ratio; // junior is leveraged on the senior by the fee split
     const seniorTvl = (seniorRaw / 1e6) * priceNow;
     const juniorTvl = (juniorRaw / 1e6) * priceNow;
 
     pools.push({
       pool: `${m.senior}-solana`, chain: 'Solana', project: 'reflect-tranches', symbol: m.symbol, poolMeta: 'Senior',
       tvlUsd: seniorTvl, apyBase: base * (1 - fee), apyReward: airdropApy * (1 - fee),
-      rewardTokens: [m.underlying], underlyingTokens: [m.underlying], url: URL,
+      rewardTokens: [m.underlying], underlyingTokens: [m.underlying], url: URL, isIntrinsicSource: true,
     });
     pools.push({
-      pool: `${m.junior}-solana`, chain: 'Solana', project: 'reflect-tranches', symbol: m.symbol, poolMeta: 'Junior',
-      tvlUsd: juniorTvl, apyBase: base + base * fee * ratio, apyReward: airdropApy * fee * ratio,
-      rewardTokens: [m.underlying], underlyingTokens: [m.underlying], url: URL,
+      pool: `${m.junior}-solana`, chain: 'Solana', project: 'reflect-tranches', symbol: m.symbol,
+      poolMeta: `Junior · ${leverage.toFixed(2)}x leverage`,
+      tvlUsd: juniorTvl, apyBase: base * leverage, apyReward: airdropApy * fee * ratio,
+      rewardTokens: [m.underlying], underlyingTokens: [m.underlying], url: URL, isIntrinsicSource: true,
     });
   }
 
