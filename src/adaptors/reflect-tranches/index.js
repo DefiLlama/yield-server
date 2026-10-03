@@ -13,7 +13,8 @@ const utils = require('../utils');
 // The senior's interest (base + incentives) is split by the on-chain fee: senior holders keep
 // (1 - fee); the fee share is routed to the junior, so the junior is leveraged on the senior:
 //   seniorApy = (base + airdropApy) * (1 - fee)
-//   juniorApy = (base + airdropApy) * leverage,  leverage = 1 + fee * seniorTvl/juniorTvl
+//   juniorApy = base * leverage + airdropApy * (leverage - 1),  leverage = 1 + fee * seniorTvl/juniorTvl
+// i.e. the junior earns base on its own capital plus the fee share of the senior's interest.
 // apyBase = organic portion; apyReward = incentive portion (rewardTokens = the underlying).
 const RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const DISTRIBUTOR = 'SnR6nnALuz5VTw1uxuhXYVz4RbhEHSsk13JKvF5Fsbi'; // shared incentive distributor (all markets)
@@ -26,8 +27,16 @@ const REWARD_SAMPLE = 120; // distributor transfers sampled within that window t
 const HYUSD_MINT = '5YMkXAYccHSGnHn9nob9xEvv6Pvka9DZWH7nTbotTu9E';
 const EHYUSD_HYUSD_RESERVE = 'EqozKyMj7FVnLHc2cJj3VC25aBr4AhVh1cGM2WDajGe9';
 
-const rpc = async (method, params) =>
-  (await axios.post(RPC, { jsonrpc: '2.0', id: 1, method, params })).data.result;
+// A JSON-RPC error arrives as HTTP 200 with `error` set, so axios won't throw on it.
+const rpc = (method, params) =>
+  utils.withRetry(
+    async () => {
+      const { data } = await axios.post(RPC, { jsonrpc: '2.0', id: 1, method, params });
+      if (data.error) throw new Error(`${method}: ${data.error.message}`);
+      return data.result;
+    },
+    { retries: 5 }
+  );
 
 // Add a new market by appending an entry. `onchainRate(hyusdPrice)` is optional: when present it
 // returns the underlying's current USD price from its on-chain exchange rate; otherwise the current
@@ -100,6 +109,7 @@ const airdropRatesPerYear = async () => {
       )
     );
     txs.push(...chunk);
+    await new Promise((r) => setTimeout(r, 150));
   }
 
   const sampled = {}; // `${owner}|${mint}` -> summed positive delta across parsed txs
