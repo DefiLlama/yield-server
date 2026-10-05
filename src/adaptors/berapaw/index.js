@@ -120,74 +120,28 @@ const getLpApr = async (stakingTvlUsd) => {
     return aprPpaw + aprLbgt;
 };
 
-const getVaultsFromApi = async () => {
-    const query = {
-        operationName: "DefillamaGetVaults",
-        variables: {
-            orderBy: "apr",
-            orderDirection: "desc",
-            pageSize: 300,
-            where: {
-                includeNonWhitelisted: false,
-            },
-        },
-        query: `query DefillamaGetVaults($where: GqlRewardVaultFilter, $pageSize: Int, $skip: Int, $orderBy: GqlRewardVaultOrderBy = bgtCapturePercentage, $orderDirection: GqlRewardVaultOrderDirection = desc, $search: String) {
-            polGetRewardVaults(
-                where: $where
-                first: $pageSize
-                skip: $skip
-                orderBy: $orderBy
-                orderDirection: $orderDirection
-                search: $search
-            ) {
-                vaults {
-                    id: vaultAddress
-                    vaultAddress
-                    address: vaultAddress
-                    isVaultWhitelisted
-                    dynamicData {
-                        allTimeReceivedBGTAmount
-                        apr
-                        tvl
-                        bgtCapturePercentage
-                        activeIncentivesValueUsd
-                        activeIncentivesRateUsd
-                    }
-                    stakingToken {
-                        address
-                        name
-                        symbol
-                        decimals
-                    }
-                    metadata {
-                        name
-                        logoURI
-                        url
-                        protocolName
-                        description
-                    }
-                    activeIncentives {
-                        active
-                        remainingAmount
-                        remainingAmountUsd
-                        incentiveRate
-                        tokenAddress
-                        token {
-                            address
-                            name
-                            symbol
-                            decimals
-                        }
-                    }
-                }
-            }
-        }`
-    };
+const BEEP_REWARD_VAULTS = 'https://beep.berachain.com/v1/reward-vaults';
+const BEEP_CLIENT_ID = 'defillama.yield-server';
+const VAULT_PAGE_SIZE = 300;
 
-    const response = await utils.getData('https://api.berachain.com/', query, {
-        'x-graphql-client-name': 'Defillama.yield-server',
-    });
-    return response.data.polGetRewardVaults.vaults;
+const getVaultsFromApi = async () => {
+    const vaults = [];
+    for (let page = 1; page <= 20; page++) {
+        const params = new URLSearchParams({
+            page: String(page),
+            perPage: String(VAULT_PAGE_SIZE),
+            orderBy: 'apr',
+            orderDirection: 'desc',
+            status: 'whitelisted',
+        });
+        const response = await utils.getData(`${BEEP_REWARD_VAULTS}?${params}`, null, {
+            'X-Client-Id': BEEP_CLIENT_ID,
+        });
+        const items = response.items || [];
+        vaults.push(...items);
+        if (items.length === 0 || vaults.length >= response.total) break;
+    }
+    return vaults;
 };
 
 const getPoolData = async () => {
@@ -226,11 +180,11 @@ const getPoolData = async () => {
     });
 
     const vaultPools = await Promise.all(apiVaults.map(async (vault) => {
-        if (!vault.isVaultWhitelisted) return null;
-        // Calculate BGT APR
+        if (!vault.isWhitelisted) return null;
+        // Calculate BGT APR. Beep returns apr as a fraction (1 = 100%).
         let bgtApr = 0;
-        if (vault.dynamicData?.apr) {
-            bgtApr = parseFloat(vault.dynamicData.apr) * 100;
+        if (vault.apr) {
+            bgtApr = parseFloat(vault.apr) * 100;
         }
 
         // Calculate LBGT APR using formula: lbgtApr = bgtApr × (lbgtPrice / beraPrice)
@@ -249,11 +203,11 @@ const getPoolData = async () => {
         } catch {}
 
         return {
-            pool: vault.vaultAddress,
+            pool: vault.address,
             chain: 'berachain',
             project: 'berapaw',
             symbol: vault.stakingToken.symbol,
-            tvlUsd: parseFloat(vault.dynamicData?.tvl || 0),
+            tvlUsd: parseFloat(vault.tvl || 0),
             apyReward: lbgtApr,
             rewardTokens: [ADDRESSES.LBGT],
             underlyingTokens: [underlying],
