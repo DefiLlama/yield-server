@@ -34,7 +34,7 @@ const apy = async () => {
         apyBase: Number(day.feeApr),
         apyBase7d: Number(week.feeApr),
         underlyingTokens: [token0.id, token1.id],
-        poolMeta: `${+(Number(pool.feeRate) * 100).toFixed(4)}%`,
+        poolMeta: `${pool.type === 'concentrated' ? 'CLMM' : 'CPMM'}, ${+(Number(pool.feeRate) * 100).toFixed(4)}%`,
         volumeUsd1d: Number(day.volumeUsd),
         volumeUsd7d: Number(week.volumeUsd),
         url: `${APP_URL}/pools?pool=${pool.poolId}`,
