@@ -5,11 +5,8 @@ const APP_URL = 'https://powfi.alephium.org';
 
 // The Alephium token list suffixes bridged assets with their origin chain
 // (USDTeth, USDCeth, USDTbsc, ...). Use the on-chain symbol instead so pools
-// show up as USDT/USDC in DefiLlama searches; the origin goes in poolMeta.
+// show up as USDT/USDC in DefiLlama searches.
 const tokenSymbol = (token) => token.symbolOnChain || token.symbol;
-
-const bridgeOrigin = (token) =>
-  token.originChain ? `${tokenSymbol(token)} via AlphBridge (${token.originChain})` : null;
 
 async function getPools() {
   const pools = [];
@@ -27,8 +24,6 @@ const apy = async () => {
   return pools
     .map((pool) => {
       const { token0Info: token0, token1Info: token1, day, week } = pool;
-      const origins = [token0, token1].map(bridgeOrigin).filter(Boolean);
-      const fee = `${+(Number(pool.feeRate) * 100).toFixed(4)}%`;
 
       return {
         pool: `${pool.poolId}-alephium`,
@@ -39,7 +34,7 @@ const apy = async () => {
         apyBase: Number(day.feeApr),
         apyBase7d: Number(week.feeApr),
         underlyingTokens: [token0.id, token1.id],
-        poolMeta: [pool.type === 'concentrated' ? 'CLMM' : 'CPMM', fee, ...origins].join(', '),
+        poolMeta: `${+(Number(pool.feeRate) * 100).toFixed(4)}%`,
         volumeUsd1d: Number(day.volumeUsd),
         volumeUsd7d: Number(week.volumeUsd),
         url: `${APP_URL}/pools?pool=${pool.poolId}`,
