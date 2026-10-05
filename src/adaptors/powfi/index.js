@@ -42,7 +42,7 @@ const apy = async () => {
         poolMeta: [pool.type === 'concentrated' ? 'CLMM' : 'CPMM', fee, ...origins].join(', '),
         volumeUsd1d: Number(day.volumeUsd),
         volumeUsd7d: Number(week.volumeUsd),
-        url: APP_URL,
+        url: `${APP_URL}/pools?pool=${pool.poolId}`,
       };
     })
     .filter((p) => p.tvlUsd > 0)
