@@ -514,6 +514,7 @@ const excludedProtocols = [
   { id: '435', slug: 'hop-protocol' },
   { id: '2228', slug: 'aries-markets' },
   { id: '703', slug: 'goldfinch' }, // winding down, senior pool tvl is book value of defaulted loans
+  { id: '3091', slug: 'equilibria' }, // winding down, pendle lp boosting ended after vePENDLE -> sPENDLE
   { id: '5655', slug: 'resolv-usr' },
   { id: '3912', slug: 'dinero-(pxeth)' },
   { id: '7205', slug: 'permapod' }, // exploited 2026-08, contracts halted, all markets deposit-disabled
