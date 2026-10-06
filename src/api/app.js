@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const { Redis } = require("ioredis");
+const AppError = require('../utils/appError');
 
 const redis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 1, enableOfflineQueue: false });
 redis.on('error', () => {});
@@ -54,8 +55,12 @@ app.use('/', [yieldRoutes, config, median, perp, enriched, lsd, pools]);
 
 function errorHandler (err, req, res, next) {
   console.log(err)
-  res.status(500)
-  res.render('error', { error: err })
+  if (res.headersSent) return next(err)
+
+  const isAppError = err instanceof AppError
+  const statusCode = isAppError ? err.statusCode : 500
+  const message = isAppError ? err.message : 'Internal server error'
+  res.status(statusCode).json({ status: isAppError ? err.status : 'error', message })
 }
 
 app.use(errorHandler)
