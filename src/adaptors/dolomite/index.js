@@ -1,6 +1,7 @@
 const dolomiteMarginAbi = require('./dolomite-margin-abi.js');
 const isolationModeAbi = require('./isolation-mode-token-abi.js');
 const sdk = require('@defillama/sdk');
+const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const DOLOMITE_MARGIN_ADDRESS_MAP = {
@@ -8,6 +9,9 @@ const DOLOMITE_MARGIN_ADDRESS_MAP = {
   berachain: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
   ethereum: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
 };
+const DEPLOYMENTS_URL =
+  'https://raw.githubusercontent.com/dolomite-exchange/dolomite-margin-modules/master/packages/deployment/src/deploy/deployments.json';
+const CHAIN_IDS = { arbitrum: 42161, berachain: 80094, ethereum: 1 };
 const getMarketMaxBorrowWeiAbi = {
   name: 'getMarketMaxBorrowWei',
   type: 'function',
@@ -22,7 +26,35 @@ const getMarketMaxBorrowWeiAbi = {
   stateMutability: 'view',
 };
 
-async function apy() {
+async function getDTokensByMarketId(chain, marketTokens, timestamp, deployments) {
+  const dTokenAddresses = Object.entries(await deployments)
+    .filter(([name]) => name.endsWith('4626Token'))
+    .map(([, byChainId]) => byChainId[CHAIN_IDS[chain]]?.address)
+    .filter(Boolean);
+  const block = timestamp
+    ? (await utils.getBlocksByTime([timestamp], chain))[0]
+    : undefined;
+  const calls = dTokenAddresses.map((target) => ({ target }));
+  const [assets, marketIds] = await Promise.all(
+    ['address:asset', 'uint256:marketId'].map((abi) =>
+      sdk.api.abi.multiCall({ abi, calls, chain, block, permitFailure: true })
+    )
+  );
+  const dTokens = {};
+  dTokenAddresses.forEach((dToken, i) => {
+    const asset = assets.output[i].output;
+    const marketId = marketIds.output[i].output;
+    if (asset && asset.toLowerCase() === marketTokens[marketId]?.toLowerCase())
+      dTokens[marketId] = dToken;
+  });
+  return dTokens;
+}
+
+async function apy(timestamp) {
+  const deployments = utils.getData(DEPLOYMENTS_URL).catch((e) => {
+    console.error(`dolomite deployments.json fetch failed: ${e.message}`);
+    return {};
+  });
   const allPools = await Promise.all(
     Object.entries(DOLOMITE_MARGIN_ADDRESS_MAP).map(
       async ([chain, dolomiteMargin]) => {
@@ -73,6 +105,12 @@ async function apy() {
           permitFailure: true,
         });
         const tokens = tokensRes.output.map((o) => o.output);
+        const dTokens = await getDTokensByMarketId(chain, tokens, timestamp, deployments).catch(
+          (e) => {
+            console.error(`dolomite ${chain} dToken lookup failed: ${e.message}`);
+            return {};
+          }
+        );
 
         const borrowablesRes = await sdk.api.abi.multiCall({
           abi: dolomiteMarginAbi.find((i) => i.name === 'getMarketIsClosing'),
@@ -249,7 +287,7 @@ async function apy() {
               symbol: symbols[i],
               chain: chain.charAt(0).toUpperCase() + chain.slice(1),
               project: 'dolomite',
-              token: receiptTokens[i] || null,
+              token: receiptTokens[i] || dTokens[i] || null,
               tvlUsd: supplyUsds[i] - borrowUsds[i],
               apyBase: supplyInterestRateApys[i],
               ...(Number(indices[i].supply) / 1e18 > 0 && { pricePerShare: Number(indices[i].supply) / 1e18 }),
