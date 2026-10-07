@@ -12,6 +12,7 @@
  *   - AUM:         machine.lastTotalAum()   (accounting-token base units)
  *   - shareSupply: shareToken.totalSupply()
  *   - sharePrice:  (aum / 10^accDec) / (supply / 10^shareDec)
+ *   - poolMeta:    shareToken.name()
  *   - apyBase:     7d change of sharePrice (now vs the block ~7 days ago),
  *                  annualized. null when 7d-ago state is unavailable.
  */
@@ -25,7 +26,12 @@ type Pool = import('../../types/Pool').Pool;
 interface Strategy {
   chain: string;
   address: string;
-  shareToken: { address: string; symbol: string; decimals: number };
+  shareToken: {
+    address: string;
+    name: string | null;
+    symbol: string;
+    decimals: number;
+  };
   accountingToken: { address: string; decimals: number };
 }
 
@@ -117,7 +123,7 @@ const readSnapshots = async (
 };
 
 // Lists every machine deployed by the chain's HubCoreFactory, with the share
-// and accounting token metadata needed for pricing.
+// and accounting token metadata needed for pricing and display.
 const discoverStrategies = async (chain: string): Promise<Strategy[]> => {
   const { factory, fromBlock } = HUBS[chain];
   const { number: latestBlock } = await sdk.api.util.getLatestBlock(chain);
@@ -131,38 +137,57 @@ const discoverStrategies = async (chain: string): Promise<Strategy[]> => {
       onlyArgs: true,
     });
 
-  const machines = logs.map((l) => l.machine);
-  const shareTokens = logs.map((l) => l.shareToken);
-  const { output: accountingTokens } = await sdk.api.abi.multiCall({
-    abi: ACCOUNTING_TOKEN_ABI,
-    calls: machines.map((target) => ({ target })),
-    chain,
-  });
-  const [shareSymbols, shareDecimals, accDecimals] = await Promise.all(
-    [
-      ['erc20:symbol', shareTokens],
-      ['erc20:decimals', shareTokens],
-      ['erc20:decimals', accountingTokens.map((o) => o.output)],
-    ].map(([abi, targets]: [string, string[]]) =>
-      sdk.api.abi
-        .multiCall({ abi, calls: targets.map((target) => ({ target })), chain })
-        .then((res) => res.output.map((o) => o.output))
-    )
-  );
+  // permitFailure: a misconfigured machine is skipped instead of failing the adaptor
+  const read = (abi: string, targets: string[]): Promise<RawValue[]> =>
+    sdk.api.abi
+      .multiCall({
+        abi,
+        calls: targets.map((target) => ({ target })),
+        chain,
+        permitFailure: true,
+      })
+      .then((res: MultiCallResult) => res.output.map((o) => o.output));
 
-  return machines.map((address, i) => ({
-    chain,
-    address,
-    shareToken: {
-      address: shareTokens[i],
-      symbol: shareSymbols[i],
-      decimals: Number(shareDecimals[i]),
-    },
-    accountingToken: {
-      address: accountingTokens[i].output,
-      decimals: Number(accDecimals[i]),
-    },
-  }));
+  const accountingTokens = await read(
+    ACCOUNTING_TOKEN_ABI,
+    logs.map((l) => l.machine)
+  );
+  const machines = logs
+    .map((l, i) => ({ ...l, accountingToken: accountingTokens[i] }))
+    .filter((m) => m.accountingToken != null);
+  const shareTokens = machines.map((m) => m.shareToken);
+  const [shareNames, shareSymbols, shareDecimals, accDecimals] =
+    await Promise.all([
+      read('string:name', shareTokens),
+      read('erc20:symbol', shareTokens),
+      read('erc20:decimals', shareTokens),
+      read(
+        'erc20:decimals',
+        machines.map((m) => m.accountingToken)
+      ),
+    ]);
+
+  return machines
+    .map((m, i) => ({
+      chain,
+      address: m.machine,
+      shareToken: {
+        address: m.shareToken,
+        name: shareNames[i],
+        symbol: shareSymbols[i],
+        decimals: Number(shareDecimals[i]),
+      },
+      accountingToken: {
+        address: m.accountingToken,
+        decimals: Number(accDecimals[i]),
+      },
+    }))
+    .filter(
+      (_, i) =>
+        shareSymbols[i] != null &&
+        shareDecimals[i] != null &&
+        accDecimals[i] != null
+    );
 };
 
 const apy = async () => {
@@ -240,6 +265,7 @@ const apy = async () => {
         chain: utils.formatChain(sdkChain),
         project: PROJECT,
         symbol: shareToken.symbol,
+        poolMeta: shareToken.name ?? undefined,
         token: shareToken.address,
         underlyingTokens: [accountingToken.address],
         apyBase,
