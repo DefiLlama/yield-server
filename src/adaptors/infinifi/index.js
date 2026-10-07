@@ -5,6 +5,17 @@ const { ethers } = require('ethers');
 const siUSDAddress = '0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB';
 const iUSDAddress = '0x48f9e38f3070AD8945DFEae3FA70987722E3D89c';
 
+const l2SiUSD = {
+  base: {
+    siUSD: '0xA7845e48995A974bD1d130F4CA8C61fA47Fb4107',
+    iUSD: '0xF007bA6D86A46Ca9170C387Dd316c58d1c457751',
+  },
+  monad: {
+    siUSD: '0x5855e6B9b3cD6960FA3E751A87353c3e40401b9B',
+    iUSD: '0x127066E1982940c33fDC882D9c138296AB15F97f',
+  },
+};
+
 const lockingControllerCallData = {
   address: '0x1d95cC100D6Cd9C7BbDbD7Cb328d99b3D6037fF7',
   exchangeRateAbi: 'function exchangeRate(uint32 epoch) external view returns (uint256)',
@@ -15,7 +26,7 @@ const poolsFunction = async () => {
   try {
     const pools = [];
 
-    pools.push(await computeStakedTokenAPY());
+    pools.push(...await computeStakedTokenAPY());
 
     pools.push(...await computeLockedTokensAPY());
 
@@ -29,25 +40,77 @@ const poolsFunction = async () => {
 
 
 /**
- * Compute the APY for the staked iUSD token, this is a simple erc4626, using the utils function
- * @returns {Promise<{pool: string;chain: any;project: string;symbol: any;tvlUsd: number;apyBase: number;poolMeta: string;url: string;}>}
+ * Compute the APY for the staked iUSD token, this is a simple erc4626, using the utils function but it also returns the pools for the base and monad chains
+ * @returns {Promise<{pool: string;chain: any;project: string;symbol: any;tvlUsd: number;apyBase: number;poolMeta: string;url: string;}[]>}
  */
+
 async function computeStakedTokenAPY() {
-  const erc4626Infos = await utils.getERC4626Info(siUSDAddress, 'ethereum');
+  const ethereumInfo = await utils.getERC4626Info(
+    siUSDAddress,
+    'ethereum'
+  );
+
+  const pools = [
+    {
+      pool: `${siUSDAddress}-ethereum`.toLowerCase(),
+      chain: utils.formatChain('ethereum'),
+      project: 'infinifi',
+      symbol: 'siUSD',
+      tvlUsd: parseFloat(
+        ethers.utils.formatUnits(ethereumInfo.tvl, 18)
+      ),
+      apyBase: ethereumInfo.apyBase,
+      pricePerShare: ethereumInfo.pricePerShare,
+      poolMeta: 'Staked iUSD',
+      url: 'https://infinifi.xyz/',
+      underlyingTokens: [iUSDAddress],
+      token: siUSDAddress,
+      isIntrinsicSource: true,
+    },
+  ];
+
+  for (const [chain, config] of Object.entries(l2SiUSD)) {
+    pools.push(
+      await computeL2StakedTokenAPY(
+        chain,
+        config,
+        ethereumInfo
+      )
+    );
+  }
+
+  return pools;
+}
+
+async function computeL2StakedTokenAPY(
+  chain,
+  config,
+  ethereumInfo
+) {
+  const totalSupply = await sdk.api.abi.call({
+    target: config.siUSD,
+    abi: 'erc20:totalSupply',
+    chain,
+  });
+
+  const supply = parseFloat(
+    ethers.utils.formatUnits(totalSupply.output, 18)
+  );
 
   return {
-    pool: `${siUSDAddress}-ethereum`.toLowerCase(),
-    chain: utils.formatChain('ethereum'),
+    pool: `${config.siUSD}-${chain}`.toLowerCase(),
+    chain: utils.formatChain(chain),
     project: 'infinifi',
     symbol: 'siUSD',
-    tvlUsd: parseFloat(ethers.utils.formatUnits(erc4626Infos.tvl, 18)),
-    apyBase: erc4626Infos.apyBase,
-    pricePerShare: erc4626Infos.pricePerShare,
+    tvlUsd: supply * ethereumInfo.pricePerShare,
+    apyBase: ethereumInfo.apyBase,
+    pricePerShare: ethereumInfo.pricePerShare,
     poolMeta: 'Staked iUSD',
     url: 'https://infinifi.xyz/',
-    underlyingTokens: [iUSDAddress],
+    underlyingTokens: [config.iUSD],
+    token: config.siUSD,
+    isIntrinsicSource: false,
   };
-
 }
 
 
