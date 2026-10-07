@@ -211,8 +211,6 @@ async function apy(timestamp) {
         });
         const names = namesRes.output.map((o) => o.output);
 
-        // Track which tokens are isolation mode dTokens (ERC20 receipt tokens)
-        const receiptTokens = new Array(names.length).fill(null);
         for (let i = 0; i < names.length; i++) {
           if (names[i] === 'Dolomite Isolation: Arbitrum' || names[i] === 'GMX' || names[i] === 'Infrared BGT') {
             tokens[i] = undefined;
@@ -221,7 +219,6 @@ async function apy(timestamp) {
             names[i] === 'Dolomite: Fee + Staked GLP' ||
             names[i].includes('Dolomite Isolation:')
           ) {
-            receiptTokens[i] = tokens[i]; // preserve dToken as receipt
             const underlyingToken = await sdk.api.abi.call({
               abi: isolationModeAbi.find((i) => i.name === 'UNDERLYING_TOKEN'),
               target: tokens[i],
@@ -287,7 +284,7 @@ async function apy(timestamp) {
               symbol: symbols[i],
               chain: chain.charAt(0).toUpperCase() + chain.slice(1),
               project: 'dolomite',
-              token: receiptTokens[i] || dTokens[i] || null,
+              token: dTokens[i] || null,
               tvlUsd: supplyUsds[i] - borrowUsds[i],
               apyBase: supplyInterestRateApys[i],
               ...(Number(indices[i].supply) / 1e18 > 0 && { pricePerShare: Number(indices[i].supply) / 1e18 }),
