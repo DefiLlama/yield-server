@@ -212,7 +212,12 @@ async function apy(timestamp) {
         const names = namesRes.output.map((o) => o.output);
 
         for (let i = 0; i < names.length; i++) {
-          if (names[i] === 'Dolomite Isolation: Arbitrum' || names[i] === 'GMX' || names[i] === 'Infrared BGT') {
+          if (
+            names[i] === 'Dolomite Isolation: Arbitrum' ||
+            names[i] === 'GMX' ||
+            names[i] === 'Infrared BGT' ||
+            (chain === 'arbitrum' && i === 75)
+          ) {
             tokens[i] = undefined;
             symbols[i] = undefined;
           } else if (
