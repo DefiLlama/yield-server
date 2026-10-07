@@ -240,6 +240,7 @@ const chainPools = async (sdkChain: string): Promise<Pool[]> => {
         }))
       ),
       chain: sdkChain,
+      permitFailure: true,
     }),
   ]);
 
@@ -259,9 +260,12 @@ const chainPools = async (sdkChain: string): Promise<Pool[]> => {
     const sharePrice = computeSharePrice(aum, supply, accDec, shareDec);
     if (sharePrice == null) return;
 
-    const nestedShares = nestedBalances.output
+    // skip the pool rather than overstate its TVL when a holder balance is unreadable
+    const balances = nestedBalances.output
       .slice(i * holders.length, (i + 1) * holders.length)
-      .reduce((sum, { output }) => sum + Number(output), 0);
+      .map(({ output }) => output);
+    if (balances.some((b) => b == null)) return;
+    const nestedShares = balances.reduce((sum, b) => sum + Number(b), 0);
     const externalShares = Math.max(Number(supply) - nestedShares, 0);
     const tvlUsd = (externalShares / 10 ** shareDec) * sharePrice * price;
 
