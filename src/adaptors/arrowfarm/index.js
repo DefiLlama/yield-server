@@ -65,13 +65,14 @@ const getGenuineVaults = async () => {
   const strategies = new Set(strategyLogs.map((l) => lower(l.proxy)));
   const created = vaultLogs.map((l) => l.proxy);
 
+  // No permitFailure: an unreadable strategy throws rather than silently
+  // shrinking the listing.
   const vaultStrategies = await api.multiCall({
     abi: 'address:strategy',
     calls: created,
-    permitFailure: true,
   });
-  const genuine = created.filter(
-    (_, i) => vaultStrategies[i] && strategies.has(lower(vaultStrategies[i]))
+  const genuine = created.filter((_, i) =>
+    strategies.has(lower(vaultStrategies[i]))
   );
   const wants = await api.multiCall({
     abi: 'function wants() view returns (address token0, address token1)',
