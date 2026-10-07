@@ -4,11 +4,11 @@
  * DeFiLlama slug: makina
  * DefiLlama page: https://defillama.com/protocol/makina
  * App: https://makina.finance/
- * API Docs: https://api.makina.finance/v1/docs
  * Protocol docs: https://docs.makina.finance/
  *
- * The Makina API is used only as a directory of strategies (machine) as they rely on events. Every live metric — AUM, share price
- * and APY — is read directly on-chain:
+ * Strategies (machines) are discovered from MachineCreated events on each hub
+ * chain's HubCoreFactory, so new machines are listed without adapter changes.
+ * Every metric is read on-chain:
  *   - AUM:         machine.lastTotalAum()   (accounting-token base units)
  *   - shareSupply: shareToken.totalSupply()
  *   - sharePrice:  (aum / 10^accDec) / (supply / 10^shareDec)
@@ -21,8 +21,13 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 type Pool = import('../../types/Pool').Pool;
-type MakinaStrategiesResponse = import('./types').MakinaStrategiesResponse;
-type Strategy = MakinaStrategiesResponse['data']['strategies'][number];
+
+interface Strategy {
+  chain: string;
+  address: string;
+  shareToken: { address: string; symbol: string; decimals: number };
+  accountingToken: { address: string; decimals: number };
+}
 
 // Raw uint256 read returned by the SDK multicall (decimal string), or null when
 // that individual call failed (permitFailure).
@@ -41,28 +46,31 @@ interface MultiCallResult {
 
 const PROJECT = 'makina';
 
-// API Docs: https://api.makina.finance/v1/docs
-const API_BASE_URL = 'https://api.makina.finance/v1';
-
-const CHAIN_ID_TO_CHAIN_KEY: Record<number, string> = {
-  1: 'ethereum',
-  143: 'monad',
-  999: 'hyperliquid',
-  8453: 'base',
-  42161: 'arbitrum',
-  43114: 'avax',
-  57073: 'ink',
+// HubCoreFactory per hub chain. fromBlock is its first machine deployment.
+const HUBS: Record<string, { factory: string; fromBlock: number }> = {
+  ethereum: {
+    factory: '0x8d28A69328561eF9F171c58996fEcB9F494e070c',
+    fromBlock: 23426666,
+  },
+  base: {
+    factory: '0x1E1fa6F5f258b744881634216bDBc612B09C3C30',
+    fromBlock: 50872000,
+  },
 };
 
-const ENDPOINTS = {
-  GET_STRATEGIES: `${API_BASE_URL}/strategies`,
-};
+const MACHINE_CREATED_EVENT =
+  'event MachineCreated(address indexed machine, address indexed shareToken)';
+
+// Stay behind the head: the SDK pads log ranges by 10 blocks and public RPCs
+// can lag the latest block.
+const LOGS_HEAD_MARGIN = 20;
 
 const DAY = 24 * 60 * 60;
 const APY_LOOKBACK_DAYS = 7;
 
 const LAST_TOTAL_AUM_ABI = 'uint256:lastTotalAum';
 const TOTAL_SUPPLY_ABI = 'uint256:totalSupply';
+const ACCOUNTING_TOKEN_ABI = 'address:accountingToken';
 
 // De-scaled share price, in accounting tokens per share. null when inputs are
 // missing or the share supply is zero.
@@ -108,45 +116,76 @@ const readSnapshots = async (
   };
 };
 
-const apy = async () => {
-  const response = await utils.getData(ENDPOINTS.GET_STRATEGIES);
-  const strategies: MakinaStrategiesResponse['data'] = response.data;
+// Lists every machine deployed by the chain's HubCoreFactory, with the share
+// and accounting token metadata needed for pricing.
+const discoverStrategies = async (chain: string): Promise<Strategy[]> => {
+  const { factory, fromBlock } = HUBS[chain];
+  const { number: latestBlock } = await sdk.api.util.getLatestBlock(chain);
+  const logs: Array<{ machine: string; shareToken: string }> =
+    await sdk.getEventLogs({
+      chain,
+      target: factory,
+      eventAbi: MACHINE_CREATED_EVENT,
+      fromBlock,
+      toBlock: latestBlock - LOGS_HEAD_MARGIN,
+      onlyArgs: true,
+    });
 
-  const supportedStrategies = strategies.strategies.filter(
-    (s) => CHAIN_ID_TO_CHAIN_KEY[s.accountingToken.chainId]
+  const machines = logs.map((l) => l.machine);
+  const shareTokens = logs.map((l) => l.shareToken);
+  const { output: accountingTokens } = await sdk.api.abi.multiCall({
+    abi: ACCOUNTING_TOKEN_ABI,
+    calls: machines.map((target) => ({ target })),
+    chain,
+  });
+  const [shareSymbols, shareDecimals, accDecimals] = await Promise.all(
+    [
+      ['erc20:symbol', shareTokens],
+      ['erc20:decimals', shareTokens],
+      ['erc20:decimals', accountingTokens.map((o) => o.output)],
+    ].map(([abi, targets]: [string, string[]]) =>
+      sdk.api.abi
+        .multiCall({ abi, calls: targets.map((target) => ({ target })), chain })
+        .then((res) => res.output.map((o) => o.output))
+    )
   );
+
+  return machines.map((address, i) => ({
+    chain,
+    address,
+    shareToken: {
+      address: shareTokens[i],
+      symbol: shareSymbols[i],
+      decimals: Number(shareDecimals[i]),
+    },
+    accountingToken: {
+      address: accountingTokens[i].output,
+      decimals: Number(accDecimals[i]),
+    },
+  }));
+};
+
+const apy = async () => {
+  const strategies = (
+    await Promise.all(Object.keys(HUBS).map(discoverStrategies))
+  ).flat();
 
   // Prices for every accounting token, keyed by the coins-API chain key.
   const priceKeys = [
     ...new Set(
-      supportedStrategies.map(
-        (s) =>
-          `${CHAIN_ID_TO_CHAIN_KEY[s.accountingToken.chainId]}:${
-            s.accountingToken.address
-          }`
-      )
+      strategies.map((s) => `${s.chain}:${s.accountingToken.address}`)
     ),
   ];
   const { pricesByAddress } = (await utils.getPrices(priceKeys, null)) as {
     pricesByAddress: Record<string, number>;
   };
 
-  // Group by hub chain so on-chain reads can be batched per chain/block.
-  const byChain = supportedStrategies.reduce<Record<number, Strategy[]>>(
-    (acc, s) => {
-      (acc[s.hubChainId] = acc[s.hubChainId] || []).push(s);
-      return acc;
-    },
-    {}
-  );
-
   const ts7dAgo = Math.floor(Date.now() / 1000) - APY_LOOKBACK_DAYS * DAY;
 
   const apys: Pool[] = [];
 
-  for (const hubChainId of Object.keys(byChain).map(Number)) {
-    const chainStrategies = byChain[hubChainId];
-    const sdkChain = CHAIN_ID_TO_CHAIN_KEY[hubChainId];
+  for (const sdkChain of Object.keys(HUBS)) {
+    const chainStrategies = strategies.filter((s) => s.chain === sdkChain);
 
     let block7dAgo: number | null = null;
     try {
@@ -197,10 +236,8 @@ const apy = async () => {
       }
 
       apys.push({
-        pool: `makina-${strategy.address}-${
-          CHAIN_ID_TO_CHAIN_KEY[strategy.hubChainId]
-        }`,
-        chain: utils.formatChain(CHAIN_ID_TO_CHAIN_KEY[strategy.hubChainId]),
+        pool: `makina-${strategy.address}-${sdkChain}`,
+        chain: utils.formatChain(sdkChain),
         project: PROJECT,
         symbol: shareToken.symbol,
         token: shareToken.address,
