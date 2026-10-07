@@ -497,18 +497,15 @@ function getExtraRewards(chain, poolAddr) {
 // Helper function to generate pool URLs
 function getPoolUrl(chain, poolAddress) {
   const chainIds = {
-    ethereum: '',
-    plasma: '9745',
-    etlk: '42793',
-    lisk: '1135',
-    hemi: '43111',
-    monad: '143',
+    ethereum: 1,
+    plasma: 9745,
+    etlk: 42793,
+    lisk: 1135,
+    hemi: 43111,
+    monad: 143,
   };
 
-  const chainId = chainIds[chain];
-  return chainId ?
-    `https://app.gearbox.fi/pools/${chainId}/${poolAddress}` :
-    `https://app.gearbox.fi/pools/${poolAddress}`;
+  return `https://app.gearbox.finance/earn/lp/${chainIds[chain]}/${poolAddress}`;
 }
 
 // Chain-specific Merkl API configurations
