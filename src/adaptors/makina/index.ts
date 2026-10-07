@@ -15,6 +15,8 @@
  *   - poolMeta:    shareToken.name()
  *   - apyBase:     7d change of sharePrice (now vs the block ~7 days ago),
  *                  annualized. null when 7d-ago state is unavailable.
+ *   - apyBaseInception: sharePrice annualized since the machine was created
+ *                  (machines start at a share price of 1 accounting token).
  */
 
 const sdk = require('@defillama/sdk');
@@ -26,6 +28,7 @@ type Pool = import('../../types/Pool').Pool;
 interface Strategy {
   chain: string;
   address: string;
+  createdAt: number; // unix timestamp of the MachineCreated event
   shareToken: {
     address: string;
     name: string | null;
@@ -127,15 +130,23 @@ const readSnapshots = async (
 const discoverStrategies = async (chain: string): Promise<Strategy[]> => {
   const { factory, fromBlock } = HUBS[chain];
   const { number: latestBlock } = await sdk.api.util.getLatestBlock(chain);
-  const logs: Array<{ machine: string; shareToken: string }> =
+  const logs: Array<{
+    machine: string;
+    shareToken: string;
+    blockNumber: number;
+  }> = (
     await sdk.getEventLogs({
       chain,
       target: factory,
       eventAbi: MACHINE_CREATED_EVENT,
       fromBlock,
       toBlock: latestBlock - LOGS_HEAD_MARGIN,
-      onlyArgs: true,
-    });
+    })
+  ).map((l) => ({
+    machine: l.args.machine,
+    shareToken: l.args.shareToken,
+    blockNumber: l.blockNumber,
+  }));
 
   // permitFailure: a misconfigured machine is skipped instead of failing the adaptor
   const read = (abi: string, targets: string[]): Promise<RawValue[]> =>
@@ -156,7 +167,7 @@ const discoverStrategies = async (chain: string): Promise<Strategy[]> => {
     .map((l, i) => ({ ...l, accountingToken: accountingTokens[i] }))
     .filter((m) => m.accountingToken != null);
   const shareTokens = machines.map((m) => m.shareToken);
-  const [shareNames, shareSymbols, shareDecimals, accDecimals] =
+  const [shareNames, shareSymbols, shareDecimals, accDecimals, createdAt] =
     await Promise.all([
       read('string:name', shareTokens),
       read('erc20:symbol', shareTokens),
@@ -165,12 +176,16 @@ const discoverStrategies = async (chain: string): Promise<Strategy[]> => {
         'erc20:decimals',
         machines.map((m) => m.accountingToken)
       ),
+      Promise.all(
+        machines.map((m) => sdk.api.util.getTimestamp(m.blockNumber, chain))
+      ),
     ]);
 
   return machines
     .map((m, i) => ({
       chain,
       address: m.machine,
+      createdAt: createdAt[i],
       shareToken: {
         address: m.shareToken,
         name: shareNames[i],
@@ -260,6 +275,12 @@ const apy = async () => {
         }
       }
 
+      const ageDays = (Date.now() / 1000 - strategy.createdAt) / DAY;
+      const apyBaseInception =
+        ageDays >= APY_LOOKBACK_DAYS
+          ? (sharePrice ** (365 / ageDays) - 1) * 100
+          : null;
+
       apys.push({
         pool: `makina-${strategy.address}-${sdkChain}`,
         chain: utils.formatChain(sdkChain),
@@ -269,6 +290,7 @@ const apy = async () => {
         token: shareToken.address,
         underlyingTokens: [accountingToken.address],
         apyBase,
+        apyBaseInception,
         pricePerShare: sharePrice, // accounting tokens per share; NOT a USD price.
         tvlUsd,
         url: `https://makina.finance/strategy/${strategy.address}`,
