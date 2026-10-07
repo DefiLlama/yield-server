@@ -92,7 +92,6 @@ async function computeStakedTokenAPY() {
       pools.push(await computeL2StakedTokenAPY(chain, config, ethereumInfo));
     } catch (error) {
       console.error(`Error computing L2 staked token APY for ${chain}:`, error);
-      continue;
     }
   }
 
