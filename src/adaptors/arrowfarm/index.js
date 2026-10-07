@@ -27,6 +27,7 @@ const MIN_TVL_USD = 1000;
 const STRATEGY_META = {
   'uniswap-v3': 'Uniswap V3',
   'velodrome-slipstream': 'UP33',
+  fables: 'Fables',
 };
 
 const bpsToPercent = (bps) =>
