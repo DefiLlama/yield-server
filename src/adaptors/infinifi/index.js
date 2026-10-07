@@ -47,10 +47,7 @@ const poolsFunction = async () => {
 async function computeStakedTokenAPY() {
   // ethereum info also has the mirrored siUSD from the L2 deployments (base, monad, maybe more in the future)
   // L2s supply will be removed from the ethereum pool in the following loop
-  const ethereumInfo = await utils.getERC4626Info(
-    siUSDAddress,
-    'ethereum'
-  );
+  const ethereumInfo = await utils.getERC4626Info(siUSDAddress, 'ethereum');
 
   const pools = [];
   const ethereumPool = {
@@ -66,7 +63,6 @@ async function computeStakedTokenAPY() {
     poolMeta: 'Staked iUSD',
     url: 'https://infinifi.xyz/',
     underlyingTokens: [iUSDAddress],
-    token: siUSDAddress,
     isIntrinsicSource: true,
   };
 
@@ -116,7 +112,6 @@ async function computeL2StakedTokenAPY(
     poolMeta: 'Staked iUSD',
     url: 'https://infinifi.xyz/',
     underlyingTokens: [config.iUSD],
-    token: config.siUSD,
     isIntrinsicSource: false,
   };
 }
