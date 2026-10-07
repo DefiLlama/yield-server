@@ -5,6 +5,7 @@ const { ethers } = require('ethers');
 const siUSDAddress = '0xDBDC1Ef57537E34680B898E1FEBD3D68c7389bCB';
 const iUSDAddress = '0x48f9e38f3070AD8945DFEae3FA70987722E3D89c';
 
+// add new l2 deployments here
 const l2SiUSD = {
   base: {
     siUSD: '0xA7845e48995A974bD1d130F4CA8C61fA47Fb4107',
@@ -55,9 +56,7 @@ async function computeStakedTokenAPY() {
     chain: utils.formatChain('ethereum'),
     project: 'infinifi',
     symbol: 'siUSD',
-    tvlUsd: parseFloat(
-      ethers.utils.formatUnits(ethereumInfo.tvl, 18)
-    ),
+    tvlUsd: parseFloat(ethers.utils.formatUnits(ethereumInfo.tvl, 18)),
     apyBase: ethereumInfo.apyBase,
     pricePerShare: ethereumInfo.pricePerShare,
     poolMeta: 'Staked iUSD',
@@ -67,13 +66,7 @@ async function computeStakedTokenAPY() {
   };
 
   for (const [chain, config] of Object.entries(l2SiUSD)) {
-    const l2Pool =
-      await computeL2StakedTokenAPY(
-        chain,
-        config,
-        ethereumInfo
-      );
-
+    const l2Pool = await computeL2StakedTokenAPY(chain,config,ethereumInfo);
     // for each l2 pools we need to substract the TVL out of the ethereum pool
     ethereumPool.tvlUsd -= l2Pool.tvlUsd;
     // console.log(`removing ${l2Pool.tvlUsd} from ethereum pool, ${ethereumPool.tvlUsd} left`);
@@ -81,6 +74,7 @@ async function computeStakedTokenAPY() {
   }
 
 
+  // add the ethereum pool to the pools after substracting the L2s supplies
   pools.push(ethereumPool);
 
   return pools;
