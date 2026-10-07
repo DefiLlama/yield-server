@@ -5,10 +5,6 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const PROJECT = 'hyperswap-v3';
 const CHAIN = 'hyperevm';
 const MIN_TVL_USD = 10000;
-// App uses 'HYPE' alias in URL paths instead of WHYPE's address.
-const WHYPE = '0x5555555555555555555555555555555555555555';
-const tokenForUrl = (addr) => (addr.toLowerCase() === WHYPE ? 'HYPE' : addr);
-
 const SUBGRAPH_URL =
   'https://api.subgraph.ormilabs.com/api/public/33c67399-d625-4929-b239-5709cd66e422/subgraphs/hyperswap-v3/v0.1.2/gn';
 
@@ -91,7 +87,7 @@ async function apy() {
         apyBase7d,
         underlyingTokens: [token0, token1],
         poolMeta: `${feePercent}%`,
-        url: `https://app.hyperswap.exchange/#/add/${tokenForUrl(token0)}/${tokenForUrl(token1)}/${p.feeTier}`,
+        url: `https://app.hyperswap.exchange/liquidity/add/v3?tokenA=${token0}&tokenB=${token1}&fee=${p.feeTier}`,
         volumeUsd1d: Number(day?.volumeUSD) || 0,
         volumeUsd7d: volume7d,
       };
