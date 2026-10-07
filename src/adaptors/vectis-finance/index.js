@@ -28,7 +28,11 @@ const DAY = 86400;
 // so a rebalance in progress has finished.
 const SETTLE_SECONDS = 6 * 3600;
 const STABLE_SECONDS = 3 * 3600;
+// How many transactions that actually carry a share price to read at one
+// window boundary. Config updates and other price-less logs do not count, or
+// a burst of them would exhaust the budget and drop the vault.
 const MAX_TX_FETCHES_PER_POINT = 40;
+const MAX_TX_FETCHES_PER_VAULT = MAX_TX_FETCHES_PER_POINT * 5;
 
 // ---------------------------------------------------------------------------
 // Solana (Voltr)
@@ -58,12 +62,34 @@ const base58Encode = (bytes) => {
   return out;
 };
 
+// Public RPCs rate-limit with HTTP 200 and a JSON-RPC error. withRetry only
+// retries when the thrown error has response.status 429 or 5xx, so tag those
+// bodies that way. Invalid params and other permanent errors fail immediately.
+const RETRYABLE_RPC_CODES = new Set([429, -32005]);
+const rpcErrorIsRetryable = (error) =>
+  RETRYABLE_RPC_CODES.has(error?.code) ||
+  /too many requests|rate limit|\b429\b|node is behind|node is unhealthy|timed? ?out|try again/i.test(
+    String(error?.message || '')
+  );
+
 const rpc = async (method, params) => {
-  const { result, error } = await utils.withRetry(
-    () => utils.getData(SOL_RPC, { jsonrpc: '2.0', id: 1, method, params }),
+  const { result } = await utils.withRetry(
+    async () => {
+      const body = await utils.getData(SOL_RPC, {
+        jsonrpc: '2.0',
+        id: 1,
+        method,
+        params,
+      });
+      if (body?.error) {
+        const err = new Error(`Solana RPC ${method}: ${body.error.message}`);
+        if (rpcErrorIsRetryable(body.error)) err.response = { status: 429 };
+        throw err;
+      }
+      return body;
+    },
     { retries: 5, delayMs: 1000 }
   );
-  if (error) throw new Error(`Solana RPC ${method}: ${error.message}`);
   return result;
 };
 
@@ -76,12 +102,12 @@ const discriminator = (kind, name) =>
 
 const VAULT_DISCRIMINATOR = discriminator('account', 'Vault');
 
-// Every Voltr event that changes a vault's total value or LP supply carries
-// both after the instruction, so the post-fee share price after any such
-// transaction can be read straight from its log. "LP supply incl fees" counts
-// accrued-but-unminted fee LP, so the price is net of performance and
-// management fees. Offsets are from the voltr_vault IDL (8-byte discriminator,
-// then borsh fields).
+// Share price is vault asset total value / LP supply including accrued fees.
+// Every Voltr event that carries both is listed (voltr-vault-client 0.2.0).
+// UpdateVaultConfig and HarvestFee do not, so a transaction that only emits
+// those is skipped. Offsets are into the payload: 8-byte discriminator, then
+// borsh fields. "LP supply incl fees" counts accrued-but-unminted fee LP, so
+// the price is net of performance and management fees.
 const VOLTR_EVENTS = [
   { name: 'DepositVaultEvent', vault: 56, totalValue: 128, lpSupply: 144 },
   { name: 'WithdrawVaultEvent', vault: 56, totalValue: 136, lpSupply: 152 },
@@ -92,6 +118,36 @@ const VOLTR_EVENTS = [
     vault: 56,
     totalValue: 264,
     lpSupply: 280,
+  },
+  {
+    name: 'InstantWithdrawVaultEvent',
+    vault: 66,
+    totalValue: 146,
+    lpSupply: 162,
+  },
+  {
+    name: 'InstantWithdrawStrategyEvent',
+    vault: 66,
+    totalValue: 274,
+    lpSupply: 290,
+  },
+  {
+    name: 'RequestWithdrawVaultEvent',
+    vault: 8,
+    totalValue: 186,
+    lpSupply: 194,
+  },
+  {
+    name: 'CalibrateHighWaterMarkEvent',
+    vault: 40,
+    totalValue: 72,
+    lpSupply: 88,
+  },
+  {
+    name: 'CalibrateHighWaterMarkUnsafeEvent',
+    vault: 40,
+    totalValue: 72,
+    lpSupply: 80,
   },
 ].map((e) => ({ ...e, discriminator: discriminator('event', e.name) }));
 
@@ -143,7 +199,7 @@ const makeStateReader = (vault, decimals) => {
   let fetches = 0;
   return async (signature) => {
     if (cache.has(signature.signature)) return cache.get(signature.signature);
-    if (++fetches > MAX_TX_FETCHES_PER_POINT * 3)
+    if (++fetches > MAX_TX_FETCHES_PER_VAULT)
       throw new Error(`Too many transactions read for vault ${vault}`);
     const tx = await rpc('getTransaction', [
       signature.signature,
@@ -174,10 +230,13 @@ const stableStateAt = async (signatures, readState, timestamp) => {
   const newer = signatures.filter((s) => s.blockTime > timestamp).reverse();
 
   let reads = 0;
-  const read = (s) => {
+  const read = async (s) => {
+    const state = await readState(s);
+    // A config update (or any other price-less log) is not a failed search.
+    if (!state) return null;
     if (++reads > MAX_TX_FETCHES_PER_POINT)
       throw new Error('No stable vault state found near the window boundary');
-    return readState(s);
+    return state;
   };
   const stood = (state, next) =>
     !next || next.blockTime - state.blockTime >= STABLE_SECONDS;
