@@ -31,7 +31,7 @@ const poolsFunction = async () => {
     pools.push(...await computeLockedTokensAPY());
 
     return pools;
-    
+
   } catch (error) {
     console.error('Error fetching infiniFi data:', error);
     return [];
@@ -45,39 +45,47 @@ const poolsFunction = async () => {
  */
 
 async function computeStakedTokenAPY() {
+  // ethereum info also has the mirrored siUSD from the L2 deployments (base, monad, maybe more in the future)
+  // L2s supply will be removed from the ethereum pool in the following loop
   const ethereumInfo = await utils.getERC4626Info(
     siUSDAddress,
     'ethereum'
   );
 
-  const pools = [
-    {
-      pool: `${siUSDAddress}-ethereum`.toLowerCase(),
-      chain: utils.formatChain('ethereum'),
-      project: 'infinifi',
-      symbol: 'siUSD',
-      tvlUsd: parseFloat(
-        ethers.utils.formatUnits(ethereumInfo.tvl, 18)
-      ),
-      apyBase: ethereumInfo.apyBase,
-      pricePerShare: ethereumInfo.pricePerShare,
-      poolMeta: 'Staked iUSD',
-      url: 'https://infinifi.xyz/',
-      underlyingTokens: [iUSDAddress],
-      token: siUSDAddress,
-      isIntrinsicSource: true,
-    },
-  ];
+  const pools = [];
+  const ethereumPool = {
+    pool: `${siUSDAddress}-ethereum`.toLowerCase(),
+    chain: utils.formatChain('ethereum'),
+    project: 'infinifi',
+    symbol: 'siUSD',
+    tvlUsd: parseFloat(
+      ethers.utils.formatUnits(ethereumInfo.tvl, 18)
+    ),
+    apyBase: ethereumInfo.apyBase,
+    pricePerShare: ethereumInfo.pricePerShare,
+    poolMeta: 'Staked iUSD',
+    url: 'https://infinifi.xyz/',
+    underlyingTokens: [iUSDAddress],
+    token: siUSDAddress,
+    isIntrinsicSource: true,
+  };
 
   for (const [chain, config] of Object.entries(l2SiUSD)) {
-    pools.push(
+    const l2Pool =
       await computeL2StakedTokenAPY(
         chain,
         config,
         ethereumInfo
-      )
-    );
+      );
+
+    // for each l2 pools we need to substract the TVL out of the ethereum pool
+    ethereumPool.tvlUsd -= l2Pool.tvlUsd;
+    // console.log(`removing ${l2Pool.tvlUsd} from ethereum pool, ${ethereumPool.tvlUsd} left`);
+    pools.push(l2Pool);
   }
+
+
+  pools.push(ethereumPool);
 
   return pools;
 }
