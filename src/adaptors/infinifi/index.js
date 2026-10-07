@@ -88,7 +88,12 @@ async function computeStakedTokenAPY() {
     ethereumPool.tvlUsd -= mirroredSupply * ethereumInfo.pricePerShare;
 
     // add L2 pool
-    pools.push(await computeL2StakedTokenAPY(chain, config, ethereumInfo));
+    try {
+      pools.push(await computeL2StakedTokenAPY(chain, config, ethereumInfo));
+    } catch (error) {
+      console.error(`Error computing L2 staked token APY for ${chain}:`, error);
+      continue;
+    }
   }
 
   // Add Ethereum after subtracting the mirrored balances.
