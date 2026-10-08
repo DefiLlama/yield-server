@@ -1,0 +1,27 @@
+name: Shift Protocol calculation regressions
+on:
+  pull_request:
+    paths:
+      - 'src/adaptors/shift-protocol/**'
+      - 'src/adaptors/package.json'
+      - 'src/adaptors/package-lock.json'
+      - '.github/workflows/shift-protocol-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: src/adaptors/package-lock.json
+      - name: Install adapter dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: src/adaptors
+      - name: Check share-value calculations
+        run: node --test src/adaptors/shift-protocol/metrics.test.cjs
