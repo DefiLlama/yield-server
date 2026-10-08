@@ -29,6 +29,7 @@ const ORACLE_PRICE_DECIMALS = 6;
 const PROJECT_SLUG = 'permapod';
 const APP_URL = 'https://app.permapod.xyz';
 
+/** Return live supply and borrow yields for supported, deposit-enabled v2 markets. */
 async function apy() {
   const assetParams = await getAllAssetParams();
   const activeParams = assetParams.filter(
@@ -101,12 +102,13 @@ async function apy() {
         borrowToken: denom,
         ltv,
         borrowable: p.red_bank.borrow_enabled ?? false,
-        url: APP_URL,
+        url: `${APP_URL}/reserve-overview?denom=${encodeURIComponent(denom)}`,
       };
     }),
   );
 }
 
+/** Read every v2 asset-parameter page, rejecting invalid or stalled pagination. */
 async function getAllAssetParams() {
   const out = [];
   const limit = 50;
@@ -127,6 +129,7 @@ async function getAllAssetParams() {
   return out;
 }
 
+/** Query a CosmWasm contract through the LCD and return its decoded data. */
 async function queryContract(contract, data) {
   const encoded = Buffer.from(JSON.stringify(data)).toString('base64');
   const result = await utils.getData(
