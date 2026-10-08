@@ -155,6 +155,11 @@ const VOLTR_EVENTS = [
 const VAULT_ASSET_MINT_OFFSET = 104;
 const VAULT_LP_MINT_OFFSET = 272;
 const MINT_DECIMALS_OFFSET = 44;
+// VaultConfiguration.maxCap, the most assets the vault will accept. Layout
+// from voltr-vault-client 0.2.0: after the asset and lp structs and the three
+// admin pubkeys. u64::MAX means there is no cap.
+const VAULT_MAX_CAP_OFFSET = 432;
+const U64_MAX = (1n << 64n) - 1n;
 
 const decodeVaultStates = (logMessages, vault) => {
   const states = [];
@@ -299,6 +304,11 @@ const getVoltrVault = async ({ address, startDate }) => {
     (m) => Buffer.from(m.data[0], 'base64')[MINT_DECIMALS_OFFSET]
   );
   const decimals = { asset: assetDecimals, lp: lpDecimals };
+  const maxCapRaw = data.readBigUInt64LE(VAULT_MAX_CAP_OFFSET);
+  const supplyCap =
+    maxCapRaw > 0n && maxCapRaw < U64_MAX
+      ? Number(maxCapRaw) / 10 ** decimals.asset
+      : null;
 
   const end = Math.floor(Date.now() / 1000) - SETTLE_SECONDS;
   const start = windowStart(end, startDate);
@@ -320,6 +330,7 @@ const getVoltrVault = async ({ address, startDate }) => {
     pricePerShare: now.pricePerShare,
     apyBase: annualise(now.pricePerShare, then.pricePerShare, elapsed),
     token: lpMint,
+    supplyCap,
   };
 };
 
@@ -329,6 +340,10 @@ const getVoltrVault = async ({ address, startDate }) => {
 
 const CONVERT_TO_ASSETS =
   'function convertToAssets(uint256 shares) view returns (uint256)';
+// The deposit cap lives on the strategy loan. maxDeposit() is only the room
+// left under it, so the total cap is loan().maxCapacity (raw asset units).
+const LOAN =
+  'function loan() view returns (uint256 minDeposit, uint256 minRedeem, uint256 maxCapacity, uint256 minCapacity, uint256 reserveThreshold, uint256 outstandingPrincipal, uint256 outstandingInterest, uint256 drawableFunds, uint256 interestRate, uint256 lateInterestPenalty, uint256 claimableInterest, uint256 interestInterval, uint256 startTime, uint256 termsSetTime, uint256 termsUpdateTime, uint256 duration, uint256 depositPeriod, uint256 acceptGracePeriod, uint256 withdrawalPeriod, uint256 lateInterestGracePeriod)';
 
 // convertToAssets on these vaults is the NAV-based post-fee price: Accountable
 // takes its fees by minting shares, so the dilution is already in it.
@@ -338,13 +353,21 @@ const getErc4626Vault = async ({ address: target, chain, startDate }) => {
       .call({ target: t, abi, params, block, chain })
       .then((r) => r.output);
 
-  const asset = await call('address:asset');
-  const [shareDecimals, assetDecimals] = (
-    await Promise.all([
-      call('erc20:decimals'),
-      call('erc20:decimals', { target: asset }),
-    ])
-  ).map(Number);
+  const [asset, strategy] = await Promise.all([
+    call('address:asset'),
+    call('function strategy() view returns (address)'),
+  ]);
+  const [shareDecimals, assetDecimals, maxCapacity] = await Promise.all([
+    call('erc20:decimals').then(Number),
+    call('erc20:decimals', { target: asset }).then(Number),
+    call(LOAN, { target: strategy }).then((loan) => loan.maxCapacity),
+  ]);
+  const supplyCapRaw = BigInt(maxCapacity);
+  // Above 2^128 is an uncapped sentinel (uint256 max), not a real limit.
+  const supplyCap =
+    supplyCapRaw > 0n && supplyCapRaw < 1n << 128n
+      ? Number(supplyCapRaw) / 10 ** assetDecimals
+      : null;
   const oneShare = (10n ** BigInt(shareDecimals)).toString();
 
   const end = Math.floor(Date.now() / 1000);
@@ -380,6 +403,7 @@ const getErc4626Vault = async ({ address: target, chain, startDate }) => {
       blockNow.timestamp - blockThen.timestamp
     ),
     token: target.toLowerCase(),
+    supplyCap,
   };
 };
 
@@ -427,6 +451,9 @@ const apy = async () => {
         project: 'vectis-finance',
         symbol: coin.symbol,
         tvlUsd: data.assets * coin.price,
+        ...(data.supplyCap != null && {
+          supplyCapUsd: data.supplyCap * coin.price,
+        }),
         apyBase: data.apyBase,
         pricePerShare: data.pricePerShare,
         underlyingTokens: [data.asset],
