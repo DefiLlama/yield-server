@@ -1,0 +1,473 @@
+const crypto = require('crypto');
+const sdk = require('@defillama/sdk');
+const utils = require('../utils');
+
+const SOL_RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
+
+// Which vaults to list, and their names and pages. Every number is read from
+// the chain below, and each vault is checked on-chain before it is listed, so
+// this list only decides what is shown, not what it reports.
+const VAULTS_URL = 'https://api.vectis.finance/strategy/defillama-yield-vaults';
+
+// APY is the growth of the post-fee share price over the last WINDOW_DAYS, or
+// since the vault's start date (served with the vault list) if it is younger.
+// NAV is pushed on-chain about once a day, so a 24h window would straddle zero
+// or two updates. The start date matters: a vault's first on-chain price can
+// predate its launch (the Ethereum vault read 34.58, a mispricing corrected
+// before its 2026-09-03 start at 1.0188). A vault with less than
+// MIN_HISTORY_DAYS since its start is left out, as a few days annualised says
+// little.
+const WINDOW_DAYS = 30;
+const MIN_HISTORY_DAYS = 7;
+const DAY = 86400;
+
+// A strategy rebalance runs as several transactions over an hour or two, and
+// the share price is off by a few percent between them (-4.2% for ~1.5h, and
+// in one case +13% for a minute). Only a state that stood for STABLE_SECONDS
+// is used as either end of the window, and "now" is read SETTLE_SECONDS back
+// so a rebalance in progress has finished.
+const SETTLE_SECONDS = 6 * 3600;
+const STABLE_SECONDS = 3 * 3600;
+// How many transactions that actually carry a share price to read at one
+// window boundary. Config updates and other price-less logs do not count, or
+// a burst of them would exhaust the budget and drop the vault.
+const MAX_TX_FETCHES_PER_POINT = 40;
+const MAX_TX_FETCHES_PER_VAULT = MAX_TX_FETCHES_PER_POINT * 5;
+
+// ---------------------------------------------------------------------------
+// Solana (Voltr)
+// ---------------------------------------------------------------------------
+
+const VOLTR_PROGRAM = 'vVoLTRjQmtFpiYoegx285Ze4gsLJ8ZxgFKVcuvmG1a8';
+
+const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+const base58Encode = (bytes) => {
+  const digits = [0];
+  for (const byte of bytes) {
+    let carry = byte;
+    for (let i = 0; i < digits.length; i++) {
+      carry += digits[i] << 8;
+      digits[i] = carry % 58;
+      carry = (carry / 58) | 0;
+    }
+    while (carry) {
+      digits.push(carry % 58);
+      carry = (carry / 58) | 0;
+    }
+  }
+  let out = '';
+  for (let i = 0; i < bytes.length && bytes[i] === 0; i++) out += '1';
+  for (let i = digits.length - 1; i >= 0; i--) out += B58[digits[i]];
+  return out;
+};
+
+// Public RPCs rate-limit with HTTP 200 and a JSON-RPC error. withRetry only
+// retries when the thrown error has response.status 429 or 5xx, so tag those
+// bodies that way. Invalid params and other permanent errors fail immediately.
+const RETRYABLE_RPC_CODES = new Set([429, -32005]);
+const rpcErrorIsRetryable = (error) =>
+  RETRYABLE_RPC_CODES.has(error?.code) ||
+  /too many requests|rate limit|\b429\b|node is behind|node is unhealthy|timed? ?out|try again/i.test(
+    String(error?.message || '')
+  );
+
+const rpc = async (method, params) => {
+  const { result } = await utils.withRetry(
+    async () => {
+      const body = await utils.getData(SOL_RPC, {
+        jsonrpc: '2.0',
+        id: 1,
+        method,
+        params,
+      });
+      if (body?.error) {
+        const err = new Error(`Solana RPC ${method}: ${body.error.message}`);
+        if (rpcErrorIsRetryable(body.error)) err.response = { status: 429 };
+        throw err;
+      }
+      return body;
+    },
+    { retries: 5, delayMs: 1000 }
+  );
+  return result;
+};
+
+const getAccounts = async (addresses) =>
+  (await rpc('getMultipleAccounts', [addresses, { encoding: 'base64' }])).value;
+
+// Anchor prefixes each account and event with sha256("<kind>:<Name>")[0..8].
+const discriminator = (kind, name) =>
+  crypto.createHash('sha256').update(`${kind}:${name}`).digest().subarray(0, 8);
+
+const VAULT_DISCRIMINATOR = discriminator('account', 'Vault');
+
+// Share price is vault asset total value / LP supply including accrued fees.
+// Every Voltr event that carries both is listed (voltr-vault-client 0.2.0).
+// UpdateVaultConfig and HarvestFee do not, so a transaction that only emits
+// those is skipped. Offsets are into the payload: 8-byte discriminator, then
+// borsh fields. "LP supply incl fees" counts accrued-but-unminted fee LP, so
+// the price is net of performance and management fees.
+const VOLTR_EVENTS = [
+  { name: 'DepositVaultEvent', vault: 56, totalValue: 128, lpSupply: 144 },
+  { name: 'WithdrawVaultEvent', vault: 56, totalValue: 136, lpSupply: 152 },
+  { name: 'DepositStrategyEvent', vault: 40, totalValue: 216, lpSupply: 232 },
+  { name: 'WithdrawStrategyEvent', vault: 40, totalValue: 216, lpSupply: 232 },
+  {
+    name: 'DirectWithdrawStrategyEvent',
+    vault: 56,
+    totalValue: 264,
+    lpSupply: 280,
+  },
+  {
+    name: 'InstantWithdrawVaultEvent',
+    vault: 66,
+    totalValue: 146,
+    lpSupply: 162,
+  },
+  {
+    name: 'InstantWithdrawStrategyEvent',
+    vault: 66,
+    totalValue: 274,
+    lpSupply: 290,
+  },
+  {
+    name: 'RequestWithdrawVaultEvent',
+    vault: 8,
+    totalValue: 186,
+    lpSupply: 194,
+  },
+  {
+    name: 'CalibrateHighWaterMarkEvent',
+    vault: 40,
+    totalValue: 72,
+    lpSupply: 88,
+  },
+  {
+    name: 'CalibrateHighWaterMarkUnsafeEvent',
+    vault: 40,
+    totalValue: 72,
+    lpSupply: 80,
+  },
+].map((e) => ({ ...e, discriminator: discriminator('event', e.name) }));
+
+// Vault account (voltr_vault IDL): asset.mint at 104, lp.mint at 272.
+const VAULT_ASSET_MINT_OFFSET = 104;
+const VAULT_LP_MINT_OFFSET = 272;
+const MINT_DECIMALS_OFFSET = 44;
+// VaultConfiguration.maxCap, the most assets the vault will accept. Layout
+// from voltr-vault-client 0.2.0: after the asset and lp structs and the three
+// admin pubkeys. u64::MAX means there is no cap.
+const VAULT_MAX_CAP_OFFSET = 432;
+const U64_MAX = (1n << 64n) - 1n;
+
+const decodeVaultStates = (logMessages, vault) => {
+  const states = [];
+  for (const line of logMessages ?? []) {
+    if (!line.startsWith('Program data: ')) continue;
+    const data = Buffer.from(line.slice('Program data: '.length), 'base64');
+    const event = VOLTR_EVENTS.find((e) =>
+      data.subarray(0, 8).equals(e.discriminator)
+    );
+    if (!event || data.length < event.lpSupply + 8) continue;
+    if (base58Encode(data.subarray(event.vault, event.vault + 32)) !== vault)
+      continue;
+    states.push({
+      event: event.name,
+      totalValue: data.readBigUInt64LE(event.totalValue),
+      lpSupply: data.readBigUInt64LE(event.lpSupply),
+    });
+  }
+  return states;
+};
+
+// Signatures touching the vault, newest first, back to `since`.
+const getSignaturesSince = async (address, since) => {
+  const signatures = [];
+  let before;
+  for (;;) {
+    const page = await rpc('getSignaturesForAddress', [
+      address,
+      { limit: 1000, before, commitment: 'confirmed' },
+    ]);
+    signatures.push(...page.filter((s) => !s.err && s.blockTime));
+    if (page.length < 1000 || page[page.length - 1].blockTime < since)
+      return signatures;
+    before = page[page.length - 1].signature;
+  }
+};
+
+// Vault state after each transaction, fetched lazily and cached, since only
+// the few transactions around each end of the window are ever read.
+const makeStateReader = (vault, decimals) => {
+  const cache = new Map();
+  let fetches = 0;
+  return async (signature) => {
+    if (cache.has(signature.signature)) return cache.get(signature.signature);
+    if (++fetches > MAX_TX_FETCHES_PER_VAULT)
+      throw new Error(`Too many transactions read for vault ${vault}`);
+    const tx = await rpc('getTransaction', [
+      signature.signature,
+      { maxSupportedTransactionVersion: 0, commitment: 'confirmed' },
+    ]);
+    const last = decodeVaultStates(tx?.meta?.logMessages, vault).pop();
+    const state = last && {
+      blockTime: signature.blockTime,
+      signature: signature.signature,
+      event: last.event,
+      totalValue: Number(last.totalValue) / 10 ** decimals.asset,
+      pricePerShare:
+        Number(last.totalValue) /
+        10 ** decimals.asset /
+        (Number(last.lpSupply) / 10 ** decimals.lp),
+    };
+    cache.set(signature.signature, state);
+    return state;
+  };
+};
+
+// The vault state in force at `timestamp`: the latest one at or before it that
+// stood for at least STABLE_SECONDS before the next one replaced it. A vault
+// with no state that old (its history starts after `timestamp`) is measured
+// from its first state that stood as long instead. Null if there is none.
+const stableStateAt = async (signatures, readState, timestamp) => {
+  const older = signatures.filter((s) => s.blockTime <= timestamp);
+  const newer = signatures.filter((s) => s.blockTime > timestamp).reverse();
+
+  let reads = 0;
+  const read = async (s) => {
+    const state = await readState(s);
+    // A config update (or any other price-less log) is not a failed search.
+    if (!state) return null;
+    if (++reads > MAX_TX_FETCHES_PER_POINT)
+      throw new Error('No stable vault state found near the window boundary');
+    return state;
+  };
+  const stood = (state, next) =>
+    !next || next.blockTime - state.blockTime >= STABLE_SECONDS;
+
+  // States after `timestamp`, oldest first, read only as far as needed.
+  const after = [];
+  const stateAfter = async (i) => {
+    while (after.length <= i && newer.length) {
+      const state = await read(newer.shift());
+      if (state) after.push(state);
+    }
+    return after[i] ?? null;
+  };
+
+  let successor = await stateAfter(0);
+  let olderStates = 0;
+  for (const s of older) {
+    const state = await read(s);
+    if (!state) continue;
+    olderStates++;
+    if (stood(state, successor)) return state;
+    successor = state;
+  }
+  if (olderStates) return null;
+
+  for (let i = 0; ; i++) {
+    const state = await stateAfter(i);
+    if (!state) return null;
+    if (stood(state, await stateAfter(i + 1))) return state;
+  }
+};
+
+// Start of the APY window: WINDOW_DAYS before `end`, or the vault's start date
+// if that is later.
+const windowStart = (end, startDate) =>
+  Math.max(
+    end - WINDOW_DAYS * DAY,
+    Math.floor(Date.parse(startDate) / 1000) || 0
+  );
+
+const annualise = (pricePerShareNow, pricePerShareThen, seconds) =>
+  ((pricePerShareNow / pricePerShareThen) ** ((365 * DAY) / seconds) - 1) * 100;
+
+const getVoltrVault = async ({ address, startDate }) => {
+  const [account] = await getAccounts([address]);
+  const data = account && Buffer.from(account.data[0], 'base64');
+  if (
+    account?.owner !== VOLTR_PROGRAM ||
+    !data.subarray(0, 8).equals(VAULT_DISCRIMINATOR)
+  )
+    throw new Error(`${address} is not a Voltr vault`);
+  const asset = base58Encode(
+    data.subarray(VAULT_ASSET_MINT_OFFSET, VAULT_ASSET_MINT_OFFSET + 32)
+  );
+  const lpMint = base58Encode(
+    data.subarray(VAULT_LP_MINT_OFFSET, VAULT_LP_MINT_OFFSET + 32)
+  );
+
+  const [assetDecimals, lpDecimals] = (await getAccounts([asset, lpMint])).map(
+    (m) => Buffer.from(m.data[0], 'base64')[MINT_DECIMALS_OFFSET]
+  );
+  const decimals = { asset: assetDecimals, lp: lpDecimals };
+  const maxCapRaw = data.readBigUInt64LE(VAULT_MAX_CAP_OFFSET);
+  const supplyCap =
+    maxCapRaw > 0n && maxCapRaw < U64_MAX
+      ? Number(maxCapRaw) / 10 ** decimals.asset
+      : null;
+
+  const end = Math.floor(Date.now() / 1000) - SETTLE_SECONDS;
+  const start = windowStart(end, startDate);
+  if (end - start < MIN_HISTORY_DAYS * DAY) return null;
+
+  // One extra day, to reach back past a rebalance at the window start.
+  const signatures = await getSignaturesSince(address, start - DAY);
+  const readState = makeStateReader(address, decimals);
+
+  const now = await stableStateAt(signatures, readState, end);
+  const then = await stableStateAt(signatures, readState, start);
+  if (!now || !then) return null;
+  const elapsed = now.blockTime - then.blockTime;
+  if (elapsed < MIN_HISTORY_DAYS * DAY) return null;
+
+  return {
+    asset,
+    assets: now.totalValue,
+    pricePerShare: now.pricePerShare,
+    apyBase: annualise(now.pricePerShare, then.pricePerShare, elapsed),
+    token: lpMint,
+    supplyCap,
+  };
+};
+
+// ---------------------------------------------------------------------------
+// EVM (Accountable ERC-4626)
+// ---------------------------------------------------------------------------
+
+const CONVERT_TO_ASSETS =
+  'function convertToAssets(uint256 shares) view returns (uint256)';
+// The deposit cap lives on the strategy loan. maxDeposit() is only the room
+// left under it, so the total cap is loan().maxCapacity (raw asset units).
+const LOAN =
+  'function loan() view returns (uint256 minDeposit, uint256 minRedeem, uint256 maxCapacity, uint256 minCapacity, uint256 reserveThreshold, uint256 outstandingPrincipal, uint256 outstandingInterest, uint256 drawableFunds, uint256 interestRate, uint256 lateInterestPenalty, uint256 claimableInterest, uint256 interestInterval, uint256 startTime, uint256 termsSetTime, uint256 termsUpdateTime, uint256 duration, uint256 depositPeriod, uint256 acceptGracePeriod, uint256 withdrawalPeriod, uint256 lateInterestGracePeriod)';
+
+// convertToAssets on these vaults is the NAV-based post-fee price: Accountable
+// takes its fees by minting shares, so the dilution is already in it.
+const getErc4626Vault = async ({ address: target, chain, startDate }) => {
+  const call = (abi, { block, params, target: t = target } = {}) =>
+    sdk.api.abi
+      .call({ target: t, abi, params, block, chain })
+      .then((r) => r.output);
+
+  const [asset, strategy] = await Promise.all([
+    call('address:asset'),
+    call('function strategy() view returns (address)'),
+  ]);
+  const [shareDecimals, assetDecimals, maxCapacity] = await Promise.all([
+    call('erc20:decimals').then(Number),
+    call('erc20:decimals', { target: asset }).then(Number),
+    call(LOAN, { target: strategy }).then((loan) => loan.maxCapacity),
+  ]);
+  const supplyCapRaw = BigInt(maxCapacity);
+  // Above 2^128 is an uncapped sentinel (uint256 max), not a real limit.
+  const supplyCap =
+    supplyCapRaw > 0n && supplyCapRaw < 1n << 128n
+      ? Number(supplyCapRaw) / 10 ** assetDecimals
+      : null;
+  const oneShare = (10n ** BigInt(shareDecimals)).toString();
+
+  const end = Math.floor(Date.now() / 1000);
+  const start = windowStart(end, startDate);
+  if (end - start < MIN_HISTORY_DAYS * DAY) return null;
+
+  // The block API returns each block's own timestamp too, which is what the
+  // window is annualised over.
+  const [blockNow, blockThen] = await Promise.all(
+    [end, start].map((t) => utils.getPriceApiData(`/block/${chain}/${t}`))
+  );
+
+  const [supplyNow, supplyThen] = await Promise.all([
+    call('erc20:totalSupply', { block: blockNow.height }),
+    call('erc20:totalSupply', { block: blockThen.height }),
+  ]);
+  // Before the first deposit the vault reports a 1:1 placeholder price.
+  if (!(Number(supplyThen) > 0)) return null;
+
+  const [assetsNow, pricePerShareNow, pricePerShareThen] = await Promise.all([
+    call(CONVERT_TO_ASSETS, { block: blockNow.height, params: [supplyNow] }),
+    call(CONVERT_TO_ASSETS, { block: blockNow.height, params: [oneShare] }),
+    call(CONVERT_TO_ASSETS, { block: blockThen.height, params: [oneShare] }),
+  ]);
+
+  return {
+    asset,
+    assets: Number(assetsNow) / 10 ** assetDecimals,
+    pricePerShare: Number(pricePerShareNow) / 10 ** assetDecimals,
+    apyBase: annualise(
+      Number(pricePerShareNow),
+      Number(pricePerShareThen),
+      blockNow.timestamp - blockThen.timestamp
+    ),
+    token: target.toLowerCase(),
+    supplyCap,
+  };
+};
+
+// ---------------------------------------------------------------------------
+
+const READERS = {
+  voltr: (vault) => vault.chain === 'solana' && getVoltrVault(vault),
+  erc4626: (vault) => vault.address.startsWith('0x') && getErc4626Vault(vault),
+};
+
+const apy = async () => {
+  const { data: vaults } = await utils.getData(VAULTS_URL);
+
+  // Sequential: the public Solana RPC rate-limits parallel transaction reads.
+  // One vault failing is logged and skipped, so it cannot take the others
+  // off the page with it.
+  const read = [];
+  for (const vault of vaults) {
+    try {
+      const data = await READERS[vault.type]?.(vault);
+      if (data) read.push({ vault, data });
+      else console.log(`vectis-finance: skipped ${vault.name}, no data`);
+    } catch (e) {
+      console.error(`vectis-finance: ${vault.name} failed: ${e.message}`);
+    }
+  }
+
+  const keys = [
+    ...new Set(read.map((r) => `${r.vault.chain}:${r.data.asset}`)),
+  ];
+  const { coins } = keys.length
+    ? await utils.getPriceApiData(`/prices/current/${keys.join(',')}`)
+    : { coins: {} };
+
+  return read
+    .map(({ vault, data }) => {
+      const coin = coins[`${vault.chain}:${data.asset}`];
+      if (!coin) return null;
+      return {
+        pool:
+          vault.chain === 'solana'
+            ? `${vault.address}-solana`
+            : `${vault.address}-${vault.chain}`.toLowerCase(),
+        chain: utils.formatChain(vault.chain),
+        project: 'vectis-finance',
+        symbol: coin.symbol,
+        tvlUsd: data.assets * coin.price,
+        ...(data.supplyCap != null && {
+          supplyCapUsd: data.supplyCap * coin.price,
+        }),
+        apyBase: data.apyBase,
+        pricePerShare: data.pricePerShare,
+        underlyingTokens: [data.asset],
+        token: data.token,
+        poolMeta: vault.name,
+        url: vault.url,
+      };
+    })
+    .filter((p) => p && utils.keepFinite(p));
+};
+
+module.exports = {
+  protocolId: '5465',
+  timetravel: false,
+  apy,
+  url: 'https://app.vectis.finance',
+};
