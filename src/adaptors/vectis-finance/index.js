@@ -425,7 +425,7 @@ const apy = async () => {
             : `${vault.address}-${vault.chain}`.toLowerCase(),
         chain: utils.formatChain(vault.chain),
         project: 'vectis-finance',
-        symbol: utils.formatSymbol(coin.symbol),
+        symbol: coin.symbol,
         tvlUsd: data.assets * coin.price,
         apyBase: data.apyBase,
         pricePerShare: data.pricePerShare,
