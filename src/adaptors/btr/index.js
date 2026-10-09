@@ -110,12 +110,16 @@ const getFeeRevenue = async (legs, fromBlock, toBlock) => {
     toBlock,
     chain: CHAIN,
   });
-  const accrued = new Map(); // token (lowercase) -> BigInt lpFee in token units
+  // Key by emitting pool + output token: two official pools can share a base asset, and
+  // keying by token alone would attribute both pools' fees to every leg and overstate APY.
+  const accrued = new Map(); // `${pool}:${tokenOut}` (lowercase) -> BigInt lpFee in token units
   for (const log of logs) {
     const args = log.args ?? log;
+    const pool = String(log.address).toLowerCase();
     const tokenOut = String(args.tokenOut).toLowerCase();
     const lpFee = toBigInt(args.fees) >> 128n;
-    accrued.set(tokenOut, (accrued.get(tokenOut) ?? 0n) + lpFee);
+    const key = `${pool}:${tokenOut}`;
+    accrued.set(key, (accrued.get(key) ?? 0n) + lpFee);
   }
   return accrued;
 };
@@ -169,10 +173,11 @@ const apy = async (timestampArg = null) => {
     const reserveAmount = Number(liquidReserves) / scale;
     const tvlUsd = reserveAmount * price;
     if (!Number.isFinite(tvlUsd) || tvlUsd <= 0) return;
+    const feeKey = `${leg.pool.toLowerCase()}:${token}`;
     const dayFeeUsd =
-      (Number(dayFees.get(token) ?? 0n) / scale) * price;
+      (Number(dayFees.get(feeKey) ?? 0n) / scale) * price;
     const weekFeeUsd =
-      (Number(weekFees.get(token) ?? 0n) / scale) * price;
+      (Number(weekFees.get(feeKey) ?? 0n) / scale) * price;
 
     pools.push({
       pool: `${leg.lpToken.toLowerCase()}-${CHAIN}`,
