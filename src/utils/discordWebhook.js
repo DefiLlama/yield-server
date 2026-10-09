@@ -1,6 +1,6 @@
 
 // copy pasta from defillama-server
-module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
+const sendMessage = async (message, webhookUrl, formatted = true) => {
   const formattedMessage = formatted ? '```\n' + message + '\n```' : message; // Put it into a code block to prevent the format from getting messed up
   if (formattedMessage.length >= 2000) {
     const lines = message.split('\n');
@@ -25,3 +25,5 @@ module.exports.sendMessage = async (message, webhookUrl, formatted = true) => {
   }).then((body) => body.json());
   console.log('discord', response);
 };
+
+module.exports.sendMessage = sendMessage;
