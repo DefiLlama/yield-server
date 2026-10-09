@@ -176,65 +176,52 @@ const getYieldProject = async (project) => {
   return response;
 };
 
-// get apy offset value for project/day combo
-const getYieldOffset = async (project, offset) => {
+// get the closest APY sample for each requested pool and offset day
+const getYieldOffsets = async (projects, offsets) => {
+  if (projects.length === 0 || offsets.length === 0) return [];
+
   const conn = await connect();
-
-  const age = Number(offset);
-  const daysMilliSeconds = age * 60 * 60 * 24 * 1000;
-  const tOffset = Date.now() - daysMilliSeconds;
-
-  // 3 hour window
-  const h = 3;
-  const tWindow = 60 * 60 * h * 1000;
-  const tsLB = new Date(tOffset - tWindow);
-  const tsUB = new Date(tOffset + tWindow);
-
   const tvlLB = exclude.boundaries.tvlUsdUI.lb;
 
-  // -- retrieve the historical offset data for a every unique pool given an offset day (1d/7d/30d)
-  // -- to calculate pct changes. allow some buffer (+/- 3hs) in case of missing data (via tsLB and tsUB)
+  // Retrieve the row closest to each requested offset for every pool. The
+  // three-hour window matches the previous per-project queries.
   const query = `
+    WITH requested_offsets AS (
+        SELECT unnest(ARRAY[$<offsets:csv>]::int[]) AS days
+    )
     SELECT
-        DISTINCT ON ("configID") "configID",
-        apy
+        DISTINCT ON (y."configID", offsets.days)
+        y."configID",
+        offsets.days,
+        y.apy
     FROM
-        (
-            SELECT
-                "configID",
-                apy,
-                abs(
-                    extract (
-                        epoch
-                        FROM
-                            timestamp - (NOW() - INTERVAL '$<age> DAY')
-                    )
-                ) AS abs_delta
-            FROM
-                $<table:name> AS y
-                INNER JOIN config AS c ON c.config_id = y."configID"
-            WHERE
-                "tvlUsd" >= $<tvlLB>
-                AND project = $<project>
-                AND timestamp >= $<tsLB>
-                AND timestamp <= $<tsUB>
-        ) AS y
+        $<table:name> AS y
+        INNER JOIN config AS c ON c.config_id = y."configID"
+        CROSS JOIN requested_offsets AS offsets
+    WHERE
+        y."tvlUsd" >= $<tvlLB>
+        AND c.project IN ($<projects:csv>)
+        AND y.timestamp >= NOW() - offsets.days * INTERVAL '1 day' - INTERVAL '3 hours'
+        AND y.timestamp <= NOW() - offsets.days * INTERVAL '1 day' + INTERVAL '3 hours'
     ORDER BY
-        "configID",
-        abs_delta ASC
+        y."configID",
+        offsets.days,
+        abs(
+            extract(
+                epoch FROM y.timestamp - (NOW() - offsets.days * INTERVAL '1 day')
+            )
+        ) ASC
     `;
 
   const response = await conn.query(query, {
-    project,
-    age,
-    tsLB,
-    tsUB,
+    projects,
+    offsets,
     tvlLB,
     table: tableName,
   });
 
   if (!response) {
-    return new AppError(`Couldn't get ${tableName} offset data`, 404);
+    return new AppError(`Couldn't get ${tableName} offsets data`, 404);
   }
 
   return response;
@@ -363,7 +350,7 @@ const buildInsertYieldQuery = (payload) => {
 module.exports = {
   getYieldFiltered,
   getLatestYieldForPool,
-  getYieldOffset,
+  getYieldOffsets,
   getYieldProject,
   getYieldLendBorrow,
   buildInsertYieldQuery,

@@ -4,7 +4,7 @@ const ss = require('simple-statistics');
 const utils = require('../utils/s3');
 const {
   getYieldFiltered,
-  getYieldOffset,
+  getYieldOffsets,
   getYieldAvg30d,
   getYieldLendBorrow,
 } = require('../queries/yield');
@@ -68,39 +68,16 @@ const main = async () => {
   data = data.filter((p) => !(p.project === 'merkl' && p.poolMeta === 'past'));
 
   // ---------- add additional fields
-  // for each project we get 3 offsets (1D, 7D, 30D) and calculate absolute apy pct-change
+  // get the 1D, 7D and 30D offsets and calculate absolute apy pct-change
   console.log('\nadding pct-change fields');
-  const days = ['1', '7', '30'];
-  let dataEnriched = [];
-  const failed = [];
-
-  for (const adaptor of [...new Set(data.map((p) => p.project))]) {
-    // filter data to project
-    const dataProject = data.filter((el) => el.project === adaptor);
-
-    // api calls
-    const promises = [];
-    for (let i = 0; i < days.length; i++) {
-      promises.push(getYieldOffset(adaptor, days[i]));
-    }
-    try {
-      const offsets = await Promise.all(promises);
-      // calculate pct change for each pool
-      dataEnriched = [
-        ...dataEnriched,
-        ...dataProject.map((p) => enrich(p, days, offsets)),
-      ];
-    } catch (err) {
-      console.log(err);
-      failed.push(adaptor);
-      console.log('defaulting to main data');
-      dataEnriched = [
-        ...dataEnriched,
-        ...data.filter((el) => el.project === adaptor),
-      ];
-      continue;
-    }
-  }
+  const days = [1, 7, 30];
+  const projects = [...new Set(data.map((pool) => pool.project))];
+  const offsets = await getYieldOffsets(projects, days);
+  let dataEnriched = enrichWithOffsets(
+    data,
+    days,
+    buildOffsetIndex(offsets)
+  );
 
   // add 30d avg apy
   const avgApy30d = await getYieldAvg30d();
@@ -145,9 +122,12 @@ const main = async () => {
 
   const dataStat = await getStat();
   const statColumns = welfordUpdate(dataEnriched, dataStat);
+  const statsByPool = new Map(
+    statColumns.map((stats) => [stats.configID, stats])
+  );
   // add columns to dataEnriched
   for (const p of dataEnriched) {
-    const x = statColumns.find((i) => i.configID === p.configID);
+    const x = statsByPool.get(p.configID);
     // create columns
     // a) ML section
     p['count'] = x.count;
@@ -367,15 +347,28 @@ const main = async () => {
 };
 
 ////// helper functions
-// calculate absolute change btw current apy and offset value
-const enrich = (pool, days, offsets) => {
-  const poolC = { ...pool };
-  for (let d = 0; d < days.length; d++) {
-    let X = offsets[d];
-    const apyOffset = X.find((x) => x.configID === poolC.configID)?.apy;
-    poolC[`apyPct${days[d]}D`] = poolC['apy'] - apyOffset;
+const buildOffsetIndex = (offsets) => {
+  const index = new Map();
+  for (const offset of offsets) {
+    let poolOffsets = index.get(offset.configID);
+    if (!poolOffsets) {
+      poolOffsets = new Map();
+      index.set(offset.configID, poolOffsets);
+    }
+    poolOffsets.set(Number(offset.days), offset.apy);
   }
-  return poolC;
+  return index;
+};
+
+const enrichWithOffsets = (pools, days, offsetIndex) => {
+  return pools.map((pool) => {
+    const enriched = { ...pool };
+    const poolOffsets = offsetIndex.get(pool.configID);
+    for (const day of days) {
+      enriched[`apyPct${day}D`] = pool.apy - poolOffsets?.get(day);
+    }
+    return enriched;
+  });
 };
 
 // no IL in case of:
