@@ -11,7 +11,7 @@ const utils = require('../utils');
 // only by Alcor itself and are left out.
 
 const CONTRACT = 'swap.alcor';
-const MIN_TVL_USD = 10_000;
+const MIN_TVL_USD = 500;
 const SECONDS_PER_DAY = 86_400;
 
 const CHAINS = {
@@ -28,6 +28,8 @@ const CHAINS = {
       ['wrap.alcor', 'USDT', 'tether'],
       ['wrap.alcor', 'USDC', 'usd-coin'],
       ['wrap.alcor', 'ETH', 'ethereum'],
+      ['wrap.alcor', 'BNB', 'binancecoin'],
+      ['wrap.alcor', 'POL', 'polygon-ecosystem-token'],
       ['eth.token', 'WAXUSDC', 'usd-coin'],
       ['eth.token', 'WAXUSDT', 'tether'],
       ['eth.token', 'WAXWBTC', 'wrapped-bitcoin'],
@@ -74,6 +76,8 @@ const CHAINS = {
       ['wrap.alcor', 'USDT', 'tether'],
       ['wrap.alcor', 'USDC', 'usd-coin'],
       ['wrap.alcor', 'ETH', 'ethereum'],
+      ['wrap.alcor', 'BNB', 'binancecoin'],
+      ['wrap.alcor', 'POL', 'polygon-ecosystem-token'],
       ['wrap.alcor', 'WAX', 'wax'],
       ['ibc.wt.eos', 'EOS', 'eos'],
     ],
@@ -154,10 +158,14 @@ const getChainPools = async (chain, prices) => {
     return geckoId ? prices[`coingecko:${geckoId}`]?.price : undefined;
   };
 
-  const [pools, incentives] = await Promise.all([
+  // Volume for every pool of the chain in one request: one request per pool runs
+  // into the API's rate limit.
+  const [pools, incentives, poolStats] = await Promise.all([
     getAllRows(rpc, 'pools'),
     getAllRows(rpc, 'incentives'),
+    axios.get(`${api}/api/v2/swap/pools`).then(({ data }) => data),
   ]);
+  const statsById = new Map(poolStats.map((stats) => [stats.id, stats]));
 
   const now = Date.now() / 1000;
   const activeIncentives = incentives.filter((i) => i.periodFinish > now);
@@ -176,8 +184,11 @@ const getChainPools = async (chain, prices) => {
     const tvlUsd = reserveA.amount * priceA + reserveB.amount * priceB;
     if (tvlUsd < MIN_TVL_USD) continue;
 
+    // A pool the indexer has no stats for is skipped rather than reported at 0% APY.
+    const stats = statsById.get(pool.id);
+    if (!stats) continue;
+
     // Each swap is counted in both tokens; the two USD values are averaged.
-    const stats = (await axios.get(`${api}/api/v2/swap/pools/${pool.id}`)).data;
     const volumeUsd1d = (stats.volumeA24 * priceA + stats.volumeB24 * priceB) / 2;
     const volumeUsd7d = (stats.volumeAWeek * priceA + stats.volumeBWeek * priceB) / 2;
     const feeRate = lpFeeRate(pool);
@@ -234,11 +245,21 @@ const apy = async () => {
     `/prices/current/${geckoIds.map((id) => `coingecko:${id}`).join(',')}`
   );
 
-  const pools = await Promise.all(
-    Object.keys(CHAINS).map((chain) => getChainPools(chain, prices))
+  // One chain's RPC or indexer being down must not drop the other chains' pools.
+  const chains = Object.keys(CHAINS);
+  const settled = await Promise.allSettled(
+    chains.map((chain) => getChainPools(chain, prices))
   );
+  settled.forEach((result, i) => {
+    if (result.status === 'rejected') {
+      console.error(`alcor-exchange ${chains[i]} failed: ${result.reason?.message}`);
+    }
+  });
 
-  return pools.flat().filter(utils.keepFinite);
+  return settled
+    .filter((result) => result.status === 'fulfilled')
+    .flatMap((result) => result.value)
+    .filter(utils.keepFinite);
 };
 
 module.exports = {
