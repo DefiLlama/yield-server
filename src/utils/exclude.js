@@ -524,6 +524,7 @@ const excludedProtocols = [
   { id: '7602', slug: 'circuit' }, // hacked, winding down
   { id: '2551', slug: 'ashswap' }, // ashswap.io domain lapsed 2026-10-05 (now parked), api-v2.ashswap.io unreachable; remove if the domain is renewed
   { id: '3958', slug: 'dsf.finance' }, // vault drained 2026-10-08 by operator key via strategy withdrawAll (~$521k to Tornado), site 503
+  { id: '5199', slug: 'folks-finance-xchain' }, // winding down: deposits paused 2026-10-08 (all hub pools deprecated on-chain), xapp shuts 2027-03-31; successor Folks Markets TBA
   { id: '4019', slug: 'ajna-v2' },
   { id: '6238', slug: 'smardex-usdn' },
   { id: '577', slug: 'allbridge-classic' },
