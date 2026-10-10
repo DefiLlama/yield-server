@@ -10,6 +10,10 @@ const DISPLAY_CHAIN = utils.formatChain(CHAIN);
 const SECONDS_PER_DAY = 24 * 60 * 60;
 const DAYS_PER_YEAR = 365;
 
+// TokenController indexes from ITokenController.sol.
+const DEPOSIT_L = 0;
+const BORROW_L = 3;
+
 const token = (symbol, address, decimals) => ({
   symbol,
   address: address.toLowerCase(),
@@ -46,120 +50,16 @@ const PRICE_KEYS = TOKENS.map((token) => `${CHAIN}:${token.address}`);
 
 const GET_RESERVES_ABI =
   'function getReserves() view returns (uint112 reserveXAssets, uint112 reserveYAssets, uint32 lastTimestamp)';
+const TOTAL_ASSETS_AND_SHARES_ABI =
+  'function totalAssetsAndShares(bool withInterest) view returns (uint112[6] _allAssets, uint112[6] _allShares)';
 const SWAP_EVENT =
   'event Swap(address indexed sender, uint256 amountXIn, uint256 amountYIn, uint256 amountXOut, uint256 amountYOut, address indexed to)';
-const SYNC_EVENT = 'event Sync(uint256 reserveXAssets, uint256 reserveYAssets)';
-const INTEREST_ACCRUED_EVENT =
-  'event InterestAccrued(uint256 reserveXAssets, uint256 reserveYAssets, uint112 depositXAssets, uint112 depositYAssets, uint112 borrowLAssets, uint112 borrowXAssets, uint112 borrowYAssets)';
 
 const toBigInt = (amount) => BigInt(amount.toString());
 
-const ceilDiv = (numerator, denominator) =>
-  (numerator + denominator - 1n) / denominator;
-
-const amountInForNoFeeSwap = (reserveIn, reserveOut, amountOut) => {
-  if (amountOut === 0n) return 0n;
-  if (reserveIn === 0n || reserveOut <= amountOut) return null;
-
-  return ceilDiv(reserveIn * amountOut, reserveOut - amountOut);
-};
-
-const getReserveState = (reserves) => ({
-  reserveXAssets: toBigInt(reserves.reserveXAssets ?? reserves[0]),
-  reserveYAssets: toBigInt(reserves.reserveYAssets ?? reserves[1]),
-});
-
-const emptyReserveState = () => ({
-  reserveXAssets: 0n,
-  reserveYAssets: 0n,
-});
-
-const emptyTokenAmounts = () => ({
-  x: 0n,
-  y: 0n,
-});
-
-const emptyWindowYield = (elapsedDays = 0) => ({
-  fees: emptyTokenAmounts(),
-  borrowInterest: emptyTokenAmounts(),
-  volume: emptyTokenAmounts(),
-  elapsedDays,
-});
+const emptyTokenAmounts = () => ({ x: 0n, y: 0n });
 
 const getArgs = (log) => log.args ?? log;
-const getLogIndex = (log) => Number(log.logIndex ?? log.index ?? 0);
-
-const sortEvents = (a, b) =>
-  Number(a.blockNumber) - Number(b.blockNumber) ||
-  getLogIndex(a) - getLogIndex(b);
-
-const calculateSwapFee = ({ reserves, log }) => {
-  const amountXIn = toBigInt(log.amountXIn);
-  const amountYIn = toBigInt(log.amountYIn);
-  const amountXOut = toBigInt(log.amountXOut ?? 0);
-  const amountYOut = toBigInt(log.amountYOut ?? 0);
-  let feeX = 0n;
-  let feeY = 0n;
-
-  if (amountXIn > 0n && amountYOut > 0n) {
-    const noFeeAmountXIn = amountInForNoFeeSwap(
-      reserves.reserveXAssets,
-      reserves.reserveYAssets,
-      amountYOut
-    );
-    if (noFeeAmountXIn !== null && amountXIn > noFeeAmountXIn)
-      feeX = amountXIn - noFeeAmountXIn;
-  }
-
-  if (amountYIn > 0n && amountXOut > 0n) {
-    const noFeeAmountYIn = amountInForNoFeeSwap(
-      reserves.reserveYAssets,
-      reserves.reserveXAssets,
-      amountXOut
-    );
-    if (noFeeAmountYIn !== null && amountYIn > noFeeAmountYIn)
-      feeY = amountYIn - noFeeAmountYIn;
-  }
-
-  return { feeX, feeY };
-};
-
-const calculateBorrowInterest = ({ reserves, log }) => {
-  const updatedReserveXAssets = toBigInt(log.reserveXAssets);
-  const updatedReserveYAssets = toBigInt(log.reserveYAssets);
-
-  return {
-    interestXForLP:
-      updatedReserveXAssets > reserves.reserveXAssets
-        ? updatedReserveXAssets - reserves.reserveXAssets
-        : 0n,
-    interestYForLP:
-      updatedReserveYAssets > reserves.reserveYAssets
-        ? updatedReserveYAssets - reserves.reserveYAssets
-        : 0n,
-  };
-};
-
-const updateReservesFromSwap = (reserves, log) => {
-  reserves.reserveXAssets =
-    reserves.reserveXAssets +
-    toBigInt(log.amountXIn) -
-    toBigInt(log.amountXOut ?? 0);
-  reserves.reserveYAssets =
-    reserves.reserveYAssets +
-    toBigInt(log.amountYIn) -
-    toBigInt(log.amountYOut ?? 0);
-};
-
-const updateReservesFromInterestAccrued = (reserves, log) => {
-  reserves.reserveXAssets = toBigInt(log.reserveXAssets);
-  reserves.reserveYAssets = toBigInt(log.reserveYAssets);
-};
-
-const addSwapVolume = (volume, log) => {
-  volume.x += toBigInt(log.amountXIn);
-  volume.y += toBigInt(log.amountYIn);
-};
 
 const normalizeTimestamp = (timestamp) =>
   timestamp === null || timestamp === undefined
@@ -198,108 +98,91 @@ const getReservesAtBlock = async (pool, block) => {
     block,
   });
 
-  return getReserveState(output);
-};
-
-const getBalancesAtBlock = async (pool, block) => {
-  const { output } = await sdk.api.abi.multiCall({
-    abi: 'erc20:balanceOf',
-    calls: pool.tokens.map((token) => ({
-      target: token.address,
-      params: [pool.pair],
-    })),
-    chain: CHAIN,
-    block,
-  });
-
   return {
-    x: toBigInt(output[0].output),
-    y: toBigInt(output[1].output),
+    x: toBigInt(output.reserveXAssets ?? output[0]),
+    y: toBigInt(output.reserveYAssets ?? output[1]),
   };
 };
 
-const getWindowLogs = async (pool, startBlock, endBlock) => {
-  const [swapLogs, syncLogs, interestLogs] = await Promise.all([
-    sdk.getEventLogs({
-      target: pool.pair,
-      eventAbi: SWAP_EVENT,
-      fromBlock: startBlock,
-      toBlock: endBlock,
-      chain: CHAIN,
-    }),
-    sdk.getEventLogs({
-      target: pool.pair,
-      eventAbi: SYNC_EVENT,
-      fromBlock: startBlock,
-      toBlock: endBlock,
-      chain: CHAIN,
-    }),
-    sdk.getEventLogs({
-      target: pool.pair,
-      eventAbi: INTEREST_ACCRUED_EVENT,
-      fromBlock: startBlock,
-      toBlock: endBlock,
-      chain: CHAIN,
-    }),
-  ]);
+const getAccountingAtBlock = async (pool, block) => {
+  const { output } = await sdk.api.abi.call({
+    target: pool.pair,
+    abi: TOTAL_ASSETS_AND_SHARES_ABI,
+    params: [true],
+    chain: CHAIN,
+    block,
+  });
+  const allAssets = output._allAssets ?? output[0];
+  const allShares = output._allShares ?? output[1];
 
-  return [
-    ...swapLogs.map((log) => ({ type: 'swap', ...log })),
-    ...syncLogs.map((log) => ({ type: 'sync', ...log })),
-    ...interestLogs.map((log) => ({ type: 'interest', ...log })),
-  ].sort(sortEvents);
+  return {
+    depositLAssets: toBigInt(allAssets[DEPOSIT_L]),
+    depositLShares: toBigInt(allShares[DEPOSIT_L]),
+    borrowLAssets: toBigInt(allAssets[BORROW_L]),
+  };
 };
 
-const calculateWindowYield = async (
-  pool,
-  startBlock,
-  endBlock,
-  startTimestamp,
-  endTimestamp
-) => {
-  const elapsedDays =
-    Math.max(0, endTimestamp - Math.max(startTimestamp, pool.fromTimestamp)) /
-    SECONDS_PER_DAY;
-  const yieldData = emptyWindowYield(elapsedDays);
+const getSwapVolume = async (pool, startBlock, endBlock) => {
+  const volume = emptyTokenAmounts();
+  const fromBlock = Math.max(startBlock, pool.fromBlock);
+  if (endBlock < fromBlock) return volume;
 
-  if (endBlock < pool.fromBlock || elapsedDays === 0) return yieldData;
+  const logs = await sdk.getEventLogs({
+    target: pool.pair,
+    eventAbi: SWAP_EVENT,
+    fromBlock,
+    toBlock: endBlock,
+    chain: CHAIN,
+  });
 
-  const logStartBlock = Math.max(startBlock, pool.fromBlock);
-  const seedBlock = logStartBlock > pool.fromBlock ? logStartBlock - 1 : null;
-  const reserves =
-    seedBlock === null
-      ? emptyReserveState()
-      : await getReservesAtBlock(pool, seedBlock);
-  const events = await getWindowLogs(pool, logStartBlock, endBlock);
-
-  for (const event of events) {
-    const args = getArgs(event);
-
-    if (event.type === 'interest') {
-      const { interestXForLP, interestYForLP } = calculateBorrowInterest({
-        reserves,
-        log: args,
-      });
-      yieldData.borrowInterest.x += interestXForLP;
-      yieldData.borrowInterest.y += interestYForLP;
-      updateReservesFromInterestAccrued(reserves, args);
-      continue;
-    }
-
-    if (event.type === 'sync') {
-      reserves.reserveXAssets = toBigInt(args.reserveXAssets);
-      reserves.reserveYAssets = toBigInt(args.reserveYAssets);
-      continue;
-    }
-
-    const { feeX, feeY } = calculateSwapFee({ reserves, log: args });
-    yieldData.fees.x += feeX;
-    yieldData.fees.y += feeY;
-    addSwapVolume(yieldData.volume, args);
-    updateReservesFromSwap(reserves, args);
+  for (const log of logs) {
+    const args = getArgs(log);
+    volume.x += toBigInt(args.amountXIn);
+    volume.y += toBigInt(args.amountYIn);
   }
 
-  return yieldData;
+  return volume;
+};
+
+const getWindow = (pool, startBlock, startTimestamp, endTimestamp) => ({
+  startBlock: Math.max(startBlock, pool.fromBlock),
+  elapsedDays:
+    Math.max(0, endTimestamp - Math.max(startTimestamp, pool.fromTimestamp)) /
+    SECONDS_PER_DAY,
+});
+
+const getPricePerShare = ({ depositLAssets, depositLShares }) => {
+  if (depositLAssets <= 0n || depositLShares <= 0n) return null;
+  return Number(depositLAssets) / Number(depositLShares);
+};
+
+const annualizeShareGrowth = (currentPrice, startPrice, elapsedDays) => {
+  if (
+    !Number.isFinite(currentPrice) ||
+    !Number.isFinite(startPrice) ||
+    currentPrice <= 0 ||
+    startPrice <= 0 ||
+    elapsedDays <= 0
+  )
+    return null;
+
+  const apy =
+    (Math.pow(currentPrice / startPrice, DAYS_PER_YEAR / elapsedDays) - 1) *
+    100;
+  return Number.isFinite(apy) ? apy : null;
+};
+
+const getTotalDepositedAmounts = (accounting, reserves) => {
+  const activeLiquidityAssets =
+    accounting.depositLAssets - accounting.borrowLAssets;
+  if (activeLiquidityAssets <= 0n) return null;
+
+  // The reserves represent active L. Scale them by total DEPOSIT_L / active L
+  // so TVL also includes the underlying value of liquidity currently borrowed.
+  return {
+    x: (reserves.x * accounting.depositLAssets) / activeLiquidityAssets,
+    y: (reserves.y * accounting.depositLAssets) / activeLiquidityAssets,
+  };
 };
 
 const toTokenAmount = (amount, decimals) =>
@@ -316,70 +199,55 @@ const toUsd = (amounts, pool, prices) =>
 const buildPool = async (pool, blocks, prices, timestamp) => {
   if (blocks.endBlock < pool.fromBlock) return null;
 
-  const [reserves, balances, dailyYield, weeklyYield] = await Promise.all([
-    getReservesAtBlock(pool, blocks.endBlock),
-    getBalancesAtBlock(pool, blocks.endBlock),
-    calculateWindowYield(
-      pool,
-      blocks.dayStartBlock,
-      blocks.endBlock,
-      timestamp - SECONDS_PER_DAY,
-      timestamp
-    ),
-    calculateWindowYield(
-      pool,
-      blocks.weekStartBlock,
-      blocks.endBlock,
-      timestamp - 7 * SECONDS_PER_DAY,
-      timestamp
-    ),
-  ]);
-  const reservesUsd = toUsd(
-    { x: reserves.reserveXAssets, y: reserves.reserveYAssets },
+  const dayWindow = getWindow(
     pool,
-    prices
+    blocks.dayStartBlock,
+    timestamp - SECONDS_PER_DAY,
+    timestamp
   );
-  const tvlUsd = toUsd(balances, pool, prices);
-  const dailyYieldUsd = toUsd(
-    {
-      x: dailyYield.fees.x + dailyYield.borrowInterest.x,
-      y: dailyYield.fees.y + dailyYield.borrowInterest.y,
-    },
+  const weekWindow = getWindow(
     pool,
-    prices
+    blocks.weekStartBlock,
+    timestamp - 7 * SECONDS_PER_DAY,
+    timestamp
   );
-  const weeklyYieldUsd = toUsd(
-    {
-      x: weeklyYield.fees.x + weeklyYield.borrowInterest.x,
-      y: weeklyYield.fees.y + weeklyYield.borrowInterest.y,
-    },
-    pool,
-    prices
-  );
+
+  const [current, dayStart, weekStart, reserves, dailyVolume, weeklyVolume] =
+    await Promise.all([
+      getAccountingAtBlock(pool, blocks.endBlock),
+      getAccountingAtBlock(pool, dayWindow.startBlock),
+      getAccountingAtBlock(pool, weekWindow.startBlock),
+      getReservesAtBlock(pool, blocks.endBlock),
+      getSwapVolume(pool, dayWindow.startBlock, blocks.endBlock),
+      getSwapVolume(pool, weekWindow.startBlock, blocks.endBlock),
+    ]);
+
+  const pricePerShare = getPricePerShare(current);
+  const totalDepositedAmounts = getTotalDepositedAmounts(current, reserves);
+  if (pricePerShare === null || totalDepositedAmounts === null) return null;
 
   return {
     pool: `${pool.pair}-${CHAIN}`,
     chain: DISPLAY_CHAIN,
     project: PROJECT,
     symbol: pool.tokens.map((token) => token.symbol).join('-'),
-    tvlUsd,
-    apyBase:
-      reservesUsd > 0 && dailyYield.elapsedDays > 0
-        ? (dailyYieldUsd / reservesUsd) *
-          (DAYS_PER_YEAR / dailyYield.elapsedDays) *
-          100
-        : null,
-    apyBase7d:
-      reservesUsd > 0 && weeklyYield.elapsedDays > 0
-        ? (weeklyYieldUsd / reservesUsd) *
-          (DAYS_PER_YEAR / weeklyYield.elapsedDays) *
-          100
-        : null,
+    tvlUsd: toUsd(totalDepositedAmounts, pool, prices),
+    apyBase: annualizeShareGrowth(
+      pricePerShare,
+      getPricePerShare(dayStart),
+      dayWindow.elapsedDays
+    ),
+    apyBase7d: annualizeShareGrowth(
+      pricePerShare,
+      getPricePerShare(weekStart),
+      weekWindow.elapsedDays
+    ),
+    pricePerShare,
     underlyingTokens: pool.tokens.map((token) => token.address),
     token: pool.token,
     url: 'https://app.ammalgam.xyz/trade',
-    volumeUsd1d: toUsd(dailyYield.volume, pool, prices),
-    volumeUsd7d: toUsd(weeklyYield.volume, pool, prices),
+    volumeUsd1d: toUsd(dailyVolume, pool, prices),
+    volumeUsd7d: toUsd(weeklyVolume, pool, prices),
   };
 };
 
