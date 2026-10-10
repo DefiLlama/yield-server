@@ -514,15 +514,12 @@ const excludedProtocols = [
   { id: '435', slug: 'hop-protocol' },
   { id: '2228', slug: 'aries-markets' },
   { id: '703', slug: 'goldfinch' }, // winding down, senior pool tvl is book value of defaulted loans
-  { id: '3091', slug: 'equilibria' }, // winding down, pendle lp boosting ended after vePENDLE -> sPENDLE
-  { id: '3083', slug: 'penpie' }, // winding down, no boosting on new pendle pools after vePENDLE -> sPENDLE, pnp emissions ended
   { id: '5655', slug: 'resolv-usr' },
   { id: '3912', slug: 'dinero-(pxeth)' },
   { id: '7205', slug: 'permapod' }, // exploited 2026-08, contracts halted, all markets deposit-disabled
   { id: '8243', slug: 'apyee' }, // no deposits since launch, tvl < $5
   { id: '4366', slug: 'javsphere' }, // winding down
   { id: '7602', slug: 'circuit' }, // hacked, winding down
-  { id: '2551', slug: 'ashswap' }, // ashswap.io domain lapsed 2026-10-05 (now parked), api-v2.ashswap.io unreachable; remove if the domain is renewed
   { id: '3958', slug: 'dsf.finance' }, // vault drained 2026-10-08 by operator key via strategy withdrawAll (~$521k to Tornado), site 503
   { id: '5199', slug: 'folks-finance-xchain' }, // winding down: deposits paused 2026-10-08 (all hub pools deprecated on-chain), xapp shuts 2027-03-31; successor Folks Markets TBA
   { id: '4019', slug: 'ajna-v2' },
