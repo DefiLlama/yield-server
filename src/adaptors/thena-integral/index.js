@@ -1,5 +1,5 @@
 // Direct Integral pools: 24h LP fees or funded THE rewards, annualized over
-// each contract's TVL without compounding. Excludes pools below $5,000 TVL.
+// each contract's TVL without compounding.
 const sdk = require('@defillama/sdk');
 const { request } = require('graphql-request');
 const utils = require('../utils');
@@ -7,7 +7,6 @@ const { feeApr, rewardApr, latestFarmings } = require('./math');
 
 const CHAIN = 'bsc';
 const DAY = 86400;
-const MIN_TVL_USD = 5000;
 const URL = 'https://thena.fi/pools';
 const ZERO = '0x0000000000000000000000000000000000000000';
 const POOLS = sdk.graph.modifyEndpoint(
@@ -203,7 +202,7 @@ async function apy() {
         : NaN;
     });
     const tvlUsd = values[0] + values[1];
-    if (!Number.isFinite(tvlUsd) || tvlUsd < MIN_TVL_USD) return [];
+    if (!Number.isFinite(tvlUsd)) return [];
     const prior = priorByPool.get(p.id);
     const base =
       p.type === 'Fees'
