@@ -8,8 +8,8 @@ const sendMessage = async (message, webhookUrl, formatted = true) => {
       throw new Error('Lines are too long, reaching infinite recursivity');
     }
     const mid = Math.round(lines.length / 2);
-    await sendMessage(lines.slice(0, mid).join('\n'), webhookUrl);
-    await sendMessage(lines.slice(mid).join('\n'), webhookUrl);
+    await sendMessage(lines.slice(0, mid).join('\n'), webhookUrl, formatted);
+    await sendMessage(lines.slice(mid).join('\n'), webhookUrl, formatted);
     return;
   }
   // Example: https://gist.github.com/dragonwocky/ea61c8d21db17913a43da92efe0de634

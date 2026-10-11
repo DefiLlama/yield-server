@@ -10,10 +10,6 @@ const DIC_CHAIN_ID_AND_NAME = {
   43114: 'avax',
 };
 
-const DISPLAY_CHAIN_ID_AND_NAME = {
-  43114: 'avalanche',
-};
-
 const getChainName = (chainId, chainName) => {
   return DIC_CHAIN_ID_AND_NAME[chainId] || chainName;
 };
@@ -61,7 +57,7 @@ const main = async () => {
   const promised = vaults
 
     .map(async (vault) => {
-      const chain = vault.chain || DISPLAY_CHAIN_ID_AND_NAME[vault.chainId];
+      const chain = vault.chain;
       const platform = vault.platform;
 
       return {
