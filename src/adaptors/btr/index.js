@@ -112,6 +112,11 @@ const getFeeRevenue = async (legs, fromBlock, toBlock) => {
   });
   // Key by emitting pool + output token: two official pools can share a base asset, and
   // keying by token alone would attribute both pools' fees to every leg and overstate APY.
+  //
+  // Every fill counts, including BTR's own coop-arbitrage fills (CoopArb). A coop fill books a
+  // protocol fee of zero but still pays a non-zero LP fee, so it is real LP revenue; while coop
+  // arb was the only flow, excluding it left apyBase at zero. This matches the volume/fees
+  // adapter, which counts coop fills as well.
   const accrued = new Map(); // `${pool}:${tokenOut}` (lowercase) -> BigInt lpFee in token units
   for (const log of logs) {
     const args = log.args ?? log;
@@ -198,6 +203,7 @@ const apy = async (timestampArg = null) => {
 
 module.exports = {
   timetravel: false,
+  protocolId: '9073', // DefiLlama protocol id for slug `btr`
   apy,
   url: 'https://btr.markets',
 };
