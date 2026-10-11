@@ -1,3 +1,5 @@
+// Direct Integral pools: 24h LP fees or funded THE rewards, annualized over
+// each contract's TVL without compounding. Excludes pools below $5,000 TVL.
 const sdk = require('@defillama/sdk');
 const { request } = require('graphql-request');
 const utils = require('../utils');
@@ -5,6 +7,8 @@ const { feeApr, rewardApr, latestFarmings } = require('./math');
 
 const CHAIN = 'bsc';
 const DAY = 86400;
+const MIN_TVL_USD = 5000;
+const URL = 'https://thena.fi/pools';
 const ZERO = '0x0000000000000000000000000000000000000000';
 const POOLS = sdk.graph.modifyEndpoint(
   'BoHp9H2rGzVFPiqc56PJ1Gw7EPDaiHMcupsUuksMGp2K'
@@ -199,7 +203,7 @@ async function apy() {
         : NaN;
     });
     const tvlUsd = values[0] + values[1];
-    if (!Number.isFinite(tvlUsd) || tvlUsd <= 0) return [];
+    if (!Number.isFinite(tvlUsd) || tvlUsd < MIN_TVL_USD) return [];
     const prior = priorByPool.get(p.id);
     const base =
       p.type === 'Fees'
@@ -219,7 +223,7 @@ async function apy() {
         pool: `${p.id}-${CHAIN}`,
         chain: utils.formatChain(CHAIN),
         project: 'thena-integral',
-        symbol: utils.formatSymbol(tokens.map((t) => t.symbol).join('-')),
+        symbol: tokens.map((t) => t.symbol).join('-'),
         tvlUsd,
         ...(base === undefined ? {} : { apyBase: base }),
         ...(reward === undefined
@@ -227,10 +231,9 @@ async function apy() {
           : { apyReward: reward.apr, rewardTokens: reward.tokens }),
         underlyingTokens: tokens.map((t) => t.id),
         token: null, // Direct CL positions are NFTs, not transferable ERC-20 pool shares.
-        poolMeta: `Integral - ${
-          p.type === 'Fees' ? 'Earn Fees' : 'Earn THE'
-        } - pool-wide APR`,
-        url: 'https://thena.fi/liquidity',
+        url: `${URL}/add-liquidity?step=3&poolAddress=${p.id}&strategy=${
+          p.type === 'Fees' ? 'manual_fees' : 'manual_farm'
+        }`,
         ...(Number.isFinite(volume) && volume >= 0
           ? { volumeUsd1d: volume }
           : {}),
@@ -243,4 +246,5 @@ module.exports = {
   protocolId: '6179',
   timetravel: false,
   apy,
+  url: URL,
 };
