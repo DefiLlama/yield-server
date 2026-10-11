@@ -263,6 +263,8 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'optimism') return 'OP Mainnet';
   if (chain && chain.toLowerCase() === 'ton') return 'TON';
   if (chain && chain.toLowerCase() === 'zklink') return 'zkLink Nova';
+  if (chain && (chain.toLowerCase() === 'eos' || chain.toLowerCase() === 'vaulta'))
+    return 'Vaulta';
 
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
