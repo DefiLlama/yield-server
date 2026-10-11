@@ -13,23 +13,27 @@ const VAULTS = [
     url: 'https://hedgehood.app/stockyield/nvda-printer',
   },
 ];
-// Average over the most recent settled weeks, as a simple annual rate: rewards are paid out in USDG and only
-// compound if a depositor opts into reinvesting them.
-const WEEKS = 4;
-const WEEKS_PER_YEAR = 52;
+// The most recent settled epochs, as a simple annual rate over the time they span: rewards are paid out in USDG and
+// only compound if a depositor opts into reinvesting them.
+const EPOCHS = 4;
+const WEEK = 7 * 86400;
+const YEAR = 365 * 86400;
+// A vault that has not settled an epoch for this long is not earning now: leave it out
+const STALE_AFTER = 10 * 86400;
 
 const EPOCH =
   'tuple(uint64 lockedAt,uint64 expiry,uint64 settledAt,uint256 stockAtLock,uint256 sharesAtLock,uint256 maxCoveredStock,uint256 strike,uint256 minPremium,uint256 stockMultiplier,bytes32 instructionHash,bytes32 executionHash,uint256 filledStock,uint256 grossPremium,int256 netPnl,uint256 stockDebit,uint256 debitPrice,bytes32 settlementHash,uint64 frozenAt,uint256 feePaid,int256 userNetPnl,uint64 executedAt,uint256 lossCoverage,bytes32 historyContextHash)';
 const ABI = {
   stock: 'address:stock',
   currentEpoch: 'uint256:currentEpoch',
-  managedBalances: 'function managedBalances() view returns (uint256 stockAmount, uint256 usdgAmount)',
+  managedBalances:
+    'function managedBalances() view returns (uint256 stockAmount, uint256 usdgAmount)',
   getEpoch: `function getEpoch(uint256) view returns (${EPOCH})`,
 };
 
-// One settled week's result for depositors, as a fraction of the covered stock valued at the strike (a slightly
-// conservative base: the strike is above the price when the call is sold). A week with no call sold earns 0.
-function weeklyReturn(e) {
+// One settled epoch's result for depositors, as a fraction of the vault's stock at lock valued at the strike (a
+// slightly conservative base: the strike is above the price when the call is sold). An epoch with no call sold earns 0.
+function epochReturn(e) {
   const base = (BigInt(e.stockAtLock) * BigInt(e.strike)) / 10n ** 30n; // USDG, 6 decimals
   if (base === 0n) return 0;
   return Number(BigInt(e.userNetPnl)) / Number(base);
@@ -54,17 +58,29 @@ const apy = async () => {
         (Number(balances[i].stockAmount) / 1e18) * stockPrice +
         (Number(balances[i].usdgAmount) / 1e6) * usdgPrice;
 
-      // The vault advances currentEpoch when an epoch settles, so every earlier epoch is settled.
+      // The vault advances currentEpoch when an epoch settles, so every earlier epoch is settled. Read one more than
+      // is counted: its settlement is where the counted period starts.
       const current = Number(currentEpochs[i]);
-      const settled = [];
-      for (let id = current - 1; id >= 1 && settled.length < WEEKS; id--) settled.push(id);
-      const epochs = settled.length
-        ? await api.multiCall({ abi: ABI.getEpoch, target: vault, calls: settled })
+      const ids = [];
+      for (let id = current - 1; id >= 1 && ids.length <= EPOCHS; id--)
+        ids.push(id);
+      const epochs = ids.length
+        ? await api.multiCall({ abi: ABI.getEpoch, target: vault, calls: ids })
         : [];
-      const returns = epochs.map(weeklyReturn);
-      const apyBase = returns.length
-        ? (returns.reduce((a, b) => a + b, 0) / returns.length) * WEEKS_PER_YEAR * 100
-        : null;
+      const counted = epochs.slice(0, EPOCHS);
+      if (!counted.length) return null; // no settled epoch yet: no yield to report, not 0
+      const latestSettledAt = Number(counted[0].settledAt);
+      if (Date.now() / 1000 - latestSettledAt > STALE_AFTER) return null;
+
+      // From the settlement before the oldest counted epoch (or, for the first epoch, its freeze), and at least a week
+      // per epoch: between epochs, capital waits in the vault for the next cutoff.
+      const oldest = counted[counted.length - 1];
+      const start = epochs[EPOCHS]
+        ? Number(epochs[EPOCHS].settledAt)
+        : Number(oldest.frozenAt) || latestSettledAt;
+      const span = Math.max(latestSettledAt - start, counted.length * WEEK);
+      const returns = counted.map(epochReturn);
+      const apyBase = (returns.reduce((a, b) => a + b, 0) * YEAR * 100) / span;
 
       return {
         pool: `${vault}-${CHAIN}`.toLowerCase(),
@@ -73,8 +89,8 @@ const apy = async () => {
         symbol,
         tvlUsd,
         apyBase,
-        // the latest week, when the call's payout exceeded the premium
-        il7d: returns.length && returns[0] < 0 ? returns[0] * 100 : null,
+        // the latest epoch, when the call's payout exceeded the premium
+        il7d: returns[0] < 0 ? returns[0] * 100 : null,
         underlyingTokens: [stock],
         token: vault,
         poolMeta,
@@ -82,8 +98,7 @@ const apy = async () => {
       };
     })
   );
-  // A vault with no settled week has no yield to report yet: leave it out rather than show 0
-  return pools.filter((p) => p.apyBase !== null);
+  return pools.filter(Boolean);
 };
 
 module.exports = {
