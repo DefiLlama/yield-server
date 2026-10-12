@@ -138,14 +138,20 @@ const factoryVaults = async (chain, factory, toBlock) => {
   }
 };
 
+// Returns [] when the head block can't be read, so the listings API can still
+// nominate vaults for this chain.
 const discoverFromLogs = async (chain) => {
-  const { number } = await sdk.api.util.getLatestBlock(chain);
-  const perFactory = await Promise.all(
-    CHAINS[chain].factories.map((f) =>
-      factoryVaults(chain, f, number - HEAD_BUFFER)
-    )
-  );
-  return perFactory.flat();
+  try {
+    const { number } = await sdk.api.util.getLatestBlock(chain);
+    const perFactory = await Promise.all(
+      CHAINS[chain].factories.map((f) =>
+        factoryVaults(chain, f, number - HEAD_BUFFER)
+      )
+    );
+    return perFactory.flat();
+  } catch (e) {
+    return [];
+  }
 };
 
 const fetchListings = async () => {
@@ -235,16 +241,14 @@ const annualise = (priceNow, pricePrior) =>
     : 0;
 
 const fetchTokenInfo = async (chain, tokens) => {
-  const [symbols, { coins }] = await Promise.all([
+  const [symbols, coins] = await Promise.all([
     callEach(chain, ABI.symbol, tokens),
-    utils.getPriceApiData(
-      `/prices/current/${tokens.map((t) => `${chain}:${t}`).join(',')}`
-    ),
+    utils.getPriceApiCoins(tokens.map((t) => `${chain}:${t}`)),
   ]);
   return Object.fromEntries(
     tokens.map((t, i) => [
       t,
-      { symbol: symbols[i], price: coins?.[`${chain}:${t}`]?.price },
+      { symbol: symbols[i], price: coins[`${chain}:${t}`]?.price },
     ])
   );
 };
