@@ -39,6 +39,11 @@ const DAY = 24 * 3600;
 const LOOKBACK_DAYS = 7;
 const MAX_NAV_TO_LIVE = 2;
 
+// Factory-deployed vaults that Textile doesn't want tracked. Lowercase.
+const EXCLUDED_VAULTS = new Set([
+  '0xaa5f50af681a956e2ce0e70fd64f7db25a4b774f', // polygon
+]);
+
 const CHAINS = {
   bsc: {
     chainId: 56,
@@ -295,7 +300,9 @@ const isReadable = (v) =>
 
 const chainPools = async (chain, listings) => {
   const fromLogs = await discoverFromLogs(chain);
-  const candidates = [...new Set([...fromLogs, ...listedOn(listings, chain)])];
+  const candidates = [
+    ...new Set([...fromLogs, ...listedOn(listings, chain)]),
+  ].filter((vault) => !EXCLUDED_VAULTS.has(vault));
   if (!candidates.length) return [];
 
   const vaultAddresses = await keepFactoryVaults(chain, candidates);
