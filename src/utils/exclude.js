@@ -538,6 +538,7 @@ const excludedProtocols = [
   { id: '4537', slug: 'venomstake' }, // venom mainnet migration (venom.foundation/migration): api.venomstake.com gone, stVENOM to be unstaked; new staking contract pending, re-add with a rebuilt adapter
   { id: '4430', slug: 'web3.world' }, // venom mainnet migration (venom.foundation/migration): api.web3.world gone; moving to new chain, re-add once its new api/contracts are live
   { id: '5796', slug: 'lazy-summer-protocol' }, // wound down: tvl collapsed 2026-07-29 ($1.6M -> ~$1k), remaining vaults 0% apy
+  { id: '6797', slug: 'forgeyields' }, // abandoned: strategies API 500 since early Oct 2026, all vaults 0% APY since Sep 2026, team silent since Jun 2026
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
