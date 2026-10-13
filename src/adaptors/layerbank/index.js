@@ -6,6 +6,7 @@ const abiLABDistributor = require('./abiLABDistributor.json');
 const abiLToken = require('./abiLToken.json');
 const abiRateModelSlope = require('./abiRateModelSlope.json');
 const abiPriceCalculator = require('./abiPriceCalculator.json');
+const aaveV3PoolAbi = require('../aave-v3/poolAbi');
 const utils = require('../utils');
 
 const MOVEMENT_RPC = 'https://mainnet.movementnetwork.xyz/v1';
@@ -25,7 +26,19 @@ const isFrozenOrDeprecated = (marketInfo) =>
     BigInt(marketInfo.borrowCap) === 0n &&
     BigInt(marketInfo.collateralFactor) === 0n);
 
+// LayerBank V3 deployments, keyed by DefiLlama SDK chain id.
+const LAYERBANK_V3_CHAINS = {
+  // Rootstock
+  rsk: {
+    protocolDataProvider: '0x47C1ef207d49cfC519F48b8251857CA6BE6c2caf',
+  },
+  robinhood: {
+    protocolDataProvider: '0x7ED03A856D52172f9501aB0176f184baD287e546',
+  },
+};
+
 const CHAINS = {
+  ...LAYERBANK_V3_CHAINS,
   move: {
     pool: '0xf257d40859456809be19dfee7f4c55c4d033680096aeeb4228b7a15749ab68ea',
   },
@@ -49,8 +62,120 @@ const CHAINS = {
   },
 };
 
+const apyLayerBankV3 = async (chain) => {
+  const { protocolDataProvider } = LAYERBANK_V3_CHAINS[chain];
+  const findAbi = (name) => aaveV3PoolAbi.find((m) => m.name === name);
+  const perReserveCall = (reserveTokens) =>
+    reserveTokens.map((t) => ({
+      target: protocolDataProvider,
+      params: t.tokenAddress,
+    }));
+
+  const [reserveTokens, aTokens] = await Promise.all([
+    sdk.api.abi.call({
+      target: protocolDataProvider,
+      abi: findAbi('getAllReservesTokens'),
+      chain,
+    }),
+    sdk.api.abi.call({
+      target: protocolDataProvider,
+      abi: findAbi('getAllATokens'),
+      chain,
+    }),
+  ]).then((responses) => responses.map((r) => r.output));
+
+  const [reserveData, reserveConfig, reserveCaps, paused, totalSupply, cash] =
+    await Promise.all([
+      sdk.api.abi.multiCall({
+        calls: perReserveCall(reserveTokens),
+        abi: findAbi('getReserveData'),
+        chain,
+      }),
+      sdk.api.abi.multiCall({
+        calls: perReserveCall(reserveTokens),
+        abi: findAbi('getReserveConfigurationData'),
+        chain,
+      }),
+      sdk.api.abi.multiCall({
+        calls: perReserveCall(reserveTokens),
+        abi: findAbi('getReserveCaps'),
+        chain,
+      }),
+      sdk.api.abi.multiCall({
+        calls: perReserveCall(reserveTokens),
+        abi: findAbi('getPaused'),
+        chain,
+      }),
+      sdk.api.abi.multiCall({
+        chain,
+        abi: 'erc20:totalSupply',
+        calls: aTokens.map((t) => ({ target: t.tokenAddress })),
+      }),
+      sdk.api.abi.multiCall({
+        chain,
+        abi: 'erc20:balanceOf',
+        calls: aTokens.map((t, i) => ({
+          target: reserveTokens[i].tokenAddress,
+          params: [t.tokenAddress],
+        })),
+      }),
+    ]).then((responses) => responses.map((r) => r.output.map((o) => o.output)));
+
+  const priceKeys = reserveTokens
+    .map((t) => `${chain}:${t.tokenAddress}`)
+    .join(',');
+  const prices = (await utils.getPriceApiData(`/prices/current/${priceKeys}`))
+    .coins;
+
+  return reserveTokens
+    .map((reserve, i) => {
+      const config = reserveConfig[i];
+      if (config.isFrozen || !config.isActive || paused[i]) return null;
+
+      const price = prices[`${chain}:${reserve.tokenAddress}`]?.price;
+      const decimals = Number(config.decimals);
+      const data = reserveData[i];
+
+      const totalSupplyUsd = (totalSupply[i] / 10 ** decimals) * price;
+      const liquidityUsd = (cash[i] / 10 ** decimals) * price;
+      const totalBorrowUsd =
+        ((Number(data.totalStableDebt) + Number(data.totalVariableDebt)) /
+          10 ** decimals) *
+        price;
+
+      const borrowCap = Number(reserveCaps[i].borrowCap);
+      const supplyCap = Number(reserveCaps[i].supplyCap);
+      const borrowCapUsd = borrowCap * price;
+      const availableBorrowUsd =
+        borrowCap > 0
+          ? Math.max(Math.min(liquidityUsd, borrowCapUsd - totalBorrowUsd), 0)
+          : liquidityUsd;
+
+      return {
+        pool: aTokens[i].tokenAddress,
+        chain,
+        project: 'layerbank',
+        symbol: reserve.symbol,
+        tvlUsd: liquidityUsd,
+        totalSupplyUsd,
+        ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
+        totalBorrowUsd,
+        availableBorrowUsd,
+        apyBase: (data.liquidityRate / 1e27) * 100,
+        apyBaseBorrow: Number(data.variableBorrowRate) / 1e25,
+        borrowToken: reserve.tokenAddress,
+        underlyingTokens: [reserve.tokenAddress],
+        ltv: config.ltv / 10000,
+        borrowable: config.borrowingEnabled,
+      };
+    })
+    .filter(Boolean);
+};
+
 const apy = async (chain) => {
-  if (chain === 'move') {
+  if (LAYERBANK_V3_CHAINS[chain]) {
+    return apyLayerBankV3(chain);
+  } else if (chain === 'move') {
     const pool = CHAINS[chain].pool;
     const [reservesData, incentiveData] = await Promise.all([
       utils.getData(`${MOVEMENT_RPC}/view`, {
