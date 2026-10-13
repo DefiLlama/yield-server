@@ -22,6 +22,7 @@
 const sdk = require('@defillama/sdk');
 
 const utils = require('../utils');
+const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 type Pool = import('../../types/Pool').Pool;
 
@@ -304,9 +305,15 @@ const chainPools = async (sdkChain: string): Promise<Pool[]> => {
 
 // Chains are independent: a failing chain (e.g. Base log queries) only drops
 // its own pools.
+// Merkl campaigns reward holders of machine share tokens, so pools are matched
+// on their share token rather than the pool id.
 const apy = async () =>
-  (await Promise.allSettled(Object.keys(HUBS).map(chainPools))).flatMap((r) =>
-    r.status === 'fulfilled' ? r.value : []
+  addMerklRewardApy(
+    (await Promise.allSettled(Object.keys(HUBS).map(chainPools))).flatMap((r) =>
+      r.status === 'fulfilled' ? r.value : []
+    ),
+    PROJECT,
+    (pool: Pool) => pool.token
   );
 
 module.exports = {
