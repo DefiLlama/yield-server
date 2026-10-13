@@ -1,7 +1,7 @@
 /**
  * Alpend — DefiLlama yield-server adapter (Canton Network).
  *
- * Reads per-pool rates from CC Tools, the third-party Canton data aggregator DefiLlama's own TVL
+ * Reads per-pool rates from CC Tools, the third-party Canton data aggregator DefiLlama's TVL
  * adapter for Alpend already uses (projects/alpend in DefiLlama-Adapters), so both listings share
  * one source. CC Tools mirrors Alpend's on-chain AssetReserve state: interest accrues on-chain via
  * reserve indices; the rates here are the live per-annum rates of each reserve's interest-rate
@@ -12,45 +12,77 @@
  *   apyBaseBorrow  borrow APY
  *   apyRewardBorrow always 0 — the reward programme is supply-side only
  *   tvlUsd         supplied minus borrowed, the yield-server lending convention
+ *
+ * Feed validation (staleness, scaling, null/invalid amounts) mirrors the TVL adapter: a bad feed
+ * throws rather than reporting zeros.
  */
 const axios = require('axios');
 
 const FEED_URL = 'https://api.cctools.network/api/markets/alpend/tvl';
+const FETCH_OPTS = { timeout: 30_000, headers: { 'User-Agent': 'DefiLlama-Adapter (alpend)' } };
 const PROJECT = 'alpend';
 const CHAIN = 'Canton';
 const CC_COINGECKO = 'coingecko:canton-network';
-const REQUEST_TIMEOUT_MS = 30_000;
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const MAX_SOURCE_AGE_SECONDS = 24 * 60 * 60;
+
+// Same checks as DefiLlama-Adapters/projects/alpend: refuse an empty, unscaled or stale feed.
+function validateFeed(feed, caller) {
+  if (!feed || !Array.isArray(feed.pools) || feed.pools.length === 0)
+    throw new Error(`alpend: CCTools feed returned no pools (${caller})`);
+  if (feed.amountsAreScaled !== true)
+    throw new Error(`alpend: CCTools feed amounts are not scaled (${caller})`);
+
+  const ageSeconds = Number.isFinite(feed.sourceAgeSeconds)
+    ? feed.sourceAgeSeconds
+    : (Date.now() - new Date(feed.sourceUpdatedAt).getTime()) / 1000;
+  if (!Number.isFinite(ageSeconds) || ageSeconds > MAX_SOURCE_AGE_SECONDS)
+    throw new Error(`alpend: CCTools feed is stale (${caller}), age=${ageSeconds}s`);
+}
+
+// Same as the TVL adapter: a missing or invalid number is an error, never a silent 0.
+function getAmount(pool, field) {
+  if (pool[field] === null || pool[field] === undefined || pool[field] === '')
+    throw new Error(`alpend: missing ${field} amount for ${pool.asset}`);
+  const amount = Number(pool[field]);
+  if (!Number.isFinite(amount) || amount < 0)
+    throw new Error(`alpend: invalid ${field} amount for ${pool.asset}`);
+  return amount;
+}
+
+async function getPools(caller) {
+  const { data: feed } = await axios.get(FEED_URL, FETCH_OPTS);
+  validateFeed(feed, caller);
+  return feed.pools.filter((pool) => pool.coingeckoId);
+}
 
 const apy = async () => {
-  const { data } = await axios.get(FEED_URL, { timeout: REQUEST_TIMEOUT_MS });
-  const pools = Array.isArray(data && data.pools) ? data.pools : [];
+  const pools = await getPools('apy');
 
-  return pools
-    .filter((p) => p && p.asset && p.status !== 'inactive')
-    .map((p) => {
-      const totalSupplyUsd = num(p.totalSuppliedUsd);
-      const totalBorrowUsd = num(p.totalBorrowedUsd);
-      const apyReward = num(p.apyReward);
-      return {
-        pool: `alpend-canton-${String(p.asset).toLowerCase()}`,
-        chain: CHAIN,
-        project: PROJECT,
-        symbol: String(p.asset),
-        tvlUsd: Math.max(totalSupplyUsd - totalBorrowUsd, 0),
-        apyBase: num(p.apyBase),
-        apyReward,
-        rewardTokens: apyReward > 0 ? [CC_COINGECKO] : [],
-        underlyingTokens: p.coingeckoId ? [`coingecko:${p.coingeckoId}`] : [],
-        apyBaseBorrow: num(p.apyBaseBorrow),
-        apyRewardBorrow: 0,
-        totalSupplyUsd,
-        totalBorrowUsd,
-        url: `https://app.alpend.com/markets/${String(p.asset).toLowerCase()}`,
-      };
-    })
-    .filter((pool) => pool.tvlUsd >= 1);
+  return pools.map((p) => {
+    const totalSupplyUsd = getAmount(p, 'totalSuppliedUsd');
+    const totalBorrowUsd = getAmount(p, 'totalBorrowedUsd');
+    if (totalBorrowUsd > totalSupplyUsd)
+      throw new Error(`alpend: borrowed exceeds supplied for ${p.asset}`);
+    const apyReward = getAmount(p, 'apyReward');
+    const symbol = String(p.asset);
+    return {
+      pool: `alpend-canton-${symbol.toLowerCase()}`,
+      chain: CHAIN,
+      project: PROJECT,
+      symbol,
+      tvlUsd: totalSupplyUsd - totalBorrowUsd,
+      apyBase: getAmount(p, 'apyBase'),
+      apyReward,
+      rewardTokens: apyReward > 0 ? [CC_COINGECKO] : [],
+      underlyingTokens: [`coingecko:${p.coingeckoId}`],
+      apyBaseBorrow: getAmount(p, 'apyBaseBorrow'),
+      apyRewardBorrow: getAmount(p, 'apyRewardBorrow'),
+      totalSupplyUsd,
+      totalBorrowUsd,
+      url: `https://app.alpend.com/markets/${symbol.toLowerCase()}`,
+    };
+  });
 };
 
 module.exports = {
