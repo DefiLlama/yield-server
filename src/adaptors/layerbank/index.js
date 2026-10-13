@@ -146,10 +146,11 @@ const apyLayerBankV3 = async (chain) => {
       const borrowCap = Number(reserveCaps[i].borrowCap);
       const supplyCap = Number(reserveCaps[i].supplyCap);
       const borrowCapUsd = borrowCap * price;
-      const availableBorrowUsd =
-        borrowCap > 0
-          ? Math.max(Math.min(liquidityUsd, borrowCapUsd - totalBorrowUsd), 0)
-          : liquidityUsd;
+      const availableBorrowUsd = !config.borrowingEnabled
+        ? 0
+        : borrowCap > 0
+        ? Math.max(Math.min(liquidityUsd, borrowCapUsd - totalBorrowUsd), 0)
+        : liquidityUsd;
 
       return {
         pool: aTokens[i].tokenAddress,
