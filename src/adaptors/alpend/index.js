@@ -8,7 +8,11 @@
  * model, reported flat (not compounded).
  *
  *   apyBase        supply APY from the interest-rate model
- *   apyReward      Canton Coin (CC) reward APY on supplies (Alpend's Ascent programme)
+ *   apyReward      Canton Coin (CC) reward APY on supplies (Alpend's Ascent programme). A headline
+ *                  rate per market, capped by a daily CC budget: the feed publishes the EFFECTIVE
+ *                  rate, recomputed every snapshot from the oracle CC price and the eligible supply,
+ *                  so it equals the headline while the cap has headroom and falls as 1/supply once
+ *                  the cap binds.
  *   apyBaseBorrow  borrow APY
  *   apyRewardBorrow always 0 — the reward programme is supply-side only
  *   tvlUsd         supplied minus borrowed, the yield-server lending convention
@@ -53,7 +57,7 @@ function getAmount(pool, field) {
 async function getPools(caller) {
   const { data: feed } = await axios.get(FEED_URL, FETCH_OPTS);
   validateFeed(feed, caller);
-  return feed.pools.filter((pool) => pool.coingeckoId);
+  return feed.pools.filter((pool) => pool.coingeckoId && pool.status !== 'inactive');
 }
 
 const apy = async () => {
