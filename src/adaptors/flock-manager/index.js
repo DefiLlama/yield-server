@@ -209,7 +209,6 @@ async function getLendingVaults(prices) {
         project: PROJECT,
         symbol: utils.formatSymbol(symbolByToken[token.toLowerCase()] ?? '?'),
         tvlUsd,
-        apyBase: 0,
         pricePerShare: sharePrice,
         underlyingTokens: [token],
         token: vault,
@@ -257,10 +256,15 @@ const apy = async () => {
   // Drop empty pools. The first USDG vault was superseded by a redeploy and
   // still enumerates from its factory, so without this it would appear as a
   // permanently empty duplicate of the live one.
-  return [...lendingPools, ...lendingVaults].filter((pool) => pool.tvlUsd > 0);
+  // The schema requires a numeric yield. Keep vault share-price records out
+  // of the published feed until historical prices can establish their APY.
+  return [...lendingPools, ...lendingVaults].filter(
+    (pool) => pool.tvlUsd > 0 && Number.isFinite(pool.apyBase)
+  );
 };
 
 module.exports = {
+  protocolId: '9099',
   timetravel: false,
   apy,
   url: URL,
