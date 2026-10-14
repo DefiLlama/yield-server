@@ -40,6 +40,9 @@ const convertToAssets = (vault, shareUnit, block) =>
 
 const getVaultData = async (timestamp, vault) => {
   const startTs = Math.max(timestamp - APY_WINDOW_DAYS * DAY, vault.inceptionTs);
+  const periodDays = (timestamp - startTs) / DAY;
+  if (periodDays <= 0) return null;
+
   const [blockNow, blockStart] = await utils.getBlocksByTime(
     [timestamp, startTs],
     vault.network
@@ -65,7 +68,6 @@ const getVaultData = async (timestamp, vault) => {
     convertToAssets(vault, shareUnit, blockStart),
   ]);
 
-  const periodDays = (timestamp - startTs) / DAY;
   const apyBase = (assetsNow / assetsStart - 1) * (365 / periodDays) * 100;
 
   return {
@@ -83,7 +85,8 @@ const getVaultData = async (timestamp, vault) => {
 };
 
 const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
-  return Promise.all(VAULTS.map((vault) => getVaultData(timestamp, vault)));
+  const pools = await Promise.all(VAULTS.map((vault) => getVaultData(timestamp, vault)));
+  return pools.filter(Boolean);
 };
 
 module.exports = {
