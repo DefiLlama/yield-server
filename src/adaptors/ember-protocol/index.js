@@ -17,6 +17,7 @@ const ONE_SHARE_E18 = (10n ** 18n).toString();
 
 const CHAIN_DISPLAY = {
   ethereum: 'Ethereum',
+  monad: 'Monad',
   sui: 'Sui',
 };
 
@@ -229,12 +230,13 @@ const apy = async () => {
     throw err;
   }
 
-  const [evmPools, suiPools] = await Promise.all([
+  const [evmPools, monadPools, suiPools] = await Promise.all([
     buildEvmPools(vaults, 'ethereum'),
+    buildEvmPools(vaults, 'monad'),
     buildSuiPools(vaults, 'sui'),
   ]);
 
-  return [...evmPools, ...suiPools]
+  return [...evmPools, ...monadPools, ...suiPools]
     .filter((p) => utils.keepFinite(p))
     .sort((a, b) => b.tvlUsd - a.tvlUsd);
 };
