@@ -12,7 +12,11 @@ const DAYS_PER_YEAR = 365;
 
 // TokenController indexes from ITokenController.sol.
 const DEPOSIT_L = 0;
+const DEPOSIT_X = 1;
+const DEPOSIT_Y = 2;
 const BORROW_L = 3;
+const BORROW_X = 4;
+const BORROW_Y = 5;
 
 const token = (symbol, address, decimals) => ({
   symbol,
@@ -119,7 +123,25 @@ const getAccountingAtBlock = async (pool, block) => {
     depositLAssets: toBigInt(allAssets[DEPOSIT_L]),
     depositLShares: toBigInt(allShares[DEPOSIT_L]),
     borrowLAssets: toBigInt(allAssets[BORROW_L]),
+    depositX: toBigInt(allAssets[DEPOSIT_X]),
+    depositY: toBigInt(allAssets[DEPOSIT_Y]),
+    borrowX: toBigInt(allAssets[BORROW_X]),
+    borrowY: toBigInt(allAssets[BORROW_Y]),
   };
+};
+
+const getPairBalances = async (pool, block) => {
+  const { output } = await sdk.api.abi.multiCall({
+    abi: 'erc20:balanceOf',
+    calls: pool.tokens.map((token) => ({
+      target: token.address,
+      params: [pool.pair],
+    })),
+    chain: CHAIN,
+    block,
+  });
+
+  return { x: toBigInt(output[0].output), y: toBigInt(output[1].output) };
 };
 
 const getSwapVolume = async (pool, startBlock, endBlock) => {
@@ -222,6 +244,7 @@ const buildPool = async (pool, blocks, prices, timestamp) => {
       getSwapVolume(pool, weekWindow.startBlock, blocks.endBlock),
     ]);
 
+  const balances = await getPairBalances(pool, blocks.endBlock);
   const pricePerShare = getPricePerShare(current);
   const totalDepositedAmounts = getTotalDepositedAmounts(current, reserves);
   if (pricePerShare === null || totalDepositedAmounts === null) return null;
@@ -231,7 +254,23 @@ const buildPool = async (pool, blocks, prices, timestamp) => {
     chain: DISPLAY_CHAIN,
     project: PROJECT,
     symbol: pool.tokens.map((token) => token.symbol).join('-'),
-    tvlUsd: toUsd(totalDepositedAmounts, pool, prices),
+    tvlUsd: toUsd(balances, pool, prices),
+    totalSupplyUsd: toUsd(
+      {
+        x: totalDepositedAmounts.x + current.depositX,
+        y: totalDepositedAmounts.y + current.depositY,
+      },
+      pool,
+      prices
+    ),
+    totalBorrowUsd: toUsd(
+      {
+        x: totalDepositedAmounts.x - reserves.x + current.borrowX,
+        y: totalDepositedAmounts.y - reserves.y + current.borrowY,
+      },
+      pool,
+      prices
+    ),
     apyBase: annualizeShareGrowth(
       pricePerShare,
       getPricePerShare(dayStart),
