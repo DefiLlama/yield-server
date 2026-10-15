@@ -47,6 +47,7 @@ const getEarnPools = (lendingTokens, { marketFor }) =>
       symbol: token.asset.symbol,
       tvlUsd,
       apyBase,
+      token: token.address,
       underlyingTokens: [token.assetAddress],
       poolMeta: label ? `Earn (${label})` : 'Earn',
       url: `${earnUi}/${token.asset.symbol}/deposit`,
