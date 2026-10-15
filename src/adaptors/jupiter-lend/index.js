@@ -28,8 +28,6 @@ const INSTANCES = [
   },
 ];
 
-const bpsToApr = (bps) => (Number(bps) / 1e4) * 100;
-
 const getEarnPools = (lendingTokens, { marketFor }) =>
   lendingTokens.map((token) => {
     const { label, earnUi } = marketFor(token.asset.symbol);
@@ -37,10 +35,10 @@ const getEarnPools = (lendingTokens, { marketFor }) =>
     const decimals = token.asset.decimals;
     const tvlUsd = (Number(token.totalAssets) / 10 ** decimals) * price;
 
-    const apyBase = utils.aprToApy(Number(token.supplyRate) / 100);
-    const apyReward = token.rewardsRate
-      ? utils.aprToApy(bpsToApr(token.rewardsRate))
-      : 0;
+    // rewardsRate accrues into the jlToken exchange price (Fluid fToken design), so it is base yield
+    const apyBase = utils.aprToApy(
+      (Number(token.supplyRate) + Number(token.rewardsRate || 0)) / 100
+    );
 
     return {
       pool: `${token.address}-solana`.toLowerCase(),
@@ -49,8 +47,7 @@ const getEarnPools = (lendingTokens, { marketFor }) =>
       symbol: token.asset.symbol,
       tvlUsd,
       apyBase,
-      apyReward: apyReward > 0 ? apyReward : null,
-      rewardTokens: token.rewardsRate ? [token.assetAddress] : undefined,
+      token: token.address,
       underlyingTokens: [token.assetAddress],
       poolMeta: label ? `Earn (${label})` : 'Earn',
       url: `${earnUi}/${token.asset.symbol}/deposit`,
