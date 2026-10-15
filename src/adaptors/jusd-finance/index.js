@@ -49,6 +49,7 @@ const pool = async ({ chain, vault, usdc, issuer }) => {
     token: vault,
     tvlUsd: (Number(assets.output) / 1e6) * usdcPrice,
     apyBase: (growth ** (365 / WINDOW_DAYS) - 1) * 100,
+    pricePerShare: Number(priceNow.output) / 1e6,
     underlyingTokens: [usdc],
     poolMeta: `${issuer} vault`,
     url: 'https://jusd.fi',
