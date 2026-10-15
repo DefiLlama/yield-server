@@ -1,12 +1,13 @@
 // DefiLlama yields adapter for PARE — goes in yield-server/src/adaptors/pare/index.js
 // Two kinds of pool:
 //  - one per live series: the fixed rate earned by buying the pToken at its Uniswap price and
-//    holding to maturity, where it redeems for one stock token;
+//    holding to maturity, where it redeems for one stock token (Robinhood Chain) or one dollar of
+//    a yield-bearing dollar such as sUSDx (Ethereum);
 //  - the pToken/USDG liquidity pools: the 0.3% Uniswap v3 fee tier plus Merkl rewards in USDG,
 //    as Merkl reports them for the pool, over the pool's whole TVL.
-// Nothing about a series is written here. The SeriesRegistry contract lists the live vaults; each
-// vault names its stock, its pToken and its maturity; the tokens name themselves; the Uniswap
-// factory names the pools. A new series appears here when PARE lists it in the registry.
+// Nothing about a Robinhood Chain series is written here. The SeriesRegistry contract lists the live
+// vaults; each vault names its stock, its pToken and its maturity; the tokens name themselves; the
+// Uniswap factory names the pools. A new series appears here when PARE lists it in the registry.
 const sdk = require("@defillama/sdk");
 const utils = require("../utils");
 const { merklGet } = require("../merkl/merkl-client");
@@ -30,9 +31,22 @@ const ABI = {
   maturity: "function maturity() view returns (uint64)",
   getPool: "function getPool(address, address, uint24) view returns (address)",
   vaults: "function vaults() view returns (address[])",
+  getSlot0: "function getSlot0(bytes32 poolId) view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)",
+  convertToAssets: "function convertToAssets(uint256) view returns (uint256)",
 };
 
+// Ethereum: the dollar series. Each PT trades against its share (sUSDx) in a Uniswap v4 pool, read through StateView by
+// the pool's id (the hash of its key: PT, sUSDx, the dynamic-fee flag, tick spacing 10, PARE's PtPoolHook). The share's
+// own rate turns the PT's price in shares into dollars of the underlying (USDx), which is what a PT pays at maturity.
+const ETH = "ethereum";
+const STATE_VIEW = "0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227"; // Uniswap v4 StateView on Ethereum
+const ETH_SERIES = [
+  { key: "pusdx-mar27", symbol: "pUSDx-MAR27", vault: "0xFB0c70eaDdc3717A9c95E3D6c5B791244437a25c", pt: "0x4F7597B81e1F209d366cf0ea0025C903871979E0",
+    share: "0xEB892628D1E58BC475A6dCB7F5dBC4F591632AA4", poolId: "0x5cabac5acbae101fe4ec6be9d49ee9d45f2052b39bb3c8c5483b65583add5bc1", ptIs0: true },
+];
+
 const call = (target, abi, params) => sdk.api2.abi.call({ target, abi, params, chain: CHAIN });
+const callOn = (chain, target, abi, params) => sdk.api2.abi.call({ target, abi, params, chain });
 const multi = (abi, calls) => sdk.api2.abi.multiCall({ abi, calls, chain: CHAIN });
 const dateOf = (ts) => new Date(ts * 1000).toISOString().slice(0, 10); // 2027-12-31
 
@@ -125,6 +139,31 @@ const apy = async () => {
       underlyingTokens: [s.pt, USDG],
       poolMeta: `Uniswap v3 0.3%, accretes to 1 ${s.stockSymbol}`,
       url: "https://parestocks.com/dividend-lp",
+    });
+  }
+
+  // Ethereum: one row per dollar series, the fixed rate in USDx terms from the PT's price in its v4 pool.
+  const ethPrices = await utils.getPrices(ETH_SERIES.map((s) => s.share), ETH);
+  for (const s of ETH_SERIES) {
+    const [maturity, slot0, rate, held] = await Promise.all([
+      callOn(ETH, s.vault, ABI.maturity), callOn(ETH, STATE_VIEW, ABI.getSlot0, [s.poolId]),
+      callOn(ETH, s.share, ABI.convertToAssets, ["1000000000000000000"]), callOn(ETH, s.share, ABI.balanceOf, [s.vault]),
+    ]);
+    const years = (Number(maturity) - now) / (365.25 * 86400);
+    if (years <= 0) continue; // matured: nothing left to lock
+    const raw = (Number(slot0.sqrtPriceX96) / 2 ** 96) ** 2; // token1 per token0, both 18 decimals
+    const ptInDollars = (s.ptIs0 ? raw : 1 / raw) * (Number(rate) / 1e18); // shares per PT, times dollars per share
+    if (!(ptInDollars > 0)) continue;
+    pools.push({
+      pool: `${s.pt}-${ETH}`.toLowerCase(),
+      chain: utils.formatChain(ETH),
+      project: "pare",
+      symbol: s.symbol,
+      tvlUsd: (Number(held) / 1e18) * (ethPrices.pricesByAddress[s.share.toLowerCase()] || 0),
+      apyBase: (Math.pow(1 / ptInDollars, 1 / years) - 1) * 100,
+      underlyingTokens: [s.share],
+      poolMeta: `fixed to ${dateOf(Number(maturity))}, redeems 1 USDx of sUSDx`,
+      url: `https://parestocks.com/app#/y/lock/${s.key}`,
     });
   }
   return pools;
