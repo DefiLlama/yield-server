@@ -153,7 +153,7 @@ const apyLayerBankV3 = async (chain) => {
         : liquidityUsd;
 
       return {
-        pool: aTokens[i].tokenAddress,
+        pool: `${aTokens[i].tokenAddress.toLowerCase()}-${chain}`,
         chain,
         project: 'layerbank',
         symbol: reserve.symbol,
