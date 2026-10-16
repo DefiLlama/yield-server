@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-const SOL_RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
+const SOL_RPC = 'https://api.mainnet-beta.solana.com';
 
 // Which vaults to list, and their names and pages. Every number is read from
 // the chain below, and each vault is checked on-chain before it is listed, so
@@ -75,30 +75,14 @@ const rpcErrorIsRetryable = (error) =>
 const rpc = async (method, params) => {
   const { result } = await utils.withRetry(
     async () => {
-      const body = await utils
-        .getData(SOL_RPC, {
-          jsonrpc: '2.0',
-          id: 1,
-          method,
-          params,
-        })
-        // TEMP-DIAG
-        .catch((e) => {
-          const data = e.response?.data;
-          const text =
-            typeof data === 'string' ? data : JSON.stringify(data) ?? '';
-          e.message = `Solana RPC ${method}: http=${
-            e.response?.status
-          } ${text.slice(0, 200)} (${e.message})`;
-          throw e;
-        });
+      const body = await utils.getData(SOL_RPC, {
+        jsonrpc: '2.0',
+        id: 1,
+        method,
+        params,
+      });
       if (body?.error) {
-        // TEMP-DIAG
-        const err = new Error(
-          `Solana RPC ${method}: code=${body.error.code} ${
-            body.error.message
-          } params=${JSON.stringify(params).slice(0, 200)}`
-        );
+        const err = new Error(`Solana RPC ${method}: ${body.error.message}`);
         if (rpcErrorIsRetryable(body.error)) err.response = { status: 429 };
         throw err;
       }
@@ -218,7 +202,7 @@ const getSignaturesSince = async (address, since) => {
 const makeStateReader = (vault, decimals) => {
   const cache = new Map();
   let fetches = 0;
-  const readState = async (signature) => {
+  return async (signature) => {
     if (cache.has(signature.signature)) return cache.get(signature.signature);
     if (++fetches > MAX_TX_FETCHES_PER_VAULT)
       throw new Error(`Too many transactions read for vault ${vault}`);
@@ -240,8 +224,6 @@ const makeStateReader = (vault, decimals) => {
     cache.set(signature.signature, state);
     return state;
   };
-  readState.fetches = () => Math.min(fetches, MAX_TX_FETCHES_PER_VAULT); // TEMP-DIAG
-  return readState;
 };
 
 // The vault state in force at `timestamp`: the latest one at or before it that
@@ -303,35 +285,7 @@ const windowStart = (end, startDate) =>
 const annualise = (pricePerShareNow, pricePerShareThen, seconds) =>
   ((pricePerShareNow / pricePerShareThen) ** ((365 * DAY) / seconds) - 1) * 100;
 
-// TEMP-DIAG
-const iso = (t) => (t ? new Date(t * 1000).toISOString() : null);
-const diagState = (s) =>
-  s
-    ? {
-        blockTime: iso(s.blockTime),
-        event: s.event,
-        pricePerShare: s.pricePerShare,
-      }
-    : null;
-
-// TEMP-DIAG
-const getVoltrVault = async (vault) => {
-  const diag = { rpcHost: new URL(SOL_RPC).host };
-  let result;
-  try {
-    result = await readVoltrVault(vault, diag);
-  } catch (e) {
-    e.message += ` diag=${JSON.stringify(diag)}`;
-    throw e;
-  }
-  if (!result)
-    throw new Error(
-      'vectis-finance diag: no stable state ' + JSON.stringify(diag)
-    );
-  return result;
-};
-
-const readVoltrVault = async ({ address, startDate }, diag) => {
+const getVoltrVault = async ({ address, startDate }) => {
   const [account] = await getAccounts([address]);
   const data = account && Buffer.from(account.data[0], 'base64');
   if (
@@ -358,34 +312,14 @@ const readVoltrVault = async ({ address, startDate }, diag) => {
 
   const end = Math.floor(Date.now() / 1000) - SETTLE_SECONDS;
   const start = windowStart(end, startDate);
-  // TEMP-DIAG
-  Object.assign(diag, {
-    end: iso(end),
-    start: iso(start),
-    minHistoryOk: end - start >= MIN_HISTORY_DAYS * DAY,
-  });
   if (end - start < MIN_HISTORY_DAYS * DAY) return null;
 
   // One extra day, to reach back past a rebalance at the window start.
   const signatures = await getSignaturesSince(address, start - DAY);
-  // TEMP-DIAG
-  diag.signatures = {
-    count: signatures.length,
-    oldestBlockTime: iso(signatures[signatures.length - 1]?.blockTime),
-    newestBlockTime: iso(signatures[0]?.blockTime),
-    since: iso(start - DAY),
-  };
   const readState = makeStateReader(address, decimals);
-  // TEMP-DIAG
-  Object.defineProperty(diag, 'txReads', {
-    enumerable: true,
-    get: readState.fetches,
-  });
 
   const now = await stableStateAt(signatures, readState, end);
-  diag.now = diagState(now); // TEMP-DIAG
   const then = await stableStateAt(signatures, readState, start);
-  diag.then = diagState(then); // TEMP-DIAG
   if (!now || !then) return null;
   const elapsed = now.blockTime - then.blockTime;
   if (elapsed < MIN_HISTORY_DAYS * DAY) return null;
@@ -483,15 +417,6 @@ const READERS = {
 const apy = async () => {
   const { data: vaults } = await utils.getData(VAULTS_URL);
 
-  // TEMP-DIAG: yield-server-v2 only records last_error when apy() throws, so
-  // any dropped vault fails the whole run, healthy vaults included.
-  const failures = [];
-  const report = (message) => failures.push(message);
-  const throwFailures = () => {
-    if (failures.length)
-      throw new Error(`vectis-finance diag: ${failures.join(' | ')}`);
-  };
-
   // Sequential: the public Solana RPC rate-limits parallel transaction reads.
   // One vault failing is logged and skipped, so it cannot take the others
   // off the page with it.
@@ -500,12 +425,11 @@ const apy = async () => {
     try {
       const data = await READERS[vault.type]?.(vault);
       if (data) read.push({ vault, data });
-      else report(`${vault.name}: no data`); // TEMP-DIAG
+      else console.log(`vectis-finance: skipped ${vault.name}, no data`);
     } catch (e) {
-      report(`${vault.name}: ${e.message}`); // TEMP-DIAG
+      console.error(`vectis-finance: ${vault.name} failed: ${e.message}`);
     }
   }
-  throwFailures(); // TEMP-DIAG
 
   const keys = [
     ...new Set(read.map((r) => `${r.vault.chain}:${r.data.asset}`)),
@@ -513,16 +437,11 @@ const apy = async () => {
   const { coins } = keys.length
     ? await utils.getPriceApiData(`/prices/current/${keys.join(',')}`)
     : { coins: {} };
-  const priceHost = new URL(utils.getPriceApiUrl('/')).host; // TEMP-DIAG
 
-  const pools = read
+  return read
     .map(({ vault, data }) => {
-      const key = `${vault.chain}:${data.asset}`;
-      const coin = coins[key];
-      if (!coin) {
-        report(`${vault.name}: no price for ${key} from ${priceHost}`); // TEMP-DIAG
-        return null;
-      }
+      const coin = coins[`${vault.chain}:${data.asset}`];
+      if (!coin) return null;
       return {
         pool:
           vault.chain === 'solana'
@@ -543,17 +462,7 @@ const apy = async () => {
         url: vault.url,
       };
     })
-    .filter((p) => {
-      if (!p) return false;
-      if (utils.keepFinite(p)) return true;
-      // TEMP-DIAG
-      report(
-        `${p.poolMeta}: non-finite apyBase=${p.apyBase} tvlUsd=${p.tvlUsd}`
-      );
-      return false;
-    });
-  throwFailures(); // TEMP-DIAG
-  return pools;
+    .filter((p) => p && utils.keepFinite(p));
 };
 
 module.exports = {
