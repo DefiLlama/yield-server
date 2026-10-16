@@ -34,7 +34,7 @@ const abi = {
   totalBalance: 'uint256:totalBalance',
   totalBorrows: 'function totalBorrows() view returns (uint112)',
   totalSupply: 'uint256:totalSupply',
-  exchangeRateLast: 'uint256:exchangeRateLast',
+  exchangeRate: 'uint256:exchangeRate',
   borrowRate: 'uint256:borrowRate',
   reserveFactor: 'uint256:reserveFactor',
   safetyMarginSqrt: 'uint256:safetyMarginSqrt',
@@ -167,11 +167,11 @@ async function getLendingVaults(prices, vaults, tokens, historicalBlock) {
   const [supplies, exchangeRates, symbols, historicalRates] = await Promise.all(
     [
       multiCall(vaults, abi.totalSupply),
-      multiCall(vaults, abi.exchangeRateLast),
+      multiCall(vaults, abi.exchangeRate),
       multiCall(vaults, abi.symbol),
       historicalBlock === undefined
         ? vaults.map(() => null)
-        : multiCall(vaults, abi.exchangeRateLast, historicalBlock),
+        : multiCall(vaults, abi.exchangeRate, historicalBlock),
     ]
   );
   // Same reason as above: a vault's own decimals are its share decimals, so
