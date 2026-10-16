@@ -308,7 +308,7 @@ const getMarkets = async (chain) => {
       return {
         pool: marketAddress,
         chain: utils.formatChain(chain === 'avax' ? 'avalanche' : chain),
-        project: 'gmx-v2-perps',
+        project: 'gmx-evm',
         symbol: `${longSymbol}-${shortSymbol}`,
         tvlUsd,
         apyBase,
