@@ -10,7 +10,7 @@ const VAULTS = [
     vault: '0xe35B7D7bf1212b89478ddAba2946ADEd59BEC0a9', // hNVDA
     symbol: 'NVDA',
     poolMeta: 'NVDA Printer, weekly covered call paid in USDG',
-    url: 'https://hedgehood.app/stockyield/nvda-printer',
+    url: 'https://hedgehood.app/stockyield',
   },
 ];
 // The most recent settled epochs, as a simple annual rate over the time they span: rewards are paid out in USDG and
@@ -102,7 +102,7 @@ const apy = async () => {
 };
 
 module.exports = {
-  protocolId: 'TODO', // assigned when the TVL listing (DefiLlama-Adapters) is published
+  protocolId: '9100', // https://api.llama.fi/protocols, slug hedgehood-stock-yield
   timetravel: false,
   apy,
   url: 'https://hedgehood.app/stockyield',
