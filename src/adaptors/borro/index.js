@@ -86,8 +86,12 @@ const apy = async () => {
   const decimals = await multi('erc20:decimals', assets.map((target) => ({ target })));
 
   // Every market the vaults supply: each stock vault's stock-loan market, and the USDG vault's USDG markets.
-  const marketIds = [...symbols.map((s) => DESKS[s][2]), ...symbols.map((s) => DESKS[s][3])];
-  const suppliers = [...symbols.map((s) => DESKS[s][1]), ...symbols.map(() => USDG_ADAPTER)];
+  // The USDG vault's markets are the ones its market adapter supplies right now (marketIds), so interest from any
+  // market the curator has capped counts, not only Borro's own USDG markets.
+  const nUsdg = Number((await sdk.api.abi.call({ target: USDG_ADAPTER, abi: 'uint256:marketIdsLength', chain: CHAIN })).output);
+  const usdgMarketIds = await multi('function marketIds(uint256) view returns (bytes32)', [...Array(nUsdg).keys()].map((k) => ({ target: USDG_ADAPTER, params: [k] })));
+  const marketIds = [...symbols.map((s) => DESKS[s][2]), ...usdgMarketIds];
+  const suppliers = [...symbols.map((s) => DESKS[s][1]), ...usdgMarketIds.map(() => USDG_ADAPTER)];
   const [params, markets, positions] = await Promise.all([
     multi(MARKET_PARAMS_ABI, marketIds.map((id) => ({ target: MORPHO, params: [id] }))),
     multi(MARKET_ABI, marketIds.map((id) => ({ target: MORPHO, params: [id] }))),
@@ -130,7 +134,7 @@ const apy = async () => {
     const symbol = isUsdg ? 'USDG' : symbols[i];
     const assetsHeld = Number(totalAssets[i]);
     // Weighted supply APY over what this vault supplies, less its performance fee.
-    const idx = isUsdg ? symbols.map((_, k) => symbols.length + k) : [i];
+    const idx = isUsdg ? usdgMarketIds.map((_, k) => symbols.length + k) : [i];
     const earned = idx.reduce((acc, k) => acc + supplyApy(rates[k], markets[k]) * supplied(positions[k], markets[k]), 0);
     const apyBase = assetsHeld ? (earned / assetsHeld) * (1 - Number(perfFees[i]) / 1e18) : 0;
     const apyReward = isUsdg ? usdgReward : stockReward;
