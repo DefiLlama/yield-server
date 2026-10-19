@@ -116,10 +116,11 @@ const getUnit0Pools = async (timestamp = null) => {
 }
 
 const main = async (timestamp = null) => {
-    const data = [];
-    data.push(...await getWavesPools()); // get pools from waves chain
-    data.push(...await getUnit0Pools(timestamp)); // get pools from waves chain
-    return data.filter((p) => utils.keepFinite(p));
+    const results = await Promise.all([
+        getWavesPools().catch((e) => { console.error('swop waves failed:', e.message); return []; }),
+        getUnit0Pools(timestamp).catch((e) => { console.error('swop unit0 failed:', e.message); return []; }),
+    ]);
+    return results.flat().filter((p) => utils.keepFinite(p));
 }
 
 module.exports = {
