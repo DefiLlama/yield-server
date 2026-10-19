@@ -13,6 +13,13 @@ const HYPERION =
 const CLAIM_FEE = 0.05;
 const USER_SHARE = 1 - CLAIM_FEE;
 
+const USDC =
+  '0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b';
+// Season 2, from 2026-10-06, still open: 700 bps, paid weekly in USDC above a $99 balance.
+// The payout is a plain USDC transfer into the safe, so the 5% claim fee does not apply.
+// https://yieldai.app/campaign/boost
+const BOOST_APR_PCT = 7;
+
 const USDC_MARKET =
   '0x2c4e0bb55272f9c120ffd5a414c10244005caf9c1b14527cea3df7074c5bf623';
 const USD1_MARKET =
@@ -207,6 +214,15 @@ async function echelonRates() {
   return { coins, rewardAprs: supplyRewardAprs(response?.farming, coins) };
 }
 
+function withBoost(protocolRewardPct, rewardTokens) {
+  const tokens = new Set((rewardTokens || []).filter(Boolean));
+  tokens.add(USDC);
+  return {
+    apyReward: protocolRewardPct + BOOST_APR_PCT,
+    rewardTokens: [...tokens],
+  };
+}
+
 function aprToApy(apr) {
   const value = Number(apr);
   if (!Number.isFinite(value) || value <= 0) return 0;
@@ -351,6 +367,8 @@ async function apy() {
     const tvlUsd = (Number(supplied[market]) / 10 ** coin.decimals) * coin.price;
     if (tvlUsd < MIN_TVL_USD) continue;
     const rewards = echelon.rewardAprs[market] || [];
+    const protocolReward =
+      rewards.reduce((sum, reward) => sum + reward.apr, 0) * 100 * USER_SHARE;
     pools.push({
       pool: `${market}-aptos-yield-ai`,
       chain: utils.formatChain('aptos'),
@@ -358,10 +376,9 @@ async function apy() {
       symbol: coin.symbol,
       tvlUsd,
       apyBase: (coin.supplyApr ?? 0) * 100,
-      apyReward: rewards.reduce((sum, reward) => sum + reward.apr, 0) * 100 * USER_SHARE,
-      rewardTokens: [...new Set(rewards.map((reward) => reward.address))],
+      ...withBoost(protocolReward, rewards.map((reward) => reward.address)),
       underlyingTokens: [coin.faAddress],
-      poolMeta: 'Stablecoin compound',
+      poolMeta: 'Stablecoin compound, +7% USDC boost',
       url: APP_URL,
     });
   }
@@ -373,7 +390,7 @@ async function apy() {
     const rewardTokens = (pool.pool.farm || [])
       .map((item) => item.rewardFa)
       .filter(Boolean);
-    const apyReward = aprToApy(pool.farmAPR) * USER_SHARE;
+    const protocolReward = aprToApy(pool.farmAPR) * USER_SHARE;
     pools.push({
       pool: `${id}-aptos-yield-ai`,
       chain: utils.formatChain('aptos'),
@@ -381,9 +398,9 @@ async function apy() {
       symbol: `${pool.pool.token1Info.symbol}-${pool.pool.token2Info.symbol}`,
       tvlUsd,
       apyBase: aprToApy(pool.feeAPR) * USER_SHARE,
-      ...(apyReward > 0 ? { apyReward, rewardTokens } : {}),
+      ...withBoost(protocolReward, rewardTokens),
       underlyingTokens: [pool.pool.token1, pool.pool.token2],
-      poolMeta: `Hyperion CLMM ${Number(pool.pool.feeRate) / 10000}%`,
+      poolMeta: `Hyperion CLMM ${Number(pool.pool.feeRate) / 10000}%, +7% USDC boost`,
       url: `https://hyperion.xyz/pool/${pool.pool.poolId}`,
     });
   }
