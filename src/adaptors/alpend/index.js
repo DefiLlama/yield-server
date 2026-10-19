@@ -60,8 +60,31 @@ async function getPools(caller) {
   return feed.pools.filter((pool) => pool.coingeckoId && pool.status !== 'inactive');
 }
 
+// An asset with no CoinGecko listing is priced through the token it is minted against (USDXLR ->
+// usd-coin). That id is right for pricing but wrong as the pool's underlying token: the yields page
+// would label the pool with that token's symbol. Declare the underlying only when its symbol is
+// the asset's own.
+async function underlyingTokensByAsset(pools) {
+  const keys = [...new Set(pools.map((p) => `coingecko:${p.coingeckoId}`))];
+  let coins = {};
+  try {
+    ({ data: { coins } } = await axios.get(`https://coins.llama.fi/prices/current/${keys.join(',')}`, FETCH_OPTS));
+  } catch (e) {
+    coins = {};
+  }
+  return Object.fromEntries(
+    pools.map((p) => {
+      const key = `coingecko:${p.coingeckoId}`;
+      const symbol = coins[key]?.symbol;
+      const own = !symbol || symbol.toLowerCase() === String(p.asset).toLowerCase();
+      return [p.asset, own ? [key] : undefined];
+    })
+  );
+}
+
 const apy = async () => {
   const pools = await getPools('apy');
+  const underlying = await underlyingTokensByAsset(pools);
 
   return pools.map((p) => {
     const totalSupplyUsd = getAmount(p, 'totalSuppliedUsd');
@@ -79,7 +102,7 @@ const apy = async () => {
       apyBase: getAmount(p, 'apyBase'),
       apyReward,
       rewardTokens: apyReward > 0 ? [CC_COINGECKO] : [],
-      underlyingTokens: [`coingecko:${p.coingeckoId}`],
+      underlyingTokens: underlying[p.asset],
       apyBaseBorrow: getAmount(p, 'apyBaseBorrow'),
       apyRewardBorrow: getAmount(p, 'apyRewardBorrow'),
       totalSupplyUsd,
