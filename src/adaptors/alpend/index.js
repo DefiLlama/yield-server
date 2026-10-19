@@ -62,8 +62,8 @@ async function getPools(caller) {
 
 // An asset with no CoinGecko listing is priced through the token it is minted against (USDXLR ->
 // usd-coin). That id is right for pricing but wrong as the pool's underlying token: the yields page
-// would label the pool with that token's symbol. Declare the underlying only when its symbol is
-// the asset's own.
+// would label the pool with that token's symbol. Declare the underlying only when the coins API
+// confirms its symbol is the asset's own; with no symbol the field is left out.
 async function underlyingTokensByAsset(pools) {
   const keys = [...new Set(pools.map((p) => `coingecko:${p.coingeckoId}`))];
   let coins = {};
@@ -76,7 +76,7 @@ async function underlyingTokensByAsset(pools) {
     pools.map((p) => {
       const key = `coingecko:${p.coingeckoId}`;
       const symbol = coins[key]?.symbol;
-      const own = !symbol || symbol.toLowerCase() === String(p.asset).toLowerCase();
+      const own = Boolean(symbol) && symbol.toLowerCase() === String(p.asset).toLowerCase();
       return [p.asset, own ? [key] : undefined];
     })
   );
