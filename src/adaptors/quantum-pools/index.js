@@ -1,27 +1,51 @@
+const axios = require('axios');
 const sdk = require('@defillama/sdk');
+const ethers = require('ethers');
 const utils = require('../utils');
 
 // Quantum Pools vaults custody one Uniswap V3 / PancakeSwap V3 position NFT per
 // depositor. A keeper snuggles each range (automatic rebalance) so it keeps
 // earning. There is no share token, so `token` is null and each vault is one pool.
 //
-// tvlUsd is the vault's NFTs unwrapped at the current pool price. apyBase is the
-// depositor-net fees realised on-chain over the last 24h, annualised:
-//   net = sum(FeesCollected) - sum(FeeTaxed cut0, cut1)
+// tvlUsd is the vault's NFTs unwrapped at the current pool price.
+//
+// apyBase is depositor-net trading fees annualised over the time they actually
+// accrued. The keeper settles several days of fees in one FeesCollected event, so
+// treating that lump as a single day's yield overstates the rate by about the
+// length of the gap. For each NFT still in the vault we take the latest
+// settlement in a 14-day lookback and divide it by the seconds since the
+// previous settlement, or since PositionCreated when that settlement is the
+// position's first collection. Collections less than 6 hours apart are one
+// keeper run (a dust follow-up must not be annualised on its own). A gap
+// shorter than a day is skipped. Fees still uncollected, and settlements with
+// no observable start, are left out, so the rate is a lower bound.
+//
+//   net = FeesCollected − FeeTaxed (cut0, cut1)
 // FeesCollected is emitted in `_collectFees()` before any decreaseLiquidity, so
-// it is fees only. FeesHarvested repeats those amounts and is not summed.
-// Uncollected fees are ignored, so apyBase is a lower bound for the window.
+// it is fees only. FeesHarvested repeats those amounts and is not read.
 const PROJECT = 'quantum-pools';
 const DAY = 24 * 60 * 60;
+const YEAR = 365 * DAY;
+const LOOKBACK_DAYS = 14;
+// Same keeper transaction, or a dust sweep minutes later, is one settlement.
+const MERGE_SEC = 6 * 60 * 60;
 // Nodes that lag the tip reject eth_getLogs on the newest blocks.
 const LOG_HEAD_BUFFER = 20;
-// Public RPCs reject a full day of blocks (Robinhood is ~0.1s, BSC ~0.45s).
-// These spans succeed on the default SDK RPCs. The SDK also widens each span
-// by 10 blocks; logs are deduped so a widened edge is not counted twice.
+// Widest span the public RPC for that chain accepts. A span that still fails
+// is retried and then halved. The indexer path does not use these widths.
 const LOG_BLOCK_RANGE = {
   robinhood: 50_000,
-  base: 50_000,
+  // Base public RPCs cap eth_getLogs at 1k–5k blocks. 1k is accepted by the
+  // ones that answer; wider spans 403 or return "over limit" on every host.
+  base: 1_000,
   bsc: 5_000,
+};
+const LOG_CONCURRENCY = 3;
+// Binance dataseeds answer eth_getLogs with "limit exceeded" once a 14-day
+// lookback is split across hundreds of spans. Pocket accepts a 5k span, including
+// blocks from the start of the window, so BSC reads go there one span at a time.
+const DIRECT_LOG_RPC = {
+  bsc: 'https://bsc.api.pocket.network',
 };
 
 const VAULTS = [
@@ -70,20 +94,23 @@ const abi = {
   getPool: 'function getPool(address,address,uint24) view returns (address)',
   slot0:
     'function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16, uint16, uint16, uint32, bool)',
-  pools:
-    'function pools(bytes32) view returns (address pool, address token0, address token1, uint24 fee, bool active)',
   decimals: 'erc20:decimals',
   symbol: 'erc20:symbol',
 };
 
 const events = {
-  rebalanced:
-    'event Rebalanced(address indexed owner, bytes32 indexed poolId, uint256 oldTokenId, uint256 newTokenId, int24 tickLower, int24 tickUpper)',
   collected:
     'event FeesCollected(uint256 indexed tokenId, uint256 collected0, uint256 collected1)',
   taxed:
     'event FeeTaxed(uint256 indexed tokenId, uint256 taxable0, uint256 taxable1, uint256 cut0, uint256 cut1)',
+  created:
+    'event PositionCreated(address indexed owner, bytes32 indexed poolId, uint256 indexed tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)',
 };
+const logIface = new ethers.utils.Interface([
+  events.collected,
+  events.taxed,
+  events.created,
+]);
 
 // Uniswap V3 liquidity to token amounts. Float math is enough for a USD TVL.
 const amountsFor = (liquidity, sqrtPriceX96, tickLower, tickUpper) => {
@@ -100,18 +127,206 @@ const amountsFor = (liquidity, sqrtPriceX96, tickLower, tickUpper) => {
   ];
 };
 
+const asNumber = (value) => Number(value.toString());
+
 // The SDK widens each getLogs span and can repeat a boundary block when it
-// splits a range. Count each log once so a split cannot double-count fees.
-const dedupedArgs = (logs) => {
+// splits a range. Count each log once.
+const deduped = (logs) => {
   const seen = new Set();
-  const args = [];
+  const out = [];
   for (const log of logs) {
     const id = `${log.transactionHash}-${log.logIndex ?? log.index}`;
-    if (seen.has(id) || !log.args) continue;
+    if (seen.has(id)) continue;
     seen.add(id);
-    args.push(log.args);
+    out.push(log);
   }
-  return args;
+  return out;
+};
+
+const envSet = (key) =>
+  process.env[`LLAMA_SDK_${key}`] ||
+  process.env[`SDK_${key}`] ||
+  process.env[key];
+
+// Production sets the Llama log indexer. One full-range read is then cheaper
+// than walking public RPCs, and it returns the same events.
+const indexerOn = () =>
+  Boolean(
+    envSet('LLAMA_INDEXER_V2_ENDPOINT') || envSet('LLAMA_INDEXER_V4_ENDPOINT')
+  );
+
+const withRetry = async (fn) => {
+  let lastError;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt === 3) break;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+  throw lastError;
+};
+
+const mapPool = async (items, limit, fn) => {
+  const out = new Array(items.length);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      out[index] = await fn(items[index]);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker)
+  );
+  return out;
+};
+
+const spansBetween = (fromBlock, toBlock, width) => {
+  const spans = [];
+  for (let from = fromBlock; from <= toBlock; from += width) {
+    spans.push([from, Math.min(from + width - 1, toBlock)]);
+  }
+  return spans;
+};
+
+const directGetLogs = async (rpc, address, fromBlock, toBlock) => {
+  const { data } = await axios.post(
+    rpc,
+    {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'eth_getLogs',
+      params: [
+        {
+          address,
+          fromBlock: `0x${fromBlock.toString(16)}`,
+          toBlock: `0x${toBlock.toString(16)}`,
+        },
+      ],
+    },
+    { timeout: 20000 }
+  );
+  if (data.error) throw new Error(data.error.message || 'eth_getLogs failed');
+  return data.result.map((log) => ({
+    ...log,
+    blockNumber: Number(log.blockNumber),
+    logIndex: Number(log.logIndex),
+  }));
+};
+
+// Raw vault logs for the three fee events. A failed read throws: a missed
+// window must not be published as a 0% APY.
+const vaultLogs = async (chain, vault, fromBlock, toBlock) => {
+  if (indexerOn()) {
+    const pulled = [];
+    for (const eventAbi of [events.collected, events.taxed, events.created]) {
+      const logs = await withRetry(() =>
+        sdk.getEventLogs({
+          chain,
+          target: vault,
+          eventAbi,
+          fromBlock,
+          toBlock,
+          onlyArgs: false,
+          skipCache: true,
+          maxBlockRange: LOG_BLOCK_RANGE[chain],
+        })
+      );
+      for (const log of logs) {
+        if (!log.args) continue;
+        const name = eventAbi.includes('FeesCollected')
+          ? 'FeesCollected'
+          : eventAbi.includes('FeeTaxed')
+          ? 'FeeTaxed'
+          : 'PositionCreated';
+        pulled.push({ ...log, name });
+      }
+    }
+    return deduped(pulled);
+  }
+
+  const provider = sdk.getProvider(chain);
+  const directRpc = DIRECT_LOG_RPC[chain];
+  const pull = (from, to) =>
+    directRpc
+      ? directGetLogs(directRpc, vault, from, to)
+      : provider.getLogs({ address: vault, fromBlock: from, toBlock: to });
+  // Pocket sometimes answers "header not found" for a span the next call can
+  // read, and some widths fail while a narrower one succeeds. Retry, then halve.
+  const readSpan = async (from, to) => {
+    let lastError;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        return await pull(from, to);
+      } catch (error) {
+        lastError = error;
+        if (attempt < 5) {
+          await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+        }
+      }
+    }
+    if (to - from < 16) throw lastError;
+    const mid = from + Math.floor((to - from) / 2);
+    return (await readSpan(from, mid)).concat(await readSpan(mid + 1, to));
+  };
+  const chunks = await mapPool(
+    spansBetween(fromBlock, toBlock, LOG_BLOCK_RANGE[chain]),
+    directRpc ? 1 : LOG_CONCURRENCY,
+    ([from, to]) => readSpan(from, to)
+  );
+  const decoded = [];
+  for (const log of chunks.flat()) {
+    let parsed;
+    try {
+      parsed = logIface.parseLog(log);
+    } catch {
+      continue;
+    }
+    decoded.push({
+      transactionHash: log.transactionHash,
+      logIndex: log.logIndex,
+      blockNumber: log.blockNumber,
+      name: parsed.name,
+      args: parsed.args,
+    });
+  }
+  return deduped(decoded);
+};
+
+// Latest settlement whose accrual is at least a day. `createdTs` opens the
+// first cycle when the NFT was minted inside the lookback.
+const annualisedFees = (points, createdTs) => {
+  if (!points.length) return 0;
+  const clusters = [];
+  for (const point of points) {
+    const last = clusters[clusters.length - 1];
+    if (last && point.ts - last.end <= MERGE_SEC) {
+      last.net += point.net;
+      last.end = point.ts;
+    } else {
+      clusters.push({ end: point.ts, net: point.net });
+    }
+  }
+  const cycles = [];
+  if (createdTs != null) {
+    cycles.push({ net: clusters[0].net, dt: clusters[0].end - createdTs });
+  }
+  for (let i = 1; i < clusters.length; i++) {
+    cycles.push({
+      net: clusters[i].net,
+      dt: clusters[i].end - clusters[i - 1].end,
+    });
+  }
+  for (let i = cycles.length - 1; i >= 0; i--) {
+    if (cycles[i].dt >= DAY && cycles[i].net > 0) {
+      return (cycles[i].net * YEAR) / cycles[i].dt;
+    }
+  }
+  return 0;
 };
 
 const vaultPool = async ({ chain, vault, npm, dex, version }) => {
@@ -149,7 +364,7 @@ const vaultPool = async ({ chain, vault, npm, dex, version }) => {
   );
   const { pricesByAddress } = await utils.getPrices(tokens, chain);
   const usd = (token, raw) =>
-    (Number(raw) / 10 ** decimalsOf[token]) * (pricesByAddress[token] || 0);
+    (asNumber(raw) / 10 ** decimalsOf[token]) * (pricesByAddress[token] || 0);
 
   const tokenOf = {};
   const valueBy = {};
@@ -183,107 +398,68 @@ const vaultPool = async ({ chain, vault, npm, dex, version }) => {
     );
   }
 
-  // Positions burned by a snuggle in the window are not in allTokenIds().
-  // Rebalanced.poolId -> vault.pools(poolId) recovers their token pair.
   const latest = await sdk.api.util.getLatestBlock(chain);
   const toBlock = Number(latest.number) - LOG_HEAD_BUFFER;
+  const now = Math.floor(Date.now() / 1000);
   const [fromBlock] = await utils.getBlocksByTime(
-    [Math.floor(Date.now() / 1000) - DAY],
+    [now - LOOKBACK_DAYS * DAY],
     chain
   );
-  // One event at a time. Parallel getLogs across a day's chunks trips public
-  // RPC limits, and a failed read must not be reported as a 0% APY.
-  const logs = async (eventAbi) => {
-    let lastError;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        return dedupedArgs(
-          await sdk.getEventLogs({
-            chain,
-            target: vault,
-            eventAbi,
-            fromBlock: Number(fromBlock),
-            toBlock,
-            onlyArgs: false,
-            skipCache: true,
-            maxBlockRange: LOG_BLOCK_RANGE[chain],
-          })
-        );
-      } catch (error) {
-        lastError = error;
-        if (attempt === 3) break;
-        await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
-      }
-    }
-    throw lastError;
+  const provider = sdk.getProvider(chain);
+  const [tip, anchor] = await Promise.all([
+    provider.getBlock(toBlock),
+    provider.getBlock(Number(fromBlock)),
+  ]);
+  const spanBlocks = toBlock - Number(fromBlock);
+  const secPerBlock = (tip.timestamp - anchor.timestamp) / spanBlocks;
+  const tsOf = (block) =>
+    anchor.timestamp + (Number(block) - Number(fromBlock)) * secPerBlock;
+
+  console.error(
+    `${chain} ${version}: ${LOOKBACK_DAYS}d fee settlements ${Number(
+      fromBlock
+    )}-${toBlock}`
+  );
+  const logs = await vaultLogs(chain, vault, Number(fromBlock), toBlock);
+  const pointsOf = new Map();
+  const createdTs = new Map();
+  const pushPoint = (tokenId, ts, net) => {
+    const id = String(tokenId);
+    if (!tokenOf[id]) return;
+    if (!pointsOf.has(id)) pointsOf.set(id, []);
+    pointsOf.get(id).push({ ts, net });
   };
-
-  const collected = await logs(events.collected);
-  const taxed = await logs(events.taxed);
-  const rebalanced = await logs(events.rebalanced);
-
-  const poolIds = [...new Set(rebalanced.map((log) => log.poolId))];
-  if (poolIds.length) {
-    const configs = await api.multiCall({
-      target: vault,
-      abi: abi.pools,
-      calls: poolIds,
-    });
-    const tokensByPool = Object.fromEntries(
-      poolIds.map((id, i) => [
-        id,
-        [configs[i].token0.toLowerCase(), configs[i].token1.toLowerCase()],
-      ])
-    );
-    rebalanced.forEach((log) => {
-      const pair = tokensByPool[log.poolId];
+  logs.forEach((log) => {
+    const { name } = log;
+    const ts = tsOf(log.blockNumber);
+    if (name === 'FeesCollected') {
+      const pair = tokenOf[String(log.args.tokenId)];
       if (!pair) return;
-      tokenOf[String(log.oldTokenId)] ||= pair;
-      tokenOf[String(log.newTokenId)] ||= pair;
-    });
-  }
-
-  const extraTokens = [...new Set(Object.values(tokenOf).flat())].filter(
-    (token) => !(token in decimalsOf)
-  );
-  if (extraTokens.length) {
-    const extraDecimals = await api.multiCall({
-      abi: abi.decimals,
-      calls: extraTokens,
-    });
-    extraTokens.forEach((token, i) => {
-      decimalsOf[token] = Number(extraDecimals[i]);
-    });
-    Object.assign(
-      pricesByAddress,
-      (await utils.getPrices(extraTokens, chain)).pricesByAddress
-    );
-  }
-
-  const valueOf = (tokenId, amount0, amount1) => {
-    const pair = tokenOf[String(tokenId)];
-    if (!pair) return null;
-    return usd(pair[0], amount0) + usd(pair[1], amount1);
-  };
-
-  let netUsd = 0;
-  let unmapped = 0;
-  const add = (tokenId, amount0, amount1, sign) => {
-    const value = valueOf(tokenId, amount0, amount1);
-    if (value === null) {
-      unmapped += 1;
-      return;
+      pushPoint(
+        log.args.tokenId,
+        ts,
+        usd(pair[0], log.args.collected0) + usd(pair[1], log.args.collected1)
+      );
+    } else if (name === 'FeeTaxed') {
+      const pair = tokenOf[String(log.args.tokenId)];
+      if (!pair) return;
+      pushPoint(
+        log.args.tokenId,
+        ts,
+        -(usd(pair[0], log.args.cut0) + usd(pair[1], log.args.cut1))
+      );
+    } else if (name === 'PositionCreated') {
+      const id = String(log.args.tokenId);
+      if (!tokenOf[id]) return;
+      const prev = createdTs.get(id);
+      if (prev == null || ts < prev) createdTs.set(id, ts);
     }
-    netUsd += sign * value;
-  };
-  collected.forEach((log) =>
-    add(log.tokenId, log.collected0, log.collected1, 1)
-  );
-  taxed.forEach((log) => add(log.tokenId, log.cut0, log.cut1, -1));
-  if (unmapped) {
-    console.error(
-      `${chain} ${vault}: ${unmapped} fee logs for unknown token ids skipped`
-    );
+  });
+
+  let annualisedUsd = 0;
+  for (const [id, points] of pointsOf) {
+    points.sort((a, b) => a.ts - b.ts);
+    annualisedUsd += annualisedFees(points, createdTs.get(id));
   }
 
   const symbol = utils.formatSymbol(
@@ -300,7 +476,7 @@ const vaultPool = async ({ chain, vault, npm, dex, version }) => {
     project: PROJECT,
     symbol,
     tvlUsd,
-    apyBase: tvlUsd > 0 ? (netUsd / tvlUsd) * 365 * 100 : 0,
+    apyBase: tvlUsd > 0 ? (annualisedUsd / tvlUsd) * 100 : 0,
     underlyingTokens: tokens,
     poolMeta: `${version} vault, managed ${dex} positions, ${ids.length} range${
       ids.length === 1 ? '' : 's'
@@ -312,7 +488,7 @@ const vaultPool = async ({ chain, vault, npm, dex, version }) => {
 };
 
 const apy = async () => {
-  // Sequential so a day's getLogs on fast chains does not trip public RPC limits.
+  // One vault at a time so a lookback of getLogs does not trip public RPC limits.
   const pools = [];
   for (const vault of VAULTS) {
     const pool = await vaultPool(vault);
