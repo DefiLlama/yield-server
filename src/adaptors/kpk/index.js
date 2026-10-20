@@ -78,9 +78,10 @@ const fundPool = async (fund, blocks, prices) => {
     return null;
   }
 
-  // Management and performance fees accrue daily but are collected as newly minted shares, usually
-  // at the start of each month and at redemptions. Most 7-day windows are therefore gross of fees;
-  // a window that spans a collection absorbs the fees accrued since the previous one.
+  // Fees are taken by minting new shares, so pricePerShare is net of a fee only once it has been
+  // minted. BTC Carry charges no fees today. Its planned fee is 10% performance (no management fee),
+  // charged when subscriptions and redemptions settle, so a window between settlements will be
+  // gross of the fee accrued in it.
   const apyBase = ((now.nps / before.nps) ** (365 / WINDOW_DAYS) - 1) * 100;
 
   return {
