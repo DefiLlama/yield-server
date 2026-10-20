@@ -5,6 +5,7 @@ const utils = require('../utils');
 const DETAILS_URL = 'https://api.nest.credit/v1/vaults/details?live=true';
 const POSITIONS_URL = 'https://api.nest.credit/v1/vaults';
 const PLUME_CHAIN_ID = 98866;
+const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEVGTDm7EGtD1';
 
 // Nest shares bridge across chains at the same address, so each chain gets its own pool sized by
 // that chain's supply. Nest API chain key -> [SDK chain, chain id, display name].
@@ -139,6 +140,7 @@ const vaultPools = async (v) => {
         pool: mint,
         chain: utils.formatChain('solana'),
         tvlUsd: supply * price,
+        underlyingTokens: [SOLANA_USDC],
       };
     }
   }
