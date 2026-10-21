@@ -173,9 +173,47 @@ const getWindow = (pool, startBlock, startTimestamp, endTimestamp) => ({
     SECONDS_PER_DAY,
 });
 
+const sqrtBigInt = (value) => {
+  if (value < 2n) return value;
+
+  let estimate = value;
+  let next = (estimate + 1n) / 2n;
+  while (next < estimate) {
+    estimate = next;
+    next = (estimate + value / estimate) / 2n;
+  }
+
+  return estimate;
+};
+
 const getPricePerShare = ({ depositLAssets, depositLShares }) => {
   if (depositLAssets <= 0n || depositLShares <= 0n) return null;
   return Number(depositLAssets) / Number(depositLShares);
+};
+
+const getReserveAdjustedPricePerShare = (accounting, reserves) => {
+  const pricePerShare = getPricePerShare(accounting);
+  const activeLiquidityAssets =
+    accounting.depositLAssets - accounting.borrowLAssets;
+  if (
+    pricePerShare === null ||
+    activeLiquidityAssets <= 0n ||
+    reserves.x <= 0n ||
+    reserves.y <= 0n
+  )
+    return null;
+
+  const reserveLiquidityAssets = sqrtBigInt(reserves.x * reserves.y);
+  const activeWeight =
+    Number(activeLiquidityAssets) / Number(accounting.depositLAssets);
+  const borrowedWeight =
+    Number(accounting.borrowLAssets) / Number(accounting.depositLAssets);
+  const activeReserveShim =
+    Number(reserveLiquidityAssets) / Number(activeLiquidityAssets);
+
+  // Preserve DEPOSIT_L assets/share as the base. Apply the reserve-derived
+  // adjustment only to active L; borrowed L does not participate in swaps.
+  return pricePerShare * (activeWeight * activeReserveShim + borrowedWeight);
 };
 
 const annualizeShareGrowth = (currentPrice, startPrice, elapsedDays) => {
@@ -234,20 +272,39 @@ const buildPool = async (pool, blocks, prices, timestamp) => {
     timestamp
   );
 
-  const [current, dayStart, weekStart, reserves, dailyVolume, weeklyVolume] =
-    await Promise.all([
-      getAccountingAtBlock(pool, blocks.endBlock),
-      getAccountingAtBlock(pool, dayWindow.startBlock),
-      getAccountingAtBlock(pool, weekWindow.startBlock),
-      getReservesAtBlock(pool, blocks.endBlock),
-      getSwapVolume(pool, dayWindow.startBlock, blocks.endBlock),
-      getSwapVolume(pool, weekWindow.startBlock, blocks.endBlock),
-    ]);
+  const [
+    current,
+    dayStart,
+    weekStart,
+    reserves,
+    dayStartReserves,
+    weekStartReserves,
+    dailyVolume,
+    weeklyVolume,
+  ] = await Promise.all([
+    getAccountingAtBlock(pool, blocks.endBlock),
+    getAccountingAtBlock(pool, dayWindow.startBlock),
+    getAccountingAtBlock(pool, weekWindow.startBlock),
+    getReservesAtBlock(pool, blocks.endBlock),
+    getReservesAtBlock(pool, dayWindow.startBlock),
+    getReservesAtBlock(pool, weekWindow.startBlock),
+    getSwapVolume(pool, dayWindow.startBlock, blocks.endBlock),
+    getSwapVolume(pool, weekWindow.startBlock, blocks.endBlock),
+  ]);
 
   const balances = await getPairBalances(pool, blocks.endBlock);
   const pricePerShare = getPricePerShare(current);
+  const reserveAdjustedPricePerShare = getReserveAdjustedPricePerShare(
+    current,
+    reserves
+  );
   const totalDepositedAmounts = getTotalDepositedAmounts(current, reserves);
-  if (pricePerShare === null || totalDepositedAmounts === null) return null;
+  if (
+    pricePerShare === null ||
+    reserveAdjustedPricePerShare === null ||
+    totalDepositedAmounts === null
+  )
+    return null;
 
   return {
     pool: `${pool.pair}-${CHAIN}`,
@@ -272,13 +329,13 @@ const buildPool = async (pool, blocks, prices, timestamp) => {
       prices
     ),
     apyBase: annualizeShareGrowth(
-      pricePerShare,
-      getPricePerShare(dayStart),
+      reserveAdjustedPricePerShare,
+      getReserveAdjustedPricePerShare(dayStart, dayStartReserves),
       dayWindow.elapsedDays
     ),
     apyBase7d: annualizeShareGrowth(
-      pricePerShare,
-      getPricePerShare(weekStart),
+      reserveAdjustedPricePerShare,
+      getReserveAdjustedPricePerShare(weekStart, weekStartReserves),
       weekWindow.elapsedDays
     ),
     pricePerShare,
