@@ -107,6 +107,8 @@ const apy = async () => {
       symbol: 'KTON',
       tvlUsd: (current.totalBalance / 1e9) * tonPrice,
       apyBase,
+      // Gram per KTON: the pool's total balance over the KTON issued.
+      pricePerShare: current.rate,
       underlyingTokens: ['EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c'], // native TON
       token: KTON,
     },
