@@ -80,6 +80,8 @@ const main = async () => {
         r.oraclePrice;
       const totalSupplyUsd = Math.max(0, r.totalSupplied * price);
       const totalBorrowUsd = Math.max(0, r.totalBorrowed * price);
+      // HyperCore reserves with positive LTV are collateral-only.
+      const borrowable = r.ltv === 0;
 
       return {
         pool: `${r.index}-hyperliquid-earn`,
@@ -88,7 +90,8 @@ const main = async () => {
         symbol: r.symbol,
         tvlUsd: Math.max(0, totalSupplyUsd - totalBorrowUsd),
         apyBase: r.supplyRate,
-        apyBaseBorrow: r.borrowRate,
+        apyBaseBorrow: borrowable ? r.borrowRate : undefined,
+        borrowable,
         totalSupplyUsd: totalSupplyUsd || undefined,
         totalBorrowUsd,
         ltv: Math.min(1, Math.max(0, r.ltv)),
