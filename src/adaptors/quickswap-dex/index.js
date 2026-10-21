@@ -9,7 +9,7 @@ const url = sdk.graph.modifyEndpoint(
 
 const query = gql`
   {
-    pairs(first: 1000, orderBy: trackedReserveETH, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    now: pairs(first: 1000, orderBy: trackedReserveETH, orderDirection: desc block: {number: <BLOCK>}) {
       id
       volumeUSD
       reserve0
@@ -23,14 +23,13 @@ const query = gql`
         id
       }
     }
-  }
-`;
-
-const queryPrior = gql`
-  {
-    pairs (first: 1000 orderBy: trackedReserveETH orderDirection: desc block: {number: <PLACEHOLDER>}) {
-      id 
-      volumeUSD 
+    prior1d: pairs(first: 1000 orderBy: trackedReserveETH orderDirection: desc block: {number: <BLOCK_1D>}) {
+      id
+      volumeUSD
+    }
+    prior7d: pairs(first: 1000 orderBy: trackedReserveETH orderDirection: desc block: {number: <BLOCK_7D>}) {
+      id
+      volumeUSD
     }
   }
 `;
@@ -74,24 +73,22 @@ const topLvl = async (chainString, timestamp, url, version) => {
     604800
   );
 
-  // pull data
-  let data = (await request(url, query.replace('<PLACEHOLDER>', block))).pairs;
-
-  // pull 24h offset data to calculate fees from swap volume
-  const dataPrior = (
-    await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior))
-  ).pairs;
-
-  // 7d offset
-  const dataPrior7d = (
-    await request(url, queryPrior.replace('<PLACEHOLDER>', blockPrior7d))
-  ).pairs;
+  // one request, so one indexer answers every block: indexers on this
+  // deployment disagree on cumulative volumeUSD by billions
+  const result = await request(
+    url,
+    query
+      .replace('<BLOCK>', block)
+      .replace('<BLOCK_1D>', blockPrior)
+      .replace('<BLOCK_7D>', blockPrior7d)
+  );
+  let data = result.now;
 
   // calculate tvl
   data = await utils.tvl(data, chainString);
 
   // calculate apy
-  data = data.map((el) => utils.apy(el, dataPrior, dataPrior7d, version));
+  data = data.map((el) => utils.apy(el, result.prior1d, result.prior7d, version));
 
   // build pool objects
   data = data.map((el) => buildPool(el, chainString));
