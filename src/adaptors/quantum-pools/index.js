@@ -489,10 +489,26 @@ const vaultPool = async ({ chain, vault, npm, dex, version }) => {
 
 const apy = async () => {
   // One vault at a time so a lookback of getLogs does not trip public RPC limits.
+  // A failed read skips that vault. It is not published as 0% APY. If every
+  // vault throws, fail the run so an outage is not stored as an empty adapter.
   const pools = [];
+  let failed = 0;
   for (const vault of VAULTS) {
-    const pool = await vaultPool(vault);
-    if (pool) pools.push(pool);
+    try {
+      const pool = await vaultPool(vault);
+      if (pool) pools.push(pool);
+    } catch (error) {
+      failed += 1;
+      const reason =
+        (error && error.message) ||
+        (error && error.llamaRPCError
+          ? `RPC ${error.method || 'read'} failed`
+          : String(error));
+      console.error(`${vault.chain} ${vault.vault}: skipped (${reason})`);
+    }
+  }
+  if (failed === VAULTS.length) {
+    throw new Error('quantum-pools: all vaults failed');
   }
   return pools.filter(utils.keepFinite);
 };
