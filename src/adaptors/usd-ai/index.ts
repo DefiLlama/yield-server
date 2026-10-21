@@ -265,7 +265,7 @@ const apy = async (timestamp: number) => {
         tvlUsd: redemptionValueUsd,
         apyBase,
         ...(Number(pricePerShareResult.output) / 1e18 > 0 && { pricePerShare: Number(pricePerShareResult.output) / 1e18 }),
-        underlyingTokens: [PYUSD_ADDRESS, USDAI],
+        underlyingTokens: [USDAI],
         poolMeta: '30d unlock',
         url: 'https://app.usd.ai',
         isIntrinsicSource: true,
