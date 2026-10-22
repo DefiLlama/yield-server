@@ -41,29 +41,48 @@ async function urmPrice() {
   throw new Error('no URM price');
 }
 
-// convertToAssets(1 fURM) at a block; null if the vault did not exist yet.
+// convertToAssets(1 fURM) at a block (latest if omitted). Read errors throw
+// rather than being mistaken for missing history.
 async function sharePrice(block) {
-  try {
-    const { output } = await sdk.api.abi.call({
-      target: FURM, abi: abi.convertToAssets, params: [ONE], chain: CHAIN,
-      ...(block ? { block } : {}),
-    });
-    return Number(output) > 0 ? Number(output) : null;
-  } catch (e) {
-    return null;
+  const { output } = await sdk.api.abi.call({
+    target: FURM, abi: abi.convertToAssets, params: [ONE], chain: CHAIN,
+    ...(block ? { block } : {}),
+  });
+  const pps = Number(output);
+  if (!(pps > 0)) throw new Error(`invalid fURM share price at block ${block ?? 'latest'}`);
+  return pps;
+}
+
+// True once the vault contract exists at `block`. This is the only case that
+// falls back to a shorter window; any other failure throws.
+async function deployedAt(block) {
+  const code = await sdk.getProvider(CHAIN).getCode(FURM, block);
+  return typeof code === 'string' && code !== '0x';
+}
+
+// One block lookup, retried, since the lookup API can return transient errors.
+// A missing or invalid height after retries throws; it never falls back to latest.
+async function blockAt(timestamp) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const [height] = await utils.getBlocksByTime([timestamp], CHAIN);
+      if (Number.isInteger(height) && height > 0) return height;
+    } catch (e) {}
+    if (attempt < 3) await new Promise((r) => setTimeout(r, 1000 * attempt));
   }
+  throw new Error(`block lookup failed for timestamp ${timestamp}`);
 }
 
 // Share price can dip (a CDP debt drop reprices pending interest), and
 // yield-server drops pools with apy < 0, so a non-positive change reports 0.
 async function apy7d(ppsNow) {
   const now = Math.floor(Date.now() / 1000);
-  const blocks = await utils.getBlocksByTime(LOOKBACK_DAYS.map((d) => now - d * DAY), CHAIN);
-  for (let i = 0; i < LOOKBACK_DAYS.length; i++) {
-    const ppsThen = await sharePrice(blocks[i]);
-    if (!ppsThen) continue; // vault younger than this window
+  for (const days of LOOKBACK_DAYS) {
+    const block = await blockAt(now - days * DAY);
+    if (!(await deployedAt(block))) continue; // vault younger than this window
+    const ppsThen = await sharePrice(block);
     if (ppsNow <= ppsThen) return 0;
-    return ((ppsNow / ppsThen) ** (365 / LOOKBACK_DAYS[i]) - 1) * 100;
+    return ((ppsNow / ppsThen) ** (365 / days) - 1) * 100;
   }
   return 0; // under 1 day of history
 }
@@ -78,7 +97,6 @@ const getApy = async () => {
   const tvlUsd = (Number(deposits) / 1e18) * (await urmPrice());
 
   const ppsNow = await sharePrice();
-  if (!ppsNow) throw new Error('could not read fURM share price');
 
   return [
     {
