@@ -72,5 +72,5 @@ const apy = async () => {
 module.exports = {
   timetravel: false,
   apy,
-  url: 'https://app.liquidprotocol.org',
+  url: 'https://app.liquidprotocol.org/vault',
 };
