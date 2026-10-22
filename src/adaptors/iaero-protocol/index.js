@@ -2,7 +2,11 @@ const axios = require('axios');
 
 const DATA_URL = 'https://raw.githubusercontent.com/iaeroProtocol/ChainProcessingBot/main/data/estimated_rewards_usd.json';
 
-const AERO_TOKEN = '0x940181a94A35A4569E4529A3CDfB74e38FD98631';
+// Aero AERO on Base. iAERO's backing moved from Aerodrome veAERO to a permanent Aero stake
+// on 2026-10-22; the old Aerodrome AERO was 0x940181a94A35A4569E4529A3CDfB74e38FD98631.
+const AERO_TOKEN = '0x3f5bF3EdAc59d650D8fDf9657a71F2f904A3a4Ee';
+// Pool id only: the original PermalockVault address, kept so the pool's history continues.
+// It no longer holds the backing.
 const VAULT_ADDRESS = '0x180DAB53968e599Dd43CF431E27CB01AA5C37909';
 
 const main = async () => {
