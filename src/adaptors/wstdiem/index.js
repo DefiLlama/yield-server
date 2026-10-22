@@ -5,11 +5,13 @@
 // vault as DIEM (routeYield -> creditDIEM), which raises the share price without minting shares.
 //
 // Everything is read on-chain:
-//   tvlUsd        : totalAssets() (idle + staked + cooling DIEM) x DIEM price from coins.llama.fi
+//   tvlUsd        : totalAssets() (idle + staked + cooling DIEM, minus DIEM owed to settled redemptions)
+//                   x DIEM price from coins.llama.fi
 //   pricePerShare : convertToAssets(1e18) / 1e18 (DIEM per wstDIEM)
 //   apyBase       : share-price growth over the trailing 7 days, annualised. Compounds land a few times
 //                   a day in lumps, so a 24h window swings with how many landed; 7 days is the honest
-//                   realised rate. It is net of the vault's fees (they never reach the share price).
+//                   realised rate. creditDIEM() mints the yield fee to the treasury as shares before the
+//                   credit lands, so share-price growth is already net of it.
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
