@@ -34,7 +34,7 @@ const chains = {
 
 const query = gql`
   {
-    pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <PLACEHOLDER>}) {
+    now: pools(first: 1000, orderBy: totalValueLockedUSD, orderDirection: desc block: {number: <BLOCK>}) {
       id
       totalValueLockedToken0
       totalValueLockedToken1
@@ -54,14 +54,15 @@ const query = gql`
         decimals
       }
     }
-  }
-`;
-
-const queryPrior = gql`
-  {
-    pools( first: 1000 orderBy: totalValueLockedUSD orderDirection:desc block: {number: <PLACEHOLDER>}) {
-      id 
-      volumeUSD 
+    prior1d: pools(first: 1000 orderBy: totalValueLockedUSD orderDirection: desc block: {number: <BLOCK_1D>}) {
+      id
+      volumeUSD
+      volumeToken0
+      volumeToken1
+    }
+    prior7d: pools(first: 1000 orderBy: totalValueLockedUSD orderDirection: desc block: {number: <BLOCK_7D>}) {
+      id
+      volumeUSD
       volumeToken0
       volumeToken1
     }
@@ -71,8 +72,6 @@ const queryPrior = gql`
 const topLvl = async (
   chainString,
   url,
-  query,
-  queryPrior,
   version,
   timestamp,
   stablecoins
@@ -85,17 +84,18 @@ const topLvl = async (
       utils.getBlocksByTime([timestampForBlocks - 604800], chainString),
     ]);
 
-    // pull data
-    let queryC = query;
-    let queryPriorC = queryPrior;
-    let [dataNow, dataPrior, dataPrior7d] = await Promise.all([
-      request(url, queryC.replace('<PLACEHOLDER>', block)),
-      request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior)),
-      request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d)),
-    ]);
-    dataNow = dataNow.pools;
-    dataPrior = dataPrior.pools;
-    dataPrior7d = dataPrior7d.pools;
+    // one request, so one indexer answers every block: indexers on a
+    // deployment can disagree on cumulative volume (celo: 0 vs $2.5M)
+    const result = await request(
+      url,
+      query
+        .replace('<BLOCK>', block)
+        .replace('<BLOCK_1D>', blockPrior)
+        .replace('<BLOCK_7D>', blockPrior7d)
+    );
+    let dataNow = result.now;
+    const dataPrior = result.prior1d;
+    const dataPrior7d = result.prior7d;
 
     // uni v3 subgraph reserves values are wrong!
     // instead of relying on subgraph values, gonna pull reserve data from contracts
@@ -291,8 +291,6 @@ const main = async (timestamp = null) => {
       return topLvl(
         chain,
         url,
-        query,
-        queryPrior,
         'v3',
         timestamp,
         stablecoins

@@ -556,6 +556,11 @@ exports.apy = (pool, dataPrior1d, dataPrior7d, version) => {
     }
   }
 
+  // cumulative volume never decreases: a missing prior or a negative delta
+  // means the snapshots disagree, so the window volume is unknown
+  if (!(pool.volumeUSD1d >= 0)) pool.volumeUSD1d = undefined;
+  if (!(pool.volumeUSD7d >= 0)) pool.volumeUSD7d = undefined;
+
   // calc fees
   pool['feeUSD1d'] = (pool.volumeUSD1d * Number(pool.feeTier)) / 1e6;
   pool['feeUSD7d'] = (pool.volumeUSD7d * Number(pool.feeTier)) / 1e6;

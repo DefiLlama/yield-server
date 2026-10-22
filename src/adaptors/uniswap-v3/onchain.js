@@ -82,6 +82,7 @@ const getPools = async (chain) => {
     eventAbi: EVENTS.PoolCreated,
     fromBlock: config.fromBlock,
     toBlock: currentBlock.number,
+    clientStreaming: true,
   });
 
   const seenPools = new Set();
@@ -188,6 +189,7 @@ const getPools = async (chain) => {
       eventAbi: EVENTS.Swap,
       fromBlock: currentBlock.number - blocksPerDay,
       toBlock: currentBlock.number,
+      clientStreaming: true,
     });
 
     const totals = sumSwapUsd(swapLogs, pool, tokenDecimals, prices);

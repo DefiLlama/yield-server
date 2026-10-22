@@ -234,6 +234,7 @@ async function getEventLogsInChunks({
           fromBlock: from,
           toBlock: to,
           chain,
+          clientStreaming: true,
         })
       )
     );

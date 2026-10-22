@@ -130,6 +130,7 @@ const main = async (unixTimestamp) => {
       fromBlock: last7DaysBlock,
       toBlock: currentBlock,
       entireLog: true,
+      clientStreaming: true,
     })).map(log => {
       const event = iface.parseLog({
         topics: log.topics,

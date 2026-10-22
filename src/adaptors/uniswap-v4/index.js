@@ -75,7 +75,6 @@ const POOL_FIELDS = `
       totalValueLockedUSD
       totalValueLockedToken0
       totalValueLockedToken1
-      volumeUSD
       token0 {
         symbol
         decimals
@@ -108,6 +107,45 @@ const fetchAllPools = async (url, block) => {
   }
 
   return allPools;
+};
+
+const volumesQuery = (ids, block, blockPrior) => gql`
+  {
+    now: pools(first: ${ids.length}, where: {id_in: ${JSON.stringify(ids)}}, block: {number: ${block}}) {
+      id
+      volumeUSD
+      createdAtBlockNumber
+    }
+    prior: pools(first: ${ids.length}, where: {id_in: ${JSON.stringify(ids)}}, block: {number: ${blockPrior}}) {
+      id
+      volumeUSD
+    }
+  }
+`;
+
+// both blocks go in one request so one indexer answers them: indexers on the
+// same deployment disagree on cumulative volumeUSD. a pool created after the
+// prior block traded its whole life inside the window; any other pool missing
+// there has no measurable delta, so it gets no entry rather than 0
+const fetchVolumes1d = async (url, ids, block, blockPrior) => {
+  const volumes = {};
+
+  for (let start = 0; start < ids.length; start += PAGE_SIZE) {
+    const { now, prior } = await request(
+      url,
+      volumesQuery(ids.slice(start, start + PAGE_SIZE), block, blockPrior)
+    );
+    const priorVolumes = new Map(prior.map((p) => [p.id, Number(p.volumeUSD)]));
+    for (const pool of now) {
+      const priorVolume =
+        priorVolumes.get(pool.id) ??
+        (Number(pool.createdAtBlockNumber) > blockPrior ? 0 : undefined);
+      const volume = Number(pool.volumeUSD) - priorVolume;
+      if (volume >= 0) volumes[pool.id] = volume;
+    }
+  }
+
+  return volumes;
 };
 
 const isDynamicFeePool = (feeTier) => Number(feeTier) === DYNAMIC_FEE_FLAG;
@@ -155,10 +193,7 @@ const topLvl = async (chainString, url, timestamp) => {
       url,
     ]);
 
-    let [dataNow, dataPrior] = await Promise.all([
-      fetchAllPools(url, block),
-      fetchAllPools(url, blockPrior),
-    ]);
+    let dataNow = await fetchAllPools(url, block);
 
     dataNow = dataNow.map((p) => ({
       ...p,
@@ -169,14 +204,16 @@ const topLvl = async (chainString, url, timestamp) => {
 
     dataNow = await utils.tvl(dataNow, chainString);
 
-    const dataPriorByPool = new Map(dataPrior.map((p) => [p.id, p]));
+    const volumes1d = await fetchVolumes1d(
+      url,
+      dataNow.map((p) => p.id),
+      block,
+      blockPrior
+    );
 
     dataNow = dataNow.map((pool) => {
-      const poolPrior = dataPriorByPool.get(pool.id);
+      const volumeUSD1d = volumes1d[pool.id];
       const isDynamic = isDynamicFeePool(pool.feeTier);
-
-      const volumeUSD1d =
-        Number(pool.volumeUSD || 0) - Number(poolPrior?.volumeUSD || 0);
 
       // dynamic fee pools use hooks, can't calculate fees from feeTier
       const feeUSD1d = isDynamic
@@ -190,7 +227,7 @@ const topLvl = async (chainString, url, timestamp) => {
 
       return {
         ...pool,
-        apyBase: apy,
+        apyBase: volumeUSD1d === undefined && !isDynamic ? undefined : apy,
         volumeUsd1d: volumeUSD1d,
       };
     });
@@ -348,9 +385,12 @@ const topLvlDayData = async (chainString, url) => {
   }
 };
 
+// without the token0_/token1_ filters this subgraph intermittently fails the
+// whole page with "Null value resolved for non-null field token1", even though
+// every pool on it resolves both tokens when fetched by id
 const fallbackPoolsQuery = (idCursor) => gql`
   {
-    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${FALLBACK_PREFILTER_TVL}, id_gt: "${idCursor}"}) {
+    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${FALLBACK_PREFILTER_TVL}, id_gt: "${idCursor}", token0_: {decimals_gte: 0}, token1_: {decimals_gte: 0}}) {
       id
       feeTier: fee
       totalValueLockedUSD
@@ -438,6 +478,12 @@ const fetchSwapTotals = async (chainString, poolManager) => {
     toBlock: block,
     eventAbi: SWAP_EVENT,
     onlyArgs: true,
+    // the indexer's paged mode repeats some swaps in place of others (right
+    // count, ~20% wrong logs). skipCache guards the RPC fallback: this event
+    // outgrows the cache trim, which empties ranges it still claims to cover
+    // (DefiLlama/defillama-sdk#247, not in the pinned sdk)
+    clientStreaming: true,
+    skipCache: true,
   });
 
   const totalsByPoolId = {};

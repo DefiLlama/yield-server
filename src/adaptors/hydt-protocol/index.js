@@ -363,8 +363,8 @@ const getFarmAPY = async (block, blockPrior, blockPrior7d, hydtPrice) => {
       apyReward: rewardAPY || 0,
       rewardTokens,
       underlyingTokens,
-      volumeUsd1d: p?.volumeUSD1d || 0,
-      volumeUsd7d: p?.volumeUSD7d || 0,
+      volumeUsd1d: p?.volumeUSD1d,
+      volumeUsd7d: p?.volumeUSD7d,
     };
   });
 

@@ -145,6 +145,7 @@ async function fetchPoolsVolumes(chain, pools, routers) {
       fromBlock: last7DaysBlock,
       toBlock,
       entireLog: true,
+      clientStreaming: true,
     });
     routerLogs = routerLogs.concat(logs);
   }
@@ -251,8 +252,8 @@ async function poolApys(chainId, pools) {
       }),
       underlyingTokens: [splitId(p.pt).address, splitId(p.sy).address].map(resolveToken),
       searchTokenOverride: resolveToken(splitId(p.underlyingAsset).address),
-      volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
-      volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
+      volumeUsd1d: p.volumeUsd1d,
+      volumeUsd7d: p.volumeUsd7d,
       poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
       url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
     };

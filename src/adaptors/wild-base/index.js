@@ -344,8 +344,8 @@ const topLv = async (chainString, version, timestamp) => {
       rewardTokens: apyReward > 0 || isWILDxStake ? [WILDx] : [],
       underlyingTokens,
       url,
-      volumeUsd1d: p?.volumeUSD1d || 0,
-      volumeUsd7d: p?.volumeUSD7d || 0,
+      volumeUsd1d: p?.volumeUSD1d,
+      volumeUsd7d: p?.volumeUSD7d,
     };
   });
 
