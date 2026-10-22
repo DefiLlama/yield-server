@@ -8,6 +8,17 @@ const AERO_TOKEN = '0x3f5bF3EdAc59d650D8fDf9657a71F2f904A3a4Ee';
 // Pool id only: the original PermalockVault address, kept so the pool's history continues.
 // It no longer holds the backing.
 const VAULT_ADDRESS = '0x180DAB53968e599Dd43CF431E27CB01AA5C37909';
+// Data older than this (more than a full weekly epoch) is not a current yield, so the run fails instead.
+const MAX_DATA_AGE_MS = 8 * 24 * 60 * 60 * 1000;
+
+// Publish time: `updatedAt` (ISO; written by both the legacy keeper and ChainProcessingBot),
+// else ChainProcessingBot's `updateTimestamp` (unix seconds).
+const publishedAtMs = (data) => {
+  const iso = Date.parse(data.updatedAt);
+  if (Number.isFinite(iso)) return iso;
+  const ts = Number(data.updateTimestamp);
+  return Number.isFinite(ts) && ts > 0 ? ts * 1000 : NaN;
+};
 
 const main = async () => {
   // Use axios directly to avoid any caching in utils.getData
@@ -23,6 +34,12 @@ const main = async () => {
   // Validate response
   if (!data || typeof data !== 'object') {
     throw new Error(`Invalid data response: ${JSON.stringify(data)}`);
+  }
+
+  // Refuse stale data rather than keep reporting an old APY/TVL
+  const ageMs = Date.now() - publishedAtMs(data);
+  if (!Number.isFinite(ageMs) || ageMs > MAX_DATA_AGE_MS) {
+    throw new Error(`Stale data: updatedAt=${data.updatedAt}, updateTimestamp=${data.updateTimestamp}`);
   }
 
   // Parse TVL - string in 1e18 precision
