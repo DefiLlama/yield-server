@@ -33,8 +33,12 @@ const COINGECKO_IDS = {
   '549647506080797045256801field': 'tether',
 };
 
+// Both APIs are public and occasionally answer 429 or 5xx; retry those with backoff (permanent 4xx
+// still fail fast).
+const getData = (url) => utils.withRetry(() => utils.getData(url));
+
 const aleoMapping = async (mapping, key) =>
-  utils.getData(`${ALEO_RPC}/program/${AMM}/mapping/${mapping}/${key}`);
+  getData(`${ALEO_RPC}/program/${AMM}/mapping/${mapping}/${key}`);
 
 // Aleo plaintext structs come back as `{\n  fee: 200u16,\n  enabled: true\n}`; every field is a
 // literal, so one pass over the `name: value` pairs decodes the whole struct. Reading it into a
@@ -70,9 +74,9 @@ const aleoNumber = (struct, field) => {
 };
 
 const apy = async () => {
-  const { data: pools } = await utils.getData(`${INDEXER}/pools`);
+  const { data: pools } = await getData(`${INDEXER}/pools`);
   const enabled = pools.filter((pool) => pool.enabled);
-  const { data: stats } = await utils.getData(
+  const { data: stats } = await getData(
     `${INDEXER}/pools/stats?keys=${enabled.map((pool) => pool.key).join(',')}`
   );
 
@@ -110,12 +114,21 @@ const apy = async () => {
       if (price0 === null || price1 === null) return null;
 
       // Fee tier and protocol split are read from chain state rather than taken from the indexer.
-      const [poolState, slot] = await Promise.all([
-        aleoMapping('pools', pool.key),
-        aleoMapping('slots', pool.key),
-      ]);
-      const feePpm = aleoNumber(aleoStruct(poolState), 'fee');
-      const feeProtocol = aleoNumber(aleoStruct(slot), 'fee_protocol');
+      // A pool whose reads still fail after retries is dropped on its own, so one bad call cannot
+      // take the other pools down with it.
+      let feePpm;
+      let feeProtocol;
+      try {
+        const [poolState, slot] = await Promise.all([
+          aleoMapping('pools', pool.key),
+          aleoMapping('slots', pool.key),
+        ]);
+        feePpm = aleoNumber(aleoStruct(poolState), 'fee');
+        feeProtocol = aleoNumber(aleoStruct(slot), 'fee_protocol');
+      } catch (e) {
+        console.error(`shield-swap: skipping pool ${pool.key}: ${e.message}`);
+        return null;
+      }
 
       const decimals0 = pool.token0_info.decimals;
       const decimals1 = pool.token1_info.decimals;
