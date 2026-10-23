@@ -157,7 +157,7 @@ const apy = async () => {
         // A position is an encrypted PositionNFT record rather than a transferable pool token.
         token: null,
         poolMeta: `${feePpm / (FEE_PPM_DENOMINATOR / 100)}%`,
-        url: `https://swap.shield.fi/?pool=${pool.key}`,
+        url: `https://swap.shield.fi/pools/${pool.key}`,
         volumeUsd1d: volumeUsd,
       };
     })
