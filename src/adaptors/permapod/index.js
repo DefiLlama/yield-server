@@ -3,10 +3,11 @@ const BigNumber = require('bignumber.js');
 
 const CHAIN_NAME_LLAMA = 'ZIGChain';
 const CHAIN_KEY = 'zigchain';
-// Tried in order: public ZIGChain LCDs occasionally return errors for a while.
+// Tried in order: public ZIGChain LCDs occasionally return errors for a while. Numia first,
+// as used by the other ZIGChain adaptors (nawa-protocol, valdora-finance).
 const LCD_ENDPOINTS = [
-  'https://zigchain-mainnet-lcd.zigscan.net',
   'https://public-zigchain-lcd.numia.xyz',
+  'https://zigchain-mainnet-lcd.zigscan.net',
 ];
 
 // Perma Pod v2: positions migrated on 2026-09-28; ZIG moved to azig on 2026-09-30;
