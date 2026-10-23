@@ -3,7 +3,11 @@ const BigNumber = require('bignumber.js');
 
 const CHAIN_NAME_LLAMA = 'ZIGChain';
 const CHAIN_KEY = 'zigchain';
-const LCD_ENDPOINT = 'https://zigchain-mainnet-lcd.zigscan.net';
+// Tried in order: public ZIGChain LCDs occasionally return errors for a while.
+const LCD_ENDPOINTS = [
+  'https://zigchain-mainnet-lcd.zigscan.net',
+  'https://public-zigchain-lcd.numia.xyz',
+];
 
 // Perma Pod v2: positions migrated on 2026-09-28; ZIG moved to azig on 2026-09-30;
 // the USDC market moved from Noble USDC (USDC.n) to USDC.inj on 2026-10-23.
@@ -135,12 +139,19 @@ async function getAllAssetParams() {
 /** Query a CosmWasm contract through the LCD and return its decoded data. */
 async function queryContract(contract, data) {
   const encoded = Buffer.from(JSON.stringify(data)).toString('base64');
-  const result = await utils.getData(
-    `${LCD_ENDPOINT}/cosmwasm/wasm/v1/contract/${contract}/smart/${encoded}`,
-  );
-  if (result?.data == null)
-    throw new Error(`Invalid Perma Pod contract response: ${contract}`);
-  return result.data;
+  let lastError;
+  for (const lcd of LCD_ENDPOINTS) {
+    try {
+      const result = await utils.getData(
+        `${lcd}/cosmwasm/wasm/v1/contract/${contract}/smart/${encoded}`,
+      );
+      if (result?.data != null) return result.data;
+      lastError = new Error(`Invalid Perma Pod contract response: ${contract}`);
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError;
 }
 
 module.exports = {
