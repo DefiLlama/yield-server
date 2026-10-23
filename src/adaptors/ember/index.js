@@ -2,7 +2,7 @@ const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const utils = require('../utils');
 
-const PROJECT = 'ember-protocol';
+const PROJECT = 'ember';
 const BASE_URL = 'https://ember.so/';
 const EARN_URL = 'https://ember.so/earn';
 const VAULTS_URL = 'https://vaults.api.prod.ember.so/api/v2/vaults';
@@ -226,7 +226,7 @@ const apy = async () => {
   try {
     ({ data: vaults } = await axios.get(VAULTS_URL));
   } catch (err) {
-    console.error(`ember-protocol: failed to fetch ${VAULTS_URL}:`, err.message);
+    console.error(`ember: failed to fetch ${VAULTS_URL}:`, err.message);
     throw err;
   }
 
