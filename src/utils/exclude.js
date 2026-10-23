@@ -540,6 +540,7 @@ const excludedProtocols = [
   { id: '6797', slug: 'forgeyields' }, // abandoned: strategies API 500 since early Oct 2026, all vaults 0% APY since Sep 2026, team silent since Jun 2026
   { id: '5905', slug: 'multipli.fi' }, // multipli.fi dns gone ~2026-10-11 (api/app/docs), apy only served by their api; on-chain activity stopped early Sep 2026
   { id: '2783', slug: 'scrub-invest' }, // vaults empty (USDt $1, KAVA $0) and TIGER/LION unpriced since ~2026-10-18; stale $7.4M TIGER-LION row vs $28k protocol tvl
+  { id: '604', slug: 'sherlock' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
