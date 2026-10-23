@@ -147,12 +147,13 @@ const apy = async () => {
         pool: `${pool.key}-aleo`,
         chain: utils.formatChain('aleo'),
         project: 'shield-swap',
-        symbol: utils.formatSymbol(
-          `${pool.token0_info.symbol}-${pool.token1_info.symbol}`
-        ),
+        symbol: `${pool.token0_info.symbol}-${pool.token1_info.symbol}`,
         tvlUsd,
-        apyBase: tvlUsd > 0 ? ((positionFeesUsd * 365) / tvlUsd) * 100 : 0,
-        underlyingTokens: [pool.token0, pool.token1],
+        apyBase:
+          tvlUsd > 0 ? ((positionFeesUsd * 365) / tvlUsd) * 100 : undefined,
+        underlyingTokens: [pool.token0, pool.token1].map(
+          (t) => `coingecko:${COINGECKO_IDS[t]}`
+        ),
         // A position is an encrypted PositionNFT record rather than a transferable pool token.
         token: null,
         poolMeta: `${feePpm / (FEE_PPM_DENOMINATOR / 100)}%`,
