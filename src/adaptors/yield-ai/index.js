@@ -13,13 +13,6 @@ const HYPERION =
 const CLAIM_FEE = 0.05;
 const USER_SHARE = 1 - CLAIM_FEE;
 
-const USDC =
-  '0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b';
-// Season 2, from 2026-10-06, still open: 700 bps, paid weekly in USDC above a $99 balance.
-// The payout is a plain USDC transfer into the safe, so the 5% claim fee does not apply.
-// https://yieldai.app/campaign/boost
-const BOOST_APR_PCT = 7;
-
 const USDC_MARKET =
   '0x2c4e0bb55272f9c120ffd5a414c10244005caf9c1b14527cea3df7074c5bf623';
 const USD1_MARKET =
@@ -32,16 +25,6 @@ const APP_URL = 'https://yieldai.app/';
 const SEC_PER_YEAR = 365 * 24 * 60 * 60;
 const PAGE_SIZE = 50;
 const CALL_CONCURRENCY = 6;
-const MIN_TVL_USD = 1000;
-
-const DECIMALS = {
-  '0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b': 6, // USDC
-  '0x05fabd1b12e39967a3c24e91b7b8f67719a6dacee74f3c8b9fb7d93e855437d2': 6, // USD1
-  '0x357b0b74bc833e95a115ad22604854d6b0fca151cecd94111770e5d6ffc9dc2b': 6, // USDt
-  '0x68844a0d7f2587e726ad0579f3d640865bb4162c08a4589eeda3f9689ec52a3d': 8, // WBTC
-  '0x81214a80d82035a190fcb76b6ff3c0145161c3a9f33d137f2bbaee4cfec8a387': 8, // xBTC
-  '0xa': 8, // APT
-};
 
 function padAddress(addr) {
   if (!addr || typeof addr !== 'string') return null;
@@ -109,27 +92,16 @@ async function view(functionStr, args = []) {
   if (process.env.APTOS_API_KEY) {
     headers.Authorization = `Bearer ${process.env.APTOS_API_KEY}`;
   }
-  let lastError;
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    try {
-      const { data } = await axios.post(
+  // 400/abort means the safe has no such position. Retrying it is what made the run take minutes.
+  return utils.withRetry(() =>
+    axios
+      .post(
         'https://api.mainnet.aptoslabs.com/v1/view',
         { function: functionStr, type_arguments: [], arguments: args },
         { headers, timeout: 20000 }
-      );
-      return data;
-    } catch (error) {
-      lastError = error;
-      const status = error.response?.status;
-      const body = JSON.stringify(error.response?.data || error.message || '');
-      const rateLimited = status === 429 || /rate limit|compute units/i.test(body);
-      const delay = rateLimited ? 20000 : 400 * 2 ** attempt;
-      if (attempt + 1 < 6) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-  }
-  throw lastError;
+      )
+      .then((response) => response.data)
+  );
 }
 
 function isMissingPosition(error) {
@@ -214,15 +186,6 @@ async function echelonRates() {
   return { coins, rewardAprs: supplyRewardAprs(response?.farming, coins) };
 }
 
-function withBoost(protocolRewardPct, rewardTokens) {
-  const tokens = new Set((rewardTokens || []).filter(Boolean));
-  tokens.add(USDC);
-  return {
-    apyReward: protocolRewardPct + BOOST_APR_PCT,
-    rewardTokens: [...tokens],
-  };
-}
-
 function aprToApy(apr) {
   const value = Number(apr);
   if (!Number.isFinite(value) || value <= 0) return 0;
@@ -231,7 +194,7 @@ function aprToApy(apr) {
 
 async function hyperionRates() {
   const pools =
-    (await axios.get(HYPERION_POOLS_URL, { timeout: 20000 })).data?.data || [];
+    (await utils.getEgressData('hyperion/files/pool-list.json', HYPERION_POOLS_URL))?.data || [];
   const byId = new Map();
   for (const pool of pools) {
     const id = padAddress(pool?.pool?.poolId);
@@ -307,17 +270,25 @@ function matchPool(position, ratesById) {
   return null;
 }
 
-async function priced(amountsByToken) {
+function poolDecimals(pool, token) {
+  const tokenA = padAddress(pool.pool.token1);
+  const tokenB = padAddress(pool.pool.token2);
+  if (token === tokenA) return Number(pool.pool.token1Info?.decimals);
+  if (token === tokenB) return Number(pool.pool.token2Info?.decimals);
+  return NaN;
+}
+
+async function priced(pool, amountsByToken) {
   const tokens = [...amountsByToken.keys()];
   if (!tokens.length) return 0;
   const { pricesByAddress } = await utils.getPrices(tokens, 'aptos');
   let usd = 0;
   for (const [token, amount] of amountsByToken) {
-    const price = pricesByAddress[token.toLowerCase()] ?? pricesByAddress[token.replace(/^0x0+/, '0x')];
-    const decimals = DECIMALS[token] ?? DECIMALS[token.replace(/^0x0+/, '0x')];
-    if (!Number.isFinite(price) || decimals == null) {
-      throw new Error(`yield-ai: no price or decimals for ${token}`);
-    }
+    const price =
+      pricesByAddress[token.toLowerCase()] ??
+      pricesByAddress[token.replace(/^0x0+/, '0x')];
+    const decimals = poolDecimals(pool, token);
+    if (!Number.isFinite(price) || !Number.isFinite(decimals)) return null;
     usd += (Number(amount) / 10 ** decimals) * price;
   }
   return usd;
@@ -365,9 +336,8 @@ async function apy() {
     const coin = echelon.coins[market];
     if (!coin) throw new Error(`yield-ai: missing Echelon market ${market}`);
     const tvlUsd = (Number(supplied[market]) / 10 ** coin.decimals) * coin.price;
-    if (tvlUsd < MIN_TVL_USD) continue;
     const rewards = echelon.rewardAprs[market] || [];
-    const protocolReward =
+    const apyReward =
       rewards.reduce((sum, reward) => sum + reward.apr, 0) * 100 * USER_SHARE;
     pools.push({
       pool: `${market}-aptos-yield-ai`,
@@ -376,21 +346,23 @@ async function apy() {
       symbol: coin.symbol,
       tvlUsd,
       apyBase: (coin.supplyApr ?? 0) * 100,
-      ...withBoost(protocolReward, rewards.map((reward) => reward.address)),
+      ...(apyReward > 0
+        ? { apyReward, rewardTokens: [...new Set(rewards.map((reward) => reward.address))] }
+        : {}),
       underlyingTokens: [coin.faAddress],
-      poolMeta: 'Stablecoin compound, +7% USDC boost',
+      poolMeta: 'Stablecoin compound',
       url: APP_URL,
     });
   }
 
   for (const [id, amounts] of liquidity) {
     const pool = hyperion.get(id);
-    const tvlUsd = await priced(amounts);
-    if (tvlUsd < MIN_TVL_USD) continue;
+    const tvlUsd = await priced(pool, amounts);
+    if (tvlUsd == null) continue;
     const rewardTokens = (pool.pool.farm || [])
       .map((item) => item.rewardFa)
       .filter(Boolean);
-    const protocolReward = aprToApy(pool.farmAPR) * USER_SHARE;
+    const apyReward = aprToApy(pool.farmAPR) * USER_SHARE;
     pools.push({
       pool: `${id}-aptos-yield-ai`,
       chain: utils.formatChain('aptos'),
@@ -398,10 +370,10 @@ async function apy() {
       symbol: `${pool.pool.token1Info.symbol}-${pool.pool.token2Info.symbol}`,
       tvlUsd,
       apyBase: aprToApy(pool.feeAPR) * USER_SHARE,
-      ...withBoost(protocolReward, rewardTokens),
+      ...(apyReward > 0 ? { apyReward, rewardTokens } : {}),
       underlyingTokens: [pool.pool.token1, pool.pool.token2],
-      poolMeta: `Hyperion CLMM ${Number(pool.pool.feeRate) / 10000}%, +7% USDC boost`,
-      url: `https://hyperion.xyz/pool/${pool.pool.poolId}`,
+      poolMeta: `Hyperion CLMM ${Number(pool.pool.feeRate) / 10000}%`,
+      url: APP_URL,
     });
   }
 
