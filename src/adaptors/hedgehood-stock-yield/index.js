@@ -24,8 +24,6 @@ const YEAR = 365 * 86400;
 // A vault that has not settled an epoch for this long is not earning now: leave it out
 const STALE_AFTER = 10 * 86400;
 const VALUE_SCALE = 10n ** 30n; // 18d stock * 18d price => 6d USDG
-const MAX_ENGINE_FEE_BPS = 3_000n; // EpochFund: the most of an engine's escrowed premium its fee may take
-const LOCKED = 1n; // EpochFund.Phase
 
 const V1_EPOCH =
   'tuple(uint64 lockedAt,uint64 expiry,uint64 settledAt,uint256 stockAtLock,uint256 sharesAtLock,uint256 maxCoveredStock,uint256 strike,uint256 minPremium,uint256 stockMultiplier,bytes32 instructionHash,bytes32 executionHash,uint256 filledStock,uint256 grossPremium,int256 netPnl,uint256 stockDebit,uint256 debitPrice,bytes32 settlementHash,uint64 frozenAt,uint256 feePaid,int256 userNetPnl,uint64 executedAt,uint256 lossCoverage,bytes32 historyContextHash)';
@@ -99,23 +97,6 @@ function annualize(epochs, result) {
   };
 }
 
-// A v2 fund whose first epoch is locked has no settled result yet, but its buyers' premium is already escrowed in the
-// fund: until it settles, report that premium less the largest fee the fund lets an engine take, over a week.
-async function v2OpenEpochYield(api, fund, currentEpoch, escrow) {
-  const e = await api.call({
-    abi: ABI.v2GetEpoch,
-    target: fund,
-    params: [currentEpoch],
-  });
-  const { base } = v2EpochResult(e);
-  if (base === 0n || BigInt(escrow) === 0n) return null;
-  const income = (BigInt(escrow) * (10_000n - MAX_ENGINE_FEE_BPS)) / 10_000n;
-  return {
-    apyBase: ((Number(income) / Number(base)) * YEAR * 100) / WEEK,
-    il7d: null,
-  };
-}
-
 const pool = (vault, fields) => ({
   pool: `${vault}-${CHAIN}`.toLowerCase(),
   chain: utils.formatChain(CHAIN),
@@ -172,25 +153,15 @@ async function v2Pools(api) {
     Promise.all(
       fields.map((f) => api.multiCall({ abi: `uint256:${f}`, calls: funds }))
     );
-  const [
-    stocks,
-    usdgs,
-    names,
-    currentEpochs,
-    phases,
-    escrows,
-    stockParts,
-    usdgParts,
-  ] = await Promise.all([
-    api.multiCall({ abi: ABI.stock, calls: funds }),
-    api.multiCall({ abi: ABI.usdg, calls: funds }),
-    api.multiCall({ abi: 'string:name', calls: funds }),
-    api.multiCall({ abi: ABI.currentEpoch, calls: funds }),
-    api.multiCall({ abi: 'uint8:phase', calls: funds }),
-    api.multiCall({ abi: 'uint256:engineEscrow', calls: funds }),
-    uints(['stockHeld', 'pendingStock', 'reservedStock']),
-    uints(['usdgHeld', 'pendingUsdg', 'reservedUsdg']),
-  ]);
+  const [stocks, usdgs, names, currentEpochs, stockParts, usdgParts] =
+    await Promise.all([
+      api.multiCall({ abi: ABI.stock, calls: funds }),
+      api.multiCall({ abi: ABI.usdg, calls: funds }),
+      api.multiCall({ abi: 'string:name', calls: funds }),
+      api.multiCall({ abi: ABI.currentEpoch, calls: funds }),
+      uints(['stockHeld', 'pendingStock', 'reservedStock']),
+      uints(['usdgHeld', 'pendingUsdg', 'reservedUsdg']),
+    ]);
   const [symbols, { pricesByAddress }] = await Promise.all([
     api.multiCall({ abi: 'erc20:symbol', calls: stocks }),
     utils.getPrices([...new Set([...stocks, ...usdgs])], CHAIN),
@@ -211,12 +182,7 @@ async function v2Pools(api) {
         ABI.v2GetEpoch,
         currentEpochs[i]
       );
-      const yields =
-        annualize(epochs, v2EpochResult) ??
-        (epochs.every((e) => v2EpochResult(e).base === 0n) &&
-        BigInt(phases[i]) === LOCKED
-          ? await v2OpenEpochYield(api, fund, currentEpochs[i], escrows[i])
-          : null);
+      const yields = annualize(epochs, v2EpochResult);
       if (!yields || !Number.isFinite(tvlUsd)) return null;
       return pool(fund, {
         symbol: symbols[i],
