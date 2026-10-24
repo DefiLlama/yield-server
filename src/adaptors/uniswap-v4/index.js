@@ -75,7 +75,7 @@ const POOL_FIELDS = `
       totalValueLockedUSD
       totalValueLockedToken0
       totalValueLockedToken1
-      volumeUSD
+      createdAtTimestamp
       token0 {
         symbol
         decimals
@@ -149,15 +149,21 @@ const hasSuspiciousTvlVolume = (pool) =>
   pool.tvlUsd > SUSPECT_TVL_USD &&
   Number(pool.volumeUsd1d || 0) / pool.tvlUsd < MIN_VOLUME_TO_TVL_RATIO;
 
+/**
+ * Prices volume and APY from the last completed UTC day. Pools without a full
+ * day of history are omitted rather than annualizing a partial day.
+ */
 const topLvl = async (chainString, url, timestamp) => {
   try {
-    const [block, blockPrior] = await utils.getBlocks(chainString, timestamp, [
-      url,
-    ]);
+    const [block] = await utils.getBlocks(chainString, timestamp, [url]);
+    const previousDay =
+      (Math.floor(Number(timestamp ?? Math.floor(Date.now() / 1000)) / 86400) -
+        1) *
+      86400;
 
-    let [dataNow, dataPrior] = await Promise.all([
+    let [dataNow, volumesByPoolId] = await Promise.all([
       fetchAllPools(url, block),
-      fetchAllPools(url, blockPrior),
+      fetchDayVolumes(url, previousDay, 1),
     ]);
 
     dataNow = dataNow.map((p) => ({
@@ -169,24 +175,22 @@ const topLvl = async (chainString, url, timestamp) => {
 
     dataNow = await utils.tvl(dataNow, chainString);
 
-    const dataPriorByPool = new Map(dataPrior.map((p) => [p.id, p]));
-
     dataNow = dataNow.map((pool) => {
-      const poolPrior = dataPriorByPool.get(pool.id);
-      const isDynamic = isDynamicFeePool(pool.feeTier);
+      const volumes = volumesByPoolId[pool.id];
+      const hasFullDay = Number(pool.createdAtTimestamp || 0) <= previousDay;
+      const volumeUSD1d = hasFullDay
+        ? Number(volumes?.volumeUSD1d ?? 0)
+        : undefined;
+      const feeUSD1d = hasFullDay ? Number(volumes?.feeUSD1d ?? 0) : undefined;
 
-      const volumeUSD1d =
-        Number(pool.volumeUSD || 0) - Number(poolPrior?.volumeUSD || 0);
-
-      // dynamic fee pools use hooks, can't calculate fees from feeTier
-      const feeUSD1d = isDynamic
-        ? 0
-        : (volumeUSD1d * Number(pool.feeTier) || 0) / 1e6;
-
-      const apy =
-        pool.totalValueLockedUSD > 0 && feeUSD1d > 0
-          ? (feeUSD1d * 365 * 100) / pool.totalValueLockedUSD
-          : 0;
+      let apy;
+      if (volumeUSD1d === undefined) {
+        apy = undefined;
+      } else if (pool.totalValueLockedUSD > 0 && feeUSD1d > 0) {
+        apy = (feeUSD1d * 365 * 100) / pool.totalValueLockedUSD;
+      } else {
+        apy = 0;
+      }
 
       return {
         ...pool,
@@ -222,6 +226,7 @@ const dayVolumesQuery = (dateGte, dateLte, idCursor) => gql`
       id
       date
       volumeUSD
+      feesUSD
       pool {
         id
       }
@@ -244,11 +249,12 @@ const fetchLatestPools = async (url) => {
   return allPools;
 };
 
-// returns { poolId: { volumeUSD1d, volumeUSD7d } } built from the last 7 full
-// days of poolDayDatas; the most recent full day supplies volumeUSD1d
-const fetchDayVolumes = async (url, previousDay) => {
+// returns { poolId: { volumeUSD1d, volumeUSD7d, feeUSD1d, feeUSD7d } } built
+// from the requested full days of poolDayDatas; the most recent full day
+// supplies the 1d values
+const fetchDayVolumes = async (url, previousDay, days = 7) => {
   const volumesByPoolId = {};
-  const firstDay = previousDay - 6 * 86400;
+  const firstDay = previousDay - (days - 1) * 86400;
   let idCursor = '';
 
   while (true) {
@@ -263,11 +269,15 @@ const fetchDayVolumes = async (url, previousDay) => {
       const volumes = volumesByPoolId[poolId] ?? {
         volumeUSD1d: 0,
         volumeUSD7d: 0,
+        feeUSD1d: 0,
+        feeUSD7d: 0,
       };
 
       volumes.volumeUSD7d += Number(dayData.volumeUSD);
+      volumes.feeUSD7d += Number(dayData.feesUSD);
       if (Number(dayData.date) === previousDay) {
         volumes.volumeUSD1d += Number(dayData.volumeUSD);
+        volumes.feeUSD1d += Number(dayData.feesUSD);
       }
 
       volumesByPoolId[poolId] = volumes;
@@ -318,14 +328,17 @@ const topLvlDayData = async (chainString, url) => {
 
     return dataNow.map((pool) => {
       const volumes = volumesByPoolId[pool.id];
-      const volumeUSD1d = volumes?.volumeUSD1d ?? 0;
-      const volumeUSD7d = volumes?.volumeUSD7d ?? 0;
-
-      const feeRate = isDynamicFeePool(pool.feeTier)
-        ? 0
-        : Number(pool.feeTier) / 1e6;
-      const feeUSD1d = volumeUSD1d * feeRate;
-      const feeUSD7d = volumeUSD7d * feeRate;
+      const hasFullDay = Number(pool.createdAtTimestamp || 0) <= previousDay;
+      const hasFullWeek =
+        Number(pool.createdAtTimestamp || 0) <= previousDay - 6 * 86400;
+      const volumeUSD1d = hasFullDay
+        ? Number(volumes?.volumeUSD1d ?? 0)
+        : undefined;
+      const volumeUSD7d = hasFullWeek
+        ? Number(volumes?.volumeUSD7d ?? 0)
+        : undefined;
+      const feeUSD1d = hasFullDay ? Number(volumes?.feeUSD1d ?? 0) : undefined;
+      const feeUSD7d = hasFullWeek ? Number(volumes?.feeUSD7d ?? 0) : undefined;
 
       const toApy = (annualFeesUsd) =>
         pool.totalValueLockedUSD > 0 && annualFeesUsd > 0
@@ -335,10 +348,10 @@ const topLvlDayData = async (chainString, url) => {
       return {
         ...formatPool(chainString, {
           ...pool,
-          apyBase: toApy(feeUSD1d * 365),
+          apyBase: feeUSD1d === undefined ? undefined : toApy(feeUSD1d * 365),
           volumeUsd1d: volumeUSD1d,
         }),
-        apyBase7d: toApy(feeUSD7d * 52),
+        apyBase7d: feeUSD7d === undefined ? undefined : toApy(feeUSD7d * 52),
         volumeUsd7d: volumeUSD7d,
       };
     });
