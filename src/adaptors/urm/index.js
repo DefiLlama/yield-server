@@ -3,8 +3,8 @@ const utils = require('../utils');
 
 // Fountain (fURM) -- yield vault of URM, the CDP stablecoin on Base.
 // tvlUsd  = URM owed to fURM holders x URM price
-// apyBase = realized 7-day APY from fURM share-price growth (compounded);
-//           uses the longest window with history while the vault is younger.
+// apyBase   = realized 24h APY from fURM share-price growth (compounded)
+// apyBase7d = realized 7-day APY (longest available window while younger)
 
 const CHAIN = 'base';
 const FURM = '0x95fa3FA511Ef8DD9e48453eaE76b241D1c1AC651';
@@ -73,16 +73,23 @@ async function blockAt(timestamp) {
   throw new Error(`block lookup failed for timestamp ${timestamp}`);
 }
 
-// Share price can dip (a CDP debt drop reprices pending interest), and
-// yield-server drops pools with apy < 0, so a non-positive change reports 0.
+// Compounded APY from share-price growth over `days`; null if the vault did
+// not exist yet at that point. Share price can dip (a CDP debt drop reprices
+// pending interest), and yield-server drops pools with apy < 0, so a
+// non-positive change reports 0.
+async function apyOver(days, ppsNow) {
+  const block = await blockAt(Math.floor(Date.now() / 1000) - days * DAY);
+  if (!(await deployedAt(block))) return null;
+  const ppsThen = await sharePrice(block);
+  if (ppsNow <= ppsThen) return 0;
+  return ((ppsNow / ppsThen) ** (365 / days) - 1) * 100;
+}
+
+// 7-day APY, or the longest window available while the vault is younger.
 async function apy7d(ppsNow) {
-  const now = Math.floor(Date.now() / 1000);
   for (const days of LOOKBACK_DAYS) {
-    const block = await blockAt(now - days * DAY);
-    if (!(await deployedAt(block))) continue; // vault younger than this window
-    const ppsThen = await sharePrice(block);
-    if (ppsNow <= ppsThen) return 0;
-    return ((ppsNow / ppsThen) ** (365 / days) - 1) * 100;
+    const apy = await apyOver(days, ppsNow);
+    if (apy !== null) return apy;
   }
   return 0; // under 1 day of history
 }
@@ -103,13 +110,14 @@ const getApy = async () => {
       pool: `${FURM}-${CHAIN}`.toLowerCase(),
       chain: utils.formatChain(CHAIN),
       project: 'urm',
-      symbol: utils.formatSymbol('URM'),
+      symbol: 'fURM',
       tvlUsd,
-      apyBase: await apy7d(ppsNow),
+      apyBase: (await apyOver(1, ppsNow)) ?? 0,
+      apyBase7d: await apy7d(ppsNow),
       underlyingTokens: [URM],
       token: FURM,
       pricePerShare: ppsNow / 1e18,
-      poolMeta: 'Fountain',
+      poolMeta: 'Fountain, 0.5% withdraw fee',
       url: POOL_URL,
     },
   ];
