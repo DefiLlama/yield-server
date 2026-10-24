@@ -20,6 +20,7 @@ const abi = {
     'function getReserveData(address asset) view returns (uint256 unbacked, uint256 accruedToTreasuryScaled, uint256 totalAToken, uint256 totalStableDebt, uint256 totalVariableDebt, uint256 liquidityRate, uint256 variableBorrowRate, uint256 stableBorrowRate, uint256 averageStableBorrowRate, uint256 liquidityIndex, uint256 variableBorrowIndex, uint40 lastUpdateTimestamp)',
   getReserveConfigurationData:
     'function getReserveConfigurationData(address asset) view returns (uint256 decimals, uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus, uint256 reserveFactor, bool usageAsCollateralEnabled, bool borrowingEnabled, bool stableBorrowRateEnabled, bool isActive, bool isFrozen)',
+  getPaused: 'function getPaused(address asset) view returns (bool isPaused)',
   getAssetsPrices:
     'function getAssetsPrices(address[] assets) view returns (uint256[])',
 };
@@ -32,10 +33,11 @@ const multi = async (abiStr, calls) =>
 const apy = async () => {
   const withPdp = STABLES.map((a) => ({ target: POOL_DATA_PROVIDER, params: [a] }));
 
-  const [tokens, data, configs, symbols, decimals, prices] = await Promise.all([
+  const [tokens, data, configs, paused, symbols, decimals, prices] = await Promise.all([
     multi(abi.getReserveTokensAddresses, withPdp),
     multi(abi.getReserveData, withPdp),
     multi(abi.getReserveConfigurationData, withPdp),
+    multi(abi.getPaused, withPdp),
     multi('erc20:symbol', STABLES.map((target) => ({ target }))),
     multi('erc20:decimals', STABLES.map((target) => ({ target }))),
     // pool's AaveOracle (USD, 8 decimals)
@@ -49,7 +51,8 @@ const apy = async () => {
   );
 
   return STABLES.map((asset, i) => {
-    if (!configs[i].isActive || configs[i].isFrozen) return null;
+    // paused reserves block supply and borrow entirely, so they are skipped like frozen ones
+    if (!configs[i].isActive || configs[i].isFrozen || paused[i]) return null;
     const price = Number(prices[i]) / 1e8;
     const scale = 10 ** Number(decimals[i]);
     const tvlUsd = (Number(liquidity[i]) / scale) * price;
