@@ -71,7 +71,7 @@ const apy = async () => {
       apyBaseBorrow: Number(data[i].variableBorrowRate) / 1e25,
       ltv: Number(configs[i].ltv) / 1e4,
       borrowable: configs[i].borrowingEnabled,
-      url: 'https://app.reental.co',
+      url: 'https://lend.rnt.finance/',
     };
   }).filter((p) => p && utils.keepFinite(p));
 };
@@ -80,5 +80,5 @@ module.exports = {
   timetravel: false,
   apy,
   protocolId: '9188',
-  url: 'https://app.reental.co',
+  url: 'https://lend.rnt.finance/',
 };
