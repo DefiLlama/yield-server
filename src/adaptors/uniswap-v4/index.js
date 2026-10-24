@@ -41,7 +41,7 @@ const dayDataChains = {
 // past the halt, so every pool query fails and the chain silently drops out.
 // this independently published subgraph indexes the same v4 poolIds (verified
 // identical ids and fee values) and stays at the chain tip, but prunes history,
-// so the 24h leg comes from PoolManager Swap logs instead of a block offset.
+// so the daily leg comes from PoolManager Swap logs instead of a block offset.
 const fallbackChains = {
   ethereum: {
     url: sdk.graph.modifyEndpoint(
@@ -369,6 +369,7 @@ const fallbackPoolsQuery = (idCursor) => gql`
       totalValueLockedUSD
       totalValueLockedToken0
       totalValueLockedToken1
+      createdAtTimestamp
       token0 {
         symbol
         decimals
@@ -435,14 +436,18 @@ const fetchCumulativeVolumes = async (url, dayIndex) => {
 
 const absolute = (value) => (value < 0n ? -value : value);
 
-// sums the last 24h of swaps per pool, in raw token units for both legs, along
-// with the fee each swap actually paid
-const fetchSwapTotals = async (chainString, poolManager) => {
-  const [blockPrior] = await utils.getBlocksByTime(
-    [Math.floor(Date.now() / 1000) - 86400],
+// sums the last completed UTC day of swaps per pool, in raw token units for
+// both legs, along with the fee each swap actually paid
+const fetchSwapTotals = async (
+  chainString,
+  poolManager,
+  fromTimestamp,
+  toTimestamp
+) => {
+  const [blockPrior, block] = await utils.getBlocksByTime(
+    [fromTimestamp, toTimestamp],
     chainString
   );
-  const block = (await sdk.api.util.getLatestBlock(chainString)).number;
 
   const logs = await sdk.getEventLogs({
     target: poolManager,
@@ -476,10 +481,16 @@ const fetchSwapTotals = async (chainString, poolManager) => {
 const topLvlFallback = async (chainString, { url, poolManager }) => {
   try {
     const today = Math.floor(Date.now() / 1000 / 86400);
+    const previousDay = (today - 1) * 86400;
     const [pools, swapTotals, endOfYesterday, endOfWeekBefore] =
       await Promise.all([
         fetchFallbackPools(url),
-        fetchSwapTotals(chainString, poolManager),
+        fetchSwapTotals(
+          chainString,
+          poolManager,
+          previousDay,
+          today * 86400 - 1
+        ),
         fetchCumulativeVolumes(url, today - 1),
         fetchCumulativeVolumes(url, today - 8),
       ]);
@@ -505,16 +516,19 @@ const topLvlFallback = async (chainString, { url, poolManager }) => {
           ? undefined
           : (Number(raw) / 10 ** Number(token.decimals)) * price;
 
-      const volumeUSD1d =
-        (totals &&
-          (toUsd(totals.amount0, pool.token0, pool.price0) ??
-            toUsd(totals.amount1, pool.token1, pool.price1))) ||
-        0;
-      const feeUSD1d =
-        (totals &&
-          (toUsd(totals.fees0, pool.token0, pool.price0) ??
-            toUsd(totals.fees1, pool.token1, pool.price1))) ||
-        0;
+      const hasFullDay = Number(pool.createdAtTimestamp || 0) <= previousDay;
+      const volumeUSD1d = hasFullDay
+        ? (totals &&
+            (toUsd(totals.amount0, pool.token0, pool.price0) ??
+              toUsd(totals.amount1, pool.token1, pool.price1))) ||
+          0
+        : undefined;
+      const feeUSD1d = hasFullDay
+        ? (totals &&
+            (toUsd(totals.fees0, pool.token0, pool.price0) ??
+              toUsd(totals.fees1, pool.token1, pool.price1))) ||
+          0
+        : undefined;
 
       // a pool younger than the window, or one absent from either bucket, has no
       // measurable 7d span -- distinct from a pool that spanned it and traded 0
@@ -542,7 +556,7 @@ const topLvlFallback = async (chainString, { url, poolManager }) => {
       return {
         ...formatPool(chainString, {
           ...pool,
-          apyBase: toApy(feeUSD1d * 365),
+          apyBase: feeUSD1d === undefined ? undefined : toApy(feeUSD1d * 365),
           volumeUsd1d: volumeUSD1d,
         }),
         apyBase7d,
