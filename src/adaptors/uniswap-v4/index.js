@@ -436,6 +436,16 @@ const fetchCumulativeVolumes = async (url, dayIndex) => {
 
 const absolute = (value) => (value < 0n ? -value : value);
 
+const getBlockAt = async (chainString, timestamp) => {
+  const data = await utils.getPriceApiData(
+    `/block/${chainString}/${timestamp}`
+  );
+  return {
+    block: Number(data.height ?? data.number),
+    timestamp: Number(data.timestamp ?? timestamp),
+  };
+};
+
 // sums the last completed UTC day of swaps per pool, in raw token units for
 // both legs, along with the fee each swap actually paid
 const fetchSwapTotals = async (
@@ -444,10 +454,13 @@ const fetchSwapTotals = async (
   fromTimestamp,
   toTimestamp
 ) => {
-  const [blockPrior, block] = await utils.getBlocksByTime(
-    [fromTimestamp, toTimestamp],
-    chainString
-  );
+  const [start, end] = await Promise.all([
+    getBlockAt(chainString, fromTimestamp),
+    getBlockAt(chainString, toTimestamp),
+  ]);
+  const blockPrior =
+    start.timestamp < fromTimestamp ? start.block + 1 : start.block;
+  const block = end.timestamp >= toTimestamp ? end.block - 1 : end.block;
 
   const logs = await sdk.getEventLogs({
     target: poolManager,
@@ -485,12 +498,7 @@ const topLvlFallback = async (chainString, { url, poolManager }) => {
     const [pools, swapTotals, endOfYesterday, endOfWeekBefore] =
       await Promise.all([
         fetchFallbackPools(url),
-        fetchSwapTotals(
-          chainString,
-          poolManager,
-          previousDay,
-          today * 86400 - 1
-        ),
+        fetchSwapTotals(chainString, poolManager, previousDay, today * 86400),
         fetchCumulativeVolumes(url, today - 1),
         fetchCumulativeVolumes(url, today - 8),
       ]);
