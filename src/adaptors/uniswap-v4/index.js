@@ -100,7 +100,20 @@ const fetchAllPools = async (url, block) => {
 
   while (true) {
     const q = queryWithSkip(skip).replace('<PLACEHOLDER>', block);
-    const data = await request(url, q);
+    let data;
+    try {
+      data = await utils.withRetry(() => request(url, q), {
+        retries: 2,
+        delayMs: 1000,
+      });
+    } catch (e) {
+      // base has outgrown the page budget; a failed page must not wipe the chain
+      console.log(
+        `uniswap-v4: page ${skip} failed, keeping ${allPools.length} pools`,
+        e.message
+      );
+      break;
+    }
     if (!data.pools || data.pools.length === 0) break;
     allPools = allPools.concat(data.pools);
     if (data.pools.length < PAGE_SIZE) break;
