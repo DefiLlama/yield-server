@@ -132,16 +132,21 @@ const TVL_ORDERED_CHAINS = new Set(['polygon']);
 // 2026-10-26)
 const POOL_WHERE = `totalValueLockedUSD_gte: ${TVL_MIN}, txCount_gt: 1`;
 
+// few base pools pass POOL_WHERE, so filling a 1000-row page scans most of the
+// table and hits the gateway's 15s timeout (reported as an indexer
+// BadResponse); 200-row pages take ~4s
+const POOL_PAGE_SIZE = 200;
+
 const queryWithSkip = (skip) => gql`
   {
-    pools(first: ${PAGE_SIZE}, skip: ${skip}, orderBy: totalValueLockedUSD, orderDirection: desc, where: {${POOL_WHERE}}, block: {number: <PLACEHOLDER>}) {${POOL_FIELDS}
+    pools(first: ${POOL_PAGE_SIZE}, skip: ${skip}, orderBy: totalValueLockedUSD, orderDirection: desc, where: {${POOL_WHERE}}, block: {number: <PLACEHOLDER>}) {${POOL_FIELDS}
     }
   }
 `;
 
 const queryWithCursor = (idCursor, block) => gql`
   {
-    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {${POOL_WHERE}, id_gt: "${idCursor}"}, block: {number: ${block}}) {${POOL_FIELDS}
+    pools(first: ${POOL_PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {${POOL_WHERE}, id_gt: "${idCursor}"}, block: {number: ${block}}) {${POOL_FIELDS}
     }
   }
 `;
@@ -156,8 +161,8 @@ const fetchAllPools = async (url, block, tvlOrdered) => {
       : queryWithCursor(allPools.at(-1)?.id ?? '', block);
     const page = (await requestWithRetry(url, q)).pools ?? [];
     allPools.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    skip += PAGE_SIZE;
+    if (page.length < POOL_PAGE_SIZE) break;
+    skip += POOL_PAGE_SIZE;
   }
 
   return allPools;
