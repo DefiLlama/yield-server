@@ -434,9 +434,12 @@ const topLvlDayData = async (chainString, url) => {
   }
 };
 
+// without the token0_/token1_ filters this subgraph intermittently fails the
+// whole page with "Null value resolved for non-null field token1", even though
+// every pool on it resolves both tokens when fetched by id
 const fallbackPoolsQuery = (idCursor) => gql`
   {
-    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${FALLBACK_PREFILTER_TVL}, id_gt: "${idCursor}"}) {
+    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${FALLBACK_PREFILTER_TVL}, id_gt: "${idCursor}", token0_: {decimals_gte: 0}, token1_: {decimals_gte: 0}}) {
       id
       feeTier: fee
       totalValueLockedUSD
@@ -539,25 +542,33 @@ const fetchSwapTotals = async (
     start.timestamp < fromTimestamp ? start.block + 1 : start.block;
   const block = end.timestamp >= toTimestamp ? end.block - 1 : end.block;
 
+  // indexer v2's default offset paging repeats ~35% of a day's swaps in place
+  // of others; v4 and clientStreaming page by cursor and match rpc exactly, and
+  // clientStreaming is also the fastest of them (measured 2026-10-26, sdk
+  // 5.0.242). rpc can return a chunk-boundary block twice, so logs are deduped
   const logs = await sdk.getEventLogs({
     target: poolManager,
     chain: chainString,
     fromBlock: blockPrior,
     toBlock: block,
     eventAbi: SWAP_EVENT,
-    onlyArgs: true,
-    ...(poolIds && {
-      extraTopics: [poolIds],
-      skipIndexer: true,
-      skipCache: true,
-    }),
+    entireLog: true,
+    skipCache: true,
+    ...(poolIds
+      ? { extraTopics: [poolIds], skipIndexer: true }
+      : { clientStreaming: true }),
   });
 
+  const seen = new Set();
   const totalsByPoolId = {};
-  for (const log of logs) {
-    const poolId = log.id.toLowerCase();
-    const amount0 = absolute(BigInt(log.amount0));
-    const amount1 = absolute(BigInt(log.amount1));
+  for (const { transactionHash, logIndex, index, args } of logs) {
+    const logKey = `${transactionHash}-${logIndex ?? index}`;
+    if (seen.has(logKey)) continue;
+    seen.add(logKey);
+
+    const poolId = args.id.toLowerCase();
+    const amount0 = absolute(BigInt(args.amount0));
+    const amount1 = absolute(BigInt(args.amount1));
     const totals = (totalsByPoolId[poolId] ??= {
       amount0: 0n,
       amount1: 0n,
@@ -566,8 +577,8 @@ const fetchSwapTotals = async (
     });
     totals.amount0 += amount0;
     totals.amount1 += amount1;
-    totals.fees0 += (amount0 * BigInt(log.fee)) / 1000000n;
-    totals.fees1 += (amount1 * BigInt(log.fee)) / 1000000n;
+    totals.fees0 += (amount0 * BigInt(args.fee)) / 1000000n;
+    totals.fees1 += (amount1 * BigInt(args.fee)) / 1000000n;
   }
 
   return totalsByPoolId;
@@ -635,15 +646,24 @@ const fetchHookFeesUsd = async (
 };
 
 const topLvlFallback = async (chainString, { url, poolManager }) => {
+  // snapshots only feed the 7d leg, so losing them costs that leg alone
+  const withoutSnapshots = (e) => {
+    console.error(
+      `uniswap-v4: ${chainString} fallback snapshots`,
+      e?.message ?? e
+    );
+    return {};
+  };
   try {
     const today = Math.floor(Date.now() / 1000 / 86400);
     const previousDay = (today - 1) * 86400;
-    const [pools, swapTotals, endOfYesterday, endOfWeekBefore] =
+    const [pools, swapTotals, endOfYesterday, endOfDayBefore, endOfWeekBefore] =
       await Promise.all([
         fetchFallbackPools(url),
         fetchSwapTotals(chainString, poolManager, previousDay, today * 86400),
-        fetchCumulativeVolumes(url, today - 1),
-        fetchCumulativeVolumes(url, today - 8),
+        fetchCumulativeVolumes(url, today - 1).catch(withoutSnapshots),
+        fetchCumulativeVolumes(url, today - 2).catch(withoutSnapshots),
+        fetchCumulativeVolumes(url, today - 8).catch(withoutSnapshots),
       ]);
 
     let dataNow = pools
@@ -681,11 +701,18 @@ const topLvlFallback = async (chainString, { url, poolManager }) => {
           0
         : undefined;
 
+      // snapshot volume is priced by this subgraph, which gets some tokens badly
+      // wrong (WBTC at ~8x on 2026-10-26), so a pool's 7d figure is trusted only
+      // where its snapshots matched the swap logs within 25% yesterday
+      const snapshotVolume1d =
+        endOfYesterday[pool.id] - endOfDayBefore[pool.id];
+      const snapshotsAgree =
+        Math.abs(snapshotVolume1d - volumeUSD1d) <=
+        0.25 * Math.max(snapshotVolume1d, volumeUSD1d);
       // a pool younger than the window, or one absent from either bucket, has no
       // measurable 7d span -- distinct from a pool that spanned it and traded 0
       const volumeUSD7d =
-        endOfYesterday[pool.id] !== undefined &&
-        endOfWeekBefore[pool.id] !== undefined
+        snapshotsAgree && endOfWeekBefore[pool.id] !== undefined
           ? endOfYesterday[pool.id] - endOfWeekBefore[pool.id]
           : undefined;
       const isDynamic = isDynamicFeePool(pool.feeTier);
