@@ -2561,6 +2561,11 @@ const excludePools = [
   '0xBfb55Ae4e43C28674efD8A31A206e67C08484E2A-ethereum',
   '0xF84BA2f9940973eD1E8ec579Be7856076E365cB5-arbitrum',
   '0xFE3C78D947b329160496E192b4Cf417bB86272Ed-ethereum',
+  // uniswap-v4 BMD-USDC: the pool sits at its only position's lower tick
+  // (-276325, $1/BMD), so on-chain it holds 1e20 BMD and no USDC, but the
+  // fallback subgraph reports 48.5M USDC ($97M tvl). BMD (1.16e59 supply) has no
+  // price, so the pool has no measurable tvl (2026-10-26)
+  '0xbddcef32a41bb9c9fa37b2442433ddffdd6095c7e6b0aeb1b0b979a5b5529e67-ethereum-uniswap-v4',
 ];
 
 const boundaries = {
