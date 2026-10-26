@@ -93,52 +93,6 @@ const VAULTS = {
       stateMutability: 'view',
       type: 'function',
     },
-    totalBorrow: {
-      inputs: [],
-      name: 'totalBorrow',
-      outputs: [
-        {
-          internalType: 'uint128',
-          name: 'amount',
-          type: 'uint128',
-        },
-        {
-          internalType: 'uint128',
-          name: 'shares',
-          type: 'uint128',
-        },
-      ],
-      stateMutability: 'view',
-      type: 'function',
-    },
-    currentRateInfo: {
-      inputs: [],
-      name: 'currentRateInfo',
-      outputs: [
-        {
-          internalType: 'uint64',
-          name: 'lastBlock',
-          type: 'uint64',
-        },
-        {
-          internalType: 'uint64',
-          name: 'feeToProtocolRate',
-          type: 'uint64',
-        },
-        {
-          internalType: 'uint64',
-          name: 'lastTimestamp',
-          type: 'uint64',
-        },
-        {
-          internalType: 'uint64',
-          name: 'ratePerSec',
-          type: 'uint64',
-        },
-      ],
-      stateMutability: 'view',
-      type: 'function',
-    },
     maxLTV: {
       inputs: [],
       name: 'maxLTV',
@@ -152,24 +106,8 @@ const VAULTS = {
       stateMutability: 'view',
       type: 'function',
     },
-    totalAsset: {
-      inputs: [],
-      name: 'totalAsset',
-      outputs: [
-        {
-          internalType: 'uint128',
-          name: 'amount',
-          type: 'uint128',
-        },
-        {
-          internalType: 'uint128',
-          name: 'shares',
-          type: 'uint128',
-        },
-      ],
-      stateMutability: 'view',
-      type: 'function',
-    },
+    previewAddInterest:
+      'function previewAddInterest() view returns (uint256 interestEarned, uint256 feesAmount, uint256 feesShare, (uint32 lastBlock, uint32 feeToProtocolRate, uint64 lastTimestamp, uint64 ratePerSec, uint64 fullUtilizationRate) newCurrentRateInfo, (uint128 amount, uint128 shares) totalAsset, (uint128 amount, uint128 shares) totalBorrow)',
   },
 };
 
@@ -212,28 +150,6 @@ const getPools = async ({ chain, chainId, poolSuffix, pairs: vaults }) => {
     })
   ).output.map((x) => x.output);
 
-  const totalBorrows = (
-    await sdk.api.abi.multiCall({
-      calls: vaults.map((vaultAddress) => ({
-        target: vaultAddress,
-      })),
-      abi: VAULTS.abis.totalBorrow,
-      chain,
-      requery: true,
-    })
-  ).output.map((x) => x.output);
-
-  const currentRateInfos = (
-    await sdk.api.abi.multiCall({
-      calls: vaults.map((vaultAddress) => ({
-        target: vaultAddress,
-      })),
-      abi: VAULTS.abis.currentRateInfo,
-      chain,
-      requery: true,
-    })
-  ).output.map((x) => x.output);
-
   const maxLTVs = (
     await sdk.api.abi.multiCall({
       calls: vaults.map((vaultAddress) => ({
@@ -245,16 +161,33 @@ const getPools = async ({ chain, chainId, poolSuffix, pairs: vaults }) => {
     })
   ).output.map((x) => x.output);
 
-  const totalAssets = (
+  // previewAddInterest accrues interest and the variable rate up to now; the
+  // stored currentRateInfo/totalAsset/totalBorrow only move when someone
+  // interacts with the pair, so on quiet pairs they go stale
+  const previews = (
     await sdk.api.abi.multiCall({
       calls: vaults.map((vaultAddress) => ({
         target: vaultAddress,
       })),
-      abi: VAULTS.abis.totalAsset,
+      abi: VAULTS.abis.previewAddInterest,
       chain,
       requery: true,
     })
   ).output.map((x) => x.output);
+  const currentRateInfos = previews.map(
+    ([, , , [, feeToProtocolRate, , ratePerSec]]) => ({
+      feeToProtocolRate,
+      ratePerSec,
+    })
+  );
+  const totalAssets = previews.map(([, , , , [amount, shares]]) => ({
+    amount,
+    shares,
+  }));
+  const totalBorrows = previews.map(([, , , , , [amount, shares]]) => ({
+    amount,
+    shares,
+  }));
 
   const underlyingCollaterals = (
     await sdk.api.abi.multiCall({
