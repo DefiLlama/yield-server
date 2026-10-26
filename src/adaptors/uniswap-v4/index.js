@@ -36,6 +36,20 @@ const dayDataChains = {
   ),
 };
 
+// read from each subgraph's poolManagers entity; monad's was checked against
+// the Swap logs of its known pool ids
+const POOL_MANAGERS = {
+  ethereum: '0x000000000004444c5dc75cB358380D2e3dE08A90',
+  base: '0x498581ff718922c3f8e6a244956af099b2652b2b',
+  arbitrum: '0x360e68faccca8ca495c1b759fd9eee466db9fb32',
+  polygon: '0x67366782805870060151383f4bbff9dab53e5cd6',
+  unichain: '0x1f98400000000000000000000000000000000004',
+  bsc: '0x28e2ea090877bf75740558f6bfb36a5ffee9e9df',
+  avax: '0x06380c0e0912312b5150364b9dc4542ba0dbbc85',
+  optimism: '0x9a13f98cb987694c9f086b1f5eb990eea8264ec3',
+  monad: '0x188d586ddcf52439676ca21a244753fa19f9ea8e',
+};
+
 // the ethereum subgraph above halts on a deterministic indexing error every so
 // often; _meta keeps reporting a fresh head while no indexer can attest a block
 // past the halt, so every pool query fails and the chain silently drops out.
@@ -47,7 +61,15 @@ const fallbackChains = {
     url: sdk.graph.modifyEndpoint(
       '8B2wKxnkciCTc5HSgsAojF6vhKn6wxQ1nVecYzMge1hA'
     ),
-    poolManager: '0x000000000004444c5dc75cB358380D2e3dE08A90',
+    // a second, independently deployed subgraph (owner 0xabdc...) with the same
+    // canonical poolIds and reserves (530/532 shared pools within 5% on
+    // 2026-10-26), used for the pool list only when the one above fails. it
+    // stores a hook pool's current fee in feeTier rather than the 0x800000 flag,
+    // so the 7d leg, priced at feeTier, goes unmeasured when it is used
+    backupUrl: sdk.graph.modifyEndpoint(
+      'EzLH76FWsZUSBTfp2P6CV7cqN56e1rSt2uWtqtsUMEeb'
+    ),
+    poolManager: POOL_MANAGERS.ethereum,
     // a halted subgraph throws and yields nothing, but one that serves a badly
     // incomplete set is just as useless and would otherwise pass a >0 check.
     // healthy runs return ~480 pools here, so anything near this floor is broken
@@ -87,36 +109,54 @@ const POOL_FIELDS = `
         id
       }`;
 
+// utils.withRetry only retries HTTP 429/5xx; indexer errors arrive as HTTP 200
+// with an errors body, which graphql-request throws as a ClientError
+const requestWithRetry = async (url, query, retries = 2) => {
+  for (let i = 0; ; i++) {
+    try {
+      return await request(url, query);
+    } catch (e) {
+      if (i === retries) throw e;
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** i));
+    }
+  }
+};
+
+// polygon's deployment times out scanning pools in id order for the few that
+// clear TVL_MIN, while unichain's times out sorting them by tvl
+const TVL_ORDERED_CHAINS = new Set(['polygon']);
+
+// ~39k base pools clear TVL_MIN on the subgraph's own prices with a single tx
+// and zero liquidity, spam whose tokens cost ~750 price requests. requiring a
+// second tx drops them without losing a priced pool on any chain (measured
+// 2026-10-26)
+const POOL_WHERE = `totalValueLockedUSD_gte: ${TVL_MIN}, txCount_gt: 1`;
+
 const queryWithSkip = (skip) => gql`
   {
-    pools(first: ${PAGE_SIZE}, skip: ${skip}, orderBy: totalValueLockedUSD, orderDirection: desc, where: {totalValueLockedUSD_gte: ${TVL_MIN}}, block: {number: <PLACEHOLDER>}) {${POOL_FIELDS}
+    pools(first: ${PAGE_SIZE}, skip: ${skip}, orderBy: totalValueLockedUSD, orderDirection: desc, where: {${POOL_WHERE}}, block: {number: <PLACEHOLDER>}) {${POOL_FIELDS}
     }
   }
 `;
 
-const fetchAllPools = async (url, block) => {
-  let allPools = [];
+const queryWithCursor = (idCursor, block) => gql`
+  {
+    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {${POOL_WHERE}, id_gt: "${idCursor}"}, block: {number: ${block}}) {${POOL_FIELDS}
+    }
+  }
+`;
+
+const fetchAllPools = async (url, block, tvlOrdered) => {
+  const allPools = [];
   let skip = 0;
 
   while (true) {
-    const q = queryWithSkip(skip).replace('<PLACEHOLDER>', block);
-    let data;
-    try {
-      data = await utils.withRetry(() => request(url, q), {
-        retries: 2,
-        delayMs: 1000,
-      });
-    } catch (e) {
-      // base has outgrown the page budget; a failed page must not wipe the chain
-      console.log(
-        `uniswap-v4: page ${skip} failed, keeping ${allPools.length} pools`,
-        e.message
-      );
-      break;
-    }
-    if (!data.pools || data.pools.length === 0) break;
-    allPools = allPools.concat(data.pools);
-    if (data.pools.length < PAGE_SIZE) break;
+    const q = tvlOrdered
+      ? queryWithSkip(skip).replace('<PLACEHOLDER>', block)
+      : queryWithCursor(allPools.at(-1)?.id ?? '', block);
+    const page = (await requestWithRetry(url, q)).pools ?? [];
+    allPools.push(...page);
+    if (page.length < PAGE_SIZE) break;
     skip += PAGE_SIZE;
   }
 
@@ -175,8 +215,14 @@ const topLvl = async (chainString, url, timestamp) => {
       86400;
 
     let [dataNow, volumesByPoolId] = await Promise.all([
-      fetchAllPools(url, block),
-      fetchDayVolumes(url, previousDay, 1),
+      fetchAllPools(url, block, TVL_ORDERED_CHAINS.has(chainString)),
+      fetchDayVolumes(
+        url,
+        previousDay,
+        1,
+        `pool_: {totalValueLockedUSD_gte: ${TVL_MIN}}`,
+        block
+      ),
     ]);
 
     dataNow = dataNow.map((p) => ({
@@ -187,6 +233,13 @@ const topLvl = async (chainString, url, timestamp) => {
     dataNow = dataNow.filter((p) => !hasInvalidTokenTvl(p));
 
     dataNow = await utils.tvl(dataNow, chainString);
+    dataNow = dataNow.filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+    const hookFeesUsd = await fetchHookFeesUsd(
+      chainString,
+      dataNow,
+      previousDay,
+      volumesByPoolId
+    );
 
     dataNow = dataNow.map((pool) => {
       const volumes = volumesByPoolId[pool.id];
@@ -194,10 +247,14 @@ const topLvl = async (chainString, url, timestamp) => {
       const volumeUSD1d = hasFullDay
         ? Number(volumes?.volumeUSD1d ?? 0)
         : undefined;
-      const feeUSD1d = hasFullDay ? Number(volumes?.feeUSD1d ?? 0) : undefined;
+      const feeUSD1d = !hasFullDay
+        ? undefined
+        : isDynamicFeePool(pool.feeTier)
+        ? hookFeesUsd[pool.id]
+        : Number(volumes?.feeUSD1d ?? 0);
 
       let apy;
-      if (volumeUSD1d === undefined) {
+      if (feeUSD1d === undefined) {
         apy = undefined;
       } else if (pool.totalValueLockedUSD > 0 && feeUSD1d > 0) {
         apy = (feeUSD1d * 365 * 100) / pool.totalValueLockedUSD;
@@ -233,12 +290,15 @@ const poolsByIdQuery = (ids) => gql`
   }
 `;
 
-const dayVolumesQuery = (dateGte, dateLte, idCursor) => gql`
+const dayVolumesQuery = (dateGte, dateLte, idCursor, poolFilter, block) => gql`
   {
-    poolDayDatas(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {date_gte: ${dateGte}, date_lte: ${dateLte}, id_gt: "${idCursor}"}) {
+    poolDayDatas(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {date_gte: ${dateGte}, date_lte: ${dateLte}, id_gt: "${idCursor}", ${poolFilter}}${
+  block ? `, block: {number: ${block}}` : ''
+}) {
       id
       date
       volumeUSD
+      volumeToken0
       feesUSD
       pool {
         id
@@ -252,7 +312,7 @@ const fetchLatestPools = async (url) => {
   let idCursor = '';
 
   while (true) {
-    const data = await request(url, latestPoolsQuery(idCursor));
+    const data = await requestWithRetry(url, latestPoolsQuery(idCursor));
     const page = data.pools ?? [];
     allPools.push(...page);
     if (page.length < PAGE_SIZE) break;
@@ -262,18 +322,25 @@ const fetchLatestPools = async (url) => {
   return allPools;
 };
 
-// returns { poolId: { volumeUSD1d, volumeUSD7d, feeUSD1d, feeUSD7d } } built
-// from the requested full days of poolDayDatas; the most recent full day
-// supplies the 1d values
-const fetchDayVolumes = async (url, previousDay, days = 7) => {
+// returns { poolId: { volumeUSD1d, volumeUSD7d, feeUSD1d, feeUSD7d,
+// token0Volume1d } } built from the requested full days of poolDayDatas; the
+// most recent full day supplies the 1d values. a pool filter reads pool state
+// at the block, so pass the block the pool list was read at
+const fetchDayVolumes = async (
+  url,
+  previousDay,
+  days = 7,
+  poolFilter = '',
+  block
+) => {
   const volumesByPoolId = {};
   const firstDay = previousDay - (days - 1) * 86400;
   let idCursor = '';
 
   while (true) {
-    const data = await request(
+    const data = await requestWithRetry(
       url,
-      dayVolumesQuery(firstDay, previousDay, idCursor)
+      dayVolumesQuery(firstDay, previousDay, idCursor, poolFilter, block)
     );
     const page = data.poolDayDatas ?? [];
 
@@ -284,6 +351,7 @@ const fetchDayVolumes = async (url, previousDay, days = 7) => {
         volumeUSD7d: 0,
         feeUSD1d: 0,
         feeUSD7d: 0,
+        token0Volume1d: 0,
       };
 
       volumes.volumeUSD7d += Number(dayData.volumeUSD);
@@ -291,6 +359,7 @@ const fetchDayVolumes = async (url, previousDay, days = 7) => {
       if (Number(dayData.date) === previousDay) {
         volumes.volumeUSD1d += Number(dayData.volumeUSD);
         volumes.feeUSD1d += Number(dayData.feesUSD);
+        volumes.token0Volume1d += Number(dayData.volumeToken0);
       }
 
       volumesByPoolId[poolId] = volumes;
@@ -321,7 +390,7 @@ const topLvlDayData = async (chainString, url) => {
 
     let dataNow = [...tvlPools];
     for (let start = 0; start < missingPoolIds.length; start += 100) {
-      const data = await request(
+      const data = await requestWithRetry(
         url,
         poolsByIdQuery(missingPoolIds.slice(start, start + 100))
       );
@@ -338,9 +407,16 @@ const topLvlDayData = async (chainString, url) => {
 
     dataNow = await utils.tvl(dataNow, chainString);
     dataNow = dataNow.filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+    const hookFeesUsd = await fetchHookFeesUsd(
+      chainString,
+      dataNow,
+      previousDay,
+      volumesByPoolId
+    );
 
     return dataNow.map((pool) => {
       const volumes = volumesByPoolId[pool.id];
+      const isDynamic = isDynamicFeePool(pool.feeTier);
       const hasFullDay = Number(pool.createdAtTimestamp || 0) <= previousDay;
       const hasFullWeek =
         Number(pool.createdAtTimestamp || 0) <= previousDay - 6 * 86400;
@@ -350,8 +426,13 @@ const topLvlDayData = async (chainString, url) => {
       const volumeUSD7d = hasFullWeek
         ? Number(volumes?.volumeUSD7d ?? 0)
         : undefined;
-      const feeUSD1d = hasFullDay ? Number(volumes?.feeUSD1d ?? 0) : undefined;
-      const feeUSD7d = hasFullWeek ? Number(volumes?.feeUSD7d ?? 0) : undefined;
+      const feeUSD1d = !hasFullDay
+        ? undefined
+        : isDynamic
+        ? hookFeesUsd[pool.id]
+        : Number(volumes?.feeUSD1d ?? 0);
+      const feeUSD7d =
+        hasFullWeek && !isDynamic ? Number(volumes?.feeUSD7d ?? 0) : undefined;
 
       const toApy = (annualFeesUsd) =>
         pool.totalValueLockedUSD > 0 && annualFeesUsd > 0
@@ -374,11 +455,14 @@ const topLvlDayData = async (chainString, url) => {
   }
 };
 
-const fallbackPoolsQuery = (idCursor) => gql`
+// without the token0_/token1_ filters this subgraph intermittently fails the
+// whole page with "Null value resolved for non-null field token1", even though
+// every pool on it resolves both tokens when fetched by id
+const fallbackPoolsQuery = (idCursor, feeField) => gql`
   {
-    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${FALLBACK_PREFILTER_TVL}, id_gt: "${idCursor}"}) {
+    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${FALLBACK_PREFILTER_TVL}, id_gt: "${idCursor}", token0_: {decimals_gte: 0}, token1_: {decimals_gte: 0}}) {
       id
-      feeTier: fee
+      feeTier: ${feeField}
       totalValueLockedUSD
       totalValueLockedToken0
       totalValueLockedToken1
@@ -413,12 +497,15 @@ const snapshotVolumesQuery = (dayIndex, idCursor) => gql`
   }
 `;
 
-const fetchFallbackPools = async (url) => {
+const fetchFallbackPools = async (url, feeField) => {
   const allPools = [];
   let idCursor = '';
 
   while (true) {
-    const data = await request(url, fallbackPoolsQuery(idCursor));
+    const data = await requestWithRetry(
+      url,
+      fallbackPoolsQuery(idCursor, feeField)
+    );
     const page = data.pools ?? [];
     allPools.push(...page);
     if (page.length < PAGE_SIZE) break;
@@ -435,7 +522,10 @@ const fetchCumulativeVolumes = async (url, dayIndex) => {
   let idCursor = '';
 
   while (true) {
-    const data = await request(url, snapshotVolumesQuery(dayIndex, idCursor));
+    const data = await requestWithRetry(
+      url,
+      snapshotVolumesQuery(dayIndex, idCursor)
+    );
     const page = data.poolSnapshots ?? [];
     for (const snapshot of page) {
       volumeByPoolId[snapshot.pool.id] = Number(snapshot.volumeUSD);
@@ -465,7 +555,8 @@ const fetchSwapTotals = async (
   chainString,
   poolManager,
   fromTimestamp,
-  toTimestamp
+  toTimestamp,
+  poolIds
 ) => {
   const [start, end] = await Promise.all([
     getBlockAt(chainString, fromTimestamp),
@@ -475,20 +566,47 @@ const fetchSwapTotals = async (
     start.timestamp < fromTimestamp ? start.block + 1 : start.block;
   const block = end.timestamp >= toTimestamp ? end.block - 1 : end.block;
 
-  const logs = await sdk.getEventLogs({
-    target: poolManager,
-    chain: chainString,
-    fromBlock: blockPrior,
-    toBlock: block,
-    eventAbi: SWAP_EVENT,
-    onlyArgs: true,
-  });
+  // indexer v2's default offset paging repeats ~35% of a day's swaps in place
+  // of others; v4 and clientStreaming page by cursor and match rpc exactly, and
+  // clientStreaming is also the fastest of them and filters by pool id server
+  // side, one id per request: it answers a list of ids with HTTP 400 on
+  // unichain (measured 2026-10-26, sdk 5.0.242). the rpc fallback can return a
+  // chunk-boundary block twice, so logs are deduped
+  const getSwapLogs = (poolId) =>
+    sdk.getEventLogs({
+      target: poolManager,
+      chain: chainString,
+      fromBlock: blockPrior,
+      toBlock: block,
+      eventAbi: SWAP_EVENT,
+      entireLog: true,
+      skipCache: true,
+      clientStreaming: true,
+      ...(poolId && { extraTopics: [poolId] }),
+    });
+  // a pool whose request fails is left out of the totals, which its caller
+  // reads as missing logs, rather than discarding the pools that answered
+  const logs = poolIds
+    ? (await Promise.allSettled(poolIds.map(getSwapLogs))).flatMap((r, i) => {
+        if (r.status === 'fulfilled') return r.value;
+        console.error(
+          `uniswap-v4: ${chainString} swap logs for ${poolIds[i]}`,
+          r.reason?.message ?? r.reason
+        );
+        return [];
+      })
+    : await getSwapLogs();
 
+  const seen = new Set();
   const totalsByPoolId = {};
-  for (const log of logs) {
-    const poolId = log.id.toLowerCase();
-    const amount0 = absolute(BigInt(log.amount0));
-    const amount1 = absolute(BigInt(log.amount1));
+  for (const { transactionHash, logIndex, index, args } of logs) {
+    const logKey = `${transactionHash}-${logIndex ?? index}`;
+    if (seen.has(logKey)) continue;
+    seen.add(logKey);
+
+    const poolId = args.id.toLowerCase();
+    const amount0 = absolute(BigInt(args.amount0));
+    const amount1 = absolute(BigInt(args.amount1));
     const totals = (totalsByPoolId[poolId] ??= {
       amount0: 0n,
       amount1: 0n,
@@ -497,23 +615,101 @@ const fetchSwapTotals = async (
     });
     totals.amount0 += amount0;
     totals.amount1 += amount1;
-    totals.fees0 += (amount0 * BigInt(log.fee)) / 1000000n;
-    totals.fees1 += (amount1 * BigInt(log.fee)) / 1000000n;
+    totals.fees0 += (amount0 * BigInt(args.fee)) / 1000000n;
+    totals.fees1 += (amount1 * BigInt(args.fee)) / 1000000n;
   }
 
   return totalsByPoolId;
 };
 
-const topLvlFallback = async (chainString, { url, poolManager }) => {
+// the subgraph prices a hook pool's fees at the dynamic-fee flag itself
+// (0x800000 ppm, ~839% of volume). the Swap logs carry what each swap paid, so
+// they set the fee rate and the subgraph supplies the volume. when the indexer
+// can't serve, the rpc pool can answer an old range with only some of its logs
+// and no error, and a subset of a hook's swaps can average a different fee than
+// the day did, so a rate counts only once the logs add up to the subgraph's
+// token0 volume. pools short of it are retried, keeping those already
+// measured, then left unmeasured
+const MIN_LOG_COVERAGE = 0.99;
+
+const fetchHookFeesUsd = async (
+  chainString,
+  pools,
+  previousDay,
+  volumesByPoolId,
+  attempts = 3,
+  feesUsd = {}
+) => {
+  const pending = [];
+  for (const pool of pools.filter((p) => isDynamicFeePool(p.feeTier))) {
+    if (!volumesByPoolId[pool.id]?.volumeUSD1d) feesUsd[pool.id] = 0;
+    else if (feesUsd[pool.id] === undefined) pending.push(pool);
+  }
+  if (!pending.length) return feesUsd;
+
+  try {
+    const totals = await fetchSwapTotals(
+      chainString,
+      POOL_MANAGERS[chainString],
+      previousDay,
+      previousDay + 86400,
+      pending.map((pool) => pool.id)
+    );
+    for (const pool of pending) {
+      const { volumeUSD1d, token0Volume1d } = volumesByPoolId[pool.id];
+      const poolTotals = totals[pool.id.toLowerCase()];
+      const logVolume0 =
+        Number(poolTotals?.amount0 ?? 0n) / 10 ** Number(pool.token0.decimals);
+      if (logVolume0 > 0 && logVolume0 >= MIN_LOG_COVERAGE * token0Volume1d)
+        feesUsd[pool.id] =
+          (volumeUSD1d * Number(poolTotals.fees0)) / Number(poolTotals.amount0);
+    }
+  } catch (e) {
+    console.error(`uniswap-v4: ${chainString} hook pool fees`, e?.message ?? e);
+  }
+
+  return attempts === 1
+    ? feesUsd
+    : fetchHookFeesUsd(
+        chainString,
+        pools,
+        previousDay,
+        volumesByPoolId,
+        attempts - 1,
+        feesUsd
+      );
+};
+
+const topLvlFallback = async (
+  chainString,
+  { url, backupUrl, poolManager }
+) => {
+  // snapshots only feed the 7d leg, so losing them costs that leg alone
+  const withoutSnapshots = (e) => {
+    console.error(
+      `uniswap-v4: ${chainString} fallback snapshots`,
+      e?.message ?? e
+    );
+    return {};
+  };
   try {
     const today = Math.floor(Date.now() / 1000 / 86400);
     const previousDay = (today - 1) * 86400;
-    const [pools, swapTotals, endOfYesterday, endOfWeekBefore] =
+    let usedBackup = false;
+    const [pools, swapTotals, endOfYesterday, endOfDayBefore, endOfWeekBefore] =
       await Promise.all([
-        fetchFallbackPools(url),
+        fetchFallbackPools(url, 'fee').catch((e) => {
+          console.error(
+            `uniswap-v4: ${chainString} fallback pools, using backup`,
+            e?.message ?? e
+          );
+          usedBackup = true;
+          return fetchFallbackPools(backupUrl, 'feeTier');
+        }),
         fetchSwapTotals(chainString, poolManager, previousDay, today * 86400),
-        fetchCumulativeVolumes(url, today - 1),
-        fetchCumulativeVolumes(url, today - 8),
+        fetchCumulativeVolumes(url, today - 1).catch(withoutSnapshots),
+        fetchCumulativeVolumes(url, today - 2).catch(withoutSnapshots),
+        fetchCumulativeVolumes(url, today - 8).catch(withoutSnapshots),
       ]);
 
     let dataNow = pools
@@ -551,11 +747,18 @@ const topLvlFallback = async (chainString, { url, poolManager }) => {
           0
         : undefined;
 
+      // snapshot volume is priced by this subgraph, which gets some tokens badly
+      // wrong (WBTC at ~8x on 2026-10-26), so a pool's 7d figure is trusted only
+      // where its snapshots matched the swap logs within 25% yesterday
+      const snapshotVolume1d =
+        endOfYesterday[pool.id] - endOfDayBefore[pool.id];
+      const snapshotsAgree =
+        Math.abs(snapshotVolume1d - volumeUSD1d) <=
+        0.25 * Math.max(snapshotVolume1d, volumeUSD1d);
       // a pool younger than the window, or one absent from either bucket, has no
       // measurable 7d span -- distinct from a pool that spanned it and traded 0
       const volumeUSD7d =
-        endOfYesterday[pool.id] !== undefined &&
-        endOfWeekBefore[pool.id] !== undefined
+        !usedBackup && snapshotsAgree && endOfWeekBefore[pool.id] !== undefined
           ? endOfYesterday[pool.id] - endOfWeekBefore[pool.id]
           : undefined;
       const isDynamic = isDynamicFeePool(pool.feeTier);
