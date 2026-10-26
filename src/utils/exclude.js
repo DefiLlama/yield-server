@@ -546,6 +546,9 @@ const excludedProtocols = [
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
 
 const excludePools = [
+  // pancakeswap-amm-v3 PORT3-USDT 0.01% on Ethereum: holds 3.4e10 PORT3 minted in the 2025-11 PORT3 exploit and 0 USDT,
+  // the TVL adapter blacklists PORT3 for the same reason (DefiLlama-Adapters projects/pancakeswap-v3)
+  '0xa0fca9c19934e7cb8993ddd8590b4a47addb2169',
   // burrow -> rhea-lend rename (2026-09-22): legacy markets the rhea-lend adapter no longer serves
   'burrow-pool-2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near',
   'burrow-pool-4691937a7508860f876c9c0a2a617e7d9e945d4b.factory.bridge.near',
