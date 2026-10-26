@@ -1,11 +1,9 @@
-const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.json');
 const { getPriceApiData } = require('../utils');
+const { getRepriceApr } = require('../swell-liquid-restaking/repriceApr');
 
-const apr = 'https://v3.svc.swellnetwork.io/swell.v3.StatsService/All';
-const apr7d = 'https://v3-public.svc.swellnetwork.io/api/tokens/sweth/apr';
 const swETH = '0xf951E335afb289353dc249e82926178EaC7DEd78';
 
 const apy = async () => {
@@ -25,13 +23,15 @@ const apy = async () => {
       })
     ).output / 1e18;
 
+  // the swETH price already includes the rate
   const priceKey = `ethereum:${swETH}`;
-  const ethPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
+  const swETHPrice = (await getPriceApiData(`/prices/current/${priceKey}`)).coins[priceKey].price;
 
-  const tvlUsd = totalSupply * rate * ethPrice;
+  const tvlUsd = totalSupply * swETHPrice;
 
-  // const apyBase = (await axios.post(apr, {})).data.stakingAprPercent;
-  const apyBase7d = (await axios.get(apr7d)).data;
+  // Swell's own apr endpoint annualizes the unbacked 2026-10-21 rate increases, so the APR is computed on-chain
+  // from the reprices that reported rewards
+  const apyBase7d = await getRepriceApr(swETH, 'newSwETHToETHRate', 7);
 
   return [
     {
