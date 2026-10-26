@@ -254,21 +254,16 @@ const normalizeAddress = (address) => {
 };
 
 const fetchTokenData = async (chain, vaultDetails) => {
-  const priceKeys = vaultDetails.supplyTokens
-    .map((token) => `${chain}:${token}`)
-    .join(',');
-  const borrowPriceKeys = vaultDetails.borrowTokens
-    .map((token) => `${chain}:${token}`)
-    .join(',');
-
-  const [prices, borrowPrices] = await Promise.all([
-    axios
-      .get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`))
-      .then((r) => r.data.coins),
-    axios
-      .get(utils.getPriceApiUrl(`/prices/current/${borrowPriceKeys}`))
-      .then((r) => r.data.coins),
+  // Chunked and retried: one ~5KB URL with every vault's tokens on
+  // ethereum failed once and dropped the whole chain.
+  const prices = await utils.getPriceApiCoins([
+    ...new Set(
+      [...vaultDetails.supplyTokens, ...vaultDetails.borrowTokens].map(
+        (token) => `${chain}:${token}`
+      )
+    ),
   ]);
+  const borrowPrices = prices;
 
   return {
     symbol: vaultDetails.supplyTokens.map(
