@@ -584,8 +584,17 @@ const fetchSwapTotals = async (
       clientStreaming: true,
       ...(poolId && { extraTopics: [poolId] }),
     });
+  // a pool whose request fails is left out of the totals, which its caller
+  // reads as missing logs, rather than discarding the pools that answered
   const logs = poolIds
-    ? (await Promise.all(poolIds.map(getSwapLogs))).flat()
+    ? (await Promise.allSettled(poolIds.map(getSwapLogs))).flatMap((r, i) => {
+        if (r.status === 'fulfilled') return r.value;
+        console.error(
+          `uniswap-v4: ${chainString} swap logs for ${poolIds[i]}`,
+          r.reason?.message ?? r.reason
+        );
+        return [];
+      })
     : await getSwapLogs();
 
   const seen = new Set();
