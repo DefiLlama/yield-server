@@ -227,13 +227,25 @@ const getVaultApy = async (chain) => {
 
     const tokenData = await fetchTokenData(chain, vaultDetails);
 
+    // Fluid retires a vault by cutting its Liquidity max borrow limit to a
+    // few wei, so no new debt can open; live vaults have caps of $100k+.
+    const retired = filteredVaults.map(
+      (vault, index) =>
+        !(
+          (vault[10][7] * tokenData.borrowTokenPrices[index]) /
+            10 ** tokenData.borrowTokenDecimals[index] >=
+          1000
+        )
+    );
+
     return calculateVaultPoolData(
       chain,
       filteredVaults,
       vaultDetails,
       tokenData
     ).filter(
-      (pool) =>
+      (pool, index) =>
+        !retired[index] &&
         utils.keepFinite(pool) &&
         Number.isFinite(pool.totalSupplyUsd) &&
         Number.isFinite(pool.totalBorrowUsd) &&
