@@ -87,6 +87,23 @@ const POOL_FIELDS = `
         id
       }`;
 
+// utils.withRetry only retries HTTP 429/5xx; indexer errors arrive as HTTP 200
+// with an errors body, which graphql-request throws as a ClientError
+const requestWithRetry = async (url, query, retries = 2) => {
+  for (let i = 0; ; i++) {
+    try {
+      return await request(url, query);
+    } catch (e) {
+      if (i === retries) throw e;
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** i));
+    }
+  }
+};
+
+// polygon's deployment times out scanning pools in id order for the few that
+// clear TVL_MIN, while unichain's times out sorting them by tvl
+const TVL_ORDERED_CHAINS = new Set(['polygon']);
+
 const queryWithSkip = (skip) => gql`
   {
     pools(first: ${PAGE_SIZE}, skip: ${skip}, orderBy: totalValueLockedUSD, orderDirection: desc, where: {totalValueLockedUSD_gte: ${TVL_MIN}}, block: {number: <PLACEHOLDER>}) {${POOL_FIELDS}
@@ -94,29 +111,24 @@ const queryWithSkip = (skip) => gql`
   }
 `;
 
-const fetchAllPools = async (url, block) => {
-  let allPools = [];
+const queryWithCursor = (idCursor, block) => gql`
+  {
+    pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${TVL_MIN}, id_gt: "${idCursor}"}, block: {number: ${block}}) {${POOL_FIELDS}
+    }
+  }
+`;
+
+const fetchAllPools = async (url, block, tvlOrdered) => {
+  const allPools = [];
   let skip = 0;
 
   while (true) {
-    const q = queryWithSkip(skip).replace('<PLACEHOLDER>', block);
-    let data;
-    try {
-      data = await utils.withRetry(() => request(url, q), {
-        retries: 2,
-        delayMs: 1000,
-      });
-    } catch (e) {
-      // base has outgrown the page budget; a failed page must not wipe the chain
-      console.log(
-        `uniswap-v4: page ${skip} failed, keeping ${allPools.length} pools`,
-        e.message
-      );
-      break;
-    }
-    if (!data.pools || data.pools.length === 0) break;
-    allPools = allPools.concat(data.pools);
-    if (data.pools.length < PAGE_SIZE) break;
+    const q = tvlOrdered
+      ? queryWithSkip(skip).replace('<PLACEHOLDER>', block)
+      : queryWithCursor(allPools.at(-1)?.id ?? '', block);
+    const page = (await requestWithRetry(url, q)).pools ?? [];
+    allPools.push(...page);
+    if (page.length < PAGE_SIZE) break;
     skip += PAGE_SIZE;
   }
 
@@ -175,8 +187,13 @@ const topLvl = async (chainString, url, timestamp) => {
       86400;
 
     let [dataNow, volumesByPoolId] = await Promise.all([
-      fetchAllPools(url, block),
-      fetchDayVolumes(url, previousDay, 1),
+      fetchAllPools(url, block, TVL_ORDERED_CHAINS.has(chainString)),
+      fetchDayVolumes(
+        url,
+        previousDay,
+        1,
+        `pool_: {totalValueLockedUSD_gte: ${TVL_MIN}}`
+      ),
     ]);
 
     dataNow = dataNow.map((p) => ({
@@ -187,6 +204,7 @@ const topLvl = async (chainString, url, timestamp) => {
     dataNow = dataNow.filter((p) => !hasInvalidTokenTvl(p));
 
     dataNow = await utils.tvl(dataNow, chainString);
+    dataNow = dataNow.filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
 
     dataNow = dataNow.map((pool) => {
       const volumes = volumesByPoolId[pool.id];
@@ -233,9 +251,9 @@ const poolsByIdQuery = (ids) => gql`
   }
 `;
 
-const dayVolumesQuery = (dateGte, dateLte, idCursor) => gql`
+const dayVolumesQuery = (dateGte, dateLte, idCursor, poolFilter) => gql`
   {
-    poolDayDatas(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {date_gte: ${dateGte}, date_lte: ${dateLte}, id_gt: "${idCursor}"}) {
+    poolDayDatas(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {date_gte: ${dateGte}, date_lte: ${dateLte}, id_gt: "${idCursor}", ${poolFilter}}) {
       id
       date
       volumeUSD
@@ -252,7 +270,7 @@ const fetchLatestPools = async (url) => {
   let idCursor = '';
 
   while (true) {
-    const data = await request(url, latestPoolsQuery(idCursor));
+    const data = await requestWithRetry(url, latestPoolsQuery(idCursor));
     const page = data.pools ?? [];
     allPools.push(...page);
     if (page.length < PAGE_SIZE) break;
@@ -265,15 +283,15 @@ const fetchLatestPools = async (url) => {
 // returns { poolId: { volumeUSD1d, volumeUSD7d, feeUSD1d, feeUSD7d } } built
 // from the requested full days of poolDayDatas; the most recent full day
 // supplies the 1d values
-const fetchDayVolumes = async (url, previousDay, days = 7) => {
+const fetchDayVolumes = async (url, previousDay, days = 7, poolFilter = '') => {
   const volumesByPoolId = {};
   const firstDay = previousDay - (days - 1) * 86400;
   let idCursor = '';
 
   while (true) {
-    const data = await request(
+    const data = await requestWithRetry(
       url,
-      dayVolumesQuery(firstDay, previousDay, idCursor)
+      dayVolumesQuery(firstDay, previousDay, idCursor, poolFilter)
     );
     const page = data.poolDayDatas ?? [];
 
@@ -321,7 +339,7 @@ const topLvlDayData = async (chainString, url) => {
 
     let dataNow = [...tvlPools];
     for (let start = 0; start < missingPoolIds.length; start += 100) {
-      const data = await request(
+      const data = await requestWithRetry(
         url,
         poolsByIdQuery(missingPoolIds.slice(start, start + 100))
       );
@@ -418,7 +436,7 @@ const fetchFallbackPools = async (url) => {
   let idCursor = '';
 
   while (true) {
-    const data = await request(url, fallbackPoolsQuery(idCursor));
+    const data = await requestWithRetry(url, fallbackPoolsQuery(idCursor));
     const page = data.pools ?? [];
     allPools.push(...page);
     if (page.length < PAGE_SIZE) break;
@@ -435,7 +453,10 @@ const fetchCumulativeVolumes = async (url, dayIndex) => {
   let idCursor = '';
 
   while (true) {
-    const data = await request(url, snapshotVolumesQuery(dayIndex, idCursor));
+    const data = await requestWithRetry(
+      url,
+      snapshotVolumesQuery(dayIndex, idCursor)
+    );
     const page = data.poolSnapshots ?? [];
     for (const snapshot of page) {
       volumeByPoolId[snapshot.pool.id] = Number(snapshot.volumeUSD);
