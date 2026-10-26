@@ -41,6 +41,9 @@ const abiVaultResolver = require('./abiVaultResolver');
 const getVaultsEntireDataAbi = abiVaultResolver.find(
   (m) => m.name === 'getVaultsEntireData'
 );
+const getVaultEntireDataAbi = abiVaultResolver.find(
+  (m) => m.name === 'getVaultEntireData'
+);
 const getAllVaultsAddressesAbi = {
   inputs: [],
   name: 'getAllVaultsAddresses',
@@ -126,7 +129,7 @@ const getLendingApy = async (chain) => {
           project: 'fluid-lending',
           pool: `${chain}_${token.tokenAddress}`,
           tvlUsd:
-            (token.totalAssets * prices[`${chain}:${underlying[i]}`].price) /
+            (token.totalAssets * prices[`${chain}:${underlying[i]}`]?.price) /
             10 ** decimals.output[i].output,
           symbol: symbol.output[i].output,
           underlyingTokens: [token.asset],
@@ -149,33 +152,40 @@ const getLendingApy = async (chain) => {
 // Vault Functions
 const getVaultApy = async (chain) => {
   try {
-    const vaults =
-      chain === 'polygon'
-        ? (
-            await sdk.api.abi.call({
-              target: CONSTANTS.RESOLVERS.VAULT[chain],
-              abi: getAllVaultsAddressesAbi,
-              chain,
-            })
-          ).output
-        : undefined;
-
-    let vaultsEntireData = (
+    const vaults = (
       await sdk.api.abi.call({
         target: CONSTANTS.RESOLVERS.VAULT[chain],
-        abi:
-          chain === 'polygon'
-            ? getVaultsEntireDataByAddressAbi
-            : getVaultsEntireDataAbi,
-        ...(vaults && { params: [vaults] }),
+        abi: getAllVaultsAddressesAbi,
         chain,
       })
     ).output;
 
-    vaultsEntireData = vaultsEntireData.map((vault, index) => ({
-      ...vault,
-      VaultId: index + 1,
-    }));
+    let vaultsEntireData;
+    if (chain === 'polygon') {
+      vaultsEntireData = (
+        await sdk.api.abi.call({
+          target: CONSTANTS.RESOLVERS.VAULT[chain],
+          abi: getVaultsEntireDataByAddressAbi,
+          params: [vaults],
+          chain,
+        })
+      ).output.map((vault, index) => ({ ...vault, VaultId: index + 1 }));
+    } else {
+      // Read vaults one by one: a single reverting vault reverts the
+      // resolver's batch getter and would drop every vault on the chain.
+      const { output } = await sdk.api.abi.multiCall({
+        calls: vaults.map((vault) => ({
+          target: CONSTANTS.RESOLVERS.VAULT[chain],
+          params: [vault],
+        })),
+        abi: getVaultEntireDataAbi,
+        chain,
+        permitFailure: true,
+      });
+      vaultsEntireData = output
+        .map((r, index) => r.output && { ...r.output, VaultId: index + 1 })
+        .filter(Boolean);
+    }
 
     const filteredVaults = vaultsEntireData.filter(
       (vault) => vault[1] === false && vault[2] === false
