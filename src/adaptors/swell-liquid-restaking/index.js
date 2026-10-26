@@ -34,7 +34,7 @@ const apy = async () => {
   if (closestBefore && closestAfter) {
     const interpolatedRate = await interpolate7d(closestBefore, closestAfter, timestamp7DaysAgo);
     const endTime = await sdk.api.util.getTimestamp(eventNow.blockNumber, "ethereum");
-    const currentRate = BigNumber.from(eventNow.decoded.newRswETHToETHRate.toString());
+    const currentRate = BigNumber.from(eventNow.backedRate);
     const sevenDayRateChange = currentRate.mul(BigNumber.from(10).pow(18)).div(interpolatedRate).sub(BigNumber.from(10).pow(18));
     const timeElapsed = BigNumber.from(endTime - timestamp7DaysAgo);
     apr7d = sevenDayRateChange.mul(365 * 86400).div(timeElapsed).mul(100).toString() / 1e18;
@@ -89,9 +89,16 @@ async function get7dRepriceEvents() {
     chain: "ethereum",
   });
 
-  // Map args to decoded for backwards compatibility with calcRate and interpolate functions
+  const WAD = 10n ** 18n;
+  repriceEvents.sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber));
+  let prevRate;
+  let unbacked = WAD;
   return repriceEvents.map((ev) => {
-    ev.decoded = ev.args;
+    const rate = BigInt(ev.args.newRswETHToETHRate);
+    const feeShares = BigInt(ev.args.nodeOperatorRewards) + BigInt(ev.args.swellTreasuryRewards);
+    if (prevRate !== undefined && feeShares === 0n) unbacked = (unbacked * rate) / prevRate;
+    prevRate = rate;
+    ev.backedRate = ((rate * WAD) / unbacked).toString();
     return ev;
   });
 }
@@ -100,7 +107,7 @@ async function calcRate(
   eventNow,
   eventPrev
 ) {
-  const rateDelta = (Number(eventNow.decoded[1])/Number(eventPrev.decoded[1])) - 1;
+  const rateDelta = (Number(eventNow.backedRate)/Number(eventPrev.backedRate)) - 1;
   const blockDelta = Number(eventNow.blockNumber) - Number(eventPrev.blockNumber);
   const timeDeltaSeconds = blockDelta*12; // assuming 12 seconds per block
   const apr1d = (rateDelta*365*100)/(timeDeltaSeconds/86400);
@@ -142,8 +149,8 @@ async function interpolate7d(closestBefore, closestAfter, timestamp7DaysAgo) {
   const afterTimestamp = await sdk.api.util.getTimestamp(closestAfter.blockNumber, "ethereum");
 
   const timeDiff = afterTimestamp - beforeTimestamp;
-  const rateBefore = BigNumber.from(closestBefore.decoded.newRswETHToETHRate.toString());
-  const rateAfter = BigNumber.from(closestAfter.decoded.newRswETHToETHRate.toString());
+  const rateBefore = BigNumber.from(closestBefore.backedRate);
+  const rateAfter = BigNumber.from(closestAfter.backedRate);
 
   const rateDiff = rateAfter.sub(rateBefore);
   const timeRatio = BigNumber.from(Math.floor((timestamp7DaysAgo - beforeTimestamp) / timeDiff * 1e18).toString());
