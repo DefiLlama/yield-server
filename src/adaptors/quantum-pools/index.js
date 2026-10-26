@@ -38,12 +38,21 @@ const MERGE_SEC = 6 * 60 * 60;
 // Nodes that lag the tip reject eth_getLogs on the newest blocks.
 const LOG_HEAD_BUFFER = 20;
 
+// Live QuantumVaultV2 (v2.0) deployments from the app, plus the V2.1 vaults.
+// A vault with no NFTs contributes no rows. The superseded Robinhood vault
+// 0x07c688E3C1d606edc7Fe428862C08c3FA9aAEb3B is paused and empty, so it is omitted.
 const VAULTS = [
   {
     chain: 'robinhood',
     vault: '0x5433f385F538Fa11b8A25B82230a306d25dF8EB3',
     npm: '0x73991a25C818Bf1f1128dEAaB1492D45638DE0D3',
-    version: 'V2',
+    version: 'V2.0',
+  },
+  {
+    chain: 'robinhood',
+    vault: '0x5387ef1E3C335Fe4CB5EDbE218A4BDBc593cFad2',
+    npm: '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364',
+    version: 'V2.0',
   },
   {
     chain: 'robinhood',
@@ -55,7 +64,7 @@ const VAULTS = [
     chain: 'base',
     vault: '0x9597f68203d1bc85744A5Fc11D890aA7777e386B',
     npm: '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1',
-    version: 'V2',
+    version: 'V2.0',
   },
   {
     chain: 'base',
@@ -65,9 +74,21 @@ const VAULTS = [
   },
   {
     chain: 'bsc',
+    vault: '0x57cB3160D59e967D3ac62620Fc69f7e0898d2690',
+    npm: '0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613',
+    version: 'V2.0',
+  },
+  {
+    chain: 'bsc',
     vault: '0x9597f68203d1bc85744A5Fc11D890aA7777e386B',
     npm: '0x46A15B0b27311cedF172AB29E4f4766fbE7F4364',
-    version: 'V2.1',
+    version: 'V2.0',
+  },
+  {
+    chain: 'flare',
+    vault: '0xbff44d55fF7A5fA469A935773cD9Ca0cdAc7DbA5',
+    npm: '0xEE5FF5Bc5F852764b5584d92A4d592A53DC527da',
+    version: 'V2.0',
   },
 ];
 
