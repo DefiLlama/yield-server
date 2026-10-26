@@ -61,6 +61,14 @@ const fallbackChains = {
     url: sdk.graph.modifyEndpoint(
       '8B2wKxnkciCTc5HSgsAojF6vhKn6wxQ1nVecYzMge1hA'
     ),
+    // a second, independently deployed subgraph (owner 0xabdc...) with the same
+    // canonical poolIds and reserves (530/532 shared pools within 5% on
+    // 2026-10-26), used for the pool list only when the one above fails. it has
+    // no snapshots, so the 7d leg goes unmeasured, and it stores a hook pool's
+    // current fee in feeTier rather than the 0x800000 flag
+    backupUrl: sdk.graph.modifyEndpoint(
+      'EzLH76FWsZUSBTfp2P6CV7cqN56e1rSt2uWtqtsUMEeb'
+    ),
     poolManager: POOL_MANAGERS.ethereum,
     // a halted subgraph throws and yields nothing, but one that serves a badly
     // incomplete set is just as useless and would otherwise pass a >0 check.
@@ -437,11 +445,11 @@ const topLvlDayData = async (chainString, url) => {
 // without the token0_/token1_ filters this subgraph intermittently fails the
 // whole page with "Null value resolved for non-null field token1", even though
 // every pool on it resolves both tokens when fetched by id
-const fallbackPoolsQuery = (idCursor) => gql`
+const fallbackPoolsQuery = (idCursor, feeField) => gql`
   {
     pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${FALLBACK_PREFILTER_TVL}, id_gt: "${idCursor}", token0_: {decimals_gte: 0}, token1_: {decimals_gte: 0}}) {
       id
-      feeTier: fee
+      feeTier: ${feeField}
       totalValueLockedUSD
       totalValueLockedToken0
       totalValueLockedToken1
@@ -476,12 +484,15 @@ const snapshotVolumesQuery = (dayIndex, idCursor) => gql`
   }
 `;
 
-const fetchFallbackPools = async (url) => {
+const fetchFallbackPools = async (url, feeField) => {
   const allPools = [];
   let idCursor = '';
 
   while (true) {
-    const data = await requestWithRetry(url, fallbackPoolsQuery(idCursor));
+    const data = await requestWithRetry(
+      url,
+      fallbackPoolsQuery(idCursor, feeField)
+    );
     const page = data.pools ?? [];
     allPools.push(...page);
     if (page.length < PAGE_SIZE) break;
@@ -645,7 +656,10 @@ const fetchHookFeesUsd = async (
       );
 };
 
-const topLvlFallback = async (chainString, { url, poolManager }) => {
+const topLvlFallback = async (
+  chainString,
+  { url, backupUrl, poolManager }
+) => {
   // snapshots only feed the 7d leg, so losing them costs that leg alone
   const withoutSnapshots = (e) => {
     console.error(
@@ -659,7 +673,13 @@ const topLvlFallback = async (chainString, { url, poolManager }) => {
     const previousDay = (today - 1) * 86400;
     const [pools, swapTotals, endOfYesterday, endOfDayBefore, endOfWeekBefore] =
       await Promise.all([
-        fetchFallbackPools(url),
+        fetchFallbackPools(url, 'fee').catch((e) => {
+          console.error(
+            `uniswap-v4: ${chainString} fallback pools, using backup`,
+            e?.message ?? e
+          );
+          return fetchFallbackPools(backupUrl, 'feeTier');
+        }),
         fetchSwapTotals(chainString, poolManager, previousDay, today * 86400),
         fetchCumulativeVolumes(url, today - 1).catch(withoutSnapshots),
         fetchCumulativeVolumes(url, today - 2).catch(withoutSnapshots),
