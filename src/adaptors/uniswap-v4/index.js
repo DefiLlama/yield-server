@@ -194,7 +194,11 @@ const topLvl = async (chainString, url, timestamp) => {
       const volumeUSD1d = hasFullDay
         ? Number(volumes?.volumeUSD1d ?? 0)
         : undefined;
-      const feeUSD1d = hasFullDay ? Number(volumes?.feeUSD1d ?? 0) : undefined;
+      // the subgraph prices a dynamic-fee pool's feesUSD with the 0x800000 flag as the rate (838.8608%),
+      // and the fee a hook charged is only in the swap logs, so these pools get no fee APY here
+      const feeUSD1d = hasFullDay
+        ? isDynamicFeePool(pool.feeTier) ? 0 : Number(volumes?.feeUSD1d ?? 0)
+        : undefined;
 
       let apy;
       if (volumeUSD1d === undefined) {
@@ -350,8 +354,14 @@ const topLvlDayData = async (chainString, url) => {
       const volumeUSD7d = hasFullWeek
         ? Number(volumes?.volumeUSD7d ?? 0)
         : undefined;
-      const feeUSD1d = hasFullDay ? Number(volumes?.feeUSD1d ?? 0) : undefined;
-      const feeUSD7d = hasFullWeek ? Number(volumes?.feeUSD7d ?? 0) : undefined;
+      // see topLvl: subgraph feesUSD is wrong for dynamic-fee pools
+      const isDynamic = isDynamicFeePool(pool.feeTier);
+      const feeUSD1d = hasFullDay
+        ? isDynamic ? 0 : Number(volumes?.feeUSD1d ?? 0)
+        : undefined;
+      const feeUSD7d = hasFullWeek
+        ? isDynamic ? 0 : Number(volumes?.feeUSD7d ?? 0)
+        : undefined;
 
       const toApy = (annualFeesUsd) =>
         pool.totalValueLockedUSD > 0 && annualFeesUsd > 0
