@@ -137,10 +137,7 @@ const getApy = async () => {
           const apyReward = p.apr?.extra?.stakingRewardsAPR * 100 ?? 0;
 
           const forwardAPR = p.apr.forwardAPR?.netAPR;
-          // no forward estimate: use the realised 7d rate, not the 30d netAPR,
-          // so a vault that stopped reporting drops to 0 within a week
-          const apyBase =
-            (forwardAPR ?? p.apr.points?.weekAgo ?? p.apr.netAPR) * 100;
+          const apyBase = (forwardAPR ?? p.apr.netAPR) * 100;
 
           return {
             pool: p.address,
