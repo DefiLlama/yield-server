@@ -12,6 +12,14 @@ const DOLOMITE_MARGIN_ADDRESS_MAP = {
 const DEPLOYMENTS_URL =
   'https://raw.githubusercontent.com/dolomite-exchange/dolomite-margin-modules/master/packages/deployment/src/deploy/deployments.json';
 const CHAIN_IDS = { arbitrum: 42161, berachain: 80094, ethereum: 1 };
+// same tokens the TVL adapter (DefiLlama-Adapters projects/dolomite) leaves out
+const EXCLUDED_TOKENS = {
+  ethereum: [
+    '0xda5e1988097297dcdc1f90d4dfe7909e847cbef6', // WLFI, almost all supplied by the WLFI team multisig
+    '0x8af3b9d0e53186ae13b32fd783f42663bf48d389', // WLFIcx, concrete-issued WLFI, already counted in concrete-xyz
+    '0x852724426b2851487b278a3377449bf26b06c1ba', // BTCcx, concrete-issued custodial BTC, already counted in concrete-xyz
+  ],
+};
 const getMarketMaxBorrowWeiAbi = {
   name: 'getMarketMaxBorrowWei',
   type: 'function',
@@ -272,7 +280,7 @@ async function apy(timestamp) {
         );
 
         return range.reduce((acc, i) => {
-          if (tokens[i]) {
+          if (tokens[i] && !EXCLUDED_TOKENS[chain]?.includes(tokens[i].toLowerCase())) {
             const availableBorrowUsd = borrowables[i]
               ? Math.max(
                   Math.min(
