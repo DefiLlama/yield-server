@@ -32,7 +32,10 @@ const APTOS_RESOURCE_ACCOUNT =
 const APTOS_TOKEN_DATA_TYPE =
   '0x4de5876d8a8e2be7af6af9f3ca94d9e4fafb24b5f4a5848078d8eb08f08e808a::ds_token::TokenData';
 const APTOS_DECIMALS = 6;
-const APTOS_FEED = { chain: 'ethereum', address: '0x9c303927dC4939692CC60641D6ceABa9185d687a' }; // BUIDL_DAILY_INTEREST_ACCRUAL
+// ponytail: RedStone has no Aptos feed and Aptos shows no on-chain dividend
+// mints. Securitize lists Aptos in the 20 bps fee tier with Avalanche and
+// Polygon (Ethereum/ARB/OP: 50 bps), so proxy it to the Avalanche feed.
+const APTOS_FEED = { chain: 'avax', address: '0xB89Cc2Ce1CaD0d26Fed6794C1f4cF4b28684624A' }; // BUIDL_AVALANCHE_DAILY_ACCRUAL
 
 const now = () => Date.now() / 1000;
 
