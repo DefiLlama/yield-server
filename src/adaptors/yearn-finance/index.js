@@ -112,8 +112,10 @@ const getApy = async () => {
   const styfiPools = getStyfiPools();
   const data = await Promise.all(
     Object.entries(chains).map(async (chain) => {
+      // default page is 200 vaults in arbitrary order (featuringScore is 0
+      // for all); this route clamps limit to 1000
       const data = await utils.getData(
-        `https://ydaemon.yearn.fi/${chain[1]}/vaults/all`
+        `https://ydaemon.yearn.fi/${chain[1]}/vaults/all?limit=1000`
       );
 
       return Promise.all(
