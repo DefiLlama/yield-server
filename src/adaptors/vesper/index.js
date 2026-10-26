@@ -42,8 +42,8 @@ async function apy(chain) {
         : 'Conservative',
       tvlUsd:
         (Number(v.totalValue) / 10 ** Number(v.asset.decimals)) * v.asset.price,
-      apyBase: v.earningRates[14],
-      apyBase7d: v.earningRates[7],
+      apyBase: v.actualRates[14],
+      apyBase7d: v.actualRates[7],
       apyReward,
       rewardTokens: apyReward > 0 ? [v.rewardsTokenAddress] : [],
       underlyingTokens:
