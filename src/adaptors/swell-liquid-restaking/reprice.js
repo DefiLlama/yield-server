@@ -15,7 +15,10 @@ async function getRepriceEvents(token, rateField) {
   const blockNow = await sdk.api.util.getLatestBlock('ethereum');
   const block14dayAgo = (await getPriceApiData(`/block/ethereum/${timestamp14dayAgo}`)).height;
 
-  const [repriceEvents, treasuryPct, nodeOperatorPct] = await Promise.all([
+  const readAtBlockNow = async (name) =>
+    BigInt((await sdk.api.abi.call({ target: token, abi: `uint256:${name}`, block: blockNow.number })).output);
+
+  const [repriceEvents, treasuryPct, nodeOperatorPct, lastRepriceUNIX, lastRepriceETHReserves] = await Promise.all([
     sdk.getEventLogs({
       target: token,
       eventAbi: repriceEvent(rateField),
@@ -23,16 +26,14 @@ async function getRepriceEvents(token, rateField) {
       toBlock: blockNow.number,
       chain: 'ethereum',
     }),
-    ...['swellTreasuryRewardPercentage', 'nodeOperatorRewardPercentage'].map(async (name) =>
-      BigInt((await sdk.api.abi.call({ target: token, abi: `uint256:${name}` })).output)
-    ),
+    ...['swellTreasuryRewardPercentage', 'nodeOperatorRewardPercentage', 'lastRepriceUNIX', 'lastRepriceETHReserves'].map(readAtBlockNow),
   ]);
   const chargesFees = treasuryPct + nodeOperatorPct > 0n;
 
   repriceEvents.sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber));
   let prevRate;
   let unbacked = WAD;
-  return repriceEvents.map((ev) => {
+  const events = repriceEvents.map((ev) => {
     const rate = BigInt(ev.args[rateField]);
     const feeShares = BigInt(ev.args.nodeOperatorRewards) + BigInt(ev.args.swellTreasuryRewards);
     if (prevRate !== undefined && chargesFees && feeShares === 0n) unbacked = (unbacked * rate) / prevRate;
@@ -40,6 +41,16 @@ async function getRepriceEvents(token, rateField) {
     ev.backedRate = ((rate * WAD) / unbacked).toString();
     return ev;
   });
+
+  if (!events.length) {
+    if (lastRepriceUNIX >= BigInt(timestamp14dayAgo)) {
+      throw new Error(`${token}: no Reprice log in blocks ${block14dayAgo}-${blockNow.number}, but the contract reports its last reprice at ${lastRepriceUNIX}, inside that window`);
+    }
+  } else if (BigInt(events[events.length - 1].args.newEthReserves) !== lastRepriceETHReserves) {
+    throw new Error(`${token}: newest Reprice log reports ${events[events.length - 1].args.newEthReserves} eth reserves, the contract reports ${lastRepriceETHReserves} for its last reprice, so the log list is missing the latest event(s)`);
+  }
+
+  return events;
 }
 
 function calcRate(eventNow, eventPrev) {
