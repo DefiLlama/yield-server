@@ -68,7 +68,7 @@ function buildPool(vault, tvlUsd) {
   return {
     pool: vault.address,
     chain,
-    project: 'fusion-by-ipor',
+    project: 'ipor-fusion',
     symbol: vault.asset,
     tvlUsd,
     apyBase: toNumber(vault.apy),
