@@ -108,17 +108,51 @@ const getLpUnderlying = async (lpAddress, chain) => {
   }
 };
 
+// Yearn winds a vault down by zeroing its deposit limit, without marking it
+// retired in ydaemon. Returns the vaults that take no deposits from an
+// arbitrary address; a failed read keeps the vault listed.
+const getClosedVaults = async (vaults, chain) => {
+  const v3 = vaults.filter((p) => p.version.startsWith('3'));
+  const v2 = vaults.filter((p) => !p.version.startsWith('3'));
+  const read = (abi, list, params) =>
+    sdk.api.abi
+      .multiCall({
+        chain,
+        abi,
+        calls: list.map((p) => ({ target: p.address, params })),
+        permitFailure: true,
+      })
+      .then(({ output }) => output.map((o) => o.output))
+      .catch(() => []);
+  const [v3Limits, v2Limits] = await Promise.all([
+    read('function maxDeposit(address) view returns (uint256)', v3, [
+      '0x000000000000000000000000000000000000dEaD',
+    ]),
+    read('uint256:availableDepositLimit', v2),
+  ]);
+  return new Set(
+    [
+      ...v3.filter((_, i) => v3Limits[i] === '0'),
+      ...v2.filter((_, i) => v2Limits[i] === '0'),
+    ].map((p) => p.address)
+  );
+};
+
 const getApy = async () => {
   const styfiPools = getStyfiPools();
   const data = await Promise.all(
     Object.entries(chains).map(async (chain) => {
+      // default page is 200 vaults in arbitrary order (featuringScore is 0
+      // for all); this route clamps limit to 1000
       const data = await utils.getData(
-        `https://ydaemon.yearn.fi/${chain[1]}/vaults/all`
+        `https://ydaemon.yearn.fi/${chain[1]}/vaults/all?limit=1000`
       );
+      const closed = await getClosedVaults(data, chain[0]);
 
       return Promise.all(
         data.map(async (p) => {
-          if (p.details.isRetired || p.details.isHidden) return {};
+          if (p.details.isRetired || p.details.isHidden || closed.has(p.address))
+            return {};
 
           let underlying = p.token.underlyingTokensAddresses;
 
