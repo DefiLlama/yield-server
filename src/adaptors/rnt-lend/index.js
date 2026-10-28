@@ -21,6 +21,8 @@ const abi = {
   getReserveConfigurationData:
     'function getReserveConfigurationData(address asset) view returns (uint256 decimals, uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus, uint256 reserveFactor, bool usageAsCollateralEnabled, bool borrowingEnabled, bool stableBorrowRateEnabled, bool isActive, bool isFrozen)',
   getPaused: 'function getPaused(address asset) view returns (bool isPaused)',
+  getReserveCaps:
+    'function getReserveCaps(address asset) view returns (uint256 borrowCap, uint256 supplyCap)',
   getAssetsPrices:
     'function getAssetsPrices(address[] assets) view returns (uint256[])',
 };
@@ -33,11 +35,12 @@ const multi = async (abiStr, calls) =>
 const apy = async () => {
   const withPdp = STABLES.map((a) => ({ target: POOL_DATA_PROVIDER, params: [a] }));
 
-  const [tokens, data, configs, paused, symbols, decimals, prices] = await Promise.all([
+  const [tokens, data, configs, paused, caps, symbols, decimals, prices] = await Promise.all([
     multi(abi.getReserveTokensAddresses, withPdp),
     multi(abi.getReserveData, withPdp),
     multi(abi.getReserveConfigurationData, withPdp),
     multi(abi.getPaused, withPdp),
+    multi(abi.getReserveCaps, withPdp),
     multi('erc20:symbol', STABLES.map((target) => ({ target }))),
     multi('erc20:decimals', STABLES.map((target) => ({ target }))),
     // pool's AaveOracle (USD, 8 decimals)
@@ -58,20 +61,23 @@ const apy = async () => {
     const tvlUsd = (Number(liquidity[i]) / scale) * price;
     const totalBorrowUsd =
       ((Number(data[i].totalVariableDebt) + Number(data[i].totalStableDebt)) / scale) * price;
+    // supply cap is in whole tokens; 0 means uncapped
+    const supplyCap = Number(caps[i].supplyCap);
     return {
       pool: `${tokens[i].aTokenAddress}-${chain}`.toLowerCase(),
       chain: utils.formatChain(chain),
       project: 'rnt-lend',
-      symbol: utils.formatSymbol(symbols[i]),
+      symbol: symbols[i],
       tvlUsd,
       apyBase: Number(data[i].liquidityRate) / 1e25,
       underlyingTokens: [asset],
-      totalSupplyUsd: tvlUsd + totalBorrowUsd,
+      totalSupplyUsd: (Number(data[i].totalAToken) / scale) * price,
       totalBorrowUsd,
       apyBaseBorrow: Number(data[i].variableBorrowRate) / 1e25,
       ltv: Number(configs[i].ltv) / 1e4,
       borrowable: configs[i].borrowingEnabled,
-      url: 'https://lend.rnt.finance/',
+      ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
+      url: `https://lend.rnt.finance/reserve-overview/?underlyingAsset=${asset.toLowerCase()}&marketName=reental_polygon_v3`,
     };
   }).filter((p) => p && utils.keepFinite(p));
 };
