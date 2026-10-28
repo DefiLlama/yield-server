@@ -78,7 +78,9 @@ async function readState(api, kind, config) {
     { target: ESCROW, abi: 'bool:paused' },
   ]);
   const shares = escrowClaims(accounting, seed[0]);
-  if (shares.custody !== BigInt(custody)) throw new Error('Escrow custody does not reconcile');
+  // Let the accounting view allocate recognized surplus; only a shortfall
+  // invalidates backing. Never add unaccounted custody to active user assets.
+  if (BigInt(custody) < shares.custody) throw new Error('Escrow custody does not reconcile');
   // The yield denominator is ACTIVE users only. Pending claims earn base
   // stHYPE yield, but not premiums, so must not dilute this pool's return.
   const assets = BigInt(await api.call({ target: STHYPE, abi: 'function sharesToBalance(uint256) view returns (uint256)', params: [shares.active.toString()] }));

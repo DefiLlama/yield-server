@@ -43,7 +43,8 @@ test('archive guard rejects latest-only providers and insufficient deployment hi
 
 test('restaking state prices active users only and previews released premiums, not reward reserves', async () => {
   let accounting = ['1000', '100', '300', '500'];
-  const api = { batchCall: async () => [accounting, ['10', '100', '0'], '1800', '1000000000000000000', ['', '', '', '1209600', '82800'], false],
+  let custody = '1800';
+  const api = { batchCall: async () => [accounting, ['10', '100', '0'], custody, '1000000000000000000', ['', '', '', '1209600', '82800'], false],
     call: async ({ params }) => params[0] };
   const first = await readState(api, 'restaking');
   assert.equal(first.assets, 900n);
@@ -56,6 +57,16 @@ test('restaking state prices active users only and previews released premiums, n
   assert.ok(annualized(first.index, released.index, 31536000) > 9.99);
   accounting = ['1000', '100', '300', '501'];
   await assert.rejects(readState(api, 'restaking'), /custody does not reconcile/);
+  accounting = ['1000', '100', '300', '500'];
+  custody = '1801';
+  const extraBacking = await readState(api, 'restaking');
+  assert.equal(extraBacking.assets, first.assets);
+  assert.deepEqual(extraBacking.index, first.index);
+  custody = '1799';
+  await assert.rejects(readState(api, 'restaking'), /custody does not reconcile/);
+  accounting = ['1100', '100', '300', '500'];
+  custody = '1900';
+  assert.equal((await readState(api, 'restaking')).assets, 990n);
 });
 
 test('STEX snapshots bypass the address cache for replaceable withdrawal modules', async () => {
