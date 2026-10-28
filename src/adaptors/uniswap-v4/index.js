@@ -90,10 +90,12 @@ const TVL_MIN = 50000;
 const FALLBACK_PREFILTER_TVL = 5000;
 const SUSPECT_TVL_USD = 1e8;
 const MIN_VOLUME_TO_TVL_RATIO = 1e-5;
+const MAX_PRICE_DIVERGENCE = 2;
 
 const POOL_FIELDS = `
       id
       feeTier
+      sqrtPrice
       totalValueLockedUSD
       totalValueLockedToken0
       totalValueLockedToken1
@@ -207,6 +209,43 @@ const hasSuspiciousTvlVolume = (pool) =>
   pool.tvlUsd > SUSPECT_TVL_USD &&
   Number(pool.volumeUsd1d || 0) / pool.tvlUsd < MIN_VOLUME_TO_TVL_RATIO;
 
+const token1PerToken0 = (pool) =>
+  (Number(pool.sqrtPrice) / 2 ** 96) ** 2 *
+  10 ** (Number(pool.token0.decimals) - Number(pool.token1.decimals));
+
+const isAtMarketPrice = (pool) => {
+  if (pool.price0 === undefined || pool.price1 === undefined) return true;
+  const divergence = (token1PerToken0(pool) * pool.price1) / pool.price0;
+  return (
+    divergence <= MAX_PRICE_DIVERGENCE && divergence >= 1 / MAX_PRICE_DIVERGENCE
+  );
+};
+
+const withUnpricedSideAtPoolPrice = (pool) => {
+  const { price0, price1 } = pool;
+  if ((price0 === undefined) === (price1 === undefined)) return pool;
+  const [priced, unpriced] =
+    price0 === undefined
+      ? [
+          Number(pool.reserve1) * price1,
+          Number(pool.reserve0) * token1PerToken0(pool) * price1,
+        ]
+      : [
+          Number(pool.reserve0) * price0,
+          (Number(pool.reserve1) * price0) / token1PerToken0(pool),
+        ];
+  return { ...pool, totalValueLockedUSD: priced + Math.min(unpriced, priced) };
+};
+
+// >2x off the coins price ratio means nobody arbitrages the pool: a mispriced
+// token (ANVL-USDT at $6M, 2026-10-27) or an abandoned pool. an unpriced side
+// takes the pool's price, capped at the priced side, instead of utils.tvl's x2
+const priceAboveTvlMin = async (pools, chainString) =>
+  (await utils.tvl(pools, chainString))
+    .filter(isAtMarketPrice)
+    .map(withUnpricedSideAtPoolPrice)
+    .filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+
 /**
  * Prices volume and APY from the last completed UTC day. Pools without a full
  * day of history are omitted rather than annualizing a partial day.
@@ -237,8 +276,7 @@ const topLvl = async (chainString, url, timestamp) => {
     }));
     dataNow = dataNow.filter((p) => !hasInvalidTokenTvl(p));
 
-    dataNow = await utils.tvl(dataNow, chainString);
-    dataNow = dataNow.filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+    dataNow = await priceAboveTvlMin(dataNow, chainString);
     const hookFeesUsd = await fetchHookFeesUsd(
       chainString,
       dataNow,
@@ -410,8 +448,7 @@ const topLvlDayData = async (chainString, url) => {
         reserve1: pool.totalValueLockedToken1,
       }));
 
-    dataNow = await utils.tvl(dataNow, chainString);
-    dataNow = dataNow.filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+    dataNow = await priceAboveTvlMin(dataNow, chainString);
     const hookFeesUsd = await fetchHookFeesUsd(
       chainString,
       dataNow,
@@ -463,11 +500,12 @@ const topLvlDayData = async (chainString, url) => {
 // without the token0_/token1_ filters this subgraph intermittently fails the
 // whole page with "Null value resolved for non-null field token1", even though
 // every pool on it resolves both tokens when fetched by id
-const fallbackPoolsQuery = (idCursor, feeField) => gql`
+const fallbackPoolsQuery = (idCursor, feeField, sqrtPriceField) => gql`
   {
     pools(first: ${PAGE_SIZE}, orderBy: id, orderDirection: asc, where: {totalValueLockedUSD_gte: ${FALLBACK_PREFILTER_TVL}, id_gt: "${idCursor}", token0_: {decimals_gte: 0}, token1_: {decimals_gte: 0}}) {
       id
       feeTier: ${feeField}
+      sqrtPrice: ${sqrtPriceField}
       totalValueLockedUSD
       totalValueLockedToken0
       totalValueLockedToken1
@@ -502,14 +540,14 @@ const snapshotVolumesQuery = (dayIndex, idCursor) => gql`
   }
 `;
 
-const fetchFallbackPools = async (url, feeField) => {
+const fetchFallbackPools = async (url, feeField, sqrtPriceField) => {
   const allPools = [];
   let idCursor = '';
 
   while (true) {
     const data = await requestWithRetry(
       url,
-      fallbackPoolsQuery(idCursor, feeField)
+      fallbackPoolsQuery(idCursor, feeField, sqrtPriceField)
     );
     const page = data.pools ?? [];
     allPools.push(...page);
@@ -703,13 +741,13 @@ const topLvlFallback = async (
     let usedBackup = false;
     const [pools, swapTotals, endOfYesterday, endOfDayBefore, endOfWeekBefore] =
       await Promise.all([
-        fetchFallbackPools(url, 'fee').catch((e) => {
+        fetchFallbackPools(url, 'fee', 'sqrtPriceX96').catch((e) => {
           console.error(
             `uniswap-v4: ${chainString} fallback pools, using backup`,
             e?.message ?? e
           );
           usedBackup = true;
-          return fetchFallbackPools(backupUrl, 'feeTier');
+          return fetchFallbackPools(backupUrl, 'feeTier', 'sqrtPrice');
         }),
         fetchSwapTotals(chainString, poolManager, previousDay, today * 86400),
         fetchCumulativeVolumes(url, today - 1).catch(withoutSnapshots),
@@ -725,8 +763,7 @@ const topLvlFallback = async (
         reserve1: pool.totalValueLockedToken1,
       }));
 
-    dataNow = await utils.tvl(dataNow, chainString);
-    dataNow = dataNow.filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+    dataNow = await priceAboveTvlMin(dataNow, chainString);
 
     return dataNow.map((pool) => {
       const totals = swapTotals[pool.id.toLowerCase()];
