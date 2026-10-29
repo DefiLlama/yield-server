@@ -17,6 +17,12 @@ const hubsByChain = {
   avax: {
     core: '0xd07369fAE4A5BB13c9Ce446B052c7867B1AbDf6e',
   },
+  arc: {
+    core: '0x17288dfc86205301064577b98B02b81017e6F79C',
+  },
+  base: {
+    equities: '0xa4d5947Eb727A052bae69C593FfC84247EC9864E',
+  },
 };
 
 const spokeNamesByChain = {
