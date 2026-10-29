@@ -130,19 +130,17 @@ const getTokenPrice = async (tokenAddress) => {
 
 const main = async () => {
   const [apys, tvlsByChain, vaults, govVaults, tokens, vaultStatus, beepVaults, lbgtPrice, beraPrice] =
-    await Promise.all(
-      [
-        urlApy,
-        urlTvl,
-        urlVaults,
-        urlGovVaults,
-        urlAddressbook,
-        urlVaultsStatus,
-        getBeepVaults(),
-        getTokenPrice(ADDRESSES.LBGT),
-        getTokenPrice(ADDRESSES.BERA),
-      ].map((u) => (typeof u === 'function' ? u() : getData(u)))
-    );
+    await Promise.all([
+      getData(urlApy),
+      getData(urlTvl),
+      getData(urlVaults),
+      getData(urlGovVaults),
+      getData(urlAddressbook),
+      getData(urlVaultsStatus),
+      getBeepVaults(),
+      getTokenPrice(ADDRESSES.LBGT),
+      getTokenPrice(ADDRESSES.BERA),
+    ]);
 
   const data = [];
   for (const [chainId, tvls] of Object.entries(tvlsByChain)) {
