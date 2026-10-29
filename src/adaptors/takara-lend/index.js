@@ -11,6 +11,14 @@ const chain = utils.formatChain('Sei');
 const sdkChain = 'sei';
 const project = 'takara-lend';
 
+// Markets left out of TVL in DefiLlama-Adapters (registries/compound.js, takara blacklistedTokens, #17973) as
+// unproductive deposits: almost nothing borrowed and the supply held by one or a few addresses
+const excludedMarkets = new Set([
+  '0x7f3c2a5bca48150c7ce07dceab9b73336a7e592a', // enzoBTC
+  '0x963db326b734fd58a9396c020bbb52c14acafb02', // M-BTC
+  '0xabfb7a392a6daac50f99c5d14b5f27effd08fe03', // uBTC
+]);
+
 const secondsPerYear = 86400n * 365n;
 
 const comptrollerAbi = [
@@ -272,8 +280,9 @@ const apy = async () => {
     .map((token, i) => {
       if (!underlyingTokens[i] || !underlyingPrices.output[i].output)
         return null;
+      if (excludedMarkets.has(token.toLowerCase())) return null;
 
-      const pool = `${token}-${chain}`.toLowerCase();
+      const pool =`${token}-${chain}`.toLowerCase();
       const underlyingSymbol = underlyingSymbols[i];
       const underlying = underlyingTokens[i];
       const price = toBigInt(underlyingPrices.output[i].output);
