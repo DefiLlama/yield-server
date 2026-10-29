@@ -288,13 +288,19 @@ const getPrices = async (pools, tokens) => {
  * so only what LPs receive counts towards apyBase. An unreachable endpoint
  * yields zero volume/fees rather than dropping every pool.
  */
+/** A stats figure is usable only when it is a finite, non-negative number. */
+const nonNegativeUsd = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
 const getPoolStats = async () => {
   try {
     const { data } = await axios.get(POOL_STATS_URL, { timeout: TIMEOUT_MS });
     return Object.fromEntries(
       Object.entries(data?.pools ?? {}).map(([address, s]) => [
         address.toLowerCase(),
-        { volumeUsd: Number(s.volumeUSD24h) || 0, feesUsd: Number(s.feesUSD24h) || 0 },
+        { volumeUsd: nonNegativeUsd(s.volumeUSD24h), feesUsd: nonNegativeUsd(s.feesUSD24h) },
       ])
     );
   } catch (error) {
