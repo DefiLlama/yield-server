@@ -5,11 +5,14 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const PROJECT = 'satsuma';
 const CHAIN = 'citrea';
 
-// Satsuma's analytics subgraph was deleted upstream, which silently dropped
-// every Satsuma pool from this adapter. Everything below is read directly from
-// Citrea (balances, swap logs, gauges) and priced with coins.llama.fi, so the
-// adapter has no hosted dependency besides the RPC and DefiLlama itself.
+// Satsuma's analytics subgraph was deleted upstream, so nothing here depends on
+// a subgraph. Pool state, gauges and ICHI vaults are read from Citrea with a
+// handful of batched eth_calls; 24h volume and fees come from Satsuma's public
+// pool-stats endpoint (one GET), which Satsuma's own UI uses. Earlier versions
+// scanned a day of Swap logs over the public RPC, which is too heavy for the
+// production runner and left Satsuma with zero pools.
 const RPC = 'https://rpc.mainnet.citrea.xyz';
+const POOL_STATS_URL = 'https://s33-epoch-cron.tiagopratas69.workers.dev/pool-stats';
 // Axios defaults to no timeout; bound every upstream call so apy() rejects
 // instead of hanging on a stalled endpoint.
 const TIMEOUT_MS = 30_000;
@@ -34,9 +37,10 @@ const POOLS = [
 ];
 
 // s33 gauge system. The Voter streams weekly xSATS (symbol veSUMA) emissions
-// to one IchiVaultGauge per Algebra pool. Only depositors of that gauge's two
-// ICHI vaults earn them, so emissions are published on separate vault records
-// rather than on the AMM pool.
+// to one IchiVaultGauge per Algebra pool. Each gauge rewards depositors of two
+// single-sided ICHI vaults (one per pool token), by share-seconds across both
+// vaults, so emissions are published on the vault records rather than on the
+// AMM pool.
 const VOTER = '0x451d2305a819b6bdb43a104b2d9cf46603135332';
 const XSATS = '0x732bcf02bccb77dbe64cb64935c897eddf6805ac';
 const SUMA = '0x60bf948001e7b7ea03ddaaddae048af7402e7b74';
@@ -45,25 +49,8 @@ const ZERO = '0x0000000000000000000000000000000000000000';
 // full value needs a 180-day vest. Publish the minimum attainable yield.
 const XSATS_EXIT_RATIO = 0.5;
 
-// Citrea produces a block every 2s, so ~43_200 blocks per day. The actual
-// elapsed time is read from block timestamps when annualising.
-const BLOCKS_PER_DAY = 43_200;
-// The public RPC rejects eth_getLogs ranges above 1_000 blocks.
-const LOG_CHUNK = 1_000;
-const LOG_BATCH = 11;
-
-const TOPICS = {
-  // Uniswap-V3-shaped Swap emitted by Satsuma's Algebra pools.
-  swap: '0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67',
-  // Emitted by the pool immediately before every Swap; first data word is the
-  // fee applied to that swap in ppm. Algebra's dynamic fee changes between
-  // swaps, so this is used instead of volume * current fee.
-  swapFee: '0x9443903d84c9719611bd4bba871daaf18a3950d00d5d78b1a2fa701f76df54ff',
-};
-
 // Algebra community fee denominator: globalState.communityFee is in 1/1000.
 const COMMUNITY_FEE_DENOMINATOR = 1_000;
-const FEE_DENOMINATOR = 1_000_000;
 
 // A token without a coins.llama.fi price is valued off the Satsuma pool that
 // pairs it with a priced token, but only if that pool's priced side is deep
@@ -92,13 +79,14 @@ const SELECTORS = {
   totalRewardByPeriod: '0xf4ae3d66',
   // ICHI vault
   getTotalAmounts: '0xc4a7761e',
+  allowToken0: '0x7f7a1eec',
+  allowToken1: '0x37e41b40',
 };
 
 const pad = (hex) => hex.replace(/^0x/, '').padStart(64, '0');
 const encodeAddress = (selector, address) => `${selector}${pad(address)}`;
 const encodeUintAddress = (selector, n, address) =>
   `${selector}${pad(BigInt(n).toString(16))}${pad(address)}`;
-const toHex = (n) => `0x${n.toString(16)}`;
 
 /**
  * One JSON-RPC batch instead of a request per call. A JSON-RPC item can carry
@@ -143,8 +131,6 @@ const toWord = (word, index) =>
     ? BigInt(`0x${word.slice(2 + index * 64, 2 + (index + 1) * 64)}`)
     : 0n;
 
-const toSignedWord = (word, index) => BigInt.asIntN(256, toWord(word, index));
-
 /** Minimal ABI-decode of a dynamic address[] return. */
 const toAddressArray = (word) => {
   if (!word || word === '0x') return [];
@@ -181,7 +167,7 @@ const spotToken1PerToken0 = (sqrtPriceX96, decimals0, decimals1) => {
   return sqrt * sqrt * 10 ** (decimals0 - decimals1);
 };
 
-/** Pools from the static list plus every pool the Voter has a gauge for. */
+/** Live gauges with their pool, two ICHI vaults and last period's emissions. */
 const getGauges = async () => {
   const [gaugesWord, periodWord] = await ethCallBatch([
     { to: VOTER, data: SELECTORS.getAllGauges },
@@ -296,84 +282,40 @@ const getPrices = async (pools, tokens) => {
 };
 
 /**
- * 24h swap volume and LP fees per pool from Swap logs. Each swap's fee comes
- * from the fee event the pool emits right before it; the community fee share
- * is removed so only what LPs receive counts towards apyBase.
+ * Trailing-24h swap volume and swap fees per pool from Satsuma's pool-stats
+ * endpoint (built by a cron that scans the pools' Swap logs). `feesUSD24h` is
+ * the gross fee charged to swappers; the community-fee share is removed below
+ * so only what LPs receive counts towards apyBase. An unreachable endpoint
+ * yields zero volume/fees rather than dropping every pool.
  */
-const getSwapStats = async (pools, prices) => {
-  const [head] = await rpcBatch([{ method: 'eth_blockNumber', params: [], label: 'head' }]);
-  const toBlock = Number(head);
-  const fromBlock = toBlock - BLOCKS_PER_DAY + 1;
-
-  const [headBlock, startBlock] = await rpcBatch([
-    { method: 'eth_getBlockByNumber', params: [toHex(toBlock), false], label: 'head block' },
-    { method: 'eth_getBlockByNumber', params: [toHex(fromBlock), false], label: 'start block' },
-  ]);
-  const elapsedSeconds = Number(headBlock.timestamp) - Number(startBlock.timestamp);
-
-  const address = pools.map((p) => p.address);
-  const ranges = [];
-  for (let start = fromBlock; start <= toBlock; start += LOG_CHUNK) {
-    ranges.push([start, Math.min(start + LOG_CHUNK - 1, toBlock)]);
-  }
-  const logs = [];
-  for (let i = 0; i < ranges.length; i += LOG_BATCH) {
-    const results = await rpcBatch(
-      ranges.slice(i, i + LOG_BATCH).map(([from, to]) => ({
-        method: 'eth_getLogs',
-        params: [
-          {
-            fromBlock: toHex(from),
-            toBlock: toHex(to),
-            address,
-            topics: [[TOPICS.swap, TOPICS.swapFee]],
-          },
-        ],
-        label: `logs ${from}-${to}`,
-      }))
+const getPoolStats = async () => {
+  try {
+    const { data } = await axios.get(POOL_STATS_URL, { timeout: TIMEOUT_MS });
+    return Object.fromEntries(
+      Object.entries(data?.pools ?? {}).map(([address, s]) => [
+        address.toLowerCase(),
+        { volumeUsd: Number(s.volumeUSD24h) || 0, feesUsd: Number(s.feesUSD24h) || 0 },
+      ])
     );
-    logs.push(...results.flat());
+  } catch (error) {
+    console.error(`satsuma: pool-stats unavailable, publishing zero volume (${error.message})`);
+    return {};
   }
-
-  const feeByLog = new Map(
-    logs
-      .filter((l) => l.topics[0] === TOPICS.swapFee)
-      .map((l) => [`${l.transactionHash}:${Number(l.logIndex)}`, Number(toWord(l.data, 0))])
-  );
-  const poolByAddress = Object.fromEntries(pools.map((p) => [p.address, p]));
-  const stats = Object.fromEntries(pools.map((p) => [p.address, { volumeUsd: 0, lpFeesUsd: 0 }]));
-
-  for (const log of logs) {
-    if (log.topics[0] !== TOPICS.swap) continue;
-    const pool = poolByAddress[log.address.toLowerCase()];
-    const fee = feeByLog.get(`${log.transactionHash}:${Number(log.logIndex) - 1}`);
-    if (fee === undefined) {
-      throw new Error(`no fee event for swap ${log.transactionHash}:${Number(log.logIndex)}`);
-    }
-    // Positive amount = paid into the pool. The fee is charged on the input.
-    const amount0 = toSignedWord(log.data, 0);
-    const amount1 = toSignedWord(log.data, 1);
-    const inputUsd =
-      amount0 > 0n
-        ? toUnits(amount0, pool.decimals0) * prices[pool.token0]
-        : toUnits(amount1, pool.decimals1) * prices[pool.token1];
-    if (!Number.isFinite(inputUsd)) continue;
-    stats[pool.address].volumeUsd += inputUsd;
-    stats[pool.address].lpFeesUsd +=
-      inputUsd * (fee / FEE_DENOMINATOR) * (1 - pool.communityFee);
-  }
-  return { stats, elapsedSeconds };
 };
 
 /**
- * Liquidity each gauge's ICHI vaults hold inside the pool, valued with the
- * same prices as the pool. Idle vault balances are not in the pool's balance,
- * so they are only counted on the vault record, not subtracted from the AMM.
+ * Every ICHI vault behind a live gauge: which pool token it accepts, what it
+ * holds in total, and how much of that sits inside the pool (vs idle in the
+ * vault) so the AMM record can net it out and the two never double count.
  */
-const getVaultTvl = async (gauges, poolByAddress, prices) => {
-  const vaults = gauges.flatMap((g) => g.vaults.map((v) => ({ vault: v, pool: poolByAddress[g.pool] })));
-  const [totals, idle] = await Promise.all([
+const getVaults = async (gauges, poolByAddress, prices) => {
+  const vaults = gauges.flatMap((g) =>
+    g.vaults.map((vault) => ({ vault, gauge: g.gauge, pool: poolByAddress[g.pool] }))
+  );
+  const [totals, allow0s, allow1s, idle] = await Promise.all([
     ethCallBatch(vaults.map((v) => ({ to: v.vault, data: SELECTORS.getTotalAmounts }))),
+    ethCallBatch(vaults.map((v) => ({ to: v.vault, data: SELECTORS.allowToken0 }))),
+    ethCallBatch(vaults.map((v) => ({ to: v.vault, data: SELECTORS.allowToken1 }))),
     ethCallBatch(
       vaults.flatMap((v) => [
         { to: v.pool.token0, data: encodeAddress(SELECTORS.balanceOf, v.vault) },
@@ -382,51 +324,57 @@ const getVaultTvl = async (gauges, poolByAddress, prices) => {
     ),
   ]);
 
-  const byGauge = {};
-  vaults.forEach(({ pool }, i) => {
-    const gauge = gauges.find((g) => g.vaults.includes(vaults[i].vault)).gauge;
+  return vaults.map((v, i) => {
+    const { pool } = v;
     const p0 = prices[pool.token0];
     const p1 = prices[pool.token1];
     const total0 = toUnits(toWord(totals[i], 0), pool.decimals0);
     const total1 = toUnits(toWord(totals[i], 1), pool.decimals1);
     const idle0 = toUnits(toBigInt(idle[2 * i]), pool.decimals0);
     const idle1 = toUnits(toBigInt(idle[2 * i + 1]), pool.decimals1);
-    const entry = (byGauge[gauge] ??= { tvlUsd: 0, inPoolUsd: 0 });
-    entry.tvlUsd += total0 * p0 + total1 * p1;
-    entry.inPoolUsd += Math.max(0, total0 - idle0) * p0 + Math.max(0, total1 - idle1) * p1;
+    const allow0 = toBigInt(allow0s[i]) !== 0n;
+    const allow1 = toBigInt(allow1s[i]) !== 0n;
+    // Satsuma vaults are single-sided: exactly one of the pair can be deposited.
+    const depositIndex = allow0 && !allow1 ? 0 : allow1 && !allow0 ? 1 : null;
+    return {
+      ...v,
+      depositToken: depositIndex === null ? null : [pool.token0, pool.token1][depositIndex],
+      depositSymbol: depositIndex === null ? null : [pool.symbol0, pool.symbol1][depositIndex],
+      tvlUsd: total0 * p0 + total1 * p1,
+      inPoolUsd: Math.max(0, total0 - idle0) * p0 + Math.max(0, total1 - idle1) * p1,
+    };
   });
-  return byGauge;
 };
 
 const apy = async () => {
   const gauges = await getGauges();
   const addresses = [...new Set([...POOLS, ...gauges.map((g) => g.pool)])];
 
-  const { pools: allPools, tokens } = await getPoolState(addresses);
+  const [{ pools: allPools, tokens }, stats] = await Promise.all([
+    getPoolState(addresses),
+    getPoolStats(),
+  ]);
   const prices = await getPrices(allPools, tokens);
   const pools = allPools.filter(
     (p) => p.symbol0 && p.symbol1 && prices[p.token0] > 0 && prices[p.token1] > 0
   );
   const poolByAddress = Object.fromEntries(pools.map((p) => [p.address, p]));
   const liveGauges = gauges.filter((g) => poolByAddress[g.pool]);
-
-  const [{ stats, elapsedSeconds }, vaultTvl] = await Promise.all([
-    getSwapStats(pools, prices),
-    getVaultTvl(liveGauges, poolByAddress, prices),
-  ]);
-  const periodsPerYear = (365 * 86_400) / elapsedSeconds;
+  const vaults = await getVaults(liveGauges, poolByAddress, prices);
 
   const vaultInPoolUsd = {};
-  for (const g of liveGauges) {
-    vaultInPoolUsd[g.pool] = (vaultInPoolUsd[g.pool] ?? 0) + vaultTvl[g.gauge].inPoolUsd;
+  for (const v of vaults) {
+    vaultInPoolUsd[v.pool.address] = (vaultInPoolUsd[v.pool.address] ?? 0) + v.inPoolUsd;
   }
 
+  // Vault and pool LPs earn the same swap-fee rate on their liquidity, so the
+  // pool's fee APR is reused on its vault records.
   const poolApyBase = {};
   const ammRecords = pools.map((p) => {
     const poolTvlUsd = p.reserve0 * prices[p.token0] + p.reserve1 * prices[p.token1];
-    const { volumeUsd, lpFeesUsd } = stats[p.address];
-    // Vault and pool LPs earn the same swap-fee rate on their liquidity.
-    poolApyBase[p.address] = poolTvlUsd > 0 ? (lpFeesUsd / poolTvlUsd) * periodsPerYear * 100 : 0;
+    const { volumeUsd = 0, feesUsd = 0 } = stats[p.address] ?? {};
+    const lpFeesUsd = feesUsd * (1 - p.communityFee);
+    poolApyBase[p.address] = poolTvlUsd > 0 ? (lpFeesUsd / poolTvlUsd) * 365 * 100 : 0;
     return {
       pool: `${p.address}-${CHAIN}`,
       chain: utils.formatChain(CHAIN),
@@ -437,30 +385,41 @@ const apy = async () => {
       tvlUsd: Math.max(0, poolTvlUsd - (vaultInPoolUsd[p.address] ?? 0)),
       apyBase: poolApyBase[p.address],
       underlyingTokens: [p.token0, p.token1],
-      volumeUsd1d: volumeUsd * (86_400 / elapsedSeconds),
+      volumeUsd1d: volumeUsd,
       url: `https://www.satsuma.exchange/pool/${p.address}`,
     };
   });
-  const ammByAddress = Object.fromEntries(ammRecords.map((r, i) => [pools[i].address, r]));
 
-  // ICHI vault records: the pool's swap-fee rate plus the gauge's xSATS
-  // emissions, valued at the instant-exit SUMA amount.
+  // One record per single-sided ICHI vault: "deposit ctUSD here" rather than
+  // "LP ctUSD-USDC.e". The gauge's weekly xSATS is shared between its two
+  // vaults in proportion to their TVL, valued at the instant-exit SUMA amount.
   const sumaPrice = prices[SUMA];
-  const ichiRecords = liveGauges.map((g) => {
-    const { tvlUsd } = vaultTvl[g.gauge];
-    const rewardUsdPerYear =
-      sumaPrice && g.weeklySuma > 0 ? g.weeklySuma * sumaPrice * XSATS_EXIT_RATIO * 52 : 0;
-    const apyReward = tvlUsd > 0 ? (rewardUsdPerYear / tvlUsd) * 100 : 0;
-    // Volume is a pool-level figure; it stays on the AMM record only.
-    const { volumeUsd1d, ...base } = ammByAddress[g.pool];
-    return {
-      ...base,
-      pool: `${g.gauge}-${CHAIN}`,
-      poolMeta: 'ICHI vault',
-      tvlUsd,
-      ...(apyReward > 0 ? { apyReward, rewardTokens: [XSATS] } : {}),
-    };
-  });
+  const gaugeTvl = {};
+  for (const v of vaults) gaugeTvl[v.gauge] = (gaugeTvl[v.gauge] ?? 0) + v.tvlUsd;
+  const ichiRecords = vaults
+    .filter((v) => v.depositToken)
+    .map((v) => {
+      const { pool } = v;
+      const gauge = liveGauges.find((g) => g.gauge === v.gauge);
+      const share = gaugeTvl[v.gauge] > 0 ? v.tvlUsd / gaugeTvl[v.gauge] : 0;
+      const rewardUsdPerYear =
+        sumaPrice && gauge.weeklySuma > 0
+          ? gauge.weeklySuma * share * sumaPrice * XSATS_EXIT_RATIO * 52
+          : 0;
+      const apyReward = v.tvlUsd > 0 ? (rewardUsdPerYear / v.tvlUsd) * 100 : 0;
+      return {
+        pool: `${v.vault}-${CHAIN}`,
+        chain: utils.formatChain(CHAIN),
+        project: PROJECT,
+        symbol: v.depositSymbol,
+        poolMeta: `ICHI vault · ${pool.symbol0}-${pool.symbol1} · deposit ${v.depositSymbol}`,
+        tvlUsd: v.tvlUsd,
+        apyBase: poolApyBase[pool.address],
+        ...(apyReward > 0 ? { apyReward, rewardTokens: [XSATS] } : {}),
+        underlyingTokens: [v.depositToken],
+        url: `https://www.satsuma.exchange/pool/${pool.address}`,
+      };
+    });
 
   const result = [...ammRecords, ...ichiRecords]
     .filter((p) => Number.isFinite(p.tvlUsd) && p.tvlUsd >= MIN_TVL_USD)
