@@ -57,6 +57,7 @@ interface Pool {
   borrowToken?: string; // underlying token address/string the borrower receives; not a debt receipt token
   ltv?: number; // btw [0, 1]
   borrowable?: boolean; // whether a new borrow can be opened right now for this asset
+  frozen?: boolean; // protocol currently blocks new deposits (frozen/paused); keep emitting the pool instead of dropping it
 }
 ```
 

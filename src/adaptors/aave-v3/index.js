@@ -159,9 +159,6 @@ const getApy = async (market) => {
   const incentiveReserves = [];
   const pools = reserveTokens
     .map((pool, i) => {
-      const frozen = poolsReservesConfigurationData[i].isFrozen;
-      if (frozen) return null;
-
       const p = poolsReserveData[i];
       const isGho = pool.symbol === 'GHO';
       const isEthereumGhoFacilitator = isGho && market === 'ethereum';
@@ -244,6 +241,7 @@ const getApy = async (market) => {
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable,
+        frozen: poolsReservesConfigurationData[i].isFrozen,
         // TODO: Remove mintedCoin/debtCeiling once v2 is live
         ...(isEthereumGhoFacilitator && {
           debtCeilingUsd: borrowCapUsd,
@@ -252,8 +250,7 @@ const getApy = async (market) => {
         poolMeta: ethereumMarkets[market] ?? null,
         routeGroupKey: protocolDataProvider.toLowerCase(),
       };
-    })
-    .filter((i) => Boolean(i));
+    });
 
   const nativeRewards = await getNativeSupplyRewards({
     chain,
@@ -279,7 +276,7 @@ const getApyAptos = async () => {
     10 ** baseCurrencyData.networkBaseTokenPriceDecimals;
 
   return reservesData
-    .filter((r) => !r.isFrozen && r.isActive && !r.isPaused)
+    .filter((r) => r.isActive)
     .map((r) => {
       const priceUsd =
         (Number(r.priceInMarketReferenceCurrency) / marketRefDecimals) *
@@ -319,6 +316,7 @@ const getApyAptos = async () => {
         ltv: Number(r.baseLTVasCollateral) / 10000,
         url: `https://aptos.aave.com/reserve-overview/?underlyingAsset=${r.underlyingAsset}&marketName=aptos`,
         borrowable: r.borrowingEnabled,
+        frozen: r.isFrozen || r.isPaused,
       };
     })
     .filter(Boolean);
