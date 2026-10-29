@@ -113,19 +113,10 @@ const callContract = async (target, abi, params = []) => {
   }).then(res => res.output);
 };
 
-const priceCache = new Map();
-
 const getTokenPrice = async (tokenAddress) => {
   const key = String(tokenAddress).toLowerCase();
-  if (!priceCache.has(key)) {
-    priceCache.set(
-      key,
-      utils
-        .getPrices([tokenAddress], 'berachain')
-        .then((data) => data.pricesByAddress[key] || 0)
-    );
-  }
-  return priceCache.get(key);
+  const data = await utils.getPrices([tokenAddress], 'berachain');
+  return data.pricesByAddress[key] || 0;
 };
 
 const main = async () => {
@@ -240,12 +231,11 @@ const main = async () => {
       bgtApr = parseFloat(vault.apr) * 100;
     }
 
-    // Calculate LBGT APR using formula: lbgtApr = bgtApr × (lbgtPrice / beraPrice)
-    // This converts BGT APR to LBGT APR since rewards are paid in LBGT
-    let lbgtApr = bgtApr;
-    if (beraPrice && lbgtPrice) {
-      lbgtApr = bgtApr * (lbgtPrice / beraPrice);
-    }
+    // Skip vaults if prices are unavailable rather than publishing unconverted BGT APR.
+    if (!beraPrice || !lbgtPrice) continue;
+
+    // Convert BGT APR to LBGT APR since rewards are paid in LBGT.
+    const lbgtApr = bgtApr * (lbgtPrice / beraPrice);
 
     // Try to resolve ERC-4626 asset for vault-type staking tokens
     let underlying = vault.stakingToken.address;
