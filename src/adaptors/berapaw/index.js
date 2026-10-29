@@ -120,35 +120,10 @@ const getLpApr = async (stakingTvlUsd) => {
     return aprPpaw + aprLbgt;
 };
 
-const BEEP_REWARD_VAULTS = 'https://beep.berachain.com/v1/reward-vaults';
-const BEEP_CLIENT_ID = 'defillama.yield-server';
-const VAULT_PAGE_SIZE = 300;
-
-const getVaultsFromApi = async () => {
-    const vaults = [];
-    for (let page = 1; page <= 20; page++) {
-        const params = new URLSearchParams({
-            page: String(page),
-            perPage: String(VAULT_PAGE_SIZE),
-            orderBy: 'apr',
-            orderDirection: 'desc',
-            status: 'whitelisted',
-        });
-        const response = await utils.getData(`${BEEP_REWARD_VAULTS}?${params}`, null, {
-            'X-Client-Id': BEEP_CLIENT_ID,
-        });
-        const items = response.items || [];
-        vaults.push(...items);
-        if (items.length === 0 || vaults.length >= response.total) break;
-    }
-    return vaults;
-};
-
 const getPoolData = async () => {
-    const [stLbgtTvl, lpLbgtWberaTvl, apiVaults, lbgtPrice, beraPrice] = await Promise.all([
+    const [stLbgtTvl, lpLbgtWberaTvl, lbgtPrice, beraPrice] = await Promise.all([
         getStLbgtTvlUsd(),
         getLpTvlUsd(ADDRESSES.LBGT_WBERA_STAKING, ADDRESSES.WBERA_LBGT_WEIGHTED),
-        getVaultsFromApi(),
         getTokenPrice(ADDRESSES.LBGT),
         getTokenPrice(ADDRESSES.WBERA),
     ]);
@@ -178,44 +153,6 @@ const getPoolData = async () => {
         rewardTokens: [ADDRESSES.LBGT, ADDRESSES.PPAW],
         underlyingTokens: [ADDRESSES.WBERA_LBGT_WEIGHTED],
     });
-
-    const vaultPools = await Promise.all(apiVaults.map(async (vault) => {
-        if (!vault.isWhitelisted) return null;
-        // Calculate BGT APR. Beep returns apr as a fraction (1 = 100%).
-        let bgtApr = 0;
-        if (vault.apr) {
-            bgtApr = parseFloat(vault.apr) * 100;
-        }
-
-        // Calculate LBGT APR using formula: lbgtApr = bgtApr × (lbgtPrice / beraPrice)
-        let lbgtApr = bgtApr;
-        if (beraPrice && lbgtPrice) {
-            lbgtApr = bgtApr * (lbgtPrice / beraPrice);
-        }
-
-        // Try to resolve ERC-4626 asset for vault-type staking tokens
-        let underlying = vault.stakingToken.address;
-        try {
-            const asset = await callContract(vault.stakingToken.address, 'address:asset');
-            if (asset && asset !== '0x0000000000000000000000000000000000000000') {
-                underlying = asset;
-            }
-        } catch {}
-
-        return {
-            pool: vault.address,
-            chain: 'berachain',
-            project: 'beefy',
-            symbol: vault.stakingToken.symbol,
-            tvlUsd: parseFloat(vault.tvl || 0),
-            apyReward: lbgtApr,
-            rewardTokens: [ADDRESSES.LBGT],
-            underlyingTokens: [underlying],
-            url: 'https://www.berapaw.com/vaults',
-        };
-    }));
-
-    pools.push(...vaultPools.filter(Boolean));
 
     return pools;
 };
