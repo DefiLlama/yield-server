@@ -120,7 +120,7 @@ const getTokenPrice = async (tokenAddress) => {
 };
 
 const main = async () => {
-  const [apys, tvlsByChain, vaults, govVaults, tokens, vaultStatus, beepVaults, lbgtPrice, beraPrice] =
+  const [apys, tvlsByChain, vaults, govVaults, tokens, vaultStatus] =
     await Promise.all([
       getData(urlApy),
       getData(urlTvl),
@@ -128,10 +128,27 @@ const main = async () => {
       getData(urlGovVaults),
       getData(urlAddressbook),
       getData(urlVaultsStatus),
+    ]);
+
+  // BEEP data is supplemental: failures must not interrupt Beefy's core pools.
+  const [beepVaultsResult, lbgtPriceResult, beraPriceResult] =
+    await Promise.allSettled([
       getBeepVaults(),
       getTokenPrice(ADDRESSES.LBGT),
       getTokenPrice(ADDRESSES.BERA),
     ]);
+  const beepVaults =
+    beepVaultsResult.status === 'fulfilled' ? beepVaultsResult.value : [];
+  const lbgtPrice =
+    lbgtPriceResult.status === 'fulfilled' ? lbgtPriceResult.value : 0;
+  const beraPrice =
+    beraPriceResult.status === 'fulfilled' ? beraPriceResult.value : 0;
+
+  [beepVaultsResult, lbgtPriceResult, beraPriceResult].forEach((result) => {
+    if (result.status === 'rejected') {
+      console.error('Beefy BEEP supplemental data request failed:', result.reason);
+    }
+  });
 
   const data = [];
   for (const [chainId, tvls] of Object.entries(tvlsByChain)) {
@@ -247,7 +264,7 @@ const main = async () => {
     } catch {}
 
     data.push({
-      pool: vault.address,
+      pool: `${vault.address}-berachain`,
       chain: 'berachain',
       project: 'beefy',
       symbol: vault.stakingToken.symbol,
