@@ -99,8 +99,6 @@ const apy = async () => {
       if (!config || !p || !tokenAddrs) return null;
       if (totalSupply[i] == null || totalBorrow[i] == null) return null;
 
-      if (config.isFrozen) return null;
-
       const price = prices[`${CHAIN}:${pool.tokenAddress}`]?.price;
       if (!price) return null;
 
@@ -124,6 +122,7 @@ const apy = async () => {
         ltv: config.ltv / 10000,
         url: `https://app.purrlend.io/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}`,
         borrowable: config.borrowingEnabled,
+        frozen: config.isFrozen,
       };
     })
     .filter(Boolean)
