@@ -4,6 +4,15 @@ const { DAY } = require('./metrics');
 // Deployed risexUSDC epochs are six hours; allow one hour of keeper delay.
 const MAX_AGE = 7 * 3600;
 const WEEK = 7 * DAY;
+const findPast = (history) => {
+  if (!history.length) return;
+  const latest = history[history.length - 1];
+  const cutoff = Number(latest.timestamp ?? latest[2]) - WEEK;
+  return [...history].reverse().find((row) => {
+    const time = Number(row.timestamp ?? row[2]);
+    return time > 0 && time <= cutoff;
+  });
+};
 const snapshot = (row) => {
   const price = new BigNumber(row.sharePrice ?? row[0]);
   const supply = new BigNumber(row.totalSupply ?? row[1]);
@@ -39,39 +48,26 @@ const metrics = (history, blockTimestamp, totalAssets, assetDecimals) => {
   if (!assets.isInteger() || !assets.gt(0)) {
     throw new Error('risexUSDC: invalid total assets');
   }
-  const annualized = (window) => {
-    const row = [...history].reverse().find((r) => {
-      const time = Number(r.timestamp ?? r[2]);
-      return time > 0 && time <= current.timestamp - window;
-    });
-    if (!row) throw new Error('risexUSDC: missing return history');
-    const past = snapshot(row);
-    const elapsed = current.timestamp - past.timestamp;
-    if (elapsed > window + MAX_AGE) {
-      throw new Error('risexUSDC: stale return baseline');
-    }
-    // Settled PPS includes fee dilution. Supply changes do not create returns.
-    const apy =
-      Math.expm1(
-        (Math.log(current.price.div(past.price).toNumber()) * 365 * DAY) /
-          elapsed
-      ) * 100;
-    if (!Number.isFinite(apy)) throw new Error('risexUSDC: non-finite APY');
-    return apy;
-  };
-  const apyBase = annualized(DAY);
-  let apyBase7d;
-  try {
-    apyBase7d = annualized(WEEK);
-  } catch (e) {
-    // The seven-day comparison is optional; the daily result is mandatory.
+  const past = findPast(history);
+  if (!past) throw new Error('risexUSDC: missing return history');
+  const baseline = snapshot(past);
+  const elapsed = current.timestamp - baseline.timestamp;
+  if (elapsed > WEEK + MAX_AGE) {
+    throw new Error('risexUSDC: stale return baseline');
   }
+  // Settled PPS includes fee dilution. Supply changes do not create returns.
+  const apyBase =
+    Math.expm1(
+      (Math.log(current.price.div(baseline.price).toNumber()) * 365 * DAY) /
+        elapsed
+    ) * 100;
+  if (!Number.isFinite(apyBase)) throw new Error('risexUSDC: non-finite APY');
   const tvlUnderlying = assets.shiftedBy(-assetDecimals).toNumber();
   const pricePerShare = current.price.shiftedBy(-assetDecimals).toNumber();
   if (![tvlUnderlying, pricePerShare].every(Number.isFinite)) {
     throw new Error('risexUSDC: non-finite vault values');
   }
-  return { apyBase, apyBase7d, tvlUnderlying, pricePerShare };
+  return { apyBase, tvlUnderlying, pricePerShare, past };
 };
 
-module.exports = { MAX_AGE, metrics };
+module.exports = { MAX_AGE, findPast, metrics };

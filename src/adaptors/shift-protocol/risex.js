@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const { MAX_AGE, metrics } = require('./risex-metrics');
+const { MAX_AGE, findPast, metrics } = require('./risex-metrics');
 const { PRICE_EVENT, iface, verifySettlement } = require('./risex-settlement');
 
 const CHAIN = 'ethereum';
@@ -62,9 +62,17 @@ module.exports = async (timestamp) => {
   ) {
     throw new Error('risexUSDC: stale or invalid latest settlement');
   }
-  // At six-hour epochs, 64 snapshots cover over two weeks. Read by epoch and
-  // calculate by timestamp so catch-up settlements do not invent elapsed time.
-  const history = await call(HISTORY_ABI, [Math.max(0, epoch - 63), epoch]);
+  // Extend within the 720-entry ring buffer if catch-up settlements compress
+  // the history. A full seven-day baseline is mandatory, measured by timestamp.
+  let history;
+  let fromEpoch;
+  for (const count of [64, 128, 256, 512, 720]) {
+    fromEpoch = Math.max(0, epoch - count + 1);
+    history = await call(HISTORY_ABI, [fromEpoch, epoch]);
+    if (history.length !== epoch - fromEpoch + 1)
+      throw new Error('risexUSDC: incomplete settled history');
+    if (findPast(history) || fromEpoch === 0) break;
+  }
   const current = history[history.length - 1];
   if (
     String(current.sharePrice ?? current[0]) !==
@@ -80,43 +88,54 @@ module.exports = async (timestamp) => {
     Number(decimals)
   );
   const provider = sdk.getProvider(CHAIN);
-  // Timestamp-to-block lookup is approximate; start well before settlement.
-  const from = await sdk.api.util.lookupBlock(settledAt - 3600, {
-    chain: CHAIN,
-  });
-  if (Number(from.timestamp) >= settledAt) {
-    throw new Error('risexUSDC: invalid settlement log range');
-  }
-  const logs = await sdk.getEventLogs({
-    chain: CHAIN,
-    target: VAULT,
-    fromBlock: from.number ?? from.block,
-    toBlock: block,
-    eventAbi: PRICE_EVENT,
-    entireLog: true,
-    skipIndexer: true,
-    skipCache: true,
-  });
-  const matches = logs.filter((log) => {
-    const event = iface.parseLog(log).args;
-    return event.epoch.eq(epoch) && event.timestamp.eq(settledAt);
-  });
-  if (matches.length !== 1)
-    throw new Error('risexUSDC: missing settlement provenance');
-  const hash = matches[0].transactionHash;
-  const [tx, receipt] = await Promise.all([
-    provider.getTransaction(hash),
-    provider.getTransactionReceipt(hash),
+  const verify = async (settledEpoch, row) => {
+    const time = Number(row.timestamp ?? row[2]);
+    // Timestamp-to-block lookup is approximate; bracket each endpoint by 1h.
+    const [from, to] = await Promise.all([
+      sdk.api.util.lookupBlock(time - 3600, { chain: CHAIN }),
+      time === settledAt
+        ? anchor
+        : sdk.api.util.lookupBlock(time + 3600, { chain: CHAIN }),
+    ]);
+    if (Number(from.timestamp) >= time || Number(to.timestamp) < time)
+      throw new Error('risexUSDC: invalid settlement log range');
+    const logs = await sdk.getEventLogs({
+      chain: CHAIN,
+      target: VAULT,
+      fromBlock: from.number ?? from.block,
+      toBlock: Math.min(Number(to.number ?? to.block), Number(block)),
+      eventAbi: PRICE_EVENT,
+      entireLog: true,
+      skipIndexer: true,
+      skipCache: true,
+    });
+    const matches = logs.filter((log) => {
+      const event = iface.parseLog(log).args;
+      return event.epoch.eq(settledEpoch) && event.timestamp.eq(time);
+    });
+    if (matches.length !== 1)
+      throw new Error('risexUSDC: missing settlement provenance');
+    const hash = matches[0].transactionHash;
+    const [tx, receipt] = await Promise.all([
+      provider.getTransaction(hash),
+      provider.getTransactionReceipt(hash),
+    ]);
+    verifySettlement({
+      tx,
+      receipt,
+      vault: VAULT,
+      share: SHARE,
+      epoch: settledEpoch,
+      current: row,
+      anchorBlock: Number(block),
+    });
+  };
+  // Emergency or allocator-skipped settlements can reuse an old NAV while
+  // refreshing its timestamp. Verify fresh proposals at both APY endpoints.
+  await Promise.all([
+    verify(epoch, current),
+    verify(fromEpoch + history.indexOf(result.past), result.past),
   ]);
-  verifySettlement({
-    tx,
-    receipt,
-    vault: VAULT,
-    share: SHARE,
-    epoch,
-    current,
-    anchorBlock: Number(block),
-  });
 
   const key = `${CHAIN}:${USDC}`;
   const path = timestamp
@@ -139,13 +158,10 @@ module.exports = async (timestamp) => {
       symbol: 'USDC',
       tvlUsd: result.tvlUnderlying * price.price,
       apyBase: result.apyBase,
-      ...(Number.isFinite(result.apyBase7d)
-        ? { apyBase7d: result.apyBase7d }
-        : {}),
       pricePerShare: result.pricePerShare,
       underlyingTokens: [USDC],
       token: SHARE,
-      poolMeta: 'risexUSDC (24h settled share-price return)',
+      poolMeta: 'risexUSDC',
       url: 'https://app.shiftprotocol.xyz/',
     },
   ];
