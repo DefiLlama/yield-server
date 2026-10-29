@@ -542,6 +542,7 @@ const excludedProtocols = [
   { id: '2783', slug: 'scrub-invest' }, // vaults empty (USDt $1, KAVA $0) and TIGER/LION unpriced since ~2026-10-18; stale $7.4M TIGER-LION row vs $28k protocol tvl
   { id: '604', slug: 'sherlock' },
   { id: '5580', slug: 'latch' }, // winding down: withdrawals disabled on savings.latch.io, atUSD/atETH live on Gravity Alpha which shuts 2026-11-01, apy api 503 since 2026-10-29
+  { id: '7244', slug: 'harbor' }, // winding down: all markets archived (deposits disabled, withdraw-only)
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
