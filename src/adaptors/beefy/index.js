@@ -13,11 +13,17 @@ const urlAddressbook = `${url}/tokens`;
 
 const urlVaultsStatus = `${url}/vaults`;
 
+// BEEP reward vaults (Berachain) - these are Beefy vaults on Berachain
+const BEEP_REWARD_VAULTS = 'https://beep.berachain.com/v1/reward-vaults';
+const BEEP_CLIENT_ID = 'defillama.yield-server';
+const VAULT_PAGE_SIZE = 300;
+
 const retiredStatuses = ['eol', 'paused'];
 
 const isRetiredVault = (vault) =>
   retiredStatuses.includes(vault?.status?.toLowerCase());
 
+// Berachain chain ID: 80094
 const networkMapping = {
   1: 'ethereum',
   10: 'optimism',
@@ -38,6 +44,7 @@ const networkMapping = {
   2222: 'kava',
   5000: 'mantle',
   7700: 'canto',
+  80094: 'berachain',  // Berachain mainnet
   8453: 'base',
   34443: 'mode',
   42161: 'arbitrum',
@@ -65,8 +72,64 @@ const extractePoolMetaDate = (string) => {
   }
 };
 
+// Fetch BEEP reward vaults for Berachain
+const getBeepVaults = async () => {
+  const vaults = [];
+  for (let page = 1; page <= 20; page++) {
+    const params = new URLSearchParams({
+      page: String(page),
+      perPage: String(VAULT_PAGE_SIZE),
+      orderBy: 'apr',
+      orderDirection: 'desc',
+      status: 'whitelisted',
+    });
+    const response = await getData(`${BEEP_REWARD_VAULTS}?${params}`, null, {
+      'X-Client-Id': BEEP_CLIENT_ID,
+    });
+    const items = response.items || [];
+    vaults.push(...items);
+    if (items.length === 0 || vaults.length >= response.total) break;
+  }
+  return vaults;
+};
+
+const utils = require('../utils');
+const sdk = require('@defillama/sdk');
+
+const SECONDS_PER_YEAR = 31557600;
+
+const ADDRESSES = {
+  WBERA: '0x6969696969696969696969696969696969696969',
+  LBGT: '0xBaadCC2962417C01Af99fb2B7C75706B9bd6Babe',
+  BERA: '0x6969696969696969696969696969696969696969',
+};
+
+const callContract = async (target, abi, params = []) => {
+  return sdk.api.abi.call({
+    target,
+    abi,
+    params,
+    chain: 'berachain',
+  }).then(res => res.output);
+};
+
+const priceCache = new Map();
+
+const getTokenPrice = async (tokenAddress) => {
+  const key = String(tokenAddress).toLowerCase();
+  if (!priceCache.has(key)) {
+    priceCache.set(
+      key,
+      utils
+        .getPrices([tokenAddress], 'berachain')
+        .then((data) => data.pricesByAddress[key] || 0)
+    );
+  }
+  return priceCache.get(key);
+};
+
 const main = async () => {
-  const [apys, tvlsByChain, vaults, govVaults, tokens, vaultStatus] =
+  const [apys, tvlsByChain, vaults, govVaults, tokens, vaultStatus, beepVaults, lbgtPrice, beraPrice] =
     await Promise.all(
       [
         urlApy,
@@ -75,14 +138,16 @@ const main = async () => {
         urlGovVaults,
         urlAddressbook,
         urlVaultsStatus,
-      ].map((u) => getData(u))
+        getBeepVaults(),
+        getTokenPrice(ADDRESSES.LBGT),
+        getTokenPrice(ADDRESSES.BERA),
+      ].map((u) => (typeof u === 'function' ? u() : getData(u)))
     );
 
   const data = [];
   for (const [chainId, tvls] of Object.entries(tvlsByChain)) {
     const llamaChain = networkMapping[chainId];
     if (!llamaChain) {
-      // console.debug(`Skipping chain ${chainId}, not in networkMapping`);
       continue;
     }
 
@@ -99,12 +164,10 @@ const main = async () => {
       if (isRetiredVault(s) || isRetiredVault(vault)) continue;
 
       if (vault === undefined) {
-        // console.debug(`Skipping vault ${vaultId}, no vault data`);
         continue;
       }
 
       if (tvl === undefined || tvl === null) {
-        // console.debug(`Skipping vault ${vaultId}, no TVL data`);
         continue;
       }
 
@@ -140,7 +203,6 @@ const main = async () => {
             tokenSymbols.push(symbol);
           }
         } else {
-          // fallback to assetId if token not found
           tokenSymbols.push(assetId);
         }
       }
@@ -168,6 +230,46 @@ const main = async () => {
         url: `https://app.beefy.com/vault/${vaultId}`,
       });
     }
+  }
+
+  // Add BEEP reward vaults (Berachain) - these are Beefy vaults
+  for (const vault of beepVaults) {
+    if (!vault.isWhitelisted) continue;
+
+    // Calculate BGT APR. Beep returns apr as a fraction (1 = 100%).
+    let bgtApr = 0;
+    if (vault.apr) {
+      bgtApr = parseFloat(vault.apr) * 100;
+    }
+
+    // Calculate LBGT APR using formula: lbgtApr = bgtApr × (lbgtPrice / beraPrice)
+    // This converts BGT APR to LBGT APR since rewards are paid in LBGT
+    let lbgtApr = bgtApr;
+    if (beraPrice && lbgtPrice) {
+      lbgtApr = bgtApr * (lbgtPrice / beraPrice);
+    }
+
+    // Try to resolve ERC-4626 asset for vault-type staking tokens
+    let underlying = vault.stakingToken.address;
+    try {
+      const asset = await callContract(vault.stakingToken.address, 'address:asset');
+      if (asset && asset !== '0x0000000000000000000000000000000000000000') {
+        underlying = asset;
+      }
+    } catch {}
+
+    data.push({
+      pool: vault.address,
+      chain: 'berachain',
+      project: 'beefy',
+      symbol: vault.stakingToken.symbol,
+      tvlUsd: parseFloat(vault.tvl || 0),
+      apy: lbgtApr,
+      apyReward: lbgtApr,
+      rewardTokens: [ADDRESSES.LBGT],
+      underlyingTokens: [underlying],
+      url: 'https://www.berapaw.com/vaults',
+    });
   }
 
   return removeDuplicates(data);
