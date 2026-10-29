@@ -1,6 +1,7 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const { DAY, findPast, metrics } = require('./metrics');
+const { DAY, metrics } = require('./metrics');
+const getHistory = require('./history');
 
 const CHAIN = 'arbitrum';
 const VAULT = '0x956bdd9c18b786b082fd50c52722d254f0cb6964';
@@ -8,8 +9,6 @@ const FEED = '0x4062c539d09a76d79e366f8c2a2e2f987ead1fe0';
 const USDC = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
 const URL = 'https://app.shiftprotocol.xyz/';
 const WEEK = 7 * DAY;
-const HISTORY_ABI =
-  'function getLastTvlEntries(uint256 count) view returns (tuple(uint256 value, uint256 timestamp, uint256 supplySnapshot)[])';
 
 // ltLLP v1 is a bespoke ERC-20 vault, not ERC-4626. Its on-chain feed records
 // NAV and matching share supply on every update. APY is the observed change
@@ -39,14 +38,7 @@ const apy = async (timestamp) => {
     throw new Error('ltLLP: unexpected base token or TVL feed');
   }
 
-  // Deposits can add observations, so extend the history until it covers 7d
-  // without requiring historical RPC reads for each prior NAV observation.
-  let entries;
-  for (let count = 64; count <= 1024; count *= 2) {
-    entries = await call(FEED, HISTORY_ABI, [count]);
-    if (!entries.length || findPast(entries, WEEK) || entries.length < count)
-      break;
-  }
+  const entries = await getHistory(call, FEED, WEEK);
   const { apyBase, tvlUnderlying, pricePerShare } = metrics(
     entries,
     Number(anchor.timestamp),
