@@ -133,6 +133,7 @@ const apy = async () => {
         borrowToken: pool.tokenAddress,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        frozen: poolsReservesConfigurationData[i].isFrozen,
       };
     })
     .filter((p) => utils.keepFinite(p));

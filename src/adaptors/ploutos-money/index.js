@@ -264,7 +264,6 @@ async function getApy(market) {
   for (let i = 0; i < reserves.length; i++) {
     const r = reserves[i]
     const cfg = reserveCfg[i]
-    if (cfg.isFrozen) continue
 
     const symUp = String(r.symbol || '').toUpperCase()
     if (symUp === 'GHO' || symUp === 'SGHO' || symUp === 'STKGHO') continue
@@ -335,6 +334,7 @@ async function getApy(market) {
       totalBorrowUsd,
       ltv: cfg.ltv / 10000,
       borrowable: cfg.borrowingEnabled,
+      frozen: cfg.isFrozen,
       url,
     }
 

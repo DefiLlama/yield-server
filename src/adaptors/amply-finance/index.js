@@ -130,6 +130,7 @@ const getApy = async (chain) => {
       borrowToken: pool.tokenAddress,
       ltv: poolsReservesConfigurationData[i].ltv / 10000,
       borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+      frozen: poolsReservesConfigurationData[i].isFrozen,
     };
   });
 };

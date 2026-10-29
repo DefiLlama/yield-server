@@ -75,7 +75,7 @@ async function apy() {
   return reserveTokens
     .map((pool, i) => {
       const config = poolsReservesConfigurationData[i];
-      if (config.isFrozen || !config.isActive) return null;
+      if (!config.isActive) return null;
 
       const p = poolsReserveData[i];
       const decimals = Number(config.decimals);
@@ -100,6 +100,7 @@ async function apy() {
         apyBaseBorrow: utils.aprToApy((p.variableBorrowRate / 1e27) * 100),
         ltv: config.ltv / 10000,
         borrowable: config.borrowingEnabled,
+        frozen: config.isFrozen,
         url: 'https://rmm.realtoken.network/markets/',
       };
     })

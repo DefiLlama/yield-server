@@ -136,9 +136,6 @@ const getApy = async () => {
 
   return reserveTokens
     .map((pool, i) => {
-      const frozen = poolsReservesConfigurationData[i].isFrozen;
-      if (frozen) return null;
-
       const p = poolsReserveData[i];
       const price = oraclePrices[pool.tokenAddress.toLowerCase()];
 
@@ -181,9 +178,9 @@ const getApy = async () => {
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        frozen: poolsReservesConfigurationData[i].isFrozen,
       };
-    })
-    .filter((i) => Boolean(i));
+    });
 };
 
 const keepFinite = (p) => {

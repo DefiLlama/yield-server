@@ -259,12 +259,12 @@ const getMarketData = async ({ protocolDataProvider }) => {
   };
 };
 
-// One pool per active, unfrozen reserve with complete USD data.
+// One pool per active reserve with complete USD data.
 const buildMarketPools = (market, data, prices, rewardDecimals, timestamp) =>
   data.reserveTokens
     .map((reserve, i) => {
       const config = data.configurationData[i];
-      if (!config.isActive || config.isFrozen) return null;
+      if (!config.isActive) return null;
 
       // Missing prices cannot produce meaningful USD fields.
       const price = prices[priceKey(reserve.tokenAddress)]?.price;
@@ -337,6 +337,7 @@ const buildMarketPools = (market, data, prices, rewardDecimals, timestamp) =>
         ltv: Number(config.ltv) / 10000,
         url: getMarketUrl(market.marketId, reserve.symbol),
         borrowable: config.borrowingEnabled,
+        frozen: config.isFrozen,
         borrowToken: reserve.tokenAddress,
         // Collateral in one market cannot back debt in another, so borrow
         // routers must not pair reserves across markets.
