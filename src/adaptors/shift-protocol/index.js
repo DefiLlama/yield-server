@@ -13,7 +13,7 @@ const HISTORY_ABI =
 
 // ltLLP v1 is a bespoke ERC-20 vault, not ERC-4626. Its on-chain feed records
 // NAV and matching share supply on every update. APY is the observed change
-// in that share value over ~24h, annualized using the actual elapsed time.
+// in that share value over ~7d, annualized using the actual elapsed time.
 // Fee-share dilution is included when reflected in a feed's supplySnapshot;
 // pending, unclaimed fees are not accrued here. No additional fee haircut:
 // that would double-count dilution already reflected in posted share values.
@@ -39,9 +39,8 @@ const apy = async (timestamp) => {
     throw new Error('ltLLP: unexpected base token or TVL feed');
   }
 
-  // Also provide the optional 7d field for a longer comparison window.
-  // Deposits can add observations, so extend the window if necessary without
-  // requiring historical RPC reads for each prior NAV observation.
+  // Deposits can add observations, so extend the history until it covers 7d
+  // without requiring historical RPC reads for each prior NAV observation.
   let entries;
   for (let count = 64; count <= 1024; count *= 2) {
     entries = await call(FEED, HISTORY_ABI, [count]);
@@ -53,22 +52,9 @@ const apy = async (timestamp) => {
     Number(anchor.timestamp),
     Number(freshness),
     Number(assetDecimals),
-    Number(shareDecimals)
+    Number(shareDecimals),
+    WEEK
   );
-  let apyBase7d;
-  try {
-    apyBase7d = metrics(
-      entries,
-      Number(anchor.timestamp),
-      Number(freshness),
-      Number(assetDecimals),
-      Number(shareDecimals),
-      WEEK
-    ).apyBase;
-  } catch (e) {
-    // Keep the mandatory 24h result; omit an unavailable 7d comparison rather
-    // than substitute zero or annualize an older, incomplete window.
-  }
 
   const priceKey = `${CHAIN}:${USDC}`;
   const path = timestamp
@@ -92,11 +78,10 @@ const apy = async (timestamp) => {
       symbol: 'USDC',
       tvlUsd: tvlUnderlying * price.price,
       apyBase,
-      ...(Number.isFinite(apyBase7d) ? { apyBase7d } : {}),
       pricePerShare,
       underlyingTokens: [USDC],
       token: VAULT,
-      poolMeta: 'ltLLP (24h share-price return)',
+      poolMeta: 'ltLLP',
       url: URL,
     },
   ];
