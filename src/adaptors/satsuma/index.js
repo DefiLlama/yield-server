@@ -393,6 +393,8 @@ const apy = async () => {
   // One record per single-sided ICHI vault: "deposit ctUSD here" rather than
   // "LP ctUSD-USDC.e". The gauge's weekly xSATS is shared between its two
   // vaults in proportion to their TVL, valued at the instant-exit SUMA amount.
+  // The bare vault address is already a pool id of the `ichi` adapter, so the
+  // id carries a project segment to stay unique across projects.
   const sumaPrice = prices[SUMA];
   const gaugeTvl = {};
   for (const v of vaults) gaugeTvl[v.gauge] = (gaugeTvl[v.gauge] ?? 0) + v.tvlUsd;
@@ -408,7 +410,7 @@ const apy = async () => {
           : 0;
       const apyReward = v.tvlUsd > 0 ? (rewardUsdPerYear / v.tvlUsd) * 100 : 0;
       return {
-        pool: `${v.vault}-${CHAIN}`,
+        pool: `${v.vault}-satsuma-${CHAIN}`,
         chain: utils.formatChain(CHAIN),
         project: PROJECT,
         symbol: v.depositSymbol,
@@ -425,7 +427,7 @@ const apy = async () => {
     .filter((p) => Number.isFinite(p.tvlUsd) && p.tvlUsd >= MIN_TVL_USD)
     .filter((p) => utils.keepFinite(p));
 
-  return addMerklRewardApy(result, PROJECT, (pool) => pool.pool.split(`-${CHAIN}`)[0]);
+  return addMerklRewardApy(result, PROJECT, (pool) => pool.pool.split('-')[0]);
 };
 
 module.exports = {
