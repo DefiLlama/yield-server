@@ -254,6 +254,7 @@ async function poolApys(chainId, pools) {
       volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
       volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
       poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
+      maturity: p.expiry,
       url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
     };
   });
@@ -269,6 +270,9 @@ function ptApys(chainId, pools) {
     apyBase: p.details.impliedApy * 100,
     underlyingTokens: [splitId(p.underlyingAsset).address].map(resolveToken),
     poolMeta: `For buying PT-${p.name}-${expiryToText(p.expiry)}`,
+    maturity: p.expiry,
+    // impliedApy is the rate locked in by buying PT and holding to maturity
+    isFixedRate: true,
     url: `https://app.pendle.finance/trade/markets/${p.address}/swap?view=pt&chain=${chains[chainId].chainSlug}&py=output`,
   }));
 }

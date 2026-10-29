@@ -62,6 +62,8 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'apyBaseInception',
       'searchTokenOverride',
       'isIntrinsicSource',
+      'maturity',
+      'isFixedRate',
       'token',
       'pricePerShare',
       'routeGroupKey',
@@ -260,6 +262,9 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       isIntrinsicSource: {
         type: 'boolean',
       },
+      isFixedRate: {
+        type: 'boolean',
+      },
       borrowToken: {
         type: 'string',
       },
@@ -280,6 +285,18 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         test(`Pool ${pool.pool} with mintedCoin should include a borrowToken`, () => {
           expect(pool.borrowToken).toBeDefined();
           expect(pool.borrowToken).not.toBeNull();
+        });
+      }
+      if (pool.maturity !== undefined) {
+        test(`maturity field of pool with id ${pool.pool} should be an ISO 8601 timestamp with timezone`, () => {
+          expect(pool.maturity).toMatch(
+            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/
+          );
+          // Date.parse rolls invalid days over (Feb 31 → Mar 3), so check the calendar day too
+          const [y, m, d] = pool.maturity.slice(0, 10).split('-').map(Number);
+          const day = new Date(Date.UTC(y, m - 1, d));
+          expect(day.getUTCMonth() === m - 1 && day.getUTCDate() === d).toBe(true);
+          expect(Number.isNaN(Date.parse(pool.maturity))).toBe(false);
         });
       }
       Object.entries(additionalFieldRules).map(([field, rule]) => {
