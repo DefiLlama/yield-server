@@ -8,6 +8,7 @@
     "deploy": "export NODE_ENV=prod && npm run deploy:env",
     "build": "sls package",
     "test": "jest",
+    "test:api": "jest --config jest.api.config.js",
     "migrate": "node-pg-migrate",
     "start:api": "node src/api/server"
   },
