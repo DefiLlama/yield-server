@@ -94,8 +94,6 @@ const apy = async () =>
 
       return Promise.all(
         markets.map(async (market, i) => {
-          if (frozen[i]) return [];
-
           /** @type {number} */
           const usdUnitPrice = pricesByAddress[assets[i].toLowerCase()];
           const poolMetadata = {
@@ -107,6 +105,7 @@ const apy = async () =>
             /** @type {string[]} */
             underlyingTokens: [assets[i]],
             url: `${url}/${symbols[i]}`,
+            frozen: frozen[i] === true,
           };
           const shareValue = (totalAssets[i] * 1e18) / totalSupply[i];
           const prevShareValue = (prevTotalAssets[i] * 1e18) / prevTotalSupply[i];
@@ -330,7 +329,7 @@ const apy = async () =>
 
           return [
             floating,
-            ...buildCollateralRoutes(),
+            ...(frozen[i] ? [] : buildCollateralRoutes()),
             ...fixed.flat(),
           ].filter(Boolean);
         })
@@ -379,5 +378,5 @@ const abis = {
   previewRepay: "function previewRepay(uint256 assets) external view returns (uint256)",
 };
 
-/** @typedef {{ pool: string, chain: string, project: string, symbol: string, tvlUsd: number, apy?: number, apyBase?: number, apyReward?: number, rewardTokens?: Array<string>, underlyingTokens?: Array<string>, poolMeta?: string, url?: string, routeGroupKey?: string, underlyingStateKey?: string, poolKind?: string, borrowToken?: string, borrowable?: boolean, availableBorrowUsd?: number, apyBaseBorrow?: number, apyRewardBorrow?: number, totalSupplyUsd?: number, totalBorrowUsd?: number, ltv?: number }} Pool */
+/** @typedef {{ pool: string, chain: string, project: string, symbol: string, tvlUsd: number, apy?: number, apyBase?: number, apyReward?: number, rewardTokens?: Array<string>, underlyingTokens?: Array<string>, poolMeta?: string, url?: string, routeGroupKey?: string, underlyingStateKey?: string, poolKind?: string, borrowToken?: string, borrowable?: boolean, availableBorrowUsd?: number, apyBaseBorrow?: number, apyRewardBorrow?: number, totalSupplyUsd?: number, totalBorrowUsd?: number, ltv?: number, frozen?: boolean }} Pool */
 /** @typedef {{ borrowed: string, supplied: string, unassignedEarnings: string, lastAccrual: number }} FixedPool */

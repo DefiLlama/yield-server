@@ -250,7 +250,7 @@ const apy = async () => {
       return (
         Boolean(principal) &&
         ALLOWED_POOL_CANISTERS.has(principal) &&
-        pool?.frozen === false
+        typeof pool?.frozen === 'boolean'
       )
     } catch (_error) {
       return false
@@ -328,6 +328,7 @@ const apy = async () => {
         availableBorrowUsd,
         ltv: Number.isFinite(ltv) ? ltv : null,
         borrowable: pool.frozen === false,
+        frozen: pool.frozen,
         borrowToken: underlyingToken || undefined,
       }
     } catch (error) {

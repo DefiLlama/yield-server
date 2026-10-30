@@ -15,9 +15,7 @@ const MOVEMENT_RPC = 'https://mainnet.movementnetwork.xyz/v1';
 const MAX_APY = 1000;
 
 const isActiveReserve = (reserve) =>
-  reserve.is_active !== false &&
-  reserve.is_frozen !== true &&
-  reserve.is_paused !== true;
+  reserve.is_active !== false && reserve.is_paused !== true;
 
 const isFrozenOrDeprecated = (marketInfo) =>
   !marketInfo.isListed ||
@@ -130,7 +128,7 @@ const apyLayerBankV3 = async (chain) => {
   return reserveTokens
     .map((reserve, i) => {
       const config = reserveConfig[i];
-      if (config.isFrozen || !config.isActive || paused[i]) return null;
+      if (!config.isActive || paused[i]) return null;
 
       const price = prices[`${chain}:${reserve.tokenAddress}`]?.price;
       const decimals = Number(config.decimals);
@@ -168,6 +166,7 @@ const apyLayerBankV3 = async (chain) => {
         underlyingTokens: [reserve.tokenAddress],
         ltv: config.ltv / 10000,
         borrowable: config.borrowingEnabled,
+        frozen: config.isFrozen,
       };
     })
     .filter(Boolean);
@@ -294,6 +293,7 @@ const apy = async (chain) => {
         rewardTokens,
         ltv: r.base_lt_vas_collateral / (10 ** 5),
         borrowable: r.borrowing_enabled !== false,
+        frozen: r.is_frozen === true,
       };
     });
   } else {

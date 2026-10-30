@@ -164,21 +164,19 @@ const getApy = async () => {
                 chain: 'base'
             })).output;
 
-            const allPoolsCandidates = [...new Set([...registryPools, ...(extraPools[chainKey] || [])])];
-            if (allPoolsCandidates.length === 0) continue;
+            const allPools = [...new Set([...registryPools, ...(extraPools[chainKey] || [])])];
+            if (allPools.length === 0) continue;
 
-            // Filter out vaults with deposits paused (withdrawal-only)
             const depositsPausedRes = await sdk.api.abi.multiCall({
-                calls: allPoolsCandidates.map(p => ({ target: p })),
+                calls: allPools.map(p => ({ target: p })),
                 abi: { name: 'depositsPaused', inputs: [], outputs: [{ type: 'bool' }], stateMutability: 'view', type: 'function' },
                 chain: chainKey,
                 permitFailure: true,
             });
-            const allPools = allPoolsCandidates.filter((_, i) => {
+            const depositsPaused = new Set(allPools.filter((_, i) => {
                 const res = depositsPausedRes.output[i];
-                return !(res?.success && res.output === true);
-            });
-            if (allPools.length === 0) continue;
+                return res?.success && res.output === true;
+            }));
 
             // Separate standard and custom vaults
             const standardPools = allPools.filter(p => !customVaults[p]);
@@ -288,6 +286,7 @@ const getApy = async () => {
                     apyBase,
                     underlyingTokens: [data.underlying],
                     url: getPoolUrl(addr, chainKey),
+                    frozen: depositsPaused.has(addr),
                 };
 
                 if (apyReward > 0 && registryInfo) {

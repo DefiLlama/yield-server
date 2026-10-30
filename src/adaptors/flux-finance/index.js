@@ -195,6 +195,7 @@ const main = async () => {
       apyReward,
       underlyingTokens: [token],
       rewardTokens: [],
+      frozen: isPaused[i] === true,
     };
     if (isPaused[i] === false) {
       poolReturned = {

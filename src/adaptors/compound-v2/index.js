@@ -230,6 +230,7 @@ const main = async () => {
       apyReward,
       underlyingTokens: [token],
       rewardTokens: [apyReward ? PROTOCOL_TOKEN.address : null].filter(Boolean),
+      frozen: isPaused[i] === true,
     };
     if (isPaused[i] === false) {
       poolReturned = {

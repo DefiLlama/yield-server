@@ -358,6 +358,7 @@ const main = async () => {
       totalBorrowUsd,
       availableBorrowUsd,
       borrowable: isBorrowPaused[i] === false,
+      frozen: isPaused[i] === true,
       ltv: Number(markets[i].collateralFactorMantissa) / 1e18,
       apyBaseBorrow,
       borrowToken: token,
