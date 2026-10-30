@@ -3,9 +3,15 @@ const BigNumber = require('bignumber.js');
 
 const CHAIN_NAME_LLAMA = 'ZIGChain';
 const CHAIN_KEY = 'zigchain';
-const LCD_ENDPOINT = 'https://zigchain-mainnet-lcd.zigscan.net';
+// Tried in order: public ZIGChain LCDs occasionally return errors for a while. Numia first,
+// as used by the other ZIGChain adaptors (nawa-protocol, valdora-finance).
+const LCD_ENDPOINTS = [
+  'https://public-zigchain-lcd.numia.xyz',
+  'https://zigchain-mainnet-lcd.zigscan.net',
+];
 
-// Perma Pod v2: positions migrated on 2026-09-28; ZIG moved to azig on 2026-09-30.
+// Perma Pod v2: positions migrated on 2026-09-28; ZIG moved to azig on 2026-09-30;
+// the USDC market moved from Noble USDC (USDC.n) to USDC.inj on 2026-10-23.
 const MODULES = {
   red_bank: 'zig1qghek6p63r56j0dd5asxvc5fmu370l6yfql5spc2khsfzn0ennjqtwz3xz',
   oracle: 'zig13ynkhd699jfeptcs3kxezacqptdll3fjnxm3gxlwdezvz4nw9s7qaf3mkk',
@@ -17,9 +23,11 @@ const TOKENS = {
     symbol: 'stZIG',
     decimals: 6,
   },
-  'ibc/6490A7EAB61059BFC1CDDEB05917DD70BDF3A611654162A1A47DB930D40D8AF4': {
+  // USDC.inj. Keep the USDC.n market's existing pool ID; use USDC.inj for actual queries.
+  'ibc/6C6F5A015608CF3951DFE6A117390210AB825BF0CC1AD33B2B100B05529A9B6B': {
     symbol: 'USDC',
     decimals: 6,
+    poolDenom: 'ibc/6490A7EAB61059BFC1CDDEB05917DD70BDF3A611654162A1A47DB930D40D8AF4',
   },
   // Keep the migrated ZIG market's existing pool ID; use azig for actual queries.
   azig: { symbol: 'ZIG', decimals: 18, poolDenom: 'uzig' },
@@ -132,12 +140,19 @@ async function getAllAssetParams() {
 /** Query a CosmWasm contract through the LCD and return its decoded data. */
 async function queryContract(contract, data) {
   const encoded = Buffer.from(JSON.stringify(data)).toString('base64');
-  const result = await utils.getData(
-    `${LCD_ENDPOINT}/cosmwasm/wasm/v1/contract/${contract}/smart/${encoded}`,
-  );
-  if (result?.data == null)
-    throw new Error(`Invalid Perma Pod contract response: ${contract}`);
-  return result.data;
+  let lastError;
+  for (const lcd of LCD_ENDPOINTS) {
+    try {
+      const result = await utils.getData(
+        `${lcd}/cosmwasm/wasm/v1/contract/${contract}/smart/${encoded}`,
+      );
+      if (result?.data != null) return result.data;
+      lastError = new Error(`Invalid Perma Pod contract response: ${contract}`);
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError;
 }
 
 module.exports = {

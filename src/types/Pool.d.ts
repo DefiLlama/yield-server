@@ -11,6 +11,8 @@ export interface Pool {
   underlyingTokens?: Array<string>;
   searchTokenOverride?: string;
   isIntrinsicSource?: boolean;
+  maturity?: string; // ISO 8601 timestamp
+  isFixedRate?: boolean;
   token?: string;
   poolMeta?: string;
   url?: string;

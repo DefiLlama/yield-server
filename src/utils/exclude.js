@@ -518,7 +518,6 @@ const excludedProtocols = [
   { id: '3083', slug: 'penpie' }, // winding down, no boosting on new pendle pools after vePENDLE -> sPENDLE, pnp emissions ended
   { id: '5655', slug: 'resolv-usr' },
   { id: '3912', slug: 'dinero-(pxeth)' },
-  { id: '7205', slug: 'permapod' }, // exploited 2026-08, contracts halted, all markets deposit-disabled
   { id: '8243', slug: 'apyee' }, // no deposits since launch, tvl < $5
   { id: '4366', slug: 'javsphere' }, // winding down
   { id: '7602', slug: 'circuit' }, // hacked, winding down
@@ -541,6 +540,8 @@ const excludedProtocols = [
   { id: '5905', slug: 'multipli.fi' }, // multipli.fi dns gone ~2026-10-11 (api/app/docs), apy only served by their api; on-chain activity stopped early Sep 2026
   { id: '2783', slug: 'scrub-invest' }, // vaults empty (USDt $1, KAVA $0) and TIGER/LION unpriced since ~2026-10-18; stale $7.4M TIGER-LION row vs $28k protocol tvl
   { id: '604', slug: 'sherlock' },
+  { id: '5580', slug: 'latch' }, // winding down: withdrawals disabled on savings.latch.io, atUSD/atETH live on Gravity Alpha which shuts 2026-11-01, apy api 503 since 2026-10-29
+  { id: '7244', slug: 'harbor' }, // winding down: all markets archived (deposits disabled, withdraw-only)
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);

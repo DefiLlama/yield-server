@@ -98,6 +98,12 @@ function expiryToText(dateIso) {
     .toUpperCase();
 }
 
+// canonical UTC ISO 8601; omitted rather than failing the run if an expiry is ever missing or unparseable
+function expiryToIso(dateIso) {
+  const date = new Date(dateIso ?? NaN);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
 const ROUTER_EVENTS = {
   // on these events, router will do a swap (zap in or zap out)
   // so, swap volume = add/remove volume / 2
@@ -254,6 +260,7 @@ async function poolApys(chainId, pools) {
       volumeUsd1d: typeof p.volumeUsd1d === 'number' ? p.volumeUsd1d : 0,
       volumeUsd7d: typeof p.volumeUsd7d === 'number' ? p.volumeUsd7d : 0,
       poolMeta: `For LP | Maturity ${expiryToText(p.expiry)}`,
+      maturity: expiryToIso(p.expiry),
       url: `https://app.pendle.finance/trade/pools/${p.address}/zap/in?chain=${chains[chainId].chainSlug}`,
     };
   });
@@ -269,6 +276,9 @@ function ptApys(chainId, pools) {
     apyBase: p.details.impliedApy * 100,
     underlyingTokens: [splitId(p.underlyingAsset).address].map(resolveToken),
     poolMeta: `For buying PT-${p.name}-${expiryToText(p.expiry)}`,
+    maturity: expiryToIso(p.expiry),
+    // impliedApy is the rate locked in by buying PT and holding to maturity
+    isFixedRate: true,
     url: `https://app.pendle.finance/trade/markets/${p.address}/swap?view=pt&chain=${chains[chainId].chainSlug}&py=output`,
   }));
 }

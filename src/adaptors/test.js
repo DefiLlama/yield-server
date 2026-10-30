@@ -63,6 +63,8 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'apyBaseInception',
       'searchTokenOverride',
       'isIntrinsicSource',
+      'maturity',
+      'isFixedRate',
       'token',
       'pricePerShare',
       'routeGroupKey',
@@ -264,6 +266,9 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       frozen: {
         type: 'boolean',
       },
+      isFixedRate: {
+        type: 'boolean',
+      },
       borrowToken: {
         type: 'string',
       },
@@ -284,6 +289,12 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         test(`Pool ${pool.pool} with mintedCoin should include a borrowToken`, () => {
           expect(pool.borrowToken).toBeDefined();
           expect(pool.borrowToken).not.toBeNull();
+        });
+      }
+      if (pool.maturity !== undefined) {
+        test(`maturity field of pool with id ${pool.pool} should be a UTC ISO 8601 timestamp (Date#toISOString)`, () => {
+          const date = new Date(pool.maturity);
+          expect(Number.isNaN(date.getTime()) ? null : date.toISOString()).toBe(pool.maturity);
         });
       }
       Object.entries(additionalFieldRules).map(([field, rule]) => {
