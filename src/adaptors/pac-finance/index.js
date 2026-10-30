@@ -110,6 +110,7 @@ const apy = async () => {
         apyBaseBorrow: Number(p.variableBorrowRate) / 1e25,
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        frozen: poolsReservesConfigurationData[i].isFrozen,
       };
     })
     .filter((p) => utils.keepFinite(p));

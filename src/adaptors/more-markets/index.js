@@ -169,6 +169,7 @@ const apy = async () => {
       baseLTVasCollateral,
       borrowingEnabled,
       isActive,
+      isFrozen,
       isPaused,
       aTokenAddress,
       variableDebtTokenAddress,
@@ -305,6 +306,7 @@ const apy = async () => {
       ltv: Number(baseLTVasCollateral) / 10000,
       url,
       borrowable: borrowingEnabled && isActive && !isPaused,
+      frozen: isFrozen || isPaused,
     };
   });
 

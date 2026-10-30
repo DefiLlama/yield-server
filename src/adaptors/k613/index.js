@@ -166,8 +166,6 @@ const apy = async () => {
   const pools = reserveTokens
     .map((pool, i) => {
       const cfg = poolsReservesConfigurationData[i];
-      if (cfg.isFrozen) return null;
-
       const price = prices[`${CHAIN}:${pool.tokenAddress}`]?.price;
       if (!price) return null;
 
@@ -212,6 +210,7 @@ const apy = async () => {
         borrowToken: pool.tokenAddress,
         ltv: Number(cfg.ltv) / 10000,
         borrowable: cfg.borrowingEnabled,
+        frozen: cfg.isFrozen,
         token: aTokens[i].tokenAddress,
       };
     })

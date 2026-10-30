@@ -123,7 +123,7 @@ const getApy = async () => {
           apyBaseBorrow,
           ltv,
           borrowable,
-          poolMeta: frozen ? 'frozen' : null,
+          frozen,
         };
       });
     })

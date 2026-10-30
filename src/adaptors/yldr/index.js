@@ -60,6 +60,7 @@ async function apy() {
                         ltv: reserve.baseLTVasCollateral / 10000,
                         url: `https://yldr.com/lending`,
                         borrowable: reserve.borrowingEnabled,
+                        frozen: reserve.isFrozen || reserve.isPaused,
                     };
                 });
 

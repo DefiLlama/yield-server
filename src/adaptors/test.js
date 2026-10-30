@@ -51,6 +51,7 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
       'debtCeilingUsd',
       'availableBorrowUsd',
       'borrowMarketOnly',
+      'frozen',
       'mintedCoin',
       'borrowToken',
       'apyBase7d',
@@ -260,6 +261,9 @@ describe(`Running ${process.env.npm_config_adapter} Test`, () => {
         min: 0,
       },
       isIntrinsicSource: {
+        type: 'boolean',
+      },
+      frozen: {
         type: 'boolean',
       },
       isFixedRate: {

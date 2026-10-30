@@ -95,9 +95,6 @@ const getApy = async () => {
 
   return reserveTokens
     .map((pool, i) => {
-      const frozen = poolsReservesConfigurationData[i].isFrozen;
-      if (frozen) return null;
-
       const p = poolsReserveData[i];
       const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
       const decimals = Number(underlyingDecimals[i]);
@@ -134,9 +131,9 @@ const getApy = async () => {
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url: `https://app.tydro.com/reserve-overview/?underlyingAsset=${pool.tokenAddress.toLowerCase()}&marketName=proto_ink_v3`,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        frozen: poolsReservesConfigurationData[i].isFrozen,
       };
-    })
-    .filter((i) => Boolean(i));
+    });
 };
 
 const apy = async () => {

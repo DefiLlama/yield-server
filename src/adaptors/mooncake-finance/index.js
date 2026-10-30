@@ -77,17 +77,12 @@ const query = gql`
 `;
 
 const apy = async () => {
-  let data = await Promise.all(
+  const data = await Promise.all(
     Object.entries(API_URLS).map(async ([chain, url]) => [
       chain,
       (await request(url, query)).reserves,
     ])
   );
-
-  data = data.map(([chain, reserves]) => [
-    chain,
-    reserves.filter((p) => !p.isFrozen),
-  ]);
 
   const totalSupply = await Promise.all(
     data.map(async ([chain, reserves]) => {
@@ -198,6 +193,7 @@ const apy = async () => {
         ltv: Number(pool.baseLTVasCollateral) / 10000,
         url: `https://mooncake.fi/reserve-overview/?underlyingAsset=${pool.aToken.underlyingAssetAddress}&marketName=${chainUrlParam[chain]}&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
         borrowable: pool.borrowingEnabled,
+        frozen: pool.isFrozen,
       };
     });
 

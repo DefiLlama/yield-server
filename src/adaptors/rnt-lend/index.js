@@ -54,8 +54,7 @@ const apy = async () => {
   );
 
   return STABLES.map((asset, i) => {
-    // paused reserves block supply and borrow entirely, so they are skipped like frozen ones
-    if (!configs[i].isActive || configs[i].isFrozen || paused[i]) return null;
+    if (!configs[i].isActive) return null;
     const price = Number(prices[i]) / 1e8;
     const scale = 10 ** Number(decimals[i]);
     const tvlUsd = (Number(liquidity[i]) / scale) * price;
@@ -76,6 +75,7 @@ const apy = async () => {
       apyBaseBorrow: Number(data[i].variableBorrowRate) / 1e25,
       ltv: Number(configs[i].ltv) / 1e4,
       borrowable: configs[i].borrowingEnabled,
+      frozen: configs[i].isFrozen || paused[i],
       ...(supplyCap > 0 && { supplyCapUsd: supplyCap * price }),
       url: `https://lend.rnt.finance/reserve-overview/?underlyingAsset=${asset.toLowerCase()}&marketName=reental_polygon_v3`,
     };

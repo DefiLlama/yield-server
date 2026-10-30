@@ -191,9 +191,6 @@ const getApy = async (market) => {
 
   return reserveTokens
     .map((pool, i) => {
-      const frozen = poolsReservesConfigurationData[i].isFrozen;
-      if (frozen) return null;
-
       const p = poolsReserveData[i];
       const price = prices[`${chain}:${pool.tokenAddress}`]?.price;
 
@@ -239,9 +236,9 @@ const getApy = async (market) => {
         ltv: poolsReservesConfigurationData[i].ltv / 10000,
         url,
         borrowable: poolsReservesConfigurationData[i].borrowingEnabled,
+        frozen: poolsReservesConfigurationData[i].isFrozen,
       };
-    })
-    .filter((i) => Boolean(i));
+    });
 };
 
 const apy = async () => {
