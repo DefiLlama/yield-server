@@ -518,7 +518,6 @@ const excludedProtocols = [
   { id: '3083', slug: 'penpie' }, // winding down, no boosting on new pendle pools after vePENDLE -> sPENDLE, pnp emissions ended
   { id: '5655', slug: 'resolv-usr' },
   { id: '3912', slug: 'dinero-(pxeth)' },
-  { id: '7205', slug: 'permapod' }, // exploited 2026-08, contracts halted, all markets deposit-disabled
   { id: '8243', slug: 'apyee' }, // no deposits since launch, tvl < $5
   { id: '4366', slug: 'javsphere' }, // winding down
   { id: '7602', slug: 'circuit' }, // hacked, winding down
