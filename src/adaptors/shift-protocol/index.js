@@ -17,12 +17,19 @@ const sharePrice = (entry) =>
 
 const apy = async (timestamp = Math.floor(Date.now() / 1000)) => {
   timestamp = Number(timestamp);
+  if (!Number.isSafeInteger(timestamp) || timestamp <= 0)
+    throw new Error('ltLLP: invalid requested timestamp');
   const blocks = await utils.getBlocksByTime(
     [timestamp, timestamp - WEEK],
     CHAIN
   );
-  const [[now], [then]] = await Promise.all(
-    blocks.map(
+  if (
+    blocks.length !== 2 ||
+    !blocks.every((block) => Number.isSafeInteger(block) && block > 0)
+  )
+    throw new Error('ltLLP: missing or invalid block height');
+  const [[now], [then], { output: freshness }] = await Promise.all([
+    ...blocks.map(
       async (block) =>
         (
           await sdk.api.abi.call({
@@ -33,9 +40,33 @@ const apy = async (timestamp = Math.floor(Date.now() / 1000)) => {
             block,
           })
         ).output
-    )
-  );
+    ),
+    sdk.api.abi.call({
+      target: VAULT,
+      abi: 'uint16:freshness',
+      chain: CHAIN,
+      block: blocks[0],
+    }),
+  ]);
   if (!now || !then) throw new Error('ltLLP: missing feed observation');
+  const maxAge = Number(freshness);
+  if (!Number.isSafeInteger(maxAge) || maxAge <= 0)
+    throw new Error('ltLLP: invalid feed freshness limit');
+  // Check each observation against its requested time, including time travel.
+  for (const [entry, requestedAt] of [
+    [now, timestamp],
+    [then, timestamp - WEEK],
+  ]) {
+    const observedAt = Number(entry.timestamp);
+    const age = requestedAt - observedAt;
+    if (
+      !Number.isSafeInteger(observedAt) ||
+      observedAt <= 0 ||
+      age < 0 ||
+      age > maxAge
+    )
+      throw new Error('ltLLP: stale or future feed observation');
+  }
   const current = sharePrice(now);
   const past = sharePrice(then);
   const elapsed = Number(now.timestamp) - Number(then.timestamp);
