@@ -699,7 +699,13 @@ const marketInfoToPool = (chain, marketInfo, collateral, pricesObj) => {
 };
 
 const poolsApy = async () =>
-  (await axios.get('https://yields.llama.fi/pools')).data.data;
+  (await axios.get(utils.getYieldsApiUrl('/earn'))).data.data.map(
+    ({ id, apy }) => ({
+      pool: id,
+      apyBase: apy.current.base,
+      apyReward: apy.current.reward,
+    })
+  );
 
 const getApy = async () => {
   const collateralsPromise = getCauldronDetails(POOLS, 'collateral');

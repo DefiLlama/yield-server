@@ -2,7 +2,7 @@ const ethers = require('ethers');
 const abi = require('./abi');
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getPriceApiData } = require('../utils');
+const { getPriceApiData, getYieldsApiUrl } = require('../utils');
 
 /////////////////////////// Constants ///////////////////////////
 
@@ -35,8 +35,11 @@ let pods = [];
 /////////////////////////// Utils ///////////////////////////
 
 const getAaveApy = async (token) => {
-  return defillamaPools.find((pool) => pool.underlyingTokens.includes(token))
-    .apy;
+  return defillamaPools.find((pool) =>
+    pool.underlying_tokens.some(
+      ({ address }) => address.toLowerCase() === token.toLowerCase()
+    )
+  ).apy.current.total;
 };
 
 function binomialApproximatedRayPow(base, exp) {
@@ -71,12 +74,18 @@ const getPrices = async (address) => {
 };
 
 const getDefiLLamaPools = async (project, chain) => {
-  const pools = (await axios.get('https://yields.llama.fi/pools')).data
-    .data;
-  return pools.filter(
-    (pool) =>
-      pool.project === project && pool.chain === chain && pool.underlyingTokens
-  );
+  const pools = [];
+  for (let page = 1; ; page++) {
+    const { data, pagination } = (
+      await axios.get(
+        getYieldsApiUrl(
+          `/earn/query?protocol=${project}&chain=${chain}&limit=300&page=${page}`
+        )
+      )
+    ).data;
+    pools.push(...data);
+    if (!data.length || pools.length >= pagination.total) return pools;
+  }
 };
 
 const getPods = async () => {
@@ -328,7 +337,7 @@ const getCollaterals = async () => {
 const getApy = async () => {
   ghoPrice = (await getPrices(GHO)).price;
   aavePrice = (await getPrices(AAVE)).price;
-  defillamaPools = await getDefiLLamaPools('aave-v3', 'Ethereum');
+  defillamaPools = await getDefiLLamaPools('aave-v3', 'ethereum');
   pods = await getPods();
 
   const apyBaseBorrow = await maxApy();

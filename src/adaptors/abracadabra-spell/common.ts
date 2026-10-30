@@ -185,8 +185,22 @@ async function multiRewardFarmsApy(farms: MultiRewardFarms) {
           .then((call) => call.output.map((x) => [x.input.target, x]))
           .then(Object.fromEntries),
         axios
-          .get('https://yields.llama.fi/pools')
-          .then((result) => result.data.data),
+          .get(utils.getYieldsApiUrl('/earn'))
+          .then((result) =>
+            result.data.data.map(({ id, apy, underlying_tokens }) => ({
+              pool: id,
+              apyBase: apy.current.base,
+              underlyingTokens: underlying_tokens.length
+                ? underlying_tokens.map(({ address }) => address)
+                : undefined,
+            }))
+          )
+          .catch((e) => {
+            console.error(
+              `abracadabra-spell: yields /earn failed: ${e.message}`
+            );
+            return [];
+          }),
       ]);
 
       const tvlUsdChainFarms = Object.fromEntries(
