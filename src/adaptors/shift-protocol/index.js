@@ -1,76 +1,63 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const { DAY, metrics } = require('./metrics');
-const getHistory = require('./history');
 
 const CHAIN = 'arbitrum';
 const VAULT = '0x956bdd9c18b786b082fd50c52722d254f0cb6964';
 const FEED = '0x4062c539d09a76d79e366f8c2a2e2f987ead1fe0';
 const USDC = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
 const URL = 'https://app.shiftprotocol.xyz/';
-const WEEK = 7 * DAY;
+const WEEK = 7 * 86400;
+const LAST_ENTRY =
+  'function getLastTvlEntries(uint256 count) view returns (tuple(uint256 value, uint256 timestamp, uint256 supplySnapshot)[])';
 
-// ltLLP v1 is a bespoke ERC-20 vault, not ERC-4626. Its on-chain feed records
-// NAV and matching share supply on every update. APY is the observed change
-// in that share value over ~7d, annualized using the actual elapsed time.
-// Fee-share dilution is included when reflected in a feed's supplySnapshot;
-// pending, unclaimed fees are not accrued here. No additional fee haircut:
-// that would double-count dilution already reflected in posted share values.
-// Points and separately distributed rewards are excluded.
-const apy = async (timestamp) => {
-  const anchor = timestamp
-    ? await sdk.api.util.lookupBlock(Number(timestamp), { chain: CHAIN })
-    : await sdk.api.util.getLatestBlock(CHAIN);
-  const block = anchor.number ?? anchor.block;
-  const call = async (target, abi, params = []) =>
-    (await sdk.api.abi.call({ target, abi, params, chain: CHAIN, block }))
-      .output;
+// NAV and supply come from the same feed entry (USDC 6 decimals, shares 18).
+// Posted fee dilution is included; points and unposted fees are excluded.
+const sharePrice = (entry) =>
+  (Number(entry.value) / Number(entry.supplySnapshot)) * 1e12;
 
-  const [asset, feed, freshness, assetDecimals, shareDecimals] =
-    await Promise.all([
-      call(VAULT, 'address:baseToken'),
-      call(VAULT, 'address:tvlFeed'),
-      call(VAULT, 'uint16:freshness'),
-      call(USDC, 'erc20:decimals'),
-      call(VAULT, 'erc20:decimals'),
-    ]);
-  if (asset.toLowerCase() !== USDC || feed.toLowerCase() !== FEED) {
-    throw new Error('ltLLP: unexpected base token or TVL feed');
-  }
-
-  const entries = await getHistory(call, FEED, WEEK);
-  const { apyBase, tvlUnderlying, pricePerShare } = metrics(
-    entries,
-    Number(anchor.timestamp),
-    Number(freshness),
-    Number(assetDecimals),
-    Number(shareDecimals),
-    WEEK
+const apy = async (timestamp = Math.floor(Date.now() / 1000)) => {
+  timestamp = Number(timestamp);
+  const blocks = await utils.getBlocksByTime(
+    [timestamp, timestamp - WEEK],
+    CHAIN
   );
-
-  const priceKey = `${CHAIN}:${USDC}`;
-  const path = timestamp
-    ? `/prices/historical/${anchor.timestamp}/${priceKey}`
-    : `/prices/current/${priceKey}`;
-  const price = (await utils.getPriceApiData(path)).coins?.[priceKey];
+  const [[now], [then]] = await Promise.all(
+    blocks.map(
+      async (block) =>
+        (
+          await sdk.api.abi.call({
+            target: FEED,
+            abi: LAST_ENTRY,
+            params: [1],
+            chain: CHAIN,
+            block,
+          })
+        ).output
+    )
+  );
+  if (!now || !then) throw new Error('ltLLP: missing feed observation');
+  const current = sharePrice(now);
+  const past = sharePrice(then);
+  const elapsed = Number(now.timestamp) - Number(then.timestamp);
+  const price = (await utils.getPrices([USDC], CHAIN)).pricesByAddress[USDC];
   if (
-    !Number.isFinite(price?.price) ||
-    price.price <= 0 ||
-    !Number.isFinite(price.timestamp) ||
-    Math.abs(Number(anchor.timestamp) - price.timestamp) > 3600
-  ) {
-    throw new Error('ltLLP: missing or stale USDC/USD price');
-  }
+    ![current, past, elapsed, price].every(
+      (value) => Number.isFinite(value) && value > 0
+    )
+  )
+    throw new Error('ltLLP: invalid feed observation or USDC price');
+  const apyBase = ((current / past) ** ((365 * 86400) / elapsed) - 1) * 100;
+  if (!Number.isFinite(apyBase)) throw new Error('ltLLP: non-finite APY');
 
   return [
     {
       pool: `${VAULT}-${CHAIN}`,
-      chain: utils.formatChain(CHAIN),
+      chain: 'Arbitrum',
       project: 'shift-protocol',
       symbol: 'USDC',
-      tvlUsd: tvlUnderlying * price.price,
+      tvlUsd: (Number(now.value) / 1e6) * price,
       apyBase,
-      pricePerShare,
+      pricePerShare: current,
       underlyingTokens: [USDC],
       token: VAULT,
       poolMeta: 'ltLLP',
