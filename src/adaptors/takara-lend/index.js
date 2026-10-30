@@ -210,6 +210,7 @@ const apy = async () => {
     supplyRatePerBlock,
     borrowRatePerBlock,
     underlyingPrices,
+    isMintPaused,
   ] = await Promise.all([
     sdk.api.abi.multiCall({
       chain: sdkChain,
@@ -234,6 +235,17 @@ const apy = async () => {
       abi: oracleAbi,
       permitFailure: true,
     }),
+    sdk.api.abi
+      .multiCall({
+        chain: sdkChain,
+        calls: rTokens.map((market) => ({
+          target: unitroller,
+          params: [market],
+        })),
+        abi: 'function mintGuardianPaused(address) view returns (bool)',
+        permitFailure: true,
+      })
+      .then(({ output }) => output.map((o) => o.output)),
   ]);
 
   const underlyingSymbols = await multiCallMarkets(
@@ -342,6 +354,7 @@ const apy = async () => {
         apyBaseBorrow,
         borrowToken: underlying,
         borrowable: true,
+        frozen: isMintPaused[i] === true,
         apyReward: apyReward,
         rewardTokens: rewardTokens,
         symbol: underlyingSymbol,

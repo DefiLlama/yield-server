@@ -911,6 +911,7 @@ async function getPoolsV3(chain) {
       withdrawFee: Number(pool.withdrawFee),
       symbol: pool.symbol,
       decimals: Math.pow(10, decimals[i]),
+      isPaused: pool.isPaused,
       ...farmingPoolsData[pool.addr],
     }))
     .filter(({ pool }) => {
@@ -1148,6 +1149,7 @@ async function getApyV3(pools, tokens, daoFees, chain, merklRewards = {}) {
       totalSupplyUsd: Number(totalSupplyUsd) || 0,
       totalBorrowUsd: Number(totalBorrowUsd) || 0,
       ltv: 0,
+      frozen: pool.isPaused,
     };
   });
 }

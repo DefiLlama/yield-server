@@ -177,6 +177,7 @@ const getApy = async () => {
           market,
           borrowCap,
           borrowPaused,
+          mintPaused,
           collateralFactor,
           underlyingPrice,
           totalSupply,
@@ -272,6 +273,7 @@ const getApy = async () => {
           apyRewardBorrow: 0,
           ltv: collateralFactorScaled,
           borrowable: !borrowPaused,
+          frozen: mintPaused,
           incentives: [], //helper
         };
       })
@@ -396,6 +398,7 @@ const getApy = async () => {
           market,
           borrowCap,
           borrowPaused,
+          mintPaused,
           collateralFactor,
           underlyingPrice,
           totalSupply,
@@ -482,6 +485,7 @@ const getApy = async () => {
           apyRewardBorrow: 0,
           ltv: Number(collateralFactorScaled),
           borrowable: !borrowPaused,
+          frozen: mintPaused,
           incentives: [], //helper
         };
       })
@@ -626,6 +630,7 @@ const getApy = async () => {
           market,
           borrowCap,
           borrowPaused,
+          mintPaused,
           collateralFactor,
           underlyingPrice,
           totalSupply,
@@ -708,6 +713,7 @@ const getApy = async () => {
           totalBorrowUsd,
           availableBorrowUsd,
           borrowable: !borrowPaused,
+          frozen: mintPaused,
           apyBaseBorrow: borrowApy,
           borrowToken: token_info.address,
           apyRewardBorrow: 0,

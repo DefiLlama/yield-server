@@ -237,8 +237,6 @@ const apy = async () => {
     ]);
 
     for (const market of dedup(markets)) {
-      if (market.paused) continue;
-
       const key = `${market.appId}:${market.marketId}`;
       const hasTvl = Object.prototype.hasOwnProperty.call(tvlMap, key);
       if (!hasTvl) {
@@ -270,6 +268,7 @@ const apy = async () => {
         totalSupplyUsd,
         totalBorrowUsd,
         ltv,
+        frozen: market.paused === true,
         underlyingTokens: getUnderlyingTokens(market),
       });
     }

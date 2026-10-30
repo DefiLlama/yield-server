@@ -123,6 +123,7 @@ const poolInfo = async (chain) => {
     data.venusBorrowSpeeds = venusBorrowSpeeds[index];
     data.borrowCap = borrowCaps[index];
     data.borrowPaused = borrowPaused[index];
+    data.supplyPaused = protocolPaused === true || supplyPaused[index] === true;
     data.borrowRatePerBlock = borrowRatePerBlock[index];
     data.supplyRatePerBlock = supplyRatePerBlock[index];
     data.getCash = getCash[index];
@@ -252,7 +253,8 @@ const getApy = async () => {
       totalBorrowUsd,
       availableBorrowUsd,
       ltv,
-      pool.borrowPaused === false
+      pool.borrowPaused === false,
+      pool.supplyPaused
     );
 
     return readyToExport;
@@ -276,7 +278,8 @@ function exportFormatter(
   totalBorrowUsd,
   availableBorrowUsd,
   ltv,
-  borrowable
+  borrowable,
+  frozen
 ) {
   return {
     pool: pool.toLowerCase(),
@@ -296,6 +299,7 @@ function exportFormatter(
     availableBorrowUsd,
     ltv,
     borrowable,
+    frozen,
   };
 }
 
