@@ -1,5 +1,5 @@
 const BigNumber = require('bignumber.js');
-const { DAY } = require('./metrics');
+const DAY = 86400;
 
 // Deployed risexUSDC epochs are six hours; allow one hour of keeper delay.
 const MAX_AGE = 7 * 3600;
