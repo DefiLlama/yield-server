@@ -73,11 +73,12 @@ const formatPoolMeta = (value) =>
       )
     : value;
 const isUncapped = (cap, maxCap) => toNumber(cap) >= toNumber(maxCap);
+const isReserveFrozen = (reserve) =>
+  reserve.spokeConfig.halted ||
+  reserve.reserveConfig.paused ||
+  reserve.reserveConfig.frozen;
 const isReserveActive = (reserve) =>
-  reserve.spokeConfig.active &&
-  !reserve.spokeConfig.halted &&
-  !reserve.reserveConfig.paused &&
-  !reserve.reserveConfig.frozen;
+  reserve.spokeConfig.active && !isReserveFrozen(reserve);
 
 const getSpokeCalls = (assetCalls, spokeCounts) =>
   assetCalls.flatMap((asset, i) =>
@@ -262,7 +263,7 @@ const getAssetAvailableBorrowUsd = ({ reserves, ...asset }) =>
   Math.min(
     asset.tvlUsd,
     reserves
-      .filter(isReserveActive)
+      .filter((reserve) => reserve.spokeConfig.active)
       .reduce(
         (sum, reserve) =>
           sum + getReserveAvailableBorrowUsd({ reserve, ...asset }),
@@ -454,11 +455,11 @@ const getApy = async (chain) => {
           : 0;
       const totalBorrowUsd =
         scale(reserve.spokeTotalOwed, asset.decimals) * asset.price;
-      const availableBorrowUsd = active
+      const availableBorrowUsd = reserve.spokeConfig.active
         ? getReserveAvailableBorrowUsd({ reserve, ...asset })
         : 0;
       const borrowable =
-        active &&
+        reserve.spokeConfig.active &&
         reserve.reserveConfig.borrowable &&
         toNumber(reserve.spokeConfig.drawCap) > 0;
       const spokeName =
@@ -477,6 +478,7 @@ const getApy = async (chain) => {
         poolKind: 'routing_reserve',
         ltv,
         borrowable,
+        frozen: isReserveFrozen(reserve),
         routeGroupKey: entry.spoke.toLowerCase(),
         url: asset.url,
         poolMeta: `${asset.poolMeta} / ${spokeName}`,
