@@ -507,7 +507,6 @@ const excludedProtocols = [
   { id: '2319', slug: 'gmd-protocol' },
   { id: '4938', slug: 'meso-finance' },
   { id: '2001', slug: 'demex-perp' },
-  { id: '7336', slug: 'satsuma' },
   { id: '7335', slug: 'juiceswap' },
   { id: '1895', slug: 'sideshift' },
   { id: '5214', slug: 'metrom' },
