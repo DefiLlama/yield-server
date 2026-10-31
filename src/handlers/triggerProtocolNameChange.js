@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { sendMessage } = require('../utils/discordWebhook');
+const { getYieldsApiUrl } = require('../adaptors/utils');
 
 module.exports.handler = async () => {
   await main();
@@ -9,8 +10,9 @@ const main = async () => {
   const protocols = (await axios('https://api.llama.fi/config/yields')).data
     .protocols;
 
-  const pools = (await axios.get('https://yields.llama.fi/pools')).data.data;
-  const uniqueProjects = [...new Set(pools.map((p) => p.project))];
+  const yieldsProtocols = (await axios.get(getYieldsApiUrl('/meta'))).data.data
+    .protocols;
+  const uniqueProjects = [...new Set(yieldsProtocols.map((p) => p.slug))];
 
   const noMatch = [];
   for (const project of uniqueProjects) {

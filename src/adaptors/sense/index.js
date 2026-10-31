@@ -174,21 +174,28 @@ const calculateSpaceData = async (pool, targetPrices) => {
 const main = async () => {
   let { pools } = await request(graphEndpoint, query);
 
-  const yields = (await axios.get('https://yields.llama.fi/pools')).data
-    .data;
+  const yields = (await axios.get(utils.getYieldsApiUrl('/earn'))).data.data;
 
   pools = pools.map((pool) => {
     const y = yields
-      .filter((y) => y.symbol === targetToTicker(pool.series.targetName))
+      .filter(
+        (y) =>
+          (y.display.label ?? y.pool_token?.symbol) ===
+          targetToTicker(pool.series.targetName)
+      )
       .reduce(
         (acc, cur) =>
-          acc === null ? cur : cur.tvlUsd > acc.tvlUsd ? cur : acc,
+          acc === null ? cur : cur.tvl_usd > acc.tvl_usd ? cur : acc,
         null
       );
 
     if (y == null) return pool;
 
-    return { targetAPYBase: y.apyBase, targetAPY: y.apy, ...pool };
+    return {
+      targetAPYBase: y.apy.current.base,
+      targetAPY: y.apy.current.total,
+      ...pool,
+    };
   });
 
   const targetTokens = [...new Set(pools.map((pool) => pool.series.target))];

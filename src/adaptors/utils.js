@@ -24,6 +24,9 @@ const getPriceApiUrl = (path) => {
 
 exports.getPriceApiUrl = getPriceApiUrl;
 
+exports.getYieldsApiUrl = (path) =>
+  `https://pro-api.llama.fi/${process.env.DL_API_KEY}/yields/v2${path}`;
+
 // TODO: temporary cache-bypass on pro requests; remove once coins-api caps
 // staleness (Cache-Control) -- edge colos were replaying expired
 // /prices/current copies. Applied at request time, not in getPriceApiUrl:
