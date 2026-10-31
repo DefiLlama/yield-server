@@ -284,10 +284,15 @@ const getPrices = async (pools, tokens) => {
 /**
  * Trailing-24h swap volume and swap fees per pool from Satsuma's pool-stats
  * endpoint (built by a cron that scans the pools' Swap logs). `feesUSD24h` is
- * the gross fee charged to swappers; the community-fee share is removed below
- * so only what LPs receive counts towards apyBase. An unreachable endpoint
- * yields zero volume/fees rather than dropping every pool.
+ * the gross fee charged to swappers; the community-fee share is removed later
+ * so only what LPs receive counts towards apyBase.
+ *
+ * If the endpoint is unreachable or its snapshot is older than STATS_MAX_AGE_S
+ * the whole run is skipped by throwing: publishing zero volume would write a
+ * false drop into the APY history, whereas a skipped run keeps the last values.
  */
+const STATS_MAX_AGE_S = 6 * 3600;
+
 /** A stats figure is usable only when it is a finite, non-negative number. */
 const nonNegativeUsd = (value) => {
   const n = Number(value);
@@ -295,18 +300,16 @@ const nonNegativeUsd = (value) => {
 };
 
 const getPoolStats = async () => {
-  try {
-    const { data } = await axios.get(POOL_STATS_URL, { timeout: TIMEOUT_MS });
-    return Object.fromEntries(
-      Object.entries(data?.pools ?? {}).map(([address, s]) => [
-        address.toLowerCase(),
-        { volumeUsd: nonNegativeUsd(s.volumeUSD24h), feesUsd: nonNegativeUsd(s.feesUSD24h) },
-      ])
-    );
-  } catch (error) {
-    console.error(`satsuma: pool-stats unavailable, publishing zero volume (${error.message})`);
-    return {};
+  const { data } = await axios.get(POOL_STATS_URL, { timeout: TIMEOUT_MS });
+  if (!(Date.now() / 1000 - Number(data?.updatedAt) < STATS_MAX_AGE_S)) {
+    throw new Error(`satsuma: pool-stats stale (updatedAt ${data?.updatedAt})`);
   }
+  return Object.fromEntries(
+    Object.entries(data?.pools ?? {}).map(([address, s]) => [
+      address.toLowerCase(),
+      { volumeUsd: nonNegativeUsd(s.volumeUSD24h), feesUsd: nonNegativeUsd(s.feesUSD24h) },
+    ])
+  );
 };
 
 /**
