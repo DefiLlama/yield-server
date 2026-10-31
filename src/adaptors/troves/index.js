@@ -2,10 +2,11 @@ const utils = require('../utils');
 
 const apy = async () => {
   const apyData = await utils.getData(
-    'https://app.strkfarm.com/api/strategies'
+    'https://app.troves.fi/api/strategies'
   );
 
   return apyData.strategies
+    .filter((strategy) => !strategy.isDeprecated && !strategy.isRetired)
     .filter((strategy) => parseFloat(strategy.tvlUsd) > 10000)
     .map((strategy) => {
       const currTvlUsd = parseFloat(strategy.tvlUsd);
@@ -33,7 +34,7 @@ const apy = async () => {
         apyBase: baseApy,
         apyReward: rewardsApy,
         rewardTokens: rewardTokens,
-        url: `https://app.strkfarm.com/strategy/${currPoolId}`,
+        url: `https://app.troves.fi/strategy/${currPoolId}`,
         poolMeta: currPool,
       };
     });
