@@ -50,6 +50,7 @@ jobs:
           VENDOR_FINANCE: ${{ secrets.VENDOR_FINANCE }}
           TRADERJOE: ${{ secrets.TRADERJOE }}
           GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}
+          DL_API_KEY: ${{ secrets.DL_API_KEY }}
           LLAMA_INDEXER_V2_ENDPOINT: ${{ secrets.LLAMA_INDEXER_V2_ENDPOINT }}
           LLAMA_INDEXER_V2_API_KEY: ${{ secrets.LLAMA_INDEXER_V2_API_KEY }}
           OSMOSIS_API_KEY: ${{ secrets.OSMOSIS_API_KEY}}
