@@ -11,9 +11,9 @@ const ORIGINAL_MODULE = '0x40ba056b004edd0b572509a1276fd8530cf2bb7f';
 const RAW_SHARE = '1000000000000000000000000';
 // Verified HyperEVM deployment blocks; dates are not substituted for block guards.
 const configs = {
-  sthype: { project: 'valantis-sthype', address: STHYPE, block: 25412, symbol: 'stHYPE', url: 'https://app.valantis.xyz/vaults' },
-  sthypeStex: { project: 'valantis-sthype-stex', address: '0x39694eff3b02248929120c73f90347013aec834d', block: 1937868, symbol: 'stHYPE-HYPE', url: 'https://app.valantis.xyz/vaults' },
-  khypeStex: { project: 'valantis-khype-stex', address: '0xbf747d2959f03332dbd25249db6f00f62c6cb526', block: 7773262, symbol: 'kHYPE-HYPE', url: 'https://app.valantis.xyz/vaults' },
+  sthype: { project: 'sthype', address: STHYPE, block: 25412, symbol: 'stHYPE', url: 'https://app.valantis.xyz/vaults' },
+  sthypeStex: { project: 'valantis-stex', address: '0x39694eff3b02248929120c73f90347013aec834d', block: 1937868, symbol: 'stHYPE-HYPE', url: 'https://app.valantis.xyz/vaults' },
+  khypeStex: { project: 'valantis-stex', address: '0xbf747d2959f03332dbd25249db6f00f62c6cb526', block: 7773262, symbol: 'kHYPE-HYPE', url: 'https://app.valantis.xyz/vaults' },
   restaking: { project: 'valantis-sthype-restaking', address: ESCROW, block: 47206861, symbol: 'stHYPE', url: 'https://app.valantis.xyz/restaking' },
 };
 
@@ -105,43 +105,52 @@ async function context(timestamp, config) {
   return { api, fromApi, elapsed: end.timestamp - start.timestamp, timestamp: end.timestamp };
 }
 
-function createAdapter(kind) {
-  const config = configs[kind];
-  if (!config) throw new Error('Unknown Valantis product');
+function createAdapter(kinds) {
+  kinds = Array.isArray(kinds) ? kinds : [kinds];
+  if (!kinds.length || kinds.some(kind => !configs[kind])) throw new Error('Unknown Valantis product');
+  const first = kinds.map(kind => configs[kind]).reduce((a, b) => a.block < b.block ? a : b);
   return {
-    // protocolId must be assigned to this NEW product slug during listing.
-    // Deliberately do not reuse an unrelated/combined listing's registered ID.
+    // Public wrappers supply the literal ID for their registered product slug.
     timetravel: true,
-    url: config.url,
+    url: first.url,
     apy: async (timestamp) => {
-      const ctx = await context(timestamp, config);
-      const current = await readState(ctx.api, kind, config);
-      if (current.assets === 0n) return [];
-      const previous = await readState(ctx.fromApi, kind, config);
-      if (kind === 'restaking' && (!current.hasUsers || !previous.hasUsers)) throw new Error('No active-user baseline for restaking APY');
-      const apyBase = annualized(previous.index, current.index, ctx.elapsed);
+      const ctx = await context(timestamp, first);
       const key = `${chain}:${WHYPE}`;
       const prices = await getPriceApiData(`/prices/historical/${ctx.timestamp}/${key}`);
       const price = prices.coins?.[key]?.price;
       if (!Number.isFinite(price) || price <= 0) throw new Error('Missing HYPE price for Valantis observation');
-      const tvlUsd = new BigNumber(current.assets.toString()).div('1e18').times(price).toNumber();
-      if (!Number.isFinite(tvlUsd)) throw new Error('Invalid Valantis pool TVL');
-      const result = {
-        pool: `${config.address}-${chain}`, chain: 'Hyperliquid L1', project: config.project,
-        symbol: config.symbol, token: kind === 'restaking' ? null : config.address,
-        tvlUsd, apyBase, underlyingTokens: [WHYPE], url: config.url,
-      };
-      if (kind === 'sthype') {
-        result.isIntrinsicSource = true;
-        result.searchTokenOverride = STHYPE;
-      } else if (kind === 'restaking') {
-        result.underlyingTokens = [STHYPE];
-        result.poolMeta = `Restaking; ${current.cooldown / 86400}-day withdrawal notice; active user TVL; realized base yield plus released premiums${current.paused ? '; paused' : ''}`;
-      } else {
-        result.pricePerShare = new BigNumber(current.index.numerator.toString()).div(current.index.denominator.toString()).toNumber();
-        result.poolMeta = current.paused ? 'Withdrawal-only; new deposits and swaps paused' : 'STEX LP; net realized staking, lending and trading yield';
+      const pools = [];
+      for (const kind of kinds) {
+        const config = configs[kind];
+        // A combined product's earlier history must not query a later pool
+        // before it has a deployed 24-hour baseline. Existing pools still fail
+        // on unavailable/invalid state rather than returning partial results.
+        if (ctx.fromApi.block < config.block) continue;
+        const current = await readState(ctx.api, kind, config);
+        if (current.assets === 0n) continue;
+        const previous = await readState(ctx.fromApi, kind, config);
+        if (kind === 'restaking' && (!current.hasUsers || !previous.hasUsers)) throw new Error('No active-user baseline for restaking APY');
+        const apyBase = annualized(previous.index, current.index, ctx.elapsed);
+        const tvlUsd = new BigNumber(current.assets.toString()).div('1e18').times(price).toNumber();
+        if (!Number.isFinite(tvlUsd)) throw new Error('Invalid Valantis pool TVL');
+        const result = {
+          pool: `${config.address}-${chain}`, chain: 'Hyperliquid L1', project: config.project,
+          symbol: config.symbol, token: kind === 'restaking' ? null : config.address,
+          tvlUsd, apyBase, underlyingTokens: [WHYPE], url: config.url,
+        };
+        if (kind === 'sthype') {
+          result.isIntrinsicSource = true;
+          result.searchTokenOverride = STHYPE;
+        } else if (kind === 'restaking') {
+          result.underlyingTokens = [STHYPE];
+          result.poolMeta = `Restaking; ${current.cooldown / 86400}-day withdrawal notice; active user TVL; realized base yield plus released premiums${current.paused ? '; paused' : ''}`;
+        } else {
+          result.pricePerShare = new BigNumber(current.index.numerator.toString()).div(current.index.denominator.toString()).toNumber();
+          result.poolMeta = current.paused ? 'Withdrawal-only; new deposits and swaps paused' : 'STEX LP; net realized staking, lending and trading yield';
+        }
+        pools.push(result);
       }
-      return [result];
+      return pools;
     },
   };
 }
