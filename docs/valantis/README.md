@@ -32,7 +32,13 @@ kHYPE STEX is paused/withdrawal-only, verified by the July 24, 2026 Paused event
 
 ## Archive configuration
 
-The official Hyperliquid RPC silently ignores old state tags. The adapter rejects a provider returning today's escrow code at block 1. Configure an archive-only list: SDK `HYPERLIQUID_RPC` prepends a provider **but also appends public fallbacks**. Local validation restricted `HYPERLIQUID_WHITELISTED_RPC` to the authorized archive endpoint; production needs equivalent archive-only routing. No credentials or project RPC URLs are hardcoded.
+The official Hyperliquid RPC silently ignores old state tags. `HYPERLIQUID_RPC` alone prepends a provider **but also appends public fallbacks**, so the adapter now requires an explicit `HYPERLIQUID_WHITELISTED_RPC` list before SDK provider initialization. SDK-prefixed forms are honored with the SDK's normal precedence. Missing configuration and cached provider pools containing unapproved ordinary or archival fallbacks are rejected before observations are read.
+
+The predeployment escrow-code check is applied directly to every configured candidate, not once through the aggregate provider. A latest-only or unavailable endpoint fails validation; state APIs must retain the validated provider identity. Block resolution, historical calls and native balances consequently share the same archive-only pool. Failover to another approved archive works; exhaustion of the approved pool fails rather than publishing an APY from public latest-only state. No RPC settings are mutated by the adapter and no credentials or project URLs are hardcoded.
+
+The whitelist is passed through the trusted deploy workflow, `env.js` and `serverless.yml` into the adapter Lambda at startup. Set the optional `HYPERLIQUID_WHITELISTED_RPC` secret to a comma-separated archive-only list; when omitted, deployment restricts to the existing configured `HYPERLIQUID_RPC` value. This fallback is not an assertion of archival capability: its endpoint probes must still pass. No credentials are added to the untrusted PR workflow. Fork CI without access to an archive endpoint fails the explicit configuration guard if it executes these adapters; it does not silently switch to public RPCs. Local full-suite validation supplies the authorized archive whitelist at runtime.
+
+The SDK whitelist is chain-wide for Hyperliquid in the shared adapter Lambda, so maintainers should provision endpoints suitable for its other Hyperliquid adapters too. Other chains and SDK provider settings are unchanged.
 
 ## Validation
 
@@ -40,7 +46,7 @@ The official Hyperliquid RPC silently ignores old state tags. The adapter reject
 node --test src/adaptors/valantis.unit.cjs
 ```
 
-Nine unit tests pass, including signed compounding, cash-flow neutrality, seed/reserve exclusions, archive rejection, mutable module cache bypass, literal registered IDs and combined-pool history/failure handling.
+Sixteen unit tests pass, including signed compounding, cash-flow neutrality, seed/reserve exclusions, archive rejection, mutable module cache bypass, literal registered IDs and combined-pool history/failure handling. Review regressions cover explicit restaking `token === null`, the original-module getter, missing/mixed/cached RPC configuration, every endpoint's archive probe, SDK environment precedence and changed-provider rejection. A real SDK test uses local HTTP RPC fixtures to prove approved-archive failover for historical calls and native balances, with zero requests to a latest-only default; both archives failing produces an error. Deployment passthrough and secret-selection behavior are also tested without reading secrets.
 
 From `src/adaptors`, with RPC configuration supplied securely:
 
@@ -55,4 +61,4 @@ All four full runs passed, including original-module STEX history ending June 2,
 
 Example November 2 trailing-day APYs were approximately stHYPE 1.95%, stHYPE STEX 1.00%, kHYPE STEX 0% and restaking 5.69%; these are observations, not forward rates. The remaining review questions are withdrawal-only kHYPE eligibility and confirming that downstream intrinsic-yield presentation does not add stHYPE yield twice.
 
-`--transform '{}'` bypasses an existing missing Babel runtime-plugin dependency in this checkout without adding a dependency or changing manifests. No package manifests, lockfiles or shared test harness files were modified.
+`--transform '{}'` bypasses an existing missing Babel runtime-plugin dependency in this checkout without adding a dependency or changing manifests. Package manifests, lockfiles, PR CI and shared test assertions are unchanged. Trusted deployment edits only pass the archive whitelist to the runtime; the Valantis calculation and 24-hour methodology are unchanged. Concise function documentation describes the accounting and RPC contracts.

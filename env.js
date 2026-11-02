@@ -33,6 +33,9 @@ module.exports = {
   SAUCERSWAP_API_KEY: process.env.SAUCERSWAP_API_KEY,
   DUNE_API_KEY: process.env.DUNE_API_KEY,
   HYPERLIQUID_RPC: process.env.HYPERLIQUID_RPC,
+  // Use an explicit archive list when supplied, otherwise restrict to the
+  // configured primary RPC. Valantis validates it and never uses public defaults.
+  HYPERLIQUID_WHITELISTED_RPC: process.env.HYPERLIQUID_WHITELISTED_RPC || process.env.HYPERLIQUID_RPC || '',
   PLASMA_RPC: process.env.PLASMA_RPC,
   STARKNET_RPC: process.env.STARKNET_RPC,
   MONAD_RPC: process.env.MONAD_RPC,

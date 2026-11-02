@@ -17,6 +17,7 @@ const configs = {
   restaking: { project: 'valantis-sthype-restaking', address: ESCROW, block: 47206861, symbol: 'stHYPE', url: 'https://app.valantis.xyz/restaking' },
 };
 
+/** Compound a rational exchange-rate change over actual elapsed seconds, retaining losses. */
 function annualized(before, after, elapsed) {
   if (elapsed <= 0 || before.numerator <= 0n || before.denominator <= 0n || after.numerator <= 0n || after.denominator <= 0n)
     throw new Error('Valantis APY requires positive exchange rates and elapsed time');
@@ -27,6 +28,7 @@ function annualized(before, after, elapsed) {
   return result; // Preserve genuine zero and negative realized returns.
 }
 
+/** Separate active users, pending claims and backing in raw stHYPE shares, excluding seed entitlement. */
 function escrowClaims(accounting, seedUnits) {
   const [active, units, pending, rewards] = Array.from(accounting, BigInt);
   seedUnits = BigInt(seedUnits);
@@ -35,6 +37,7 @@ function escrowClaims(accounting, seedUnits) {
   return { active: active - seed, claims: active - seed + pending, custody: active + pending + rewards, units, allActive: active };
 }
 
+/** Read block-pinned LP NAV/share, including lending and unstaking less withdrawal liabilities. */
 async function readStex(api, address) {
   const [pool, module, supply, paused] = await api.batchCall([
     { target: address, abi: 'address:pool' },
@@ -60,6 +63,7 @@ async function readStex(api, address) {
   return { assets, index: { numerator: assets, denominator: BigInt(supply) }, paused };
 }
 
+/** Return each product's raw assets and yield index; restaking yield assets include active users only. */
 async function readState(api, kind, config) {
   if (kind === 'sthype') {
     const [assets, rate] = await api.batchCall([
@@ -88,13 +92,40 @@ async function readState(api, kind, config) {
   return { assets, index, paused, cooldown: Number(configView[3]), hasUsers: shares.active > 0n };
 }
 
+/** Require an explicit archive-only SDK pool and check every candidate before historical reads. */
+async function archiveProvider() {
+  // Match the SDK's environment precedence; never mutate shared RPC settings
+  // from an adapter, or trust a whitelist applied after a provider was cached.
+  const configured = process.env.LLAMA_SDK_HYPERLIQUID_WHITELISTED_RPC
+    ?? process.env.SDK_HYPERLIQUID_WHITELISTED_RPC
+    ?? process.env.HYPERLIQUID_WHITELISTED_RPC;
+  const allowed = new Set((configured || '').split(',').map(url => url.trim()).filter(Boolean));
+  if (!allowed.size) throw new Error('Valantis APY requires HYPERLIQUID_WHITELISTED_RPC configured with archive endpoints before SDK initialization');
+  const provider = sdk.getProvider(chain);
+  const candidates = [...(provider?.rpcs || []), ...(provider?.archivalRPCs || [])];
+  if (!provider?.isCustomLlamaProvider || !provider.rpcs.length
+    || candidates.some(rpc => !allowed.has(rpc.url.trim())))
+    throw new Error('Valantis APY requires an archive-only SDK provider pool; cached or unapproved RPC fallback detected');
+  const endpoints = new Map(candidates.map(rpc => [rpc.url, rpc.provider]));
+  // The aggregate provider's inherited getCode can pick just one endpoint.
+  // Probe each candidate directly so failover cannot hide a latest-only node.
+  for (const endpoint of endpoints.values()) {
+    let code;
+    try {
+      code = await endpoint.getCode(ESCROW, 1);
+    } catch {
+      throw new Error('Valantis APY could not validate a configured archive RPC');
+    }
+    if (code !== '0x') throw new Error('Valantis APY requires an archive RPC; historical code query returned current code');
+  }
+  return provider;
+}
+
+/** Resolve a deployed 24-hour window using one validated archive-only pool for blocks and state. */
 async function context(timestamp, config) {
   const endTime = timestamp === undefined ? Math.floor(Date.now() / 1000) - 60 : Number(timestamp);
   if (!Number.isFinite(endTime) || endTime <= 86400) throw new Error('Invalid Valantis observation timestamp');
-  const provider = sdk.getProvider(chain);
-  // The official latest-only RPC silently ignores historical block tags.
-  // This known predeployment code check must not return today's proxy code.
-  if (await provider.getCode(ESCROW, 1) !== '0x') throw new Error('Valantis APY requires an archive RPC; historical code query returned current code');
+  const provider = await archiveProvider();
   const endBlock = await sdk.blocks.getBlockNumber(chain, endTime);
   const startBlock = await sdk.blocks.getBlockNumber(chain, endTime - 86400);
   if (startBlock < config.block) throw new Error('Insufficient deployed history for a 24-hour Valantis return');
@@ -102,9 +133,12 @@ async function context(timestamp, config) {
   if (!start || !end || end.timestamp <= start.timestamp) throw new Error('Missing Valantis observation blocks');
   const api = new sdk.ChainApi({ chain, block: endBlock, timestamp: end.timestamp });
   const fromApi = new sdk.ChainApi({ chain, block: startBlock, timestamp: start.timestamp });
+  if (api.provider !== provider || fromApi.provider !== provider)
+    throw new Error('Valantis archive provider changed while resolving the observation');
   return { api, fromApi, elapsed: end.timestamp - start.timestamp, timestamp: end.timestamp };
 }
 
+/** Build registered-product pool rows with separate indexes and a shared observation/price snapshot. */
 function createAdapter(kinds) {
   kinds = Array.isArray(kinds) ? kinds : [kinds];
   if (!kinds.length || kinds.some(kind => !configs[kind])) throw new Error('Unknown Valantis product');
@@ -113,6 +147,7 @@ function createAdapter(kinds) {
     // Public wrappers supply the literal ID for their registered product slug.
     timetravel: true,
     url: first.url,
+    /** Fetch realized net returns without adding unreleased premiums or duplicate intrinsic yield. */
     apy: async (timestamp) => {
       const ctx = await context(timestamp, first);
       const key = `${chain}:${WHYPE}`;
