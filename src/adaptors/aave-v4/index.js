@@ -21,7 +21,7 @@ const hubsByChain = {
     core: '0x17288dfc86205301064577b98B02b81017e6F79C',
   },
   base: {
-    equities: '0xa4d5947Eb727A052bae69C593FfC84247EC9864E',
+    coinbaseStocks: '0xa4d5947Eb727A052bae69C593FfC84247EC9864E',
   },
 };
 
