@@ -11,7 +11,11 @@ const PIP = '0x6A79dCe61A12aa4b75449e0B03746260765D07dF';
 const SECONDS_PER_DAY = 86400;
 const DAYS_PER_YEAR = 365;
 const LOOKBACK_DAYS = 30;
-const SCAN_DAYS = 45;
+// The 120-day scan tolerates extended update delays; APY is null when it
+// contains no valid anchor at least 30 days before the latest poke.
+// Ingestion then omits the pool for that run; this is intentional whenever
+// there is insufficient history to support the 30d label.
+const SCAN_DAYS = 120;
 
 const eventPoke = 'event Poke(uint256 indexed price, uint256 indexed timestamp)';
 
@@ -53,6 +57,8 @@ const getApyBase = async () => {
       break;
     }
   }
+  // Never publish a shorter window under the 30d label.
+  if (start.ts > target) return null;
 
   const elapsedDays = (end.ts - start.ts) / SECONDS_PER_DAY;
   if (elapsedDays <= 0) return null;
