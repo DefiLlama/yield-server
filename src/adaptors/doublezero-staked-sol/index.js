@@ -1,20 +1,27 @@
 const axios = require('axios');
-const { getTotalSupply, getSanctumLstApy, getPriceApiUrl } = require('../utils');
+const {
+  getStakePoolInfo,
+  calcSolanaLstApy,
+  getSanctumLstApy,
+  getPriceApiUrl,
+} = require('../utils');
 
 const DZSOL_MINT = 'Gekfj7SL2fVpTDxJZmeC46cTYxinjB6gkAnb6EGT6mnn';
-const priceKey = `solana:${DZSOL_MINT}`;
+const STAKE_POOL = '3fV1sdGeXaNEZj6EPDTpub82pYxcRXwt2oie6jkSzeWi';
 const SOL = 'So11111111111111111111111111111111111111112';
+const solKey = `solana:${SOL}`;
 
 const apy = async () => {
-  const [totalSupply, priceRes, apyBase] = await Promise.all([
-    getTotalSupply(DZSOL_MINT),
-    axios.get(getPriceApiUrl(`/prices/current/${priceKey}`)),
+  const [stakePool, priceRes, sanctumApy] = await Promise.all([
+    getStakePoolInfo(STAKE_POOL),
+    axios.get(getPriceApiUrl(`/prices/current/${solKey}`)),
     getSanctumLstApy(DZSOL_MINT),
   ]);
 
-  const currentPrice = priceRes.data.coins[priceKey]?.price;
-  if (!currentPrice) throw new Error('Unable to fetch dzSOL price');
+  const solPrice = priceRes.data.coins[solKey]?.price;
+  if (!solPrice) throw new Error('Unable to fetch SOL price');
 
+  const apyBase = sanctumApy ?? calcSolanaLstApy(stakePool);
   if (apyBase == null)
     throw new Error(`Unable to fetch APY for ${DZSOL_MINT}`);
 
@@ -24,7 +31,7 @@ const apy = async () => {
       chain: 'Solana',
       project: 'doublezero-staked-sol',
       symbol: 'dzSOL',
-      tvlUsd: totalSupply * currentPrice,
+      tvlUsd: stakePool.tvlSol * solPrice,
       apyBase,
       underlyingTokens: [SOL],
       poolMeta: '6% epoch fee',
