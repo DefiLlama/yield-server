@@ -62,13 +62,13 @@ const gqlQueries = {
           loanAsset {
             address
             symbol
-            priceUsd
+            price { usd }
             decimals
           }
           collateralAsset {
             address
             symbol
-            priceUsd
+            price { usd }
             decimals
           }
           state {
@@ -513,7 +513,7 @@ const apy = async () => {
       const reallocatableLiquidityUsd =
         (Number(market.reallocatableLiquidityAssets || 0) /
           10 ** Number(market.loanAsset?.decimals || 0)) *
-        Number(market.loanAsset?.priceUsd || 0);
+        Number(market.loanAsset?.price?.usd || 0);
       const availableBorrowUsd =
         (market.state.liquidityAssetsUsd ?? 0) + reallocatableLiquidityUsd;
 
