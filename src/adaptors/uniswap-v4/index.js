@@ -124,9 +124,9 @@ const requestWithRetry = async (url, query, retries = 2) => {
   }
 };
 
-// polygon's deployment times out scanning pools in id order for the few that
-// clear TVL_MIN, while unichain's times out sorting them by tvl
-const TVL_ORDERED_CHAINS = new Set(['polygon']);
+// polygon's and optimism's deployments time out scanning pools in id order for
+// the few that clear TVL_MIN, while unichain's times out sorting them by tvl
+const TVL_ORDERED_CHAINS = new Set(['polygon', 'optimism']);
 
 // ~39k base pools clear TVL_MIN on the subgraph's own prices with a single tx
 // and zero liquidity, spam whose tokens cost ~750 price requests. requiring a
