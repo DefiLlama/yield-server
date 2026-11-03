@@ -77,6 +77,31 @@ const fallbackChains = {
   },
 };
 
+// third-party deployment whose fees include the protocol fee
+const backupChains = {
+  optimism: {
+    url: sdk.graph.modifyEndpoint(
+      'Ab7CAcb1yPXUU2j9Bha1BPDHjE5QqUtjC3rPYyAyodJA'
+    ),
+    stateView: '0xc18a3169788f4f75a170290584eca6395c75ecdb',
+  },
+};
+
+// packs one 12-bit fee per direction; take the larger
+const fetchProtocolFees = async (chain, stateView, poolIds) => {
+  const { output } = await sdk.api.abi.multiCall({
+    chain,
+    abi: 'function getSlot0(bytes32 poolId) view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)',
+    calls: poolIds.map((id) => ({ target: stateView, params: [id] })),
+  });
+  return Object.fromEntries(
+    output.map(({ output: slot0 }, i) => {
+      const fee = Number(slot0.protocolFee);
+      return [poolIds[i], Math.max(fee & 0xfff, fee >> 12)];
+    })
+  );
+};
+
 // v4 reports the fee actually charged on every swap, so summing the logs prices
 // hook-set dynamic fees correctly instead of writing them off as 0
 const SWAP_EVENT =
@@ -126,7 +151,7 @@ const requestWithRetry = async (url, query, retries = 2) => {
 
 // polygon's deployment times out scanning pools in id order for the few that
 // clear TVL_MIN, while unichain's times out sorting them by tvl
-const TVL_ORDERED_CHAINS = new Set(['polygon']);
+const TVL_ORDERED_CHAINS = new Set(['polygon', 'optimism']);
 
 // ~39k base pools clear TVL_MIN on the subgraph's own prices with a single tx
 // and zero liquidity, spam whose tokens cost ~750 price requests. requiring a
@@ -250,7 +275,7 @@ const priceAboveTvlMin = async (pools, chainString) =>
  * Prices volume and APY from the last completed UTC day. Pools without a full
  * day of history are omitted rather than annualizing a partial day.
  */
-const topLvl = async (chainString, url, timestamp) => {
+const topLvl = async (chainString, url, timestamp, stateView) => {
   try {
     const [block] = await utils.getBlocks(chainString, timestamp, [url]);
     const previousDay =
@@ -277,6 +302,25 @@ const topLvl = async (chainString, url, timestamp) => {
     dataNow = dataNow.filter((p) => !hasInvalidTokenTvl(p));
 
     dataNow = await priceAboveTvlMin(dataNow, chainString);
+
+    if (stateView) {
+      const protocolFees = await fetchProtocolFees(
+        chainString,
+        stateView,
+        dataNow.map((pool) => pool.id)
+      );
+      dataNow = dataNow.map((pool) => {
+        const protocolFee = protocolFees[pool.id];
+        const volumes = volumesByPoolId[pool.id];
+        if (volumes)
+          volumes.feeUSD1d = Math.max(
+            0,
+            volumes.feeUSD1d - (volumes.volumeUSD1d * protocolFee) / 1e6
+          );
+        return { ...pool, feeTier: Number(pool.feeTier) - protocolFee };
+      });
+    }
+
     const hookFeesUsd = await fetchHookFeesUsd(
       chainString,
       dataNow,
@@ -839,6 +883,11 @@ const main = async (timestamp = null) => {
   const data = await Promise.all([
     ...Object.entries(chains).map(async ([chain, url]) => {
       const pools = await topLvl(chain, url, timestamp);
+      // protocol fees are read at the current block
+      const backup = backupChains[chain];
+      if (backup && !pools.length && timestamp === null)
+        return topLvl(chain, backup.url, timestamp, backup.stateView);
+
       const fallback = fallbackChains[chain];
       // the fallback subgraph prunes history, so it can only serve the live run
       if (!fallback || timestamp !== null || pools.length >= fallback.minPools)
