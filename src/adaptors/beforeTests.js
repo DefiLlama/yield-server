@@ -83,10 +83,22 @@ module.exports = async function () {
       protocols.map((protocol) => [protocol.slug, protocol])
     );
 
+    const protocolsById = new Map(
+      protocols.map((protocol) => [String(protocol.id), protocol.slug])
+    );
+    // { pool_key: protocol_id } ownership map exported daily by yield-server-v2
+    const ownership = (
+      await axios.get(
+        'https://defillama-datasets.llama.fi/yields/pool-ownership.json'
+      )
+    ).data;
     global.uniquePoolIdentifiersDB = new Map(
-      (await axios.get('https://yields.llama.fi/distinctID')).data
-        .filter((p) => p.project !== global.apy[0].project)
-        .map((p) => [p.pool, p.project])
+      Object.entries(ownership)
+        .filter(([, protocolId]) => protocolId !== String(global.protocolId))
+        .map(([pool, protocolId]) => [
+          pool,
+          protocolsById.get(protocolId) || protocolId,
+        ])
     );
   }
 };
