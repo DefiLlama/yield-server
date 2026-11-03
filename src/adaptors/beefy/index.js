@@ -23,7 +23,6 @@ const retiredStatuses = ['eol', 'paused'];
 const isRetiredVault = (vault) =>
   retiredStatuses.includes(vault?.status?.toLowerCase());
 
-// Berachain chain ID: 80094
 const networkMapping = {
   1: 'ethereum',
   10: 'optimism',
@@ -44,7 +43,6 @@ const networkMapping = {
   2222: 'kava',
   5000: 'mantle',
   7700: 'canto',
-  80094: 'berachain',  // Berachain mainnet
   8453: 'base',
   34443: 'mode',
   42161: 'arbitrum',
@@ -248,11 +246,11 @@ const main = async () => {
       bgtApr = parseFloat(vault.apr) * 100;
     }
 
-    // Skip vaults if prices are unavailable rather than publishing unconverted BGT APR.
-    if (!beraPrice || !lbgtPrice) continue;
-
-    // Convert BGT APR to LBGT APR since rewards are paid in LBGT.
-    const lbgtApr = bgtApr * (lbgtPrice / beraPrice);
+    // BGT is staked BERA and rewards are paid in LBGT, so convert at the
+    // current ratio. LBGT has no price on some days; keep the vault with the
+    // unconverted BGT figure rather than dropping its TVL from the listing.
+    const lbgtApr =
+      beraPrice && lbgtPrice ? bgtApr * (lbgtPrice / beraPrice) : bgtApr;
 
     // Try to resolve ERC-4626 asset for vault-type staking tokens
     let underlying = vault.stakingToken.address;
