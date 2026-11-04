@@ -16,6 +16,7 @@ const abi = {
   marketCount: 'function marketCount() view returns (uint256)',
   getMarketBorrowRate: 'function getMarketBorrowRate(uint256) view returns (uint256)',
   getUtilization: 'function getUtilization(uint256) view returns (uint256)',
+  getMarketInfo: 'function getMarketInfo() view returns (string name, uint8 marketType)',
   markets:
     'function markets(uint256) view returns (address provider, address token, bool active, uint256 totalSupplyShares, uint256 totalSupplyAssets, uint256 totalPhysicalSupply, uint256 totalBorrowShares, uint256 totalBorrowAssets, uint256 totalPhysicalBorrow, uint256 supplyExchangeRate, uint256 borrowExchangeRate, uint256 protocolEarnings, uint256 protocolEarningsAvailable, uint256 originationFeeBps, uint256 reserveRateBps, uint256 maxLtvBps, uint256 liquidationThresholdBps, uint256 lastAccrueTime, uint256 protocolSupplyShares)',
 }
@@ -52,7 +53,8 @@ async function apy() {
       // tvlUsd = net supplied liquidity (supplied - borrowed) per market. The fixed
       // market holds no liquidity of its own (funded from market-0 lenders' exposure,
       // ~100% utilized), so its net is 0.
-      const isFixed = m !== 0
+      const info = await api.call({ target: market.provider, abi: abi.getMarketInfo })
+      const isFixed = Number(info.marketType) === 1
       const tvlUsd = isFixed ? 0 : Math.max(0, totalSupplyUsd - totalBorrowUsd)
 
       // availableBorrowUsd = physical cash borrowable now (totalPhysicalSupply -
@@ -81,7 +83,8 @@ async function apy() {
         ltv: Number(market.maxLtvBps) / 1e4,
         borrowable: true,
         underlyingTokens: [USDC],
-        poolMeta: isFixed ? 'Fixed Market' : 'Variable Market',
+        isFixedRate: isFixed,
+        poolMeta: isFixed ? `Fixed ${Number(market.maxLtvBps) / 100}% LTV` : 'Variable Market',
         url: `https://earn.surge.credit/#/market/${m}`,
       })
     } catch {
