@@ -9,7 +9,10 @@ const borrowIncentiveEndpoint = `${baseUrl}/borrowIncentivePools`;
 const main = async () => {
   let [market, spools] = await Promise.all([
     axios.get(marketEndpoint),
-    axios.get(spoolsEndpoint),
+    axios.get(spoolsEndpoint).catch((e) => {
+      console.error(`scallop-lend: spools unavailable, no supply rewards (${e.message})`);
+      return { data: { spools: [] } };
+    }),
   ]);
   let borrowIncentive;
   try {
