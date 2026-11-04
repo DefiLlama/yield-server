@@ -28,8 +28,8 @@ const COINGECKO = {
   '0xa156048aa84d13b1de40dfa8288d28b2593fc35c': 'crossbow-finance',
   '0x378a50eac56f45fb74e4ce7f1962dbca33515c14': 'meridian-capital'
 };
-const erc20 = token => (token === ZERO ? WETH : token);
-const priceKey = token =>
+const erc20 = (token) => (token === ZERO ? WETH : token);
+const priceKey = (token) =>
   COINGECKO[token] ? `coingecko:${COINGECKO[token]}` : `${CHAIN}:${token}`;
 
 async function get(url) {
@@ -64,10 +64,10 @@ async function books(ids) {
       ...(await books(ids.slice(mid)))
     ];
   }
-  return ids.map(id => {
-    const pool = d.Pool.find(p => p.id === id);
+  return ids.map((id) => {
+    const pool = d.Pool.find((p) => p.id === id);
     if (!pool) throw Error(`Missing indexed pool ${id}`);
-    return { pool, ranges: d.Range.filter(r => r.pool_id === id) };
+    return { pool, ranges: d.Range.filter((r) => r.pool_id === id) };
   });
 }
 
@@ -89,19 +89,20 @@ async function apy() {
     throw Error('Published allocation exceeds on-chain weekly budget');
   const pools = registry
     .filter(
-      p => p.active && BigInt(budget.lpBudgets[p.id.toLowerCase()] ?? '0') > 0n
+      (p) =>
+        p.active && BigInt(budget.lpBudgets[p.id.toLowerCase()] ?? '0') > 0n
     )
-    .map(p => ({
+    .map((p) => ({
       id: p.id.toLowerCase(),
-      tokens: [p.key.currency0, p.key.currency1].map(t => t.toLowerCase())
+      tokens: [p.key.currency0, p.key.currency1].map((t) => t.toLowerCase())
     }));
-  const ids = pools.map(p => p.id).sort();
+  const ids = pools.map((p) => p.id).sort();
   const [killed, earning] = await Promise.all(
-    ['isGaugeKilled', 'isGaugeEarning'].map(fn =>
+    ['isGaugeKilled', 'isGaugeEarning'].map((fn) =>
       api.multiCall({
         target: VOTER,
         abi: `function ${fn}(bytes32) view returns (bool)`,
-        calls: ids.map(id => ({ params: [id] }))
+        calls: ids.map((id) => ({ params: [id] }))
       })
     )
   );
@@ -109,10 +110,12 @@ async function apy() {
     ids.map((id, i) => [id, { killed: killed[i], earning: earning[i] }])
   );
 
-  const tokens = [...new Set(pools.flatMap(p => p.tokens.map(erc20)))].sort();
+  const tokens = [
+    ...new Set([FABLES, ...pools.flatMap((p) => p.tokens.map(erc20))])
+  ].sort();
   const [decimals, symbols] = await Promise.all(
-    ['erc20:decimals', 'erc20:symbol'].map(abi =>
-      api.multiCall({ abi, calls: tokens.map(target => ({ target })) })
+    ['erc20:decimals', 'erc20:symbol'].map((abi) =>
+      api.multiCall({ abi, calls: tokens.map((target) => ({ target })) })
     )
   );
   const meta = Object.fromEntries(
@@ -121,7 +124,7 @@ async function apy() {
       { decimals: Number(decimals[i]), symbol: symbols[i] }
     ])
   );
-  const keys = [...new Set([FABLES, ...tokens].map(priceKey))];
+  const keys = [...new Set(tokens.map(priceKey))];
   const prices = {};
   for (let i = 0; i < keys.length; i += 30) {
     const batch = await get(
@@ -129,7 +132,7 @@ async function apy() {
     );
     Object.assign(prices, batch.coins);
   }
-  const coin = t => {
+  const coin = (t) => {
     const price = prices[priceKey(t)];
     return price && { price: price.price, decimals: meta[t].decimals };
   };
@@ -140,9 +143,9 @@ async function apy() {
     allBooks.push(...(await books(ids.slice(i, i + 8))));
 
   return allBooks
-    .map(b => {
+    .map((b) => {
       const id = b.pool.id;
-      const p = pools.find(p => p.id === id);
+      const p = pools.find((p) => p.id === id);
       const tokens = p.tokens.map(erc20);
       const row = poolRate({
         ...b,
@@ -157,7 +160,7 @@ async function apy() {
         chain: 'Robinhood Chain',
         project: 'fables',
         symbol: p.tokens
-          .map(t => (t === ZERO ? 'ETH' : meta[t].symbol))
+          .map((t) => (t === ZERO ? 'ETH' : meta[t].symbol))
           .join('-'),
         tvlUsd: row.tvlUsd,
         apyReward: row.apyReward,

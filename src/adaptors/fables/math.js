@@ -3,7 +3,7 @@ const OFFSET = 432000; // epochs roll over on Tuesday 00:00 UTC
 const Q96 = 1n << 96n;
 const ONE = 10n ** 18n;
 const YEAR = 52 * WEEK; // the app annualises staking APR over 52 weeks
-const epochOf = timestamp => Math.floor((timestamp - OFFSET) / WEEK);
+const epochOf = (timestamp) => Math.floor((timestamp - OFFSET) / WEEK);
 
 // Native-bigint port of Uniswap v3-sdk TickMath (MIT, notice below).
 // https://github.com/Uniswap/v3-sdk/blob/main/src/utils/tickMath.ts
@@ -120,7 +120,7 @@ function validateBudget(file, week) {
     throw Error('Inconsistent allocation file');
   return file;
 }
-const goodPrice = coin =>
+const goodPrice = (coin) =>
   coin &&
   Number.isFinite(coin.price) &&
   coin.price > 0 &&
@@ -143,7 +143,7 @@ function poolRate({ pool, ranges, budget, coins, reward, killed }) {
   const p = uint(pool.sqrtPriceX96),
     ref = Number(budget.refTick[pool.id]);
   const seen = new Set();
-  const rows = ranges.map(r => {
+  const rows = ranges.map((r) => {
     const key = `${r.tickLower}:${r.tickUpper}`;
     if (seen.has(key)) throw Error('Duplicate range');
     seen.add(key);
@@ -155,7 +155,7 @@ function poolRate({ pool, ranges, budget, coins, reward, killed }) {
   });
   const tvlUsd = rows.reduce((s, r) => s + r.tvlUsd, 0);
   if (!(tvlUsd > 0) || !Number.isFinite(tvlUsd)) return null;
-  const eligible = rows.filter(r => r.depth > 0n);
+  const eligible = rows.filter((r) => r.depth > 0n);
   const totalDepth = eligible.reduce((s, r) => s + r.depth, 0n);
   const inRangeUsd = eligible.reduce((s, r) => s + r.tvlUsd, 0);
   const reference = uint(budget.refDepth[pool.id]);
