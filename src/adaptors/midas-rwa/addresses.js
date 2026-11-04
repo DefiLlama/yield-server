@@ -140,6 +140,14 @@ const contractAddresses = {
       denomination: 'BTC',
       url: 'https://midas.app/mevbtc',
     },
+    mGLOBAL: {
+      address: getAddress('0x7433806912Eae67919e66aea853d46Fa0aef98A8'),
+      // Midas only deployed growth-adjusted MidasDataFeed wrappers for mGLOBAL
+      // (deposit +7% / redemption -7%), so the unadjusted NAV is read from the
+      // raw aggregator instead of a `dataFeed` wrapper.
+      aggregator: getAddress('0x66Aa9fcD63DF74e1f67A9452E6E59Fbc67f75E38'),
+      url: 'https://midas.app/mglobal',
+    },
   },
   base: {
     mBASIS: {
@@ -171,6 +179,12 @@ const contractAddresses = {
       address: getAddress('0xccbad2823328BCcAEa6476Df3Aa529316aB7474A'),
       dataFeed: getAddress('0x030b69280892c888670EDCDCD8B69Fd8026A0BF3'),
       url: 'https://midas.app/mevusd',
+    },
+    mGLO: {
+      address: getAddress('0xFCc9Cc1209651Ed8867332d6F664CF82743A2584'),
+      // Same as mGLOBAL: no unadjusted wrapper exists, read the raw aggregator.
+      aggregator: getAddress('0x6B593a5FAbb90F36e125562Db833f761d274fcBC'),
+      url: 'https://midas.app/mglo',
     },
   },
   sapphire: {
@@ -322,6 +336,13 @@ const contractAddresses = {
       address: getAddress('0xb31BeA5c2a43f942a3800558B1aa25978da75F8a'),
       dataFeed: getAddress('0x2EB410e4cb94E2E9E3cdE3F7b405BE4fCC076Bc9'),
       url: 'https://midas.app/mhyper',
+    },
+  },
+  robinhood: {
+    mGLO: {
+      address: getAddress('0xFEd493F38c1aAcb4EA4e6A11F8b9287849EE0096'),
+      aggregator: getAddress('0x49D9Dd1Fa6EA3709aB8A5d5f16a1cf207eb91dd0'),
+      url: 'https://midas.app/mglo',
     },
   },
   '0g': {

@@ -10,6 +10,7 @@ const STZIG_DENOM =
   'coin.zig109f7g2rzl2aqee7z6gffn8kfe9cpqx0mjkk7ethmx8m2hq4xpe9snmaam2.stzig';
 const ZIG_PRICE_KEY = 'zigchain:uzig';
 const DECIMALS = 1e6;
+const FUNDS_RAISED_DECIMALS = 1e18;
 const PERFORMANCE_FEE = 0.10;
 const COMMUNITY_TAX = 0.02;
 
@@ -75,8 +76,8 @@ const apy = async () => {
   const zigPrice = priceData.coins[ZIG_PRICE_KEY]?.price;
   if (!zigPrice) throw new Error('Unable to fetch ZIG price');
 
-  const fundsRaisedValue = Number(fundsRaised.funds_raised);
-  const totalSupplyValue = Number(totalSupply.total_supply);
+  const fundsRaisedValue = Number(fundsRaised.funds_raised) / FUNDS_RAISED_DECIMALS;
+  const totalSupplyValue = Number(totalSupply.total_supply) / DECIMALS;
 
   if (!Number.isFinite(fundsRaisedValue) || fundsRaisedValue < 0) {
     throw new Error('Invalid funds_raised contract response');
@@ -86,7 +87,7 @@ const apy = async () => {
     throw new Error('Invalid total_supply contract response');
   }
 
-  const tvlUsd = (fundsRaisedValue / DECIMALS) * zigPrice;
+  const tvlUsd = fundsRaisedValue * zigPrice;
   const pricePerShare = fundsRaisedValue / totalSupplyValue;
 
   return [

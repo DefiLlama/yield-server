@@ -6,9 +6,6 @@ const PROJECT = 'hyperswap-v2';
 const CHAIN = 'hyperevm';
 const MIN_TVL_USD = 1000;
 const FEE_RATE = 0.003;
-const WHYPE = '0x5555555555555555555555555555555555555555';
-const tokenForUrl = (addr) => (addr.toLowerCase() === WHYPE ? 'HYPE' : addr);
-
 const SUBGRAPH_URL =
   'https://api.subgraph.ormilabs.com/api/public/33c67399-d625-4929-b239-5709cd66e422/subgraphs/hyperswap-v2/v1.0.0/gn';
 
@@ -141,7 +138,7 @@ async function apy() {
       apyBase7d,
       underlyingTokens: [token0, token1],
       poolMeta: `${feePct}%`,
-      url: `https://app.hyperswap.exchange/#/add/v2/${tokenForUrl(token0)}/${tokenForUrl(token1)}`,
+      url: `https://app.hyperswap.exchange/liquidity/add/v2?tokenA=${token0}&tokenB=${token1}`,
       volumeUsd1d,
       volumeUsd7d,
     };

@@ -58,6 +58,7 @@ const protocolsBlacklist = [
   'superform',
   'purrlend',
   'mento',
+  'makina',
   'ichi',
   'levva',
   'yieldseeker',

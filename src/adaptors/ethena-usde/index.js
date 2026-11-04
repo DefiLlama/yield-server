@@ -9,6 +9,8 @@ const EVENTS = {
   RewardsReceived: 'event RewardsReceived(uint256 amount)',
 };
 
+const REWARDS_LOOKBACK_BLOCKS = 7 * 7200;
+
 const apy = async () => {
   const totalSupply =
     (
@@ -29,7 +31,7 @@ const apy = async () => {
     await sdk.getEventLogs({
       target: sUSDe,
       eventAbi: EVENTS.RewardsReceived,
-      fromBlock: 19026137,
+      fromBlock: toBlock - REWARDS_LOOKBACK_BLOCKS,
       toBlock,
       chain: 'ethereum',
     })

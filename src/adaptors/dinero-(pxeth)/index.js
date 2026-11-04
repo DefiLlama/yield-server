@@ -37,8 +37,8 @@ const getOnChainApy = async () => {
     pricePerShareAt(blockThen),
   ]);
   if (
-    !priceNow ||
-    !priceThen ||
+    priceNow <= 0 ||
+    priceThen <= 0 ||
     !Number.isFinite(priceNow) ||
     !Number.isFinite(priceThen)
   )
@@ -46,11 +46,8 @@ const getOnChainApy = async () => {
       `dinero: bad apxETH convertToAssets reads (${priceThen} -> ${priceNow})`
     );
 
-  if (priceNow <= priceThen)
-    throw new Error(
-      `dinero: apxETH share price hasnt moved in ${LOOKBACK_DAYS}d (${priceThen} -> ${priceNow}), no harvest to measure`
-    );
-
+  // No harvest during the lookback is a measured 0% return. A decrease is
+  // likewise a real negative return, rather than a failed contract read.
   return ((priceNow / priceThen) ** (365 / LOOKBACK_DAYS) - 1) * 100;
 };
 

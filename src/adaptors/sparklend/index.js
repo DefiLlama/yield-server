@@ -116,7 +116,6 @@ async function fetchV3Pools(chain) {
     .map((pool, i) => {
       const p = poolsReserveData[i];
       const config = poolsReservesConfigurationData[i];
-      if (config.isFrozen) return null;
 
       const decimals = BigInt(underlyingDecimalsEthereum[i]);
       const borrowCap = BigInt(reserveCaps[i].borrowCap);
@@ -168,10 +167,10 @@ async function fetchV3Pools(chain) {
         }),
         ltv: config.ltv / 10000,
         borrowable,
+        frozen: config.isFrozen,
         url: `https://app.spark.fi/markets/${sparkChainId}/${pool.tokenAddress}`,
       };
     })
-    .filter(Boolean)
     .filter((p) => utils.keepFinite(p));
 }
 

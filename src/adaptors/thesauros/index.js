@@ -1,268 +1,144 @@
 const sdk = require('@defillama/sdk');
 const { formatChain, getERC4626Info, getPrices } = require('../utils');
 
-// Thesauros vault configuration
-const VAULTS = {
-  base: {
-    chainId: 8453,
-    chainName: 'base',
-    vaults: [
-      {
-        address: '0x6C7013b3596623d146781c90b4Ee182331Af6148',
-        symbol: 'USDC',
-        asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
-        assetSymbol: 'USDC',
-        name: 'Thesauros - Base',
-        decimals: 6,
-      },
-    ],
-    providers: {
-    "aaveV3Provider": "0x034a62f9617E8A1770f7c7EbA04e2DAb2Fda7f12",
-    "compoundV3Provider": "0xFFAc48125fa4Bd8BC03CDCA725459563aAe77406",
-    "re7MorphoProvider": "0x642E31bE2fF6d3EBa38dC16760f3a146092d89e3",
-    "steakhouseHighYieldMorphoProvider": "0x0EF8ceD75e5877c69ac8619145219b67D76193a1",
-    "steakhousePrimeMorphoProvider": "0x4516F8324bfAcC71e5099FabFC51E97e4905c062",
-    "gauntletCoreMorphoProvider": "0x34c164e7021e38921aE20a723234d2b1B52289E9"
-    },
+// Thesauros ERC4626 vaults. Each vault allocates its assets across a set of
+// yield providers (Aave v3, Compound v3, Morpho vaults, ...). v1 vaults were
+// superseded by v2 vaults in August 2026 (users migrated on 2026-09-09) but
+// are kept so the remaining dust is still tracked.
+const VAULTS = [
+  // v1
+  {
+    chain: 'arbitrum',
+    address: '0x57C10bd3fdB2849384dDe954f63d37DfAD9d7d70',
+    symbol: 'USDC',
+    asset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    decimals: 6,
   },
-  arbitrum: {
-    chainId: 42161,
-    chainName: 'arbitrum',
-    vaults: [
-      {
-        address: '0x57C10bd3fdB2849384dDe954f63d37DfAD9d7d70',
-        symbol: 'USDC',
-        asset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // USDC on Arbitrum
-        assetSymbol: 'USDC',
-        name: 'Thesauros - Arbitrum',
-        decimals: 6,
-      },
-      {
-        address: '0xcd72118C0707D315fa13350a63596dCd9B294A30',
-        symbol: 'USDT',
-        asset: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', // USDT on Arbitrum
-        assetSymbol: 'USDT',
-        name: 'Thesauros - Arbitrum USDT',
-        decimals: 6,
-      },
-    ],
-    providers: {
-      aaveV3: '0xbeEdb89DC47cab2678eBB796cfc8131062F16E39',
-      compoundV3: '0xaBD932E0Fff6417a4Af16431d8D86a4e62d62fA3',
-      dolomite: '0x3D036B97482CC6c42753dA51917B3302D5d0E9AE',
-      steakhouseHighYieldMorpho: '0x00651b3E70873AfC852d9068Da4d359C473aA6c3',
-      yearnDegenMorpho: '0x7b77caFe29d62c984e569793AD1C1DC9eD542413',
-      gauntletCoreMorpho: '0xfFD8B1A9B97787c169154a485925512C79CA53E7',
-      hyperithmMorpho: '0x54E5FF7FF115E2B01332D81f7efFB02adEF3c23D',
-    },
+  {
+    chain: 'arbitrum',
+    address: '0xcd72118C0707D315fa13350a63596dCd9B294A30',
+    symbol: 'USDT',
+    asset: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+    decimals: 6,
   },
+  {
+    chain: 'base',
+    address: '0x6C7013b3596623d146781c90b4Ee182331Af6148',
+    symbol: 'USDC',
+    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    decimals: 6,
+  },
+  // v2
+  {
+    chain: 'arbitrum',
+    address: '0x4E5c0A4C11d713002D74bA43a458efc31bc76378',
+    symbol: 'USDC',
+    asset: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    decimals: 6,
+  },
+  {
+    chain: 'base',
+    address: '0x3C7739173cca612B6394EE57131458185A5beC44',
+    symbol: 'USDC',
+    asset: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    decimals: 6,
+  },
+  {
+    chain: 'plasma',
+    address: '0x2Ed9B7fB6Bbe0920145B2a79c18C3f7cFCAE3C99',
+    symbol: 'USDT0',
+    asset: '0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb',
+    decimals: 6,
+  },
+  {
+    chain: 'monad',
+    address: '0x40F1fBf6a92155a6D321c09936234BFEb9Ec4760',
+    symbol: 'USDC',
+    asset: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603',
+    decimals: 6,
+  },
+];
+
+const abi = {
+  getProviders: 'address[]:getProviders',
+  // rate in ray (1e27)
+  getDepositRate: 'function getDepositRate(address vault) view returns (uint256)',
+  getDepositBalance:
+    'function getDepositBalance(address user, address vault) view returns (uint256)',
 };
 
-// ABI for Vault contract
-const vaultAbi = [
-  {
-    inputs: [],
-    name: 'activeProvider',
-    outputs: [
-      {
-        internalType: 'contract IProvider',
-        name: '',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'asset',
-    outputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'totalAssets',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'symbol',
-    outputs: [
-      {
-        internalType: 'string',
-        name: '',
-        type: 'string',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-];
+const RAY = 1e27;
 
-// ABI for Provider contract
-const providerAbi = [
-  {
-    inputs: [
-      {
-        internalType: 'contract IVault',
-        name: 'vault',
-        type: 'address',
-      },
-    ],
-    name: 'getDepositRate',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: 'rate',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'getIdentifier',
-    outputs: [
-      {
-        internalType: 'string',
-        name: '',
-        type: 'string',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-];
+// Balance-weighted deposit rate across all providers the vault is allocated to.
+const getVaultApy = async (vault, chain) => {
+  const providers = (
+    await sdk.api.abi.call({ target: vault, abi: abi.getProviders, chain })
+  ).output;
 
-/**
- * Get APY from provider
- * @param {string} providerAddress - Provider contract address
- * @param {string} vaultAddress - Vault contract address
- * @param {string} chain - Chain name
- * @returns {Promise<number>} APY in percentage (e.g., 5.5 for 5.5%)
- */
-async function getProviderApy(providerAddress, vaultAddress, chain) {
-  try {
-    const rate = (
-      await sdk.api.abi.call({
-        target: providerAddress,
-        abi: providerAbi.find((m) => m.name === 'getDepositRate'),
-        params: [vaultAddress],
-        chain,
-      })
-    ).output;
+  const [rates, balances] = await Promise.all([
+    sdk.api.abi.multiCall({
+      abi: abi.getDepositRate,
+      calls: providers.map((target) => ({ target, params: [vault] })),
+      chain,
+      permitFailure: true,
+    }),
+    sdk.api.abi.multiCall({
+      abi: abi.getDepositBalance,
+      calls: providers.map((target) => ({ target, params: [vault, vault] })),
+      chain,
+      permitFailure: true,
+    }),
+  ]).then((res) => res.map(({ output }) => output.map((o) => o.output)));
 
-    // Rate is in ray units (1e27), convert to APY percentage
-    // APY = (rate / 1e27) * 100
-    const apy = (Number(rate) / 1e27) * 100;
-    return apy;
-  } catch (error) {
-    console.error(
-      `Error getting APY from provider ${providerAddress}:`,
-      error.message
-    );
-    return 0;
-  }
-}
+  let totalBalance = 0;
+  let weightedRate = 0;
+  providers.forEach((_, i) => {
+    const balance = Number(balances[i] ?? 0);
+    const rate = Number(rates[i] ?? 0);
+    totalBalance += balance;
+    weightedRate += balance * rate;
+  });
 
-/**
- * Main APY function
- * @returns {Promise<Array>} Array of pool objects
- */
-async function apy() {
+  if (totalBalance === 0) return 0;
+  return (weightedRate / totalBalance / RAY) * 100;
+};
+
+const apy = async () => {
   const pools = [];
 
-  for (const [chainKey, chainConfig] of Object.entries(VAULTS)) {
-    const { chainName, vaults } = chainConfig;
+  for (const vault of VAULTS) {
+    const { chain, address, symbol, asset, decimals } = vault;
+    try {
+      const erc4626Info = await getERC4626Info(address.toLowerCase(), chain, undefined, {
+        assetUnit: '1' + '0'.repeat(decimals),
+      });
+      if (!erc4626Info || !erc4626Info.tvl) continue;
 
-    for (const vault of vaults) {
-      try {
-        // Get TVL using ERC4626 info
-        // Use decimals from vault config (default to 6 for USDC/USDT)
-        const decimals = vault.decimals || 6;
-        const assetUnit = '1' + '0'.repeat(decimals);
-        
-        const erc4626Info = await getERC4626Info(
-          vault.address.toLowerCase(),
-          chainName,
-          undefined,
-          { assetUnit }
-        );
+      const prices = await getPrices([asset], chain);
+      const assetPrice = prices.pricesByAddress?.[asset.toLowerCase()] || 1;
+      const tvlUsd = (erc4626Info.tvl / 10 ** decimals) * assetPrice;
 
-        if (!erc4626Info || !erc4626Info.tvl) {
-          console.warn(
-            `No TVL data for vault ${vault.address} on ${chainName}`
-          );
-          continue;
-        }
+      const apyBase = await getVaultApy(address, chain);
 
-        // Get asset price
-        const prices = await getPrices([vault.asset], chainName);
-
-        const assetPrice =
-          prices.pricesByAddress?.[vault.asset.toLowerCase()] || 1;
-
-        // Calculate TVL in USD
-        const tvlUsd = (erc4626Info.tvl / 10 ** decimals) * assetPrice;
-
-        // Get active provider APY
-        const activeProviderAddress = (
-          await sdk.api.abi.call({
-            target: vault.address,
-            abi: vaultAbi.find((m) => m.name === 'activeProvider'),
-            chain: chainName,
-          })
-        ).output;
-
-        const apyBase = await getProviderApy(
-          activeProviderAddress,
-          vault.address,
-          chainName
-        );
-
-        const pool = {
-          pool: `${vault.address}-${chainName}`.toLowerCase(),
-          chain: formatChain(chainName),
-          project: 'thesauros',
-          symbol: vault.symbol,
-          tvlUsd: tvlUsd,
-          apyBase: apyBase,
-          pricePerShare: erc4626Info.pricePerShare,
-          underlyingTokens: [vault.asset],
-          poolMeta: 'Instant withdraw | Points Incentive',
-          url: `https://app.thesauros.io/vault/${vault.address}`,
-        };
-
-        pools.push(pool);
-      } catch (error) {
-        console.error(
-          `Error processing vault ${vault.address} on ${chainName}:`,
-          error.message
-        );
-        // Continue with other vaults even if one fails
-        continue;
-      }
+      pools.push({
+        pool: `${address}-${chain}`.toLowerCase(),
+        chain: formatChain(chain),
+        project: 'thesauros',
+        symbol,
+        tvlUsd,
+        apyBase,
+        pricePerShare: erc4626Info.pricePerShare,
+        underlyingTokens: [asset],
+        poolMeta: 'Instant withdraw | Points Incentive',
+        url: `https://app.thesauros.io/vault/${address}`,
+      });
+    } catch (error) {
+      console.error(`Error processing vault ${address} on ${chain}:`, error.message);
     }
   }
 
-  return pools.filter((p) => p && p.tvlUsd > 0);
-}
+  return pools.filter((p) => p.tvlUsd > 0);
+};
 
 module.exports = {
   protocolId: '7111',

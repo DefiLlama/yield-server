@@ -8,6 +8,7 @@ const {
   API_CORE_BASE_URL,
   CRV_API_BASE_URL,
   CRV_API_BASE_URL_V1,
+  CRV_POOL_BLACKLIST_URL,
   BLOCKCHAINIDS,
   BLOCKCHAINID_TO_REGISTRIES,
   OVERRIDE_DATA,
@@ -34,6 +35,20 @@ const crv = {
   fantom: '0x1E4F97b9f9F913c46F1632781732927B9019C68b',
   base: '0x8Ee73c484A26e0A5df2Ee2a4960B789967dd0415',
   fraxtal: '0x331B9182088e2A7d6D3Fe4742AbA1fB231aEcc56',
+};
+
+const getBlacklistedPools = async () => {
+  try {
+    const response = await utils.getData(CRV_POOL_BLACKLIST_URL);
+    const blacklist = {};
+    for (const { chain, pools } of response?.data ?? []) {
+      blacklist[chain] = new Set(pools.map((p) => p.address.toLowerCase()));
+    }
+    return blacklist;
+  } catch (error) {
+    console.error('curve-dex: failed to fetch pool blacklist', error?.message);
+    return {};
+  }
 };
 
 const getPools = async (blockchainId) => {
@@ -245,6 +260,7 @@ const main = async () => {
   const blockchainToPoolsVolumesPromise = Object.fromEntries(
     BLOCKCHAINIDS.map((blockchainId) => [blockchainId, getPoolsVolumes(blockchainId)])
   );
+  const blacklistPromise = getBlacklistedPools();
 
   // we need the ethereum data first for the crv prive and await extra query to CG
   const ethereumPools = await blockchainToPoolPromise.ethereum;
@@ -271,7 +287,9 @@ const main = async () => {
       addressToPoolVolumes,
       addressToGauge,
       gaugeAddressToExtraRewards,
+      blacklist,
     ] = poolData;
+    const blacklistedAddresses = blacklist[blockchainId] ?? new Set();
 
     let factoryAprData;
     if (['optimism', 'celo', 'kava', 'base'].includes(blockchainId)) {
@@ -287,6 +305,7 @@ const main = async () => {
       '0x6eB2dc694eB516B16Dc9FBc678C60052BbdD7d80',
     ];
     for (const [address, pool] of Object.entries(addressToPool)) {
+      if (blacklistedAddresses.has(address.toLowerCase())) continue;
       const subgraph = addressToPoolSubgraph[address];
       const gauge = addressToGauge[blockchainId][pool.gaugeAddress];
       // one gauge can have multiple (different) extra rewards
@@ -440,6 +459,7 @@ const main = async () => {
         blockchainToPoolsVolumesPromise[blockchainId],
         gaugePromise,
         extraRewardPromise,
+        blacklistPromise,
       ]).then((poolData) => feedLlama(poolData, blockchainId))
     );
   }

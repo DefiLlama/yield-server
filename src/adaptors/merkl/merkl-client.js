@@ -33,20 +33,21 @@ const TARGET_APR_DISTRIBUTION_TYPES = new Set([
   'AAVE_V4_NET_APR',
 ]);
 
-const getRewardApr = (opportunity) => {
-  const breakdowns = opportunity.aprRecord?.breakdowns?.filter(
-    (x) => x.type === 'CAMPAIGN'
-  );
-  if (!breakdowns?.length) return opportunity.apr;
-
-  return breakdowns.reduce(
-    (acc, x) =>
-      acc +
-      (TARGET_APR_DISTRIBUTION_TYPES.has(x.distributionType)
+const getCampaignAprBreakdowns = (opportunity) =>
+  (opportunity.aprRecord?.breakdowns || [])
+    .filter((x) => x.type === 'CAMPAIGN')
+    .map((x) => ({
+      campaignId: x.identifier,
+      apr: TARGET_APR_DISTRIBUTION_TYPES.has(x.distributionType)
         ? Math.max(0, x.value - (opportunity.nativeApr || 0))
-        : x.value),
-    0
-  );
+        : x.value,
+    }));
+
+const getRewardApr = (opportunity) => {
+  const breakdowns = getCampaignAprBreakdowns(opportunity);
+  if (!breakdowns.length) return opportunity.apr;
+
+  return breakdowns.reduce((acc, x) => acc + x.apr, 0);
 };
 
 module.exports = {
@@ -54,4 +55,5 @@ module.exports = {
   getMerklHeaders,
   merklGet,
   getRewardApr,
+  getCampaignAprBreakdowns,
 };

@@ -162,7 +162,7 @@ const query = gql`
 `;
 
 const apy = async () => {
-  let data = await Promise.all(
+  const data = await Promise.all(
     Object.entries(API_URLS).flatMap(([chain, urls]) => {
       return urls.map(async (url) => [
         chain,
@@ -170,11 +170,6 @@ const apy = async () => {
       ]);
     })
   );
-
-  data = data.map(([chain, reserves]) => [
-    chain,
-    reserves.filter((p) => !p.isFrozen),
-  ]);
 
   const totalSupply = await Promise.all(
     data.map(async ([chain, reserves]) =>
@@ -303,6 +298,7 @@ const apy = async () => {
             : chainUrlParam[chain][0]
         }&utm_source=defillama&utm_medium=listing&utm_campaign=external`,
         borrowable: pool.borrowingEnabled,
+        frozen: pool.isFrozen,
       };
     });
 

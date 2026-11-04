@@ -128,6 +128,18 @@ const getApy = async () => {
     })
   ).output.map(({ output }) => output);
 
+  const isMintPaused = (
+    await sdk.api.abi.multiCall({
+      chain: 'avax',
+      calls: allMarkets.map((market) => ({
+        target: COMPTROLLER_ADDRESS,
+        params: [market],
+      })),
+      abi: comptrollerAbi.find(({ name }) => name === 'mintGuardianPaused'),
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
   const qiRewards = await getRewards(REWARD_TYPES.QI, allMarkets);
   const avaxRewards = await getRewards(REWARD_TYPES.AVAX, allMarkets);
 
@@ -257,6 +269,7 @@ const getApy = async () => {
       totalBorrowUsd,
       availableBorrowUsd,
       borrowable: isBorrowPaused[i] === false,
+      frozen: isMintPaused[i] === true,
       apyBaseBorrow,
       borrowToken: token,
       apyRewardBorrow: Number.isFinite(apyRewardBorrow) ? apyRewardBorrow : 0,

@@ -62,13 +62,13 @@ const gqlQueries = {
           loanAsset {
             address
             symbol
-            priceUsd
+            price { usd }
             decimals
           }
           collateralAsset {
             address
             symbol
-            priceUsd
+            price { usd }
             decimals
           }
           state {
@@ -116,6 +116,7 @@ const gqlQueries = {
           symbol
           warnings {
             level
+            type
           }
           asset {
             address
@@ -163,6 +164,7 @@ const gqlQueries = {
           name
           warnings {
             level
+            type
           }
           asset {
             address
@@ -270,6 +272,9 @@ const ALLOWED_ADAPTER_TYPES = ['MetaMorpho', 'MorphoMarketV1'];
 const hasRedWarning = (item) =>
   item.warnings?.some((warning) => warning.level === 'RED');
 
+const isDepositDisabled = (item) =>
+  item.warnings?.some((warning) => warning.type === 'deposit_disabled');
+
 // Vaults reviewed and kept despite a RED warning: deposit_disabled (at cap) and
 // invalid_name/invalid_symbol don't stop holders earning the reported APY.
 const RED_WARNING_ALLOWLIST = new Set([
@@ -326,6 +331,7 @@ const buildVaultV2Pools = (earnV2, chain) =>
         url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
         apyReward,
         rewardTokens,
+        frozen: isDepositDisabled(vault),
       };
     })
     .filter(Boolean);
@@ -480,6 +486,7 @@ const apy = async () => {
           url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
           apyReward,
           rewardTokens,
+          frozen: isDepositDisabled(vault),
         };
       })
       .filter(Boolean);
@@ -506,7 +513,7 @@ const apy = async () => {
       const reallocatableLiquidityUsd =
         (Number(market.reallocatableLiquidityAssets || 0) /
           10 ** Number(market.loanAsset?.decimals || 0)) *
-        Number(market.loanAsset?.priceUsd || 0);
+        Number(market.loanAsset?.price?.usd || 0);
       const availableBorrowUsd =
         (market.state.liquidityAssetsUsd ?? 0) + reallocatableLiquidityUsd;
 

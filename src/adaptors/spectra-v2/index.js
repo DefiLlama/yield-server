@@ -145,6 +145,10 @@ async function apy() {
           },
         })
         .then((res) => res.data.flat())
+        .catch((e) => {
+          console.error(`spectra-v2: ${chains[chainId].slug} failed`, e.message);
+          return [];
+        })
     )
   ).then((res) => res.flat());
   pts.forEach((pt) => {

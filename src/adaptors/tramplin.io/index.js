@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getSolanaEpochsPerYear } = require('../utils');
 
 const VOTE_ACCOUNT = 'TRAMp1Z9EXyWQQNwNjjoNvVksMUHKioVU7ky61yNsEq';
 const SOL = 'So11111111111111111111111111111111111111112';
@@ -8,8 +8,6 @@ const RPC_URL = 'https://api.mainnet-beta.solana.com';
 
 // Tramplin validator has 100% commission; protocol redistributes 70% to users
 const USER_REWARD_SHARE = 0.7;
-const SOLANA_GENESIS_MS = Date.UTC(2020, 2, 16);
-const MS_PER_YEAR = 365.25 * 24 * 3600 * 1000;
 
 const rpc = (method, params = []) =>
   axios.post(
@@ -19,10 +17,11 @@ const rpc = (method, params = []) =>
   );
 
 const apy = async () => {
-  const [voteRes, priceRes, epochRes] = await Promise.all([
+  const [voteRes, priceRes, epochRes, epochsPerYear] = await Promise.all([
     rpc('getVoteAccounts', [{ votePubkey: VOTE_ACCOUNT }]),
     axios.get(getPriceApiUrl(`/prices/current/${solKey}`)),
     rpc('getEpochInfo'),
+    getSolanaEpochsPerYear(RPC_URL),
   ]);
 
   const validator =
@@ -47,9 +46,6 @@ const apy = async () => {
   if (!reward) throw new Error('Unable to fetch epoch reward');
 
   const epochRewardSol = reward.amount / 1e9;
-  const currentEpoch = epochRes.data.result.epoch;
-  const yearsSinceGenesis = (Date.now() - SOLANA_GENESIS_MS) / MS_PER_YEAR;
-  const epochsPerYear = currentEpoch / yearsSinceGenesis;
 
   // Compound APY from actual validator rewards, adjusted for 70% user share
   const epochRate = (epochRewardSol / stakedSol) * USER_REWARD_SHARE;

@@ -11,6 +11,12 @@ const VAULTS = [
     poolMeta: 'Global Carry Vault',
     url: 'https://app.reservoir.xyz/vaults/aguaUSDCgc',
   },
+  {
+    address: '0x2ABc42250154752273a4560e875c858623F83ecC', // aguaUSDCgc (Monad)
+    chain: 'monad',
+    poolMeta: 'Global Carry Vault',
+    url: 'https://app.reservoir.xyz/vaults/aguaUSDCgc',
+  },
 ];
 
 const DAY = 24 * 3600;

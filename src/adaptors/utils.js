@@ -24,6 +24,9 @@ const getPriceApiUrl = (path) => {
 
 exports.getPriceApiUrl = getPriceApiUrl;
 
+exports.getYieldsApiUrl = (path) =>
+  `https://pro-api.llama.fi/${process.env.DL_API_KEY}/yields/v2${path}`;
+
 // TODO: temporary cache-bypass on pro requests; remove once coins-api caps
 // staleness (Cache-Control) -- edge colos were replaying expired
 // /prices/current copies. Applied at request time, not in getPriceApiUrl:
@@ -263,6 +266,8 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'optimism') return 'OP Mainnet';
   if (chain && chain.toLowerCase() === 'ton') return 'TON';
   if (chain && chain.toLowerCase() === 'zklink') return 'zkLink Nova';
+  if (chain && (chain.toLowerCase() === 'eos' || chain.toLowerCase() === 'vaulta'))
+    return 'Vaulta';
 
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
@@ -892,6 +897,36 @@ const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.
   return account.data;
 };
 
+// Epochs per year from the last full epoch's duration (slot speed varies over time)
+const getSolanaEpochsPerYear = async (rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const rpc = async (method, params) => {
+    const res = await exports.withRetry(() =>
+      axios.post(rpcUrl, { jsonrpc: '2.0', id: 1, method, params }, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    if (res.data.error) throw new Error(`${method}: ${res.data.error.message}`);
+    return res.data.result;
+  };
+  const firstBlockTime = async (slot) => {
+    const [block] = await rpc('getBlocksWithLimit', [slot, 1]);
+    const ts = block === undefined ? null : await rpc('getBlockTime', [block]);
+    if (!ts) throw new Error(`no block time at or after slot ${slot}`);
+    return ts;
+  };
+  const { absoluteSlot, slotIndex, slotsInEpoch } = await rpc('getEpochInfo', [
+    { commitment: 'confirmed' },
+  ]);
+  const epochStart = absoluteSlot - slotIndex;
+  const [prevTs, currTs] = await Promise.all([
+    firstBlockTime(epochStart - slotsInEpoch),
+    firstBlockTime(epochStart),
+  ]);
+  return (365.25 * 24 * 60 * 60) / (currTs - prevTs);
+};
+
+exports.getSolanaEpochsPerYear = getSolanaEpochsPerYear;
+
 // SPL Stake Pool data decoder using official library
 const { StakePoolLayout } = require('@solana/spl-stake-pool');
 
@@ -915,21 +950,7 @@ exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl = 'https://api.mainne
     ? { numerator: Number(stakePool.epochFee.numerator), denominator: Number(stakePool.epochFee.denominator) }
     : null;
 
-  // Fetch current epoch info for epochs-per-year calculation
-  const epochResponse = await axios.post(rpcUrl, {
-    jsonrpc: '2.0',
-    id: 1,
-    method: 'getEpochInfo',
-    params: [{ commitment: 'confirmed' }],
-  }, {
-    headers: { 'Content-Type': 'application/json' },
-  });
-  const currentEpoch = epochResponse.data.result?.epoch || 0;
-
-  // Solana genesis: March 16, 2020 (UTC)
-  const SOLANA_GENESIS_MS = Date.UTC(2020, 2, 16);
-  const yearsSinceGenesis = (Date.now() - SOLANA_GENESIS_MS) / (365.25 * 24 * 60 * 60 * 1000);
-  const epochsPerYear = yearsSinceGenesis > 0 ? currentEpoch / yearsSinceGenesis : 0;
+  const epochsPerYear = await getSolanaEpochsPerYear(rpcUrl);
 
   return {
     totalLamports: Number(totalLamports),

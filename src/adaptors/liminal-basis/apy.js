@@ -78,6 +78,7 @@ async function getNavUpdates(navOracleAddress, chain) {
     toBlock,
     eventAbi: abi.navUpdated,
     entireLog: true,
+    parseLog: true,
   });
 
   return parseNavUpdates(logs);

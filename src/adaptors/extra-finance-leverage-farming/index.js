@@ -17,7 +17,7 @@ const project = 'extra-finance-leverage-farming';
 const chains = ['optimism', 'base'];
 const subgraphUrls = {
   optimism:
-    'https://gateway.thegraph.com/api/a4998f968b8ad324eb3e47ed20c00220/deployments/id/QmXYvc82BmDKdPbhi6i6kgYCnPpA1uHifdWVoMEMBKuRa1',
+    'https://gateway.thegraph.com/api/a4998f968b8ad324eb3e47ed20c00220/deployments/id/QmSRN9bwXsMfkrKqv9a3dzqfwcUxQxtDLCg3sbYjqoteVj',
   base: 'https://gateway.thegraph.com/api/a4998f968b8ad324eb3e47ed20c00220/deployments/id/QmT6s8gNmKrshbuHz3636UgCLp9RkBKQmRh2zt4wzpnDpL',
 };
 

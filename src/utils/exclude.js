@@ -123,8 +123,6 @@ const excludedProtocols = [
   { id: '490', slug: 'plenty' },
   { id: '944', slug: 'platypus-finance' },
   { id: '373', slug: 'biswap-v2' },
-  { id: '1546', slug: 'burrow' }, // current slug: rhea-lend
-  { id: '541', slug: 'ref-finance' }, // current slug: rhea-dex
   { id: '2601', slug: 'shoebill-v1' },
   { id: '2773', slug: 'auragi-finance' },
   { id: '234', slug: 'notional-v2' },
@@ -509,18 +507,89 @@ const excludedProtocols = [
   { id: '2319', slug: 'gmd-protocol' },
   { id: '4938', slug: 'meso-finance' },
   { id: '2001', slug: 'demex-perp' },
-  { id: '7336', slug: 'satsuma' },
   { id: '7335', slug: 'juiceswap' },
   { id: '1895', slug: 'sideshift' },
   { id: '5214', slug: 'metrom' },
   { id: '435', slug: 'hop-protocol' },
+  { id: '2228', slug: 'aries-markets' },
+  { id: '703', slug: 'goldfinch' }, // winding down, senior pool tvl is book value of defaulted loans
+  { id: '3091', slug: 'equilibria' }, // winding down, pendle lp boosting ended after vePENDLE -> sPENDLE
+  { id: '3083', slug: 'penpie' }, // winding down, no boosting on new pendle pools after vePENDLE -> sPENDLE, pnp emissions ended
+  { id: '5655', slug: 'resolv-usr' },
+  { id: '3912', slug: 'dinero-(pxeth)' },
+  { id: '8243', slug: 'apyee' }, // no deposits since launch, tvl < $5
+  { id: '4366', slug: 'javsphere' }, // winding down
+  { id: '7602', slug: 'circuit' }, // hacked, winding down
+  { id: '3958', slug: 'dsf.finance' }, // vault drained 2026-10-08 by operator key via strategy withdrawAll (~$521k to Tornado), site 503
+  { id: '5199', slug: 'folks-finance-xchain' }, // winding down: deposits paused 2026-10-08 (all hub pools deprecated on-chain), xapp shuts 2027-03-31; successor Folks Markets TBA
+  { id: '4019', slug: 'ajna-v2' },
+  { id: '6238', slug: 'smardex-usdn' },
+  { id: '577', slug: 'allbridge-classic' },
+  { id: '6413', slug: 'full-sail' },
+  { id: '7419', slug: 'zentra-finance' },
+  { id: '2864', slug: 'thena-fusion' },
+  { id: '1986', slug: 'canto-lending' },
+  { id: '7451', slug: 'acre' },
+  { id: '2825', slug: 'nostra-money-market' },
+  { id: '4053', slug: 'nostra-pools' },
+  { id: '4537', slug: 'venomstake' }, // venom mainnet migration (venom.foundation/migration): api.venomstake.com gone, stVENOM to be unstaked; new staking contract pending, re-add with a rebuilt adapter
+  { id: '4430', slug: 'web3.world' }, // venom mainnet migration (venom.foundation/migration): api.web3.world gone; moving to new chain, re-add once its new api/contracts are live
+  { id: '5796', slug: 'lazy-summer-protocol' }, // wound down: tvl collapsed 2026-07-29 ($1.6M -> ~$1k), remaining vaults 0% apy
+  { id: '6797', slug: 'forgeyields' }, // abandoned: strategies API 500 since early Oct 2026, all vaults 0% APY since Sep 2026, team silent since Jun 2026
+  { id: '5905', slug: 'multipli.fi' }, // multipli.fi dns gone ~2026-10-11 (api/app/docs), apy only served by their api; on-chain activity stopped early Sep 2026
+  { id: '2783', slug: 'scrub-invest' }, // vaults empty (USDt $1, KAVA $0) and TIGER/LION unpriced since ~2026-10-18; stale $7.4M TIGER-LION row vs $28k protocol tvl
+  { id: '604', slug: 'sherlock' },
+  { id: '5580', slug: 'latch' }, // winding down: withdrawals disabled on savings.latch.io, atUSD/atETH live on Gravity Alpha which shuts 2026-11-01, apy api 503 since 2026-10-29
+  { id: '7244', slug: 'harbor' }, // winding down: all markets archived (deposits disabled, withdraw-only)
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
 
 const excludePools = [
+  // pancakeswap-amm-v3 PORT3-USDT 0.01% on Ethereum: holds 3.4e10 PORT3 minted in the 2025-11 PORT3 exploit and 0 USDT,
+  // the TVL adapter blacklists PORT3 for the same reason (DefiLlama-Adapters projects/pancakeswap-v3)
+  '0xa0fca9c19934e7cb8993ddd8590b4a47addb2169',
+  // burrow -> rhea-lend rename (2026-09-22): legacy markets the rhea-lend adapter no longer serves
+  'burrow-pool-2260fac5e5542a773aa44fbcfedf7c193bc2c599.factory.bridge.near',
+  'burrow-pool-4691937a7508860f876c9c0a2a617e7d9e945d4b.factory.bridge.near',
+  'burrow-pool-aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near',
+  'burrow-pool-aurora',
+  'burrow-pool-eth.bridge.near',
+  'burrow-pool-linear-protocol.near',
+  'burrow-pool-lst.rhealab.near',
+  'burrow-pool-meta-pool.near',
+  'burrow-pool-meta-token.near',
+  'burrow-pool-nbtc.bridge.near',
+  'burrow-pool-token.burrow.near',
+  'burrow-pool-usn',
+  'burrow-pool-v2-nearx.stader-labs.near',
+  'burrow-pool-wrap.near',
+  'burrow-pool-zec.omft.near',
+  // duplicate keys minted by PR #3000 before the adapter was pointed back at the burrow-pool-* ids
+  'rhea-lend-17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1-near',
+  'rhea-lend-6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near-near',
+  'rhea-lend-853d955acef822db058eb8505911ed77f175b99e.factory.bridge.near-near',
+  'rhea-lend-a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near-near',
+  'rhea-lend-dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near-near',
+  'rhea-lend-usdt.tether-token.near-near',
   '0xf4bfe9b4ef01f27920e490cea87fe2642a8da18d',
   'DWmAv5wMun4AHxigbwuJygfmXBBe9WofXAtrMCRJExfb', // Solend COOL coin pool
+  'F4L35cxj6VXL2zQn8w6ee8J3rv1Ymt2PFapwmjQuENbu',
+  'GYWUemgmdmnZv7L5dwgR76FG6q3xcmheVHRF778xNPnN',
+  'DCnLD1Mx3pvANxTqmJW3kUWyb2BJ9xdMsHkS1D4qbL53',
+  'ACk4Qcwp6AxhSXsnjhUcHFZrUmPhh37z3ZpdaNTvT77c',
+  '5xG23Q45e2ALbTaVn7nkv1KX2sgCY5x5b133bPJKUmV3',
+  '5FfGfaxPy5jH7psBYu5rnfQhepHDLAZjAqNhzrojyMo8',
+  'B6TjRpJgNhUfSqkp2Dw2YGjChWfSZQ7euuFTVXyvUyuB',
+  'GzNxnSd3S8wLHrcJMFq4FnVgsvzwbzatK4GJtHQGtcUJ',
+  '9wXKZmEwNoUZ4phqNpdtSVL6UWhiJZQicedygefPuvYE',
+  '6MPvh9dmg1cjMUs592oBRQ4Mn5tY7zSjPcyEMJWeg4e9',
+  'Efzu5frwXKdHhkkEiB6i1mDpjkzquRdaP6Q4nupgYAdF',
+  '2XpwPdQibi9ePmG6zhNHXrTn26uumiYmb4r9uEy9XVCJ',
+  '4hQfnKBdNKxntkBXBg1mG1C8cgrXubiFf6u7RXazLmPi',
+  '5ZXGXFDmPowvcYL2apdu6qRVnozwuKUVwp8rewP7JvA2',
+  '7WwV8yLKetA7P4659s23bu2JHpi6MhkfU5825ZSdTiHV',
+  '8nXn5zEXFbAvXyeYgLLethMVfHxU4QgyG2GVrHmKojqR',
   // ripae pools (reported by MathieuB as scam project, and definitely not noIL!)
   'ripae-seth-weth-42161',
   'ripae-peth-weth-42161',
@@ -2484,6 +2553,22 @@ const excludePools = [
   'moonbeam-vglmr', // vGLMR, retiring
   'moonriver-vmovr', // vMOVR, retiring
   '0x3d71ad2852676f8a3644a37a2932e678c0b80cf3',
+  // curve pools on Curve's own blacklist (https://prices.curve.finance/v1/chains/pool_filters), 2026-09-22
+  '0x06364f10B501e868329afBc005b3492902d6C763-ethereum',
+  '0x18042f2FaB99af6E374e4f5F3c2218102993cc23-ethereum',
+  '0x3f833Ed02629545DD78AFc3D585f7F3918a3De62-fantom',
+  '0x509C6c89Fbf48b968B52C8069607C729464C78b6-ethereum',
+  '0x706dDBd9F2aaD43F50162a89A1cFF30a7942Ca97-ethereum',
+  '0x79a8C46DeA5aDa233ABaFFD40F3A0A2B1e5A4F27-ethereum',
+  '0x85Bbd07eC4d0FC23C42b6Ca4aF266EAEC65342fB-arbitrum',
+  '0xBfb55Ae4e43C28674efD8A31A206e67C08484E2A-ethereum',
+  '0xF84BA2f9940973eD1E8ec579Be7856076E365cB5-arbitrum',
+  '0xFE3C78D947b329160496E192b4Cf417bB86272Ed-ethereum',
+  // uniswap-v4 BMD-USDC: the pool sits at its only position's lower tick
+  // (-276325, $1/BMD), so on-chain it holds ~1e20 BMD and the 0.1 USDC its one
+  // swap paid in, but the fallback subgraph reports 48.5M USDC ($97M tvl). BMD
+  // (1.16e59 supply) has no price, so the pool has no measurable tvl (2026-10-26)
+  '0xbddcef32a41bb9c9fa37b2442433ddffdd6095c7e6b0aeb1b0b979a5b5529e67-ethereum-uniswap-v4',
 ];
 
 const boundaries = {

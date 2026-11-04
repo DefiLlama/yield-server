@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { request, gql } = require('graphql-request');
+const { gql } = require('graphql-request');
 const utils = require('../utils');
 
 const abiSugar = require('./abiSugar.json');
@@ -30,9 +30,10 @@ const gaugeFeesAbi = {
   ],
 };
 
-// Same counters sugar.all exposes, read per-pool. Used for pools the
-// subgraph doesn't index (newer CL factories) — three multicalls over
-// ~100 addresses instead of paginating ~12k sugar entries per block.
+// Same counters sugar.all exposes, read per-pool: three multicalls over the
+// addresses asked for, instead of paginating ~12k sugar entries per block.
+// Used for the pools the subgraph doesn't index (newer CL factories) and,
+// when the subgraph is down, for every gauged pool.
 async function fetchPoolFeesTargeted(blockNumber, lps) {
   const calls = lps.map((target) => ({ target }));
   const opts = { calls, chain: CHAIN, block: blockNumber, permitFailure: true };
@@ -57,24 +58,6 @@ async function fetchPoolFeesTargeted(blockNumber, lps) {
       gauge_liquidity: s.output,
     };
   });
-  return fees;
-}
-
-// Fetch gauge fees for all CL pools at a historical block, keyed by lp address.
-// Reuses the shared pagination helper defined below.
-async function fetchPoolFeesAtBlock(blockNumber) {
-  const raw = await paginatePools(blockNumber);
-  const fees = {};
-  for (const p of raw.filter(
-    (t) => Number(t.type) > 0 && t.gauge != nullAddress
-  )) {
-    fees[p.lp.toLowerCase()] = {
-      token0_fees: p.token0_fees,
-      token1_fees: p.token1_fees,
-      liquidity: p.liquidity,
-      gauge_liquidity: p.gauge_liquidity,
-    };
-  }
   return fees;
 }
 
@@ -121,11 +104,29 @@ const metaQuery = gql`
   }
 `;
 
+// Every indexer serving this subgraph can stall for ~40s before the gateway
+// gives up, which on its own is a third of the runner's adapter budget. axios
+// (not graphql-request) so the wait is actually aborted at the socket; a
+// healthy response to the heaviest query here measures 2-4s, so 15s is ~4x
+// headroom before we give up and take the on-chain path. The gateway answers
+// 200 with an `errors` body, so mirror graphql-request's throw-on-errors.
+const SUBGRAPH_TIMEOUT_MS = 15_000;
+
+async function subgraphRequest(query) {
+  const { data } = await axios.post(
+    SUBGRAPH,
+    { query },
+    { timeout: SUBGRAPH_TIMEOUT_MS }
+  );
+  if (data.errors) throw new Error(data.errors[0].message);
+  return data.data;
+}
+
 async function getPoolVolumes(timestamp = null) {
   let probe = null;
   if (timestamp === null) {
     try {
-      const meta = await utils.withRetry(() => request(SUBGRAPH, metaQuery));
+      const meta = await utils.withRetry(() => subgraphRequest(metaQuery));
       probe = {
         lagSec:
           Math.floor(Date.now() / 1000) - Number(meta._meta.block.timestamp),
@@ -153,13 +154,13 @@ async function getPoolVolumes(timestamp = null) {
   const queryPriorC = queryPrior;
   let [dataNow, dataPrior, dataPrior7d] = await Promise.all([
     utils.withRetry(() =>
-      request(SUBGRAPH, query.replace('<PLACEHOLDER>', block))
+      subgraphRequest(query.replace('<PLACEHOLDER>', block))
     ),
     utils.withRetry(() =>
-      request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior))
+      subgraphRequest(queryPriorC.replace('<PLACEHOLDER>', blockPrior))
     ),
     utils.withRetry(() =>
-      request(SUBGRAPH, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
+      subgraphRequest(queryPriorC.replace('<PLACEHOLDER>', blockPrior7d))
     ),
   ]);
   dataNow = dataNow.pools;
@@ -422,7 +423,16 @@ const getGaugeApy = async ({
   let fees24hAgo = null;
   let fetchFeesAtBlock = null;
   if (!skipHistoricalFees) {
-    fetchFeesAtBlock = fetchPoolFeesAtBlock;
+    // Read the counters for the gauged pools we already hold rather than
+    // re-paginating all ~13k sugar entries per historical block: ~3s a
+    // snapshot instead of ~35s, for the same numbers. Without this the
+    // subgraph-down path alone exceeds the runner's adapter timeout once the
+    // epoch is >24h old and a second snapshot is needed.
+    const gaugedLps = allPoolsData.map((p) => p.lp.toLowerCase());
+    console.log(
+      `aerodrome-slipstream: targeted fee snapshots for all ${gaugedLps.length} gauged pools (subgraph unavailable)`
+    );
+    fetchFeesAtBlock = (block) => fetchPoolFeesTargeted(block, gaugedLps);
   } else if (subgraphCoveredPools) {
     const missingLps = allPoolsData
       .map((p) => p.lp.toLowerCase())
@@ -435,8 +445,10 @@ const getGaugeApy = async ({
     }
   }
   if (fetchFeesAtBlock) {
-    // bounded timeout so a stuck archive RPC can't eat the 900s budget
-    const HISTORICAL_FETCH_TIMEOUT_MS = 180_000;
+    // Bounded so a stuck archive RPC degrades (null apyBase, pools still
+    // reported) instead of running the whole adapter past the runner's
+    // timeout. Targeted snapshots measure 1-3s, so this is ~10x headroom.
+    const HISTORICAL_FETCH_TIMEOUT_MS = 30_000;
     const withTimeout = (promise, ms, label) => {
       let timerId;
       const timeout = new Promise((_, reject) => {

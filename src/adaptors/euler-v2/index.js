@@ -321,14 +321,9 @@ const getApys = async () => {
           evkVaults
         );
 
-        // Filter to active vaults for pool output (exclude frozen caps)
         const activeEvkVaults = evkVaults.filter((v) => {
           const info = evkVaultInfoMap[v.id.toLowerCase()];
-          return (
-            info &&
-            getSupplyApyFromVaultInfo(info) > 0 &&
-            !isCapFrozen(info.supplyCap)
-          );
+          return info && getSupplyApyFromVaultInfo(info) > 0;
         });
 
         // Collect unique asset addresses and fetch prices
@@ -399,6 +394,7 @@ const getApys = async () => {
               underlyingTokens: [assetAddr],
               borrowToken: assetAddr,
               borrowable: availableBorrowUsd > 0,
+              frozen: isCapFrozen(info.supplyCap),
               ltv: 0,
               url: `https://app.euler.finance/lend/${vaultAddr}?network=${config.urlChain}`,
             };
@@ -415,6 +411,7 @@ const getApys = async () => {
             const debtVaultAddr = ethersUtils.getAddress(debtInfo.vault || v.id);
             const debtRouteGroupKey = debtVaultAddr.toLowerCase();
             if (!evkPoolRouteGroupKeys.has(debtRouteGroupKey)) return [];
+            if (isCapFrozen(debtInfo.supplyCap)) return [];
 
             return (debtInfo.collateralLTVInfo || []).map((ltvInfo) => {
               const borrowLtv = getBorrowLtv(ltvInfo);

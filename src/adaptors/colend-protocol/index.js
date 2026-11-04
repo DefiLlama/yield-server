@@ -146,9 +146,6 @@ const fetchMarketData = async (target) => {
   const pricesEthereum = (await utils.getPriceApiData(`/prices/current/${priceKeys}`)).coins;
 
   return Promise.all(reserveTokens.map(async (pool, i) => {
-    const frozen = poolsReservesConfigurationData.output[i].output.isFrozen;
-    if (frozen) return null;
-
     const p = poolsReserveData.output[i].output;
     const price = pricesEthereum[`${chain}:${pool.tokenAddress}`]?.price;
     const decimals = Number(decimalsData.output[i].output);
@@ -203,8 +200,9 @@ const fetchMarketData = async (target) => {
       ltv: poolsReservesConfigurationData.output[i].output.ltv / 10000,
       url,
       borrowable: poolsReservesConfigurationData.output[i].output.borrowingEnabled,
+      frozen: poolsReservesConfigurationData.output[i].output.isFrozen,
     };
-  })).then((pools) => pools.filter(Boolean));
+  }));
 };
 
 const apy = async () => {

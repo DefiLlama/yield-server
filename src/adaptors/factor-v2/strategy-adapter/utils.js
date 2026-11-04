@@ -1,5 +1,5 @@
 const { default: axios } = require('axios');
-const { getPriceApiUrl } = require('../../utils');
+const { getPriceApiUrl, getYieldsApiUrl } = require('../../utils');
 
 async function getAprFromDefillamaPool(apyFunction, poolId) {
     const pools = await apyFunction();
@@ -35,11 +35,9 @@ function getCurrentTimestamp() {
 }
 
 async function getDefiLLamaPools(poolId) {
-    const response = await axios.get('https://yields.llama.fi/pools');
-    const pools = response.data.data;
-    return pools.find(
-        (pools) => pools.pool.toLowerCase() == poolId.toLowerCase()
-    );
+    const response = await axios.get(getYieldsApiUrl(`/earn/${poolId}`));
+    const { apy } = response.data.data;
+    return { apyBase: apy.current.base, apyReward: apy.current.reward ?? 0 };
 }
 
 module.exports = {

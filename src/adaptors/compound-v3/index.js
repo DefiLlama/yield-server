@@ -225,6 +225,7 @@ const main = async (pool) => {
     trackingIndexScale,
     decimals,
     isWithdrawPaused,
+    isSupplyPaused,
   ] = (
     await Promise.all(
       [
@@ -237,6 +238,7 @@ const main = async (pool) => {
         'trackingIndexScale',
         'decimals',
         'isWithdrawPaused',
+        'isSupplyPaused',
       ].map((method) =>
         sdk.api.abi.call({
           target: pool.address,
@@ -304,6 +306,7 @@ const main = async (pool) => {
     ltv: assetInfo[i].borrowCollateralFactor / 1e18,
     poolMeta: `${pool.underlyingSymbol}-pool`,
     borrowable: !isWithdrawPaused,
+    frozen: isSupplyPaused,
   }));
 
   const cometPool = {
@@ -325,6 +328,7 @@ const main = async (pool) => {
     availableBorrowUsd,
     borrowToken: pool.underlying,
     borrowable: !isWithdrawPaused,
+    frozen: isSupplyPaused,
     ltv: 0,
   };
 

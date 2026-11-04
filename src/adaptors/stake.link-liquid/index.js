@@ -2,7 +2,7 @@ const axios = require('axios');
 const { getPriceApiData } = require('../utils');
 
 const SUBGRAPH_URL =
-  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-staging-2';
+  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-mainnet';
 
 const poolsQuery = `
   {

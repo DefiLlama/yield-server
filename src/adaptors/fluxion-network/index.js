@@ -30,7 +30,7 @@ const poolsQuery = gql`
       feeTier
       totalValueLockedUSD
       volumeUSD
-      poolDayData(first: 7, orderBy: date, orderDirection: desc) {
+      poolDayData(first: 8, orderBy: date, orderDirection: desc) {
         date
         volumeUSD
       }
@@ -56,14 +56,18 @@ async function fetchAllPools() {
 
 async function apy() {
   const pools = await fetchAllPools();
+  const today = Math.floor(Date.now() / 1000 / 86400) * 86400;
 
   const formatted = pools
     .map((pool) => {
       const tvlUsd = Number(pool.totalValueLockedUSD) || 0;
       if (tvlUsd < 10000) return null;
 
-      const dayData = pool.poolDayData || [];
-      const volumeUsd1d = Number(dayData[0]?.volumeUSD) || 0;
+      const dayData = (pool.poolDayData || []).filter(
+        (d) => d.date < today && d.date >= today - 7 * 86400
+      );
+      const volumeUsd1d =
+        Number(dayData.find((d) => d.date === today - 86400)?.volumeUSD) || 0;
       const volumeUsd7d = dayData.reduce(
         (sum, d) => sum + (Number(d.volumeUSD) || 0),
         0
@@ -72,8 +76,7 @@ async function apy() {
       const feeRate = Number(pool.feeTier) / 1e6;
       const apyBase =
         tvlUsd > 0 ? ((volumeUsd1d * feeRate * 365) / tvlUsd) * 100 : 0;
-      const apyBase7d =
-        volumeUsd7d > 0 ? ((volumeUsd7d * feeRate * 52) / tvlUsd) * 100 : null;
+      const apyBase7d = ((volumeUsd7d * feeRate * 52) / tvlUsd) * 100;
 
       return {
         pool: pool.id.toLowerCase(),
