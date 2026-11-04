@@ -117,7 +117,6 @@ const apy = async () => {
       apyBase7d: apyBase,
       pricePerShare,
       underlyingTokens: [USDC_DENOM],
-      searchTokenOverride: SHARE_DENOM,
       poolMeta: 'n1USDC Vault',
       url: VAULT_URL,
     },

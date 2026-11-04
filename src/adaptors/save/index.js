@@ -5,6 +5,16 @@ const baseUrl = 'https://api.solend.fi';
 const configEndpoint = `${baseUrl}/v1/markets/configs`;
 const reservesEndpoint = `${baseUrl}/v1/reserves`;
 
+// api formats rates with thousands separators, e.g. "1,079.52"
+const parseRate = (value) => Number(String(value).replace(/,/g, ''));
+
+// fully borrowed reserves (bad debt) are unwithdrawable and quote max-curve rates
+const isFullyBorrowed = ({ liquidity }) => {
+  const available = Number(liquidity.availableAmount);
+  const borrowed = Number(liquidity.borrowedAmountWads) / 1e18;
+  return borrowed > 0 && available / (available + borrowed) < 0.001;
+};
+
 const main = async () => {
   const configResponse = await fetch(`${configEndpoint}?deployment=production`);
 
@@ -21,7 +31,7 @@ const main = async () => {
   const tokenIds = reservesConfigs.map((reserve) => reserve.address);
   const reserves = [];
   const maxIds = 50;
-  for (let i = 0; i <= tokenIds.length; i += maxIds) {
+  for (let i = 0; i < tokenIds.length; i += maxIds) {
     const tokens = tokenIds.slice(i, i + maxIds).join(',');
     const reservesResponse = await fetch(`${reservesEndpoint}?ids=${tokens}`);
     const res = (await reservesResponse.json()).results;
@@ -30,20 +40,29 @@ const main = async () => {
     reserves.push(res);
   }
 
-  return reserves.flat().map((reserveData, index) => {
-    const reserveConfig = reservesConfigs[index];
+  // match by address: a failed batch must not shift data onto other pools
+  const configsByAddress = new Map(
+    reservesConfigs.map((reserve) => [reserve.address, reserve])
+  );
+  const reserveRows = reserves
+    .flat()
+    .filter((reserveData) => configsByAddress.has(reserveData.reserve.address))
+    .filter((reserveData) => !isFullyBorrowed(reserveData.reserve));
+
+  return reserveRows.map((reserveData) => {
+    const reserveConfig = configsByAddress.get(reserveData.reserve.address);
     const liquidity = reserveData.reserve.liquidity;
     const collateral = reserveData.reserve.collateral;
-    const apyBase = Number(reserveData.rates.supplyInterest);
-    const apyBaseBorrow = Number(reserveData.rates.borrowInterest);
+    const apyBase = parseRate(reserveData.rates.supplyInterest);
+    const apyBaseBorrow = parseRate(reserveData.rates.borrowInterest);
     const apyReward = reserveData.rewards.reduce(
       (acc, reward) =>
-        reward.side === 'supply' ? (Number(reward.apy) || 0) + acc : acc,
+        reward.side === 'supply' ? (parseRate(reward.apy) || 0) + acc : acc,
       0
     );
     const apyRewardBorrow = reserveData.rewards.reduce(
       (acc, reward) =>
-        reward.side === 'borrow' ? (Number(reward.apy) || 0) + acc : acc,
+        reward.side === 'borrow' ? (parseRate(reward.apy) || 0) + acc : acc,
       0
     );
 

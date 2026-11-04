@@ -898,15 +898,23 @@ async function getVaultsOnChain(chain, chainId, alias) {
 async function apy() {
   const vaults = [];
   const tasks = [];
-  for (const key of Object.keys(VAULTS)) {
+  const keys = Object.keys(VAULTS);
+  const failed = [];
+  for (const key of keys) {
     const task = async () => {
       const { alias, chain, chainId } = VAULTS[key];
-      const vaultsOnChain = await getVaultsOnChain(chain, chainId, alias);
-      for (const vault of vaultsOnChain) vaults.push(vault);
+      try {
+        const vaultsOnChain = await getVaultsOnChain(chain, chainId, alias);
+        for (const vault of vaultsOnChain) vaults.push(vault);
+      } catch (error) {
+        failed.push(`${key}: ${error.message}`);
+      }
     };
     tasks.push(task());
   }
   await Promise.all(tasks);
+  if (failed.length === keys.length)
+    throw new Error(`termmax: every chain failed -> ${failed.join(' | ')}`);
   return vaults;
 }
 

@@ -134,7 +134,6 @@ const apy = async () => {
       apyReward: restakingApy,
       ...(pricePerShare > 0 && { pricePerShare }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: weETH,
       rewardTokens: [lrt2],
       url: 'https://ether.fi/app/weeth',
       isIntrinsicSource: true
@@ -149,7 +148,6 @@ const apy = async () => {
       apyBase7d: eBTCApyBase7d,
       ...(eBTCRateCurrent / 1e8 > 0 && { pricePerShare: eBTCRateCurrent / 1e8 }),
       underlyingTokens: [LBTC, WBTC],
-      searchTokenOverride: eBTC,
       url: 'https://ether.fi/app/ebtc',
       isIntrinsicSource: true
     },
@@ -199,7 +197,6 @@ const getBridgedWeethPools = async ({ apyBase, apyBase7d, apyReward, pricePerSha
         apyReward,
         ...(pricePerShare > 0 && { pricePerShare }),
         underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-        searchTokenOverride: addr,
         rewardTokens: [lrt2],
         url: 'https://ether.fi/app/weeth',
         isIntrinsicSource: true,

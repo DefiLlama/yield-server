@@ -25,7 +25,6 @@ const apy = async () => {
         (Number(tvl.balance) / 1e8) * price.coins[`ethereum:${token}`]?.price,
       apyBase: apy.lbtc_estimated_apy * 100,
       underlyingTokens: [WBTC],
-      searchTokenOverride: token,
       isIntrinsicSource: true,
     },
   ];

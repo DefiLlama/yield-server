@@ -1,12 +1,24 @@
 const dolomiteMarginAbi = require('./dolomite-margin-abi.js');
 const isolationModeAbi = require('./isolation-mode-token-abi.js');
 const sdk = require('@defillama/sdk');
+const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const DOLOMITE_MARGIN_ADDRESS_MAP = {
   arbitrum: '0x6Bd780E7fDf01D77e4d475c821f1e7AE05409072',
   berachain: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
   ethereum: '0x003Ca23Fd5F0ca87D01F6eC6CD14A8AE60c2b97D',
+};
+const DEPLOYMENTS_URL =
+  'https://raw.githubusercontent.com/dolomite-exchange/dolomite-margin-modules/master/packages/deployment/src/deploy/deployments.json';
+const CHAIN_IDS = { arbitrum: 42161, berachain: 80094, ethereum: 1 };
+// same tokens the TVL adapter (DefiLlama-Adapters projects/dolomite) leaves out
+const EXCLUDED_TOKENS = {
+  ethereum: [
+    '0xda5e1988097297dcdc1f90d4dfe7909e847cbef6', // WLFI, almost all supplied by the WLFI team multisig
+    '0x8af3b9d0e53186ae13b32fd783f42663bf48d389', // WLFIcx, concrete-issued WLFI, already counted in concrete-xyz
+    '0x852724426b2851487b278a3377449bf26b06c1ba', // BTCcx, concrete-issued custodial BTC, already counted in concrete-xyz
+  ],
 };
 const getMarketMaxBorrowWeiAbi = {
   name: 'getMarketMaxBorrowWei',
@@ -22,7 +34,35 @@ const getMarketMaxBorrowWeiAbi = {
   stateMutability: 'view',
 };
 
-async function apy() {
+async function getDTokensByMarketId(chain, marketTokens, timestamp, deployments) {
+  const dTokenAddresses = Object.entries(await deployments)
+    .filter(([name]) => name.endsWith('4626Token'))
+    .map(([, byChainId]) => byChainId[CHAIN_IDS[chain]]?.address)
+    .filter(Boolean);
+  const block = timestamp
+    ? (await utils.getBlocksByTime([timestamp], chain))[0]
+    : undefined;
+  const calls = dTokenAddresses.map((target) => ({ target }));
+  const [assets, marketIds] = await Promise.all(
+    ['address:asset', 'uint256:marketId'].map((abi) =>
+      sdk.api.abi.multiCall({ abi, calls, chain, block, permitFailure: true })
+    )
+  );
+  const dTokens = {};
+  dTokenAddresses.forEach((dToken, i) => {
+    const asset = assets.output[i].output;
+    const marketId = marketIds.output[i].output;
+    if (asset && asset.toLowerCase() === marketTokens[marketId]?.toLowerCase())
+      dTokens[marketId] = dToken;
+  });
+  return dTokens;
+}
+
+async function apy(timestamp) {
+  const deployments = utils.getData(DEPLOYMENTS_URL).catch((e) => {
+    console.error(`dolomite deployments.json fetch failed: ${e.message}`);
+    return {};
+  });
   const allPools = await Promise.all(
     Object.entries(DOLOMITE_MARGIN_ADDRESS_MAP).map(
       async ([chain, dolomiteMargin]) => {
@@ -73,6 +113,12 @@ async function apy() {
           permitFailure: true,
         });
         const tokens = tokensRes.output.map((o) => o.output);
+        const dTokens = await getDTokensByMarketId(chain, tokens, timestamp, deployments).catch(
+          (e) => {
+            console.error(`dolomite ${chain} dToken lookup failed: ${e.message}`);
+            return {};
+          }
+        );
 
         const borrowablesRes = await sdk.api.abi.multiCall({
           abi: dolomiteMarginAbi.find((i) => i.name === 'getMarketIsClosing'),
@@ -173,17 +219,19 @@ async function apy() {
         });
         const names = namesRes.output.map((o) => o.output);
 
-        // Track which tokens are isolation mode dTokens (ERC20 receipt tokens)
-        const receiptTokens = new Array(names.length).fill(null);
         for (let i = 0; i < names.length; i++) {
-          if (names[i] === 'Dolomite Isolation: Arbitrum' || names[i] === 'GMX' || names[i] === 'Infrared BGT') {
+          if (
+            names[i] === 'Dolomite Isolation: Arbitrum' ||
+            names[i] === 'GMX' ||
+            names[i] === 'Infrared BGT' ||
+            (chain === 'arbitrum' && i === 75)
+          ) {
             tokens[i] = undefined;
             symbols[i] = undefined;
           } else if (
             names[i] === 'Dolomite: Fee + Staked GLP' ||
             names[i].includes('Dolomite Isolation:')
           ) {
-            receiptTokens[i] = tokens[i]; // preserve dToken as receipt
             const underlyingToken = await sdk.api.abi.call({
               abi: isolationModeAbi.find((i) => i.name === 'UNDERLYING_TOKEN'),
               target: tokens[i],
@@ -232,7 +280,7 @@ async function apy() {
         );
 
         return range.reduce((acc, i) => {
-          if (tokens[i]) {
+          if (tokens[i] && !EXCLUDED_TOKENS[chain]?.includes(tokens[i].toLowerCase())) {
             const availableBorrowUsd = borrowables[i]
               ? Math.max(
                   Math.min(
@@ -249,7 +297,7 @@ async function apy() {
               symbol: symbols[i],
               chain: chain.charAt(0).toUpperCase() + chain.slice(1),
               project: 'dolomite',
-              token: receiptTokens[i] || null,
+              token: dTokens[i] || null,
               tvlUsd: supplyUsds[i] - borrowUsds[i],
               apyBase: supplyInterestRateApys[i],
               ...(Number(indices[i].supply) / 1e18 > 0 && { pricePerShare: Number(indices[i].supply) / 1e18 }),

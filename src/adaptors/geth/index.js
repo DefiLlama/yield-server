@@ -77,7 +77,6 @@ const getApy = async () => {
       apyBase,
       apyBase7d,
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: token,
       isIntrinsicSource: true,
     },
   ];

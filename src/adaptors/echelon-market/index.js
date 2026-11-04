@@ -139,8 +139,12 @@ async function main() {
   const netTVLArr = [];
   const chains = ['aptos', 'move', 'echelon_initia'];
   for (const chain of chains) {
-    const chainTVLArr = await fetchEchelonForChain(chain);
-    netTVLArr.push(...chainTVLArr);
+    try {
+      const chainTVLArr = await fetchEchelonForChain(chain);
+      netTVLArr.push(...chainTVLArr);
+    } catch (e) {
+      console.error(`echelon-market ${chain}: ${e.message}`);
+    }
   }
 
   return netTVLArr;

@@ -132,9 +132,9 @@ async function fetchAPYs(strategies: StrategiesInChainResponse['strategies'], ma
     .filter((item, pos) => strategies.findIndex(({ farm }) => farm.id === item) === pos); // Remove duplicates
 
   const apys = await Promise.all(farmIds.map(async (farmId) => {
-    const url = `https://yields.llama.fi/chart/${mappings[farmId]}`
-    const data: { data: { apyBase: number, apyReward: number }[] } = await utils.getData(url)
-    const { apyBase, apyReward } = data.data[data.data.length - 1]
+    const url = utils.getYieldsApiUrl(`/earn/${mappings[farmId]}`)
+    const { data }: { data: { apy: { current: { base: number, reward: number } } } } = await utils.getData(url)
+    const { base: apyBase, reward: apyReward } = data.apy.current
     return [farmId, { apyBase: apyBase ?? 0, apyReward: apyReward ?? 0 }]
   }))
   return Object.fromEntries(apys);

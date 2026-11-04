@@ -69,7 +69,6 @@ const apy = async () => {
         underlyingTokens: [TD],
         token: stTD,
         isIntrinsicSource: true,
-        searchTokenOverride: 'stTD',
       },
     ];
   } catch (e) {

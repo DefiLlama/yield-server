@@ -13,8 +13,20 @@ const { readFromS3 } = require('../../utils/s3');
 
 let poolsEnriched = {
   lastUpdate: Date.now(),
-  data: null
+  data: null,
+  byPool: new Map()
 }
+
+const buildPoolIndex = (data) => new Map(data.map((pool) => [pool.pool, pool]));
+
+const getPoolFromIndex = (index, configID) => {
+  const pool = index.get(configID);
+  if (!pool) return [];
+
+  const responsePool = { ...pool };
+  delete responsePool.poolTokenAddress;
+  return [responsePool];
+};
 
 async function getPoolsEnrichedData(){
   if(poolsEnriched.lastUpdate < (Date.now() - 10*60*1e3) || poolsEnriched.data === null){
@@ -25,7 +37,8 @@ async function getPoolsEnrichedData(){
     );
     poolsEnriched = {
       lastUpdate: Date.now(),
-      data
+      data,
+      byPool: buildPoolIndex(data)
     }
   }
   return poolsEnriched.data
@@ -43,18 +56,12 @@ const getPoolEnriched = async (req, res) => {
   let columns = poolsEnrichedColumns;
   columns = queryString !== undefined ? [...columns, 'url'] : columns;
 
-  const data = await getPoolsEnrichedData()
+  await getPoolsEnrichedData()
   res
     .status(200)
     .json({
       status: 'success',
-      data: data
-        .filter((t) => t.pool == configID)
-        .map((pool) => {
-          const responsePool = { ...pool };
-          delete responsePool.poolTokenAddress;
-          return responsePool;
-        }),
+      data: getPoolFromIndex(poolsEnriched.byPool, configID),
     });
 };
 
@@ -127,4 +134,4 @@ const getPoolsBorrow = async (req, res) => {
   });
 };
 
-module.exports = { getPoolEnriched, getPoolsEnrichedPro, getPoolsBorrow };
+module.exports = { buildPoolIndex, getPoolFromIndex, getPoolEnriched, getPoolsEnrichedPro, getPoolsBorrow };

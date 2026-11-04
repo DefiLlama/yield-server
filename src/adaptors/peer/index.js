@@ -15,7 +15,7 @@ const WAD_DECIMALS = 18;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 const ESCROW_V2 = '0x777777779d229cdF3110e9de47943791c26300Ef';
-const ORCHESTRATOR_V2 = '0x888888359E981B5225CA48fbCdCeff702FC3b888';
+const ORCHESTRATOR_V3 = '0x014025fDE093f8701d86e9f38e2C3a9b779cb5c7';
 const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
 const EVENTS = {
@@ -459,13 +459,13 @@ async function fetchWindowStats(
   const [signalLogs, fulfillmentLogs, transferLogs, marketRates] =
     await Promise.all([
       getEventLogsInChunks({
-        target: ORCHESTRATOR_V2,
+        target: ORCHESTRATOR_V3,
         eventAbi: EVENTS.IntentSignaled,
         fromBlock: signalFromBlock,
         toBlock: latestBlockNumber,
       }),
       getEventLogsInChunks({
-        target: ORCHESTRATOR_V2,
+        target: ORCHESTRATOR_V3,
         eventAbi: EVENTS.IntentFulfilled,
         fromBlock: windowFromBlock,
         toBlock: latestBlockNumber,

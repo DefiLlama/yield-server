@@ -85,7 +85,6 @@ const chainApy = async (chain) => {
     apyBaseInception,
     ...(pricePerShare > 0 && { pricePerShare }),
     underlyingTokens: [WMON],
-    searchTokenOverride: vault,
     isIntrinsicSource: true,
   };
 };

@@ -12,9 +12,16 @@ const hubsByChain = {
     core: '0xCca852Bc40e560adC3b1Cc58CA5b55638ce826c9',
     plus: '0x06002e9c4412CB7814a791eA3666D905871E536A',
     prime: '0x943827DCA022D0F354a8a8c332dA1e5Eb9f9F931',
+    globalDollar: '0x62d63197660c080236193CA60b70E49A08E90368',
   },
   avax: {
     core: '0xd07369fAE4A5BB13c9Ce446B052c7867B1AbDf6e',
+  },
+  arc: {
+    core: '0x17288dfc86205301064577b98B02b81017e6F79C',
+  },
+  base: {
+    coinbaseStocks: '0xa4d5947Eb727A052bae69C593FfC84247EC9864E',
   },
 };
 
@@ -30,6 +37,9 @@ const spokeNamesByChain = {
     '0xe1900480ac69f0b296841cd01cc37546d92f35cd': 'Lido',
     '0x7ec68b5695e803e98a21a9a05d744f28b0a7753d': 'Lombard',
     '0x94e7a5dcbe816e498b89ab752661904e2f56c485': 'Main',
+    '0x956d8e0a89cfa3744428c4641b5a53b56167a7f9': 'USDG Pendle',
+    '0x774b9655413c34809c1f1b16b654465a89ebe989': 'USDG Maple',
+    '0xb9b0b8616f6bf6841972a52058132be08d723155': 'Treasury',
   },
   avax: {
     '0x435272ceff93a1e657e8abfdf0a13e95900a3a56': 'Main',
@@ -38,19 +48,43 @@ const spokeNamesByChain = {
   },
 };
 
+const AAVE_API_URL = 'https://api.aave.com/graphql';
+
+// Merkl campaigns on v4 are "net APR" targets whose raw Merkl `apr` includes
+// the base rate; Aave's API exposes the reconciled increment as `extraApy`.
+const hubRewardsQuery = `query Rewards($request: ReservesRequest!) {
+  reserves(request: $request) {
+    spoke { address }
+    asset { onchainAssetId hub { address } }
+    summary {
+      rewards {
+        __typename
+        ... on MerklSupplyReward { extraApy { value } payoutToken { address } }
+        ... on MerklBorrowReward { discountApy { value } payoutToken { address } }
+      }
+    }
+  }
+}`;
+
 const toNumber = (value) => Number(value ?? 0);
 const scale = (value, decimals) => toNumber(value) / 10 ** Number(decimals);
 const getAssetKey = (hub, assetId) => `${hub.toLowerCase()}:${assetId}`;
 const getReserveKey = (hub, assetId, spoke) =>
   `${getAssetKey(hub, assetId)}:${spoke.toLowerCase()}`;
 const formatPoolMeta = (value) =>
-  value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+  value
+    ? (value.charAt(0).toUpperCase() + value.slice(1)).replace(
+        /([a-z])([A-Z])/g,
+        '$1 $2'
+      )
+    : value;
 const isUncapped = (cap, maxCap) => toNumber(cap) >= toNumber(maxCap);
+const isReserveFrozen = (reserve) =>
+  reserve.spokeConfig.halted ||
+  reserve.reserveConfig.paused ||
+  reserve.reserveConfig.frozen;
 const isReserveActive = (reserve) =>
-  reserve.spokeConfig.active &&
-  !reserve.spokeConfig.halted &&
-  !reserve.reserveConfig.paused &&
-  !reserve.reserveConfig.frozen;
+  reserve.spokeConfig.active && !isReserveFrozen(reserve);
 
 const getSpokeCalls = (assetCalls, spokeCounts) =>
   assetCalls.flatMap((asset, i) =>
@@ -63,6 +97,75 @@ const getSpokeCalls = (assetCalls, spokeCounts) =>
       },
     }))
   );
+
+const emptyRewards = () => ({
+  apyReward: 0,
+  apyRewardBorrow: 0,
+  rewardTokens: [],
+  borrowRewardTokens: [],
+});
+
+const getHubRewards = async (chainId, hubs) => {
+  const responses = await Promise.allSettled(
+    Object.values(hubs).map((hub) =>
+      axios.post(AAVE_API_URL, {
+        query: hubRewardsQuery,
+        variables: {
+          request: {
+            query: {
+              hubId: Buffer.from(`${chainId}::${hub}`).toString('base64'),
+            },
+          },
+        },
+      })
+    )
+  );
+
+  const assetRewards = {};
+  const reserveRewards = {};
+  for (const res of responses) {
+    if (res.status !== 'fulfilled') continue;
+    for (const reserve of res.value.data?.data?.reserves ?? []) {
+      const entry = emptyRewards();
+      for (const reward of reserve.summary.rewards) {
+        if (reward.__typename === 'MerklSupplyReward') {
+          entry.apyReward += Number(reward.extraApy.value) * 100;
+          entry.rewardTokens.push(reward.payoutToken.address);
+        } else if (reward.__typename === 'MerklBorrowReward') {
+          entry.apyRewardBorrow += Number(reward.discountApy.value) * 100;
+          entry.borrowRewardTokens.push(reward.payoutToken.address);
+        }
+      }
+      if (!entry.apyReward && !entry.apyRewardBorrow) continue;
+
+      const assetKey = getAssetKey(
+        reserve.asset.hub.address,
+        reserve.asset.onchainAssetId
+      );
+      reserveRewards[`${assetKey}:${reserve.spoke.address.toLowerCase()}`] =
+        entry;
+
+      const current = assetRewards[assetKey] ?? emptyRewards();
+      assetRewards[assetKey] = {
+        apyReward: Math.max(current.apyReward, entry.apyReward),
+        apyRewardBorrow: Math.max(
+          current.apyRewardBorrow,
+          entry.apyRewardBorrow
+        ),
+        rewardTokens: [
+          ...new Set([...current.rewardTokens, ...entry.rewardTokens]),
+        ],
+        borrowRewardTokens: [
+          ...new Set([
+            ...current.borrowRewardTokens,
+            ...entry.borrowRewardTokens,
+          ]),
+        ],
+      };
+    }
+  }
+  return { assetRewards, reserveRewards };
+};
 
 const getReserveDetails = async (api, spokeEntries) => {
   if (!spokeEntries.length) return {};
@@ -166,7 +269,7 @@ const getAssetAvailableBorrowUsd = ({ reserves, ...asset }) =>
   Math.min(
     asset.tvlUsd,
     reserves
-      .filter(isReserveActive)
+      .filter((reserve) => reserve.spokeConfig.active)
       .reduce(
         (sum, reserve) =>
           sum + getReserveAvailableBorrowUsd({ reserve, ...asset }),
@@ -178,6 +281,11 @@ const getApy = async (chain) => {
   const hubs = hubsByChain[chain];
   const chainLabel = chain === 'avax' ? 'avalanche' : chain;
   const api = new sdk.ChainApi({ chain });
+
+  const rewardsPromise = getHubRewards(api.chainId, hubs).catch((err) => {
+    console.log(`aave-v4 ${chain} rewards lookup failed: ${err.message}`);
+    return { assetRewards: {}, reserveRewards: {} };
+  });
 
   const hubEntries = Object.entries(hubs);
   const hubAddresses = hubEntries.map(([, addr]) => addr);
@@ -232,21 +340,23 @@ const getApy = async (chain) => {
   ];
   const priceKeys = uniqueTokens.map((t) => `${chain}:${t}`).join(',');
 
-  const [balances, tokenSymbols, pricesRes] = await Promise.all([
-    api.multiCall({
-      abi: 'erc20:balanceOf',
-      calls: allCalls.map((c, i) => ({
-        target: underlyings[i][0],
-        params: [c.hub],
-      })),
-    }),
-    api.multiCall({
-      abi: 'erc20:symbol',
-      calls: allCalls.map((c, i) => underlyings[i][0]),
-      permitFailure: true,
-    }),
-    axios.get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`)),
-  ]);
+  const [balances, tokenSymbols, pricesRes, { assetRewards, reserveRewards }] =
+    await Promise.all([
+      api.multiCall({
+        abi: 'erc20:balanceOf',
+        calls: allCalls.map((c, i) => ({
+          target: underlyings[i][0],
+          params: [c.hub],
+        })),
+      }),
+      api.multiCall({
+        abi: 'erc20:symbol',
+        calls: allCalls.map((c, i) => underlyings[i][0]),
+        permitFailure: true,
+      }),
+      axios.get(utils.getPriceApiUrl(`/prices/current/${priceKeys}`)),
+      rewardsPromise,
+    ]);
   const prices = pricesRes.data.coins;
 
   const chainId = api.chainId;
@@ -305,6 +415,22 @@ const getApy = async (chain) => {
         poolMeta: formatPoolMeta(c.name),
       };
 
+      const rewards = assetRewards[underlyingStateKey];
+      if (rewards) {
+        const rewardTokens = [];
+        if (rewards.apyReward > 0) {
+          pool.apyReward = rewards.apyReward;
+          rewardTokens.push(...rewards.rewardTokens);
+        }
+        if (rewards.apyRewardBorrow > 0) {
+          pool.apyRewardBorrow = rewards.apyRewardBorrow;
+          rewardTokens.push(...rewards.borrowRewardTokens);
+        }
+        if (rewardTokens.length) {
+          pool.rewardTokens = [...new Set(rewardTokens)];
+        }
+      }
+
       assetsByKey[underlyingStateKey] = {
         ...pool,
         underlying,
@@ -335,11 +461,11 @@ const getApy = async (chain) => {
           : 0;
       const totalBorrowUsd =
         scale(reserve.spokeTotalOwed, asset.decimals) * asset.price;
-      const availableBorrowUsd = active
+      const availableBorrowUsd = reserve.spokeConfig.active
         ? getReserveAvailableBorrowUsd({ reserve, ...asset })
         : 0;
       const borrowable =
-        active &&
+        reserve.spokeConfig.active &&
         reserve.reserveConfig.borrowable &&
         toNumber(reserve.spokeConfig.drawCap) > 0;
       const spokeName =
@@ -358,6 +484,7 @@ const getApy = async (chain) => {
         poolKind: 'routing_reserve',
         ltv,
         borrowable,
+        frozen: isReserveFrozen(reserve),
         routeGroupKey: entry.spoke.toLowerCase(),
         url: asset.url,
         poolMeta: `${asset.poolMeta} / ${spokeName}`,
@@ -367,6 +494,13 @@ const getApy = async (chain) => {
         pool.totalBorrowUsd = totalBorrowUsd;
         pool.availableBorrowUsd = availableBorrowUsd;
         pool.borrowToken = asset.underlying;
+
+        const rewards =
+          reserveRewards[getReserveKey(entry.hub, entry.assetId, entry.spoke)];
+        if (rewards?.apyRewardBorrow > 0) {
+          pool.apyRewardBorrow = rewards.apyRewardBorrow;
+          pool.rewardTokens = rewards.borrowRewardTokens;
+        }
       }
 
       return pool;

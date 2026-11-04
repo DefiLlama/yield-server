@@ -34,6 +34,9 @@ provider:
     DATABASE_URL: ${file(./env.js):DATABASE_URL}
     ZEROX_API: ${file(./env.js):ZEROX_API}
     GRAPH_API_KEY: ${file(./env.js):GRAPH_API_KEY}
+    DL_API_KEY: ${file(./env.js):DL_API_KEY}
+    LLAMA_INDEXER_V2_ENDPOINT: ${file(./env.js):LLAMA_INDEXER_V2_ENDPOINT}
+    LLAMA_INDEXER_V2_API_KEY: ${file(./env.js):LLAMA_INDEXER_V2_API_KEY}
     R2_ENDPOINT: ${file(./env.js):R2_ENDPOINT}
     R2_ACCESS_KEY_ID: ${file(./env.js):R2_ACCESS_KEY_ID}
     R2_SECRET_ACCESS_KEY: ${file(./env.js):R2_SECRET_ACCESS_KEY}
@@ -72,6 +75,7 @@ functions:
       AVAX_RPC: ${file(./env.js):AVAX_RPC}
       ARBITRUM_RPC: ${file(./env.js):ARBITRUM_RPC}
       BASE_RPC: ${file(./env.js):BASE_RPC}
+      BSC_RPC: ${file(./env.js):BSC_RPC}
       TRON_RPC: ${file(./env.js):TRON_RPC}
       TVL_SPIKE_WEBHOOK: ${file(./env.js):TVL_SPIKE_WEBHOOK}
       NEW_YIELDS_WEBHOOK: ${file(./env.js):NEW_YIELDS_WEBHOOK}

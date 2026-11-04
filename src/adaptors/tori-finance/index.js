@@ -128,7 +128,6 @@ const apy = async () => {
       pricePerShare,
       underlyingTokens: [TRUSD],
       poolMeta: '7 days unstaking',
-      searchTokenOverride: STRUSD,
       isIntrinsicSource: true,
       url: 'https://app.tori.finance/earn',
     },

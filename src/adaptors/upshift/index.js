@@ -26,6 +26,7 @@ const extraPools = {
     monad: [
         '0x36eDbF0C834591BFdfCaC0Ef9605528c75c406aA', // earnAUSD
         '0x5E7568bf8DF8792aE467eCf5638d7c4D18A1881C', // earnMON
+        '0x42B3b62a6685E3a3F93483715Ef4300f5E7336CC', // earnAUSDloop
     ],
 };
 
@@ -48,6 +49,15 @@ const customVaults = {
         totalAssetsAbi: { inputs: [], name: 'getTotalAssets', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
         sharePriceAbi: { inputs: [], name: 'getSharePrice', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
         merklIdentifier: '0x8FA1365f6E39B7404737721a356B1d4a7b11cA7D', // lpTokenAddress used by Merkl
+    },
+    '0x42B3b62a6685E3a3F93483715Ef4300f5E7336CC': {
+        symbol: 'earnAUSDloop',
+        decimals: 6,
+        underlying: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', // USDC
+        underlyingDecimals: 6,
+        totalAssetsAbi: { inputs: [], name: 'getTotalAssets', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
+        sharePriceAbi: { inputs: [], name: 'getSharePrice', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
+        merklIdentifier: '0xEA7e0955D410C5BA9dAc457539EF0FA53a1399Ed', // lpTokenAddress used by Merkl
     },
 };
 
@@ -154,21 +164,19 @@ const getApy = async () => {
                 chain: 'base'
             })).output;
 
-            const allPoolsCandidates = [...new Set([...registryPools, ...(extraPools[chainKey] || [])])];
-            if (allPoolsCandidates.length === 0) continue;
+            const allPools = [...new Set([...registryPools, ...(extraPools[chainKey] || [])])];
+            if (allPools.length === 0) continue;
 
-            // Filter out vaults with deposits paused (withdrawal-only)
             const depositsPausedRes = await sdk.api.abi.multiCall({
-                calls: allPoolsCandidates.map(p => ({ target: p })),
+                calls: allPools.map(p => ({ target: p })),
                 abi: { name: 'depositsPaused', inputs: [], outputs: [{ type: 'bool' }], stateMutability: 'view', type: 'function' },
                 chain: chainKey,
                 permitFailure: true,
             });
-            const allPools = allPoolsCandidates.filter((_, i) => {
+            const depositsPaused = new Set(allPools.filter((_, i) => {
                 const res = depositsPausedRes.output[i];
-                return !(res?.success && res.output === true);
-            });
-            if (allPools.length === 0) continue;
+                return res?.success && res.output === true;
+            }));
 
             // Separate standard and custom vaults
             const standardPools = allPools.filter(p => !customVaults[p]);
@@ -278,6 +286,7 @@ const getApy = async () => {
                     apyBase,
                     underlyingTokens: [data.underlying],
                     url: getPoolUrl(addr, chainKey),
+                    frozen: depositsPaused.has(addr),
                 };
 
                 if (apyReward > 0 && registryInfo) {

@@ -47,7 +47,6 @@ const getApy = async () => {
       apyBase: apr,
       ...(exchangeRate > 0 && { pricePerShare: exchangeRate }),
       underlyingTokens: ['0x0000000000000000000000000000000000000000'],
-      searchTokenOverride: token,
       isIntrinsicSource: true,
     },
   ];

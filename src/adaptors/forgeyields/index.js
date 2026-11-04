@@ -208,7 +208,6 @@ const apy = async () => {
         url: `https://app.forgeyields.com/opportunities/${s.symbol}`,
         token: gw.token_gateway,
         underlyingTokens: [addr],
-        searchTokenOverride: gw.token_gateway,
       });
     }
   }

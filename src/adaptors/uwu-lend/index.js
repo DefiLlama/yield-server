@@ -189,6 +189,7 @@ const apy = async () => {
         borrowToken: t,
         apyRewardBorrow,
         ltv,
+        frozen: reserveConfigurationData[i].isFrozen,
       };
     })
     .filter((p) => utils.keepFinite(p));

@@ -201,10 +201,7 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
       const poolMeta = managerSymbols[manager].join('/');
 
       const staticToken = staticByMarket[market.toLowerCase()];
-    // skip frozen
-      if (staticToken?.mintPaused) {
-        return null;
-      }
+      const frozen = Boolean(staticToken?.mintPaused);
       const isBorrowable =
         Boolean(staticToken?.isBorrowable) &&
         Boolean(staticToken?.isListed) &&
@@ -234,12 +231,15 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
         totalSupplyUsd,
         totalBorrowUsd,
         availableBorrowUsd,
+        ...(Number(staticToken?.collateralCap || 0) > 0 &&
+          { supplyCapUsd: (Number(staticToken.collateralCap) / factor) * price }),
         apyBaseBorrow,
         isBorrowable,
         collateralEnabled,
         collateralLtv,
         borrowToken: underlying,
         underlyingTokens: [underlying],
+        frozen,
       };
     })
     .filter(Boolean);
@@ -255,11 +255,13 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
   return Object.values(poolsByManager).flatMap((managerPools) => {
     return managerPools.map((collateralPool) => {
       const siblingPools = managerPools.filter(
-        (pool) => pool.market !== collateralPool.market
+        (pool) => pool.market !== collateralPool.market && !pool.frozen
       );
       const debtPool = siblingPools.length === 1 ? siblingPools[0] : null;
       const canBorrow =
-        collateralPool.collateralEnabled && debtPool?.isBorrowable;
+        !collateralPool.frozen &&
+        collateralPool.collateralEnabled &&
+        debtPool?.isBorrowable;
 
       return {
         market: collateralPool.market,
@@ -270,9 +272,13 @@ const getPoolsForChain = async (chain, { centralRegistry, protocolReader }) => {
         symbol: collateralPool.symbol,
         tvlUsd: collateralPool.tvlUsd,
         totalSupplyUsd: collateralPool.totalSupplyUsd,
+        ...(collateralPool.supplyCapUsd !== undefined
+          ? { supplyCapUsd: collateralPool.supplyCapUsd }
+          : {}),
         apyBase: collateralPool.apyBase,
         poolMeta: collateralPool.poolMeta,
         underlyingTokens: collateralPool.underlyingTokens,
+        frozen: collateralPool.frozen,
         ...(canBorrow
           ? {
               borrowToken: debtPool.borrowToken,

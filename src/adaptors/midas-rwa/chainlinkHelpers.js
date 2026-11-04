@@ -84,6 +84,15 @@ async function getRoundById(aggregatorAddress, chain, roundId) {
   };
 }
 
+// Error signatures returned by RPCs that do not hold state for the requested
+// historical block (non-archive nodes or pruned history).
+const MISSING_ARCHIVE_STATE_RE =
+  /missing trie node|metadata is not found|header not found|state (is )?not available|no state|pruned|archive/i;
+
+function isMissingArchiveStateError(error) {
+  return MISSING_ARCHIVE_STATE_RE.test(String(error?.message ?? error));
+}
+
 // Get historical price data with fallback
 async function getHistoricalPrice(aggregatorAddress, chain, latestRound) {
   const historicalTimestamp = latestRound.updatedAt - 6 * SECONDS_PER_DAY;
@@ -131,11 +140,38 @@ async function getHistoricalPrice(aggregatorAddress, chain, latestRound) {
 
     return historicalData;
   } catch (error) {
+    // Reading a past round through an archive call needs archive state, which
+    // some public RPCs (e.g. Robinhood Chain) do not serve. Only in that case
+    // fall back to the previous round: `getRoundData` is a plain storage read
+    // at head and each round carries its own `updatedAt`, so computeAPY still
+    // annualizes over the real interval. Any other error is left as before.
+    if (!isMissingArchiveStateError(error)) {
+      console.warn(
+        `MidasRWA: Failed to fetch historical price data at block ${historicalBlock} for ${aggregatorAddress}:`,
+        error.message
+      );
+      return null;
+    }
+
     console.warn(
-      `MidasRWA: Failed to fetch historical price data at block ${historicalBlock} for ${aggregatorAddress}:`,
+      `MidasRWA: No archive state at block ${historicalBlock} for ${aggregatorAddress}, falling back to previous round:`,
       error.message
     );
-    return null;
+    const previousRoundId = latestRound.roundId - 1;
+    const previousRound = await getRoundById(
+      aggregatorAddress,
+      chain,
+      previousRoundId
+    ).catch(() => null);
+
+    if (!previousRound) {
+      console.warn(
+        `MidasRWA: No previous round data available for round ${previousRoundId}`
+      );
+      return null;
+    }
+
+    return previousRound;
   }
 }
 

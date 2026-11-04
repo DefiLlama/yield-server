@@ -101,42 +101,106 @@ const PRODUCTS = [
   },
 ];
 
-async function getTvlUsd(navOracleAddress) {
-  const navResult = await sdk.api.abi.call({
-    target: navOracleAddress,
+async function getTvlUsd(products) {
+  const navResults = await sdk.api.abi.multiCall({
     abi: abi.getNAV,
+    calls: products.map((product) => ({
+      target: product.deployments.hyperliquidL1.navOracle,
+    })),
     chain: HYPERLIQUID_L1_CHAIN,
   });
 
-  const navIn18Decimals = new BigNumber(navResult.output);
-  return navIn18Decimals.div(1e18).toNumber();
+  return navResults.output.map(({ output }) =>
+    new BigNumber(output).div(1e18).toNumber()
+  );
 }
 
-async function getPools(product) {
+async function getShareSupplies(products) {
+  const requests = products.flatMap((product, productIndex) =>
+    Object.entries(product.deployments).map(([key, config]) => ({
+      productIndex,
+      key,
+      chain: config.chain,
+      address: config.address,
+    }))
+  );
+
+  const supplies = products.map(() => ({}));
+
+  await Promise.all(
+    [...new Set(requests.map((request) => request.chain))].map(async (chain) => {
+      const chainRequests = requests.filter(
+        (request) => request.chain === chain
+      );
+      const calls = chainRequests.map(({ address }) => ({ target: address }));
+
+      const [supplyResults, decimalsResults] = await Promise.all([
+        sdk.api.abi.multiCall({ abi: abi.totalSupply, calls, chain }),
+        sdk.api.abi.multiCall({ abi: abi.decimals, calls, chain }),
+      ]);
+
+      chainRequests.forEach(({ productIndex, key }, index) => {
+        supplies[productIndex][key] = new BigNumber(
+          supplyResults.output[index].output
+        ).div(new BigNumber(10).pow(decimalsResults.output[index].output));
+      });
+    })
+  );
+
+  return supplies;
+}
+
+async function getPools(product, nav, supplies) {
   const hubDeployment = product.deployments.hyperliquidL1;
-  const tvlUsd = await getTvlUsd(hubDeployment.navOracle);
   const apyBase7d = await getApy7d(
     hubDeployment.navOracle,
     hubDeployment.address,
     HYPERLIQUID_L1_CHAIN
   );
 
-  return Object.entries(product.deployments).map(([key, config]) => ({
-    pool: `${config.address}-${config.chain}-${key}`.toLowerCase(),
-    chain: utils.formatChain(config.chain),
-    project: 'liminal-basis',
-    symbol: product.symbol,
-    tvlUsd,
-    apyBase: apyBase7d,
-    apyBase7d,
-    underlyingTokens: config.underlyingTokens,
-    poolMeta: product.poolMeta,
-    url: 'https://liminal.money/app/tokenized',
-  }));
+  const hubSupply = supplies.hyperliquidL1;
+  if (hubSupply.isZero()) return [];
+
+  const deployments = Object.entries(product.deployments);
+  const bridgedSupply = deployments.reduce(
+    (total, [key]) =>
+      key === 'hyperliquidL1' ? total : total.plus(supplies[key]),
+    new BigNumber(0)
+  );
+  if (bridgedSupply.gt(hubSupply)) return [];
+
+  const shareValue = new BigNumber(nav).div(hubSupply);
+
+  return deployments.map(([key, config]) => {
+    const shares =
+      key === 'hyperliquidL1' ? hubSupply.minus(bridgedSupply) : supplies[key];
+
+    return {
+      pool: `${config.address}-${config.chain}-${key}`.toLowerCase(),
+      chain: utils.formatChain(config.chain),
+      project: 'liminal-basis',
+      symbol: product.symbol,
+      tvlUsd: shares.times(shareValue).toNumber(),
+      apyBase: apyBase7d,
+      apyBase7d,
+      underlyingTokens: config.underlyingTokens,
+      poolMeta: product.poolMeta,
+      url: 'https://liminal.money/app/tokenized',
+    };
+  });
 }
 
 async function main() {
-  const pools = await Promise.all(PRODUCTS.map(getPools));
+  const [navs, supplies] = await Promise.all([
+    getTvlUsd(PRODUCTS),
+    getShareSupplies(PRODUCTS),
+  ]);
+
+  const pools = await Promise.all(
+    PRODUCTS.map((product, index) =>
+      getPools(product, navs[index], supplies[index])
+    )
+  );
 
   return pools.flat().filter((p) => p.tvlUsd > 0);
 }

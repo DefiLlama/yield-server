@@ -41,6 +41,21 @@ const queryPrior = gql`
   }
 `;
 
+const TRANSIENT_GATEWAY_ERROR =
+  /bad indexers|expected value at line 1|indexer not available/i;
+
+const requestWithRetry = async (url, query, retries = 3, delayMs = 1000) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await request(url, query);
+    } catch (e) {
+      if (attempt === retries || !TRANSIENT_GATEWAY_ERROR.test(e.message))
+        throw e;
+      await new Promise((resolve) => setTimeout(resolve, delayMs * 2 ** attempt));
+    }
+  }
+};
+
 const topLvl = async (
   chainString,
   url,
@@ -60,9 +75,9 @@ const topLvl = async (
   let queryC = query;
   let queryPriorC = queryPrior;
   let [dataNow, dataPrior, dataPrior7d] = await Promise.all([
-    request(url, queryC.replace('<PLACEHOLDER>', block)),
-    request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior)),
-    request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d)),
+    requestWithRetry(url, queryC.replace('<PLACEHOLDER>', block)),
+    requestWithRetry(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior)),
+    requestWithRetry(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d)),
   ]);
   dataNow = dataNow.pairs;
   dataPrior = dataPrior.pairs;

@@ -2,19 +2,43 @@ const axios = require('axios');
 const utils = require('../utils');
 
 const BASE_URL = 'https://api.solana.fluid.io/v1';
+const UI_URL = 'https://jup.ag/lend';
 
-const bpsToApr = (bps) => (Number(bps) / 1e4) * 100;
+const MARKETS = {
+  main: { label: null, ui: UI_URL, earnUi: `${UI_URL}/earn` },
+  ethena: {
+    label: 'Ethena Market',
+    ui: `${UI_URL}/ethena`,
+    earnUi: `${UI_URL}/ethena/market`,
+  },
+  sentora: {
+    label: 'Sentora Market',
+    ui: `${UI_URL}/sentora`,
+    earnUi: `${UI_URL}/sentora/market`,
+  },
+};
 
-const getEarnPools = (lendingTokens) =>
+// The /ethena program hosts both isolated markets; the UI splits them by lent asset.
+const INSTANCES = [
+  { path: '/main', marketFor: () => MARKETS.main },
+  {
+    path: '/ethena',
+    marketFor: (asset) =>
+      asset === 'PYUSD' ? MARKETS.sentora : MARKETS.ethena,
+  },
+];
+
+const getEarnPools = (lendingTokens, { marketFor }) =>
   lendingTokens.map((token) => {
+    const { label, earnUi } = marketFor(token.asset.symbol);
     const price = Number(token.asset.price);
     const decimals = token.asset.decimals;
     const tvlUsd = (Number(token.totalAssets) / 10 ** decimals) * price;
 
-    const apyBase = utils.aprToApy(Number(token.supplyRate) / 100);
-    const apyReward = token.rewardsRate
-      ? utils.aprToApy(bpsToApr(token.rewardsRate))
-      : 0;
+    // rewardsRate accrues into the jlToken exchange price (Fluid fToken design), so it is base yield
+    const apyBase = utils.aprToApy(
+      (Number(token.supplyRate) + Number(token.rewardsRate || 0)) / 100
+    );
 
     return {
       pool: `${token.address}-solana`.toLowerCase(),
@@ -23,11 +47,10 @@ const getEarnPools = (lendingTokens) =>
       symbol: token.asset.symbol,
       tvlUsd,
       apyBase,
-      apyReward: apyReward > 0 ? apyReward : null,
-      rewardTokens: token.rewardsRate ? [token.assetAddress] : undefined,
+      token: token.address,
       underlyingTokens: [token.assetAddress],
-      poolMeta: 'Earn',
-      url: 'https://jup.ag/lend',
+      poolMeta: label ? `Earn (${label})` : 'Earn',
+      url: `${earnUi}/${token.asset.symbol}/deposit`,
     };
   });
 
@@ -42,10 +65,11 @@ const calcVaultRewardApy = (vault, side) =>
     .filter((r) => r.side === side)
     .reduce((sum, r) => sum + utils.aprToApy(Number(r.apr) / 100), 0);
 
-const getVaultPools = (vaults) =>
+const getVaultPools = (vaults, { marketFor }) =>
   vaults.map((vault) => {
     const supplyToken = vault.supplyToken;
     const borrowToken = vault.borrowToken;
+    const { label, ui } = marketFor(borrowToken.symbol);
 
     const totalSupply = Number(vault.totalSupply) / 10 ** supplyToken.decimals;
     const totalBorrow = Number(vault.totalBorrow) / 10 ** borrowToken.decimals;
@@ -91,32 +115,51 @@ const getVaultPools = (vaults) =>
       borrowable: Number(vault.borrowable) > 0,
       borrowToken: borrowToken.address,
       borrowMarketOnly: true,
-      poolMeta: `${supplyToken.symbol}/${borrowToken.symbol}`,
-      url: 'https://jup.ag/lend',
+      poolMeta: label
+        ? `${supplyToken.symbol}/${borrowToken.symbol} (${label})`
+        : `${supplyToken.symbol}/${borrowToken.symbol}`,
+      url: `${ui}/borrow/${vault.id}`,
     };
   });
 
-const getApy = async () => {
+const getInstancePools = async (instance) => {
+  const { path } = instance;
   const [lendingTokens, vaults] = await Promise.all([
-    axios.get(`${BASE_URL}/lending/tokens`).then((r) => r.data),
-    axios.get(`${BASE_URL}/borrowing/vaults`).then((r) => r.data),
+    axios.get(`${BASE_URL}${path}/lending/tokens`).then((r) => r.data),
+    axios.get(`${BASE_URL}${path}/borrowing/vaults`).then((r) => r.data),
   ]);
 
   if (!Array.isArray(lendingTokens) || !Array.isArray(vaults)) {
     throw new Error(
-      `Unexpected API response shape: lendingTokens=${typeof lendingTokens}, vaults=${typeof vaults}`
+      `Unexpected API response shape for ${path}: lendingTokens=${typeof lendingTokens}, vaults=${typeof vaults}`
     );
   }
 
-  const earnPools = getEarnPools(lendingTokens);
-  const vaultPools = getVaultPools(vaults);
+  return [
+    ...getEarnPools(lendingTokens, instance),
+    ...getVaultPools(vaults, instance),
+  ];
+};
 
-  return [...earnPools, ...vaultPools].filter(utils.keepFinite);
+const getApy = async () => {
+  const pools = await Promise.allSettled(INSTANCES.map(getInstancePools));
+
+  pools.forEach((r, i) => {
+    if (r.status === 'rejected')
+      console.error(
+        `jupiter-lend ${INSTANCES[i].path} failed: ${r.reason?.message}`
+      );
+  });
+
+  return pools
+    .filter((r) => r.status === 'fulfilled')
+    .flatMap((r) => r.value)
+    .filter(utils.keepFinite);
 };
 
 module.exports = {
   protocolId: '6600',
   timetravel: false,
   apy: getApy,
-  url: 'https://jup.ag/lend',
+  url: UI_URL,
 };

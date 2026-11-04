@@ -99,6 +99,7 @@ const apy = async () => {
         borrowToken: reserve.tokenAddress,
         ltv: cfg.ltv / 10000,
         borrowable: cfg.borrowingEnabled,
+        frozen: cfg.isFrozen,
         url: `https://zentra.finance/markets/${reserve.symbol.toLowerCase().replace(/\.e$/, '')}`, // remove .e suffix
       };
     })

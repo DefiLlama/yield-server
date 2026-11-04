@@ -2,7 +2,7 @@ const axios = require('axios');
 const { getPriceApiData } = require('../utils');
 
 const SUBGRAPH_URL =
-  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-staging-2';
+  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-mainnet';
 
 const poolsQuery = `
   {
@@ -69,7 +69,6 @@ const fetchPools = async () => {
         tvlUsd: totalStaked * price,
         apyBase: parseFloat(poolData.reward_rate),
         underlyingTokens: [pool.underlying],
-        searchTokenOverride: pool.address,
         isIntrinsicSource: true,
         url: pool.url,
       };

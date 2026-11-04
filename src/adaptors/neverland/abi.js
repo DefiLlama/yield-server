@@ -1,4 +1,29 @@
 module.exports = {
+  poolAddressesProviderRegistryAbi: [
+    {
+      inputs: [],
+      name: 'getAddressesProvidersList',
+      outputs: [{ internalType: 'address[]', name: '', type: 'address[]' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ],
+  poolAddressesProviderAbi: [
+    {
+      inputs: [],
+      name: 'getMarketId',
+      outputs: [{ internalType: 'string', name: '', type: 'string' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+    {
+      inputs: [],
+      name: 'getPoolDataProvider',
+      outputs: [{ internalType: 'address', name: '', type: 'address' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ],
   dustRewardsControllerAbi: [
     {
       inputs: [{ internalType: 'address', name: 'asset', type: 'address' }],

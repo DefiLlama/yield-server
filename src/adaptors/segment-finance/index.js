@@ -202,6 +202,7 @@ const main = async () => {
       underlyingTokens: [token],
       rewardTokens: [],
       url: 'https://app.segment.finance/#//market/' + market,
+      frozen: isPaused[i] === true,
     };
     if (isPaused[i] === false) {
       poolReturned = {

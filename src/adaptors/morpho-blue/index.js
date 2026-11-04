@@ -62,13 +62,13 @@ const gqlQueries = {
           loanAsset {
             address
             symbol
-            priceUsd
+            price { usd }
             decimals
           }
           collateralAsset {
             address
             symbol
-            priceUsd
+            price { usd }
             decimals
           }
           state {
@@ -116,6 +116,7 @@ const gqlQueries = {
           symbol
           warnings {
             level
+            type
           }
           asset {
             address
@@ -163,6 +164,7 @@ const gqlQueries = {
           name
           warnings {
             level
+            type
           }
           asset {
             address
@@ -270,6 +272,20 @@ const ALLOWED_ADAPTER_TYPES = ['MetaMorpho', 'MorphoMarketV1'];
 const hasRedWarning = (item) =>
   item.warnings?.some((warning) => warning.level === 'RED');
 
+const isDepositDisabled = (item) =>
+  item.warnings?.some((warning) => warning.type === 'deposit_disabled');
+
+// Vaults reviewed and kept despite a RED warning: deposit_disabled (at cap) and
+// invalid_name/invalid_symbol don't stop holders earning the reported APY.
+const RED_WARNING_ALLOWLIST = new Set([
+  '0xbeeff033f34c046626b8d0a041844c5d1a5409dd',
+  '0x4ff4186188f8406917293a9e01a1ca16d3cf9e59',
+  '0x78b18e07dc43017fceaabad0751d6464c0f56b25',
+]);
+
+const isAllowlisted = (item) =>
+  RED_WARNING_ALLOWLIST.has(item.address?.toLowerCase());
+
 const buildVaultV2Pools = (earnV2, chain) =>
   earnV2
     // Filter vaults to only include those with allowed adapter types
@@ -315,6 +331,7 @@ const buildVaultV2Pools = (earnV2, chain) =>
         url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
         apyReward,
         rewardTokens,
+        frozen: isDepositDisabled(vault),
       };
     })
     .filter(Boolean);
@@ -377,8 +394,10 @@ const fetchChainData = async (chainId) => {
   });
 
   return {
-    earnV1: vaults.filter((v) => v.state !== null && !hasRedWarning(v)),
-    earnV2: vaultV2s.filter((v) => !hasRedWarning(v)),
+    earnV1: vaults.filter(
+      (v) => v.state !== null && (!hasRedWarning(v) || isAllowlisted(v))
+    ),
+    earnV2: vaultV2s.filter((v) => !hasRedWarning(v) || isAllowlisted(v)),
     borrow: markets.filter((m) => !hasRedWarning(m)),
   };
 };
@@ -467,6 +486,7 @@ const apy = async () => {
           url: `https://app.morpho.org/${getChainSlug(chain)}/vault/${vault.address}`,
           apyReward,
           rewardTokens,
+          frozen: isDepositDisabled(vault),
         };
       })
       .filter(Boolean);
@@ -493,7 +513,7 @@ const apy = async () => {
       const reallocatableLiquidityUsd =
         (Number(market.reallocatableLiquidityAssets || 0) /
           10 ** Number(market.loanAsset?.decimals || 0)) *
-        Number(market.loanAsset?.priceUsd || 0);
+        Number(market.loanAsset?.price?.usd || 0);
       const availableBorrowUsd =
         (market.state.liquidityAssetsUsd ?? 0) + reallocatableLiquidityUsd;
 

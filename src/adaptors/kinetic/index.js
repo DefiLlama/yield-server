@@ -125,6 +125,18 @@ const getApy = async (comptroller) => {
     })
   ).output.map(({ output }) => output);
 
+  const isMintPaused = (
+    await sdk.api.abi.multiCall({
+      chain: FLARE_CHAIN,
+      calls: allMarkets.map((market) => ({
+        target: comptroller,
+        params: market,
+      })),
+      abi: 'function mintGuardianPaused(address) view returns (bool)',
+      permitFailure: true,
+    })
+  ).output.map(({ output }) => output);
+
   const jouleRewards = await getRewards(REWARD_TYPES.JOULE, allMarkets, comptroller);
   const flrRewards = await getRewards(REWARD_TYPES.FLR, allMarkets, comptroller);
   const kiiRewards = await getRewards(REWARD_TYPES.KII, allMarkets, comptroller);
@@ -307,6 +319,7 @@ const getApy = async (comptroller) => {
       totalBorrowUsd,
       availableBorrowUsd,
       borrowable: marketsInfo[i].isListed,
+      frozen: isMintPaused[i] === true,
       apyBaseBorrow,
       borrowToken: token,
       apyRewardBorrow: Number.isFinite(apyRewardBorrow) ? apyRewardBorrow : 0,

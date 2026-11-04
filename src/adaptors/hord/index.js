@@ -26,7 +26,6 @@ const getApy = async () => {
       apyReward: apyData.hord_staking_apy,
       rewardTokens: ['0x43a96962254855f16b925556f9e97be436a43448'],
       underlyingTokens: [weth],
-      searchTokenOverride: token,
       isIntrinsicSource: true,
     },
   ];

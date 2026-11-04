@@ -57,28 +57,20 @@ const fetchApyData = async (chain) => {
 const batchFetchTotalUnderlying = async (lpTokenAddresses, chain) => {
   if (lpTokenAddresses.length === 0) return {};
 
-  try {
-    const results = await sdk.api.abi.multiCall({
-      calls: lpTokenAddresses.map((address) => ({ target: address })),
-      abi: totalUnderlyingABI,
-      chain: chain,
-      permitFailure: true,
-    });
+  const results = await sdk.api.abi.multiCall({
+    calls: lpTokenAddresses.map((address) => ({ target: address })),
+    abi: totalUnderlyingABI,
+    chain: chain,
+    permitFailure: true,
+  });
 
-    const tvlMap = {};
-    results.output.forEach((result, index) => {
-      const address = lpTokenAddresses[index].toLowerCase();
-      tvlMap[address] = result.output ? BigInt(result.output) : BigInt(0);
-    });
+  const tvlMap = {};
+  results.output.forEach((result, index) => {
+    const address = lpTokenAddresses[index].toLowerCase();
+    tvlMap[address] = result.output ? BigInt(result.output) : BigInt(0);
+  });
 
-    return tvlMap;
-  } catch (error) {
-    console.error(
-      `Error batch fetching totalUnderlying for ${chain}:`,
-      error.message
-    );
-    return {};
-  }
+  return tvlMap;
 };
 
 /**
@@ -124,41 +116,34 @@ const batchFetchTokenInfo = async (tokenAddresses, chain) => {
 
 /**
  * Batch fetch token prices from DefiLlama
- * Chunks requests to avoid API limits (max 100 tokens per request)
+ *
+ * Chunk size is bounded by URL length: keys go in the path and the API 500s once
+ * the request line passes ~3.5KB.
  */
 const batchFetchTokenPrices = async (tokenAddresses, chain) => {
   if (tokenAddresses.length === 0) return {};
 
-  const MAX_TOKENS_PER_REQUEST = 100;
+  const MAX_TOKENS_PER_REQUEST = 50;
   const pricesMap = {};
 
-  try {
-    // Chunk token addresses into batches
-    for (let i = 0; i < tokenAddresses.length; i += MAX_TOKENS_PER_REQUEST) {
-      const batch = tokenAddresses.slice(i, i + MAX_TOKENS_PER_REQUEST);
-      const priceKeys = batch
-        .map((addr) => `${chain}:${addr}`.toLowerCase())
-        .join(',');
+  for (let i = 0; i < tokenAddresses.length; i += MAX_TOKENS_PER_REQUEST) {
+    const batch = tokenAddresses.slice(i, i + MAX_TOKENS_PER_REQUEST);
+    const priceKeys = batch
+      .map((addr) => `${chain}:${addr}`.toLowerCase())
+      .join(',');
 
-      const response = await axios.get(
-        utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
-      );
-
-      batch.forEach((address) => {
-        const priceKey = `${chain}:${address}`.toLowerCase();
-        const priceData = response.data?.coins?.[priceKey];
-        pricesMap[address.toLowerCase()] = priceData?.price || 0;
-      });
-    }
-
-    return pricesMap;
-  } catch (error) {
-    console.error(
-      `Error batch fetching prices for ${chain}:`,
-      error.message
+    const response = await axios.get(
+      utils.getPriceApiUrl(`/prices/current/${priceKeys}`)
     );
-    return pricesMap;
+
+    batch.forEach((address) => {
+      const priceKey = `${chain}:${address}`.toLowerCase();
+      const priceData = response.data?.coins?.[priceKey];
+      pricesMap[address.toLowerCase()] = priceData?.price || 0;
+    });
   }
+
+  return pricesMap;
 };
 
 /**

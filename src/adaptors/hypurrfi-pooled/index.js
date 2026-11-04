@@ -27,7 +27,13 @@ const extractConfigBits = (configData) => {
   const paused = Boolean((data >> 60n) & 1n);
   const borrowCap = Number((data >> 80n) & ((1n << 36n) - 1n));
   const supplyCap = Number((data >> 116n) & ((1n << 36n) - 1n));
-  return { ltv, borrowCap, supplyCap, borrowable: active && !frozen && borrowingEnabled && !paused };
+  return {
+    ltv,
+    borrowCap,
+    supplyCap,
+    borrowable: active && !frozen && borrowingEnabled && !paused,
+    frozen: frozen || paused,
+  };
 };
 
 const apy = async () => {
@@ -140,7 +146,7 @@ const apy = async () => {
         reserveDataResults[i].currentVariableBorrowRate
       );
 
-      const { ltv, borrowCap, supplyCap, borrowable } = extractConfigBits(
+      const { ltv, borrowCap, supplyCap, borrowable, frozen } = extractConfigBits(
         reserveDataResults[i].configuration.data
       );
       const borrowCapUsd = borrowCap * price;
@@ -165,6 +171,7 @@ const apy = async () => {
         ltv: ltv / 10000,
         url: `https://app.hypurrfi.com/markets/pooled/999/${asset}?from=pooled`,
         borrowable,
+        frozen,
       };
     })
     .filter(Boolean)

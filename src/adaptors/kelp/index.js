@@ -64,7 +64,6 @@ const apy = async () => {
       tvlUsd,
       apyBase,
       url: 'https://kelpdao.xyz/restake/',
-      searchTokenOverride: rsETH,
       isIntrinsicSource: true,
     },
   ];

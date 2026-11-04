@@ -47,6 +47,7 @@ const CHAIN_CONFIG = {
   unichain: { display: 'Unichain' },
   soneium: { display: 'Soneium' },
   zklink: { display: 'zkLink' },
+  monad: { display: 'Monad' },
   // opbnb: { display: 'opBNB', priceApi: 'op_bnb' },
 };
 
@@ -508,6 +509,14 @@ module.exports = {
       token: '0x8280a4e7D5B3B658ec4580d3Bc30f5e50454F169',
       portal: '0x8Dc71561414CDcA6DcA7C1dED1ABd04AF474D189',
       decimals: 18,
+    },
+    // Monad USDC
+    '0xcb4d1cd7b9f8ff6cf54e15eb5079edf1587c2857': {
+      chain: 'monad',
+      symbol: 'USDC',
+      token: '0x754704Bc059F8C67012fEd69BC8A327a5aafb603',
+      portal: '0x292fC50e4eB66C3f6514b9E402dBc25961824D62',
+      decimals: 6,
     },
 
     // === OTHER TOKENS ===

@@ -24,6 +24,9 @@ const getPriceApiUrl = (path) => {
 
 exports.getPriceApiUrl = getPriceApiUrl;
 
+exports.getYieldsApiUrl = (path) =>
+  `https://pro-api.llama.fi/${process.env.DL_API_KEY}/yields/v2${path}`;
+
 // TODO: temporary cache-bypass on pro requests; remove once coins-api caps
 // staleness (Cache-Control) -- edge colos were replaying expired
 // /prices/current copies. Applied at request time, not in getPriceApiUrl:
@@ -38,6 +41,60 @@ const getPriceApiData = async (path) =>
   (await axios.get(getPriceApiUrl(withCacheBust(path)))).data;
 
 exports.getPriceApiData = getPriceApiData;
+
+const PRICE_KEY_BYTE_BUDGET = 3000;
+const PRICE_REQUEST_CONCURRENCY = 5;
+const PRICE_REQUEST_ATTEMPTS = 3;
+
+const chunkPriceKeys = (keys) => {
+  const chunks = [];
+  let bytes = Infinity;
+
+  for (const key of keys) {
+    const size = String(key).length + 1;
+    if (bytes + size > PRICE_KEY_BYTE_BUDGET) {
+      chunks.push([]);
+      bytes = 0;
+    }
+    chunks[chunks.length - 1].push(key);
+    bytes += size;
+  }
+
+  return chunks;
+};
+
+const fetchPriceChunk = async (keyChunk) => {
+  const path = `/prices/current/${keyChunk.join(',')}`;
+
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return (await getPriceApiData(path)).coins;
+    } catch (error) {
+      if (attempt === PRICE_REQUEST_ATTEMPTS) throw error;
+      await sleep(500 * attempt);
+    }
+  }
+};
+
+const getPriceApiCoins = async (keys) => {
+  const coins = {};
+
+  for (const batch of chunk(chunkPriceKeys(keys), PRICE_REQUEST_CONCURRENCY)) {
+    const results = await Promise.allSettled(batch.map(fetchPriceChunk));
+
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') return Object.assign(coins, result.value);
+      console.error(
+        `getPriceApiCoins: ${batch[i].length} keys unpriced after ${PRICE_REQUEST_ATTEMPTS} attempts (${batch[i][0]}...):`,
+        result.reason?.message || result.reason
+      );
+    });
+  }
+
+  return coins;
+};
+
+exports.getPriceApiCoins = getPriceApiCoins;
 
 exports.formatAddress = (address) => {
   return String(address).toLowerCase();
@@ -209,6 +266,8 @@ exports.formatChain = (chain) => {
   if (chain && chain.toLowerCase() === 'optimism') return 'OP Mainnet';
   if (chain && chain.toLowerCase() === 'ton') return 'TON';
   if (chain && chain.toLowerCase() === 'zklink') return 'zkLink Nova';
+  if (chain && (chain.toLowerCase() === 'eos' || chain.toLowerCase() === 'vaulta'))
+    return 'Vaulta';
 
   return chain.charAt(0).toUpperCase() + chain.slice(1);
 };
@@ -778,28 +837,95 @@ exports.getTotalSupply = async (tokenMintAddress) => {
   return supplyInTokens;
 };
 
-// Solana RPC helper for getAccountInfo
-const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+const BASE58_ALPHABET =
+  '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+// Base58 encode a byte buffer, eg a 32-byte pubkey read out of account data.
+exports.toBase58 = (bytes) => {
+  if (!bytes.length) return '';
+
+  let value = BigInt(`0x${bytes.toString('hex')}`);
+  let encoded = '';
+  while (value > 0n) {
+    encoded = BASE58_ALPHABET[Number(value % 58n)] + encoded;
+    value /= 58n;
+  }
+
+  const leadingZeros = bytes.findIndex((b) => b !== 0);
+  return (
+    '1'.repeat(leadingZeros === -1 ? bytes.length : leadingZeros) + encoded
+  );
+};
+
+// Solana getAccountInfo returning the owning program alongside the data, so a
+// caller can verify what it is decoding before trusting byte offsets. Accepts a
+// dataSlice to read a few bytes out of a large account, and returns null rather
+// than throwing when the account does not exist.
+const getSolanaAccount = async (
+  address,
+  { rpcUrl = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com', dataSlice } = {}
+) => {
   const response = await axios.post(rpcUrl, {
     jsonrpc: '2.0',
     id: 1,
     method: 'getAccountInfo',
-    params: [address, { encoding: 'base64' }],
+    params: [address, { encoding: 'base64', ...(dataSlice && { dataSlice }) }],
   }, {
     headers: { 'Content-Type': 'application/json' },
   });
 
-  const data = response.data;
-  if (data.error) {
-    throw new Error(`Error fetching account info: ${data.error.message}`);
+  const { error, result } = response.data;
+  if (error) {
+    throw new Error(`Error fetching account info: ${error.message}`);
   }
 
-  if (!data.result?.value?.data?.[0]) {
+  const account = result?.value;
+  if (typeof account?.data?.[0] !== 'string') return null;
+
+  return { owner: account.owner, data: Buffer.from(account.data[0], 'base64') };
+};
+
+exports.getSolanaAccount = getSolanaAccount;
+
+const getSolanaAccountInfo = async (address, rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const account = await getSolanaAccount(address, { rpcUrl });
+
+  if (!account?.data.length) {
     throw new Error(`Account not found: ${address}`);
   }
 
-  return Buffer.from(data.result.value.data[0], 'base64');
+  return account.data;
 };
+
+// Epochs per year from the last full epoch's duration (slot speed varies over time)
+const getSolanaEpochsPerYear = async (rpcUrl = 'https://api.mainnet-beta.solana.com') => {
+  const rpc = async (method, params) => {
+    const res = await exports.withRetry(() =>
+      axios.post(rpcUrl, { jsonrpc: '2.0', id: 1, method, params }, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    if (res.data.error) throw new Error(`${method}: ${res.data.error.message}`);
+    return res.data.result;
+  };
+  const firstBlockTime = async (slot) => {
+    const [block] = await rpc('getBlocksWithLimit', [slot, 1]);
+    const ts = block === undefined ? null : await rpc('getBlockTime', [block]);
+    if (!ts) throw new Error(`no block time at or after slot ${slot}`);
+    return ts;
+  };
+  const { absoluteSlot, slotIndex, slotsInEpoch } = await rpc('getEpochInfo', [
+    { commitment: 'confirmed' },
+  ]);
+  const epochStart = absoluteSlot - slotIndex;
+  const [prevTs, currTs] = await Promise.all([
+    firstBlockTime(epochStart - slotsInEpoch),
+    firstBlockTime(epochStart),
+  ]);
+  return (365.25 * 24 * 60 * 60) / (currTs - prevTs);
+};
+
+exports.getSolanaEpochsPerYear = getSolanaEpochsPerYear;
 
 // SPL Stake Pool data decoder using official library
 const { StakePoolLayout } = require('@solana/spl-stake-pool');
@@ -824,21 +950,7 @@ exports.getStakePoolInfo = async (stakePoolAddress, rpcUrl = 'https://api.mainne
     ? { numerator: Number(stakePool.epochFee.numerator), denominator: Number(stakePool.epochFee.denominator) }
     : null;
 
-  // Fetch current epoch info for epochs-per-year calculation
-  const epochResponse = await axios.post(rpcUrl, {
-    jsonrpc: '2.0',
-    id: 1,
-    method: 'getEpochInfo',
-    params: [{ commitment: 'confirmed' }],
-  }, {
-    headers: { 'Content-Type': 'application/json' },
-  });
-  const currentEpoch = epochResponse.data.result?.epoch || 0;
-
-  // Solana genesis: March 16, 2020 (UTC)
-  const SOLANA_GENESIS_MS = Date.UTC(2020, 2, 16);
-  const yearsSinceGenesis = (Date.now() - SOLANA_GENESIS_MS) / (365.25 * 24 * 60 * 60 * 1000);
-  const epochsPerYear = yearsSinceGenesis > 0 ? currentEpoch / yearsSinceGenesis : 0;
+  const epochsPerYear = await getSolanaEpochsPerYear(rpcUrl);
 
   return {
     totalLamports: Number(totalLamports),

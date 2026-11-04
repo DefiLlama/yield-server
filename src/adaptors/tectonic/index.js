@@ -106,6 +106,7 @@ const getApy = async () => {
   const extraRewardsBorrow = await getRewards(allMarkets, REWARD_SPEED_BORROW);
   const borrowCaps = await getRewards(allMarkets, 'borrowCaps');
   const isBorrowPaused = await getRewards(allMarkets, 'borrowGuardianPaused');
+  const isMintPaused = await getRewards(allMarkets, 'mintGuardianPaused');
 
   const supplyRewards = await multiCallMarkets(
     allMarkets,
@@ -220,6 +221,7 @@ const getApy = async () => {
       totalBorrowUsd,
       availableBorrowUsd,
       borrowable: isBorrowPaused[i] === false,
+      frozen: isMintPaused[i] === true,
       apyBaseBorrow,
       borrowToken: token,
       apyRewardBorrow,

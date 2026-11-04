@@ -2,7 +2,6 @@ const sdk = require('@defillama/sdk');
 const BigNumber = require('bignumber.js');
 const utils = require('../utils');
 const _ = require('lodash');
-const axios = require('axios');
 
 const MagpieReaderABI = require('./abis/MagpieReader.json');
 const config = require('./config');
@@ -79,13 +78,8 @@ async function getMagpieInfoFallback(conf) {
 
   // Fetch prices from DefiLlama
   const coinPrefix = chainToCoinKey[chain] || chain;
-  const coinKeys = [...tokenAddresses]
-    .map((addr) => `${coinPrefix}:${addr}`)
-    .join(',');
-  const priceResp = await axios.get(
-    utils.getPriceApiUrl(`/prices/current/${coinKeys}`)
-  );
-  const coins = priceResp.data.coins;
+  const coinKeys = [...tokenAddresses].map((addr) => `${coinPrefix}:${addr}`);
+  const coins = await utils.getPriceApiCoins(coinKeys);
 
   // Build tokenPriceList in the same format as getMagpieInfo returns
   // price is stored as uint256 with 18 decimals

@@ -74,7 +74,6 @@ const getApy = async () => {
     apyBase: parseFloat(getFilAPY / 100), // APY from pool fees/supplying in %
     url,
     underlyingTokens: ['coingecko:filecoin'],
-    searchTokenOverride: filHubPool,
     isIntrinsicSource: true,
   };
 

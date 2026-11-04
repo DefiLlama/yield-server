@@ -1,7 +1,7 @@
-const { request, gql } = require('graphql-request');
+const axios = require('axios');
 const { getPrices } = require('../utils.js');
 
-const GRAPH_URL = 'https://ponder.frankencoin.com';
+const API_URL = 'https://api.frankencoin.com';
 const CHAINS = {
   ethereum: 1,
   polygon: 137,
@@ -51,47 +51,17 @@ const ChainAddressMap = {
   },
 };
 
-const gqlQueries = {
-  // Query for Lending SavingsReferral - Multichain
-  lending: gql`
-    {
-      savingsStatuss {
-        items {
-          chainId
-          module
-          balance
-          rate
-        }
-      }
-    }
-  `,
-  // Query for Borrow PositionV2 Positions - Mainnet
-  borrowing: gql`
-    {
-      mintingHubV2PositionV2s(where: { closed: false, denied: false }) {
-        items {
-          position
-          collateral
-          collateralSymbol
-          collateralBalance
-          collateralDecimals
-          riskPremiumPPM
-          limitForClones
-          availableForClones
-          minted
-        }
-      }
-    }
-  `,
-};
-
 const getChainName = (chainId) => {
   return Object.keys(CHAINS).find((c) => CHAINS[c] == chainId);
 };
 
 // apy callback function
 const apy = async () => {
-  const { savingsStatuss } = await request(GRAPH_URL, gqlQueries.lending, {});
+  const savingsByChain = (await axios.get(`${API_URL}/savings/core/info`)).data
+    .status;
+  const savingsItems = Object.values(savingsByChain).flatMap((byModule) =>
+    Object.values(byModule)
+  );
 
   const defaultFrankencoin =
     ChainAddressMap['ethereum'].frankencoin.toLowerCase();
@@ -101,7 +71,7 @@ const apy = async () => {
   const price = (await getPrices([defaultFrankencoin], 'ethereum'))
     .pricesByAddress[defaultFrankencoin];
 
-  const earnPools = savingsStatuss.items.map((savings) => {
+  const earnPools = savingsItems.map((savings) => {
     const chain = getChainName(savings.chainId);
     const token = (
       chain == 'ethereum'
@@ -122,20 +92,21 @@ const apy = async () => {
     };
   });
 
-  const queryPositionData = await request(GRAPH_URL, gqlQueries.borrowing, {});
-  const positionData = queryPositionData.mintingHubV2PositionV2s.items;
+  const openPositions = (await axios.get(`${API_URL}/positions/open`)).data
+    .map;
+  const positionData = Object.values(openPositions).filter(
+    (pos) => pos.version === 2
+  );
 
-  const collateralAddresses = [];
-  positionData.forEach((pos) => {
-    if (collateralAddresses.includes(pos.collateral)) return;
-    collateralAddresses.push(pos.collateral);
-  });
+  const collateralAddresses = [
+    ...new Set(positionData.map((pos) => pos.collateral.toLowerCase())),
+  ];
 
   const collateralPrices = await getPrices(collateralAddresses, 'ethereum');
   const leadratePool = earnPools.find((p) => p.pool == leadrateModuleId);
   const leadrate = leadratePool ? leadratePool.apyBase : 0;
 
-  const borrowPools = positionData.map((pos) => {
+  const borrowPools = positionData.flatMap((pos) => {
     const chain = 'ethereum';
     const borrowToken = (
       chain == 'ethereum'
@@ -145,7 +116,9 @@ const apy = async () => {
 
     const collateralBalance =
       pos.collateralBalance / 10 ** pos.collateralDecimals;
-    const collateralPrice = collateralPrices.pricesByAddress[pos.collateral];
+    const collateralPrice =
+      collateralPrices.pricesByAddress[pos.collateral.toLowerCase()];
+    if (!collateralPrice) return [];
     const collateralValueUsd = collateralBalance * collateralPrice;
 
     const loanBalance = pos.minted / 10 ** 18;
