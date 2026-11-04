@@ -2,11 +2,10 @@ const https = require('https');
 
 const VAULT_ADDRESS = '0x1e37a337ed460039d1b15bd3bc489de789768d5e';
 const API_URL = 'https://api.hyperliquid.xyz/info';
-const ARBITRUM_NATIVE_USDC_ADDRESS = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
+const USDC_ADDRESS = '0xb88339CB7199b77E23DB6E890353E22632Ba630f';
 
 const GROWI_ALPHA_VAULT_ID = 2;
 const HIBACHI_DATA_API = 'https://data-api.hibachi.xyz';
-const USDT_ADDRESS_ARBITRUM = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9';
 
 function fetchHyperliquidVaultDetails() {
   return new Promise((resolve, reject) => {
@@ -31,7 +30,7 @@ function fetchHyperliquidVaultDetails() {
           const parsed = JSON.parse(body);
           resolve(parsed);
         } catch (err) {
-          reject('Failed to parse vaultDetails');
+          reject(new Error('Failed to parse vaultDetails'));
         }
       });
     });
@@ -125,7 +124,7 @@ function computeHyperliquidAPY7Day(vaultDetails) {
     tvlUsd: alltimeData['tvlUsd'],
     apy: ann_yield * 100,
     apyBaseInception: alltimeData['apyBaseInception'] * 100,
-    underlyingTokens: [ARBITRUM_NATIVE_USDC_ADDRESS],
+    underlyingTokens: [USDC_ADDRESS],
     poolMeta: 'Hyperliquid Vault',
     url: 'https://app.hf.growi.fi/',
   };
@@ -200,7 +199,7 @@ async function computeHibachiAPY7Day() {
     tvlUsd: tvlUsdLatest,
     apy: apy7d * 100,
     apyBaseInception: apyBaseInception * 100,
-    underlyingTokens: [USDT_ADDRESS_ARBITRUM],
+    underlyingTokens: ['coingecko:tether'],
     poolMeta: 'Hibachi Vault',
     url: 'https://app.hf.growi.fi/',
   };
