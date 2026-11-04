@@ -1,8 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { utils: ethersUtils } = require('ethers');
 const utils = require('../utils');
-const { epochOf, validateBudget, rates, goodPrice } = require('./math');
+const { epochOf, validateBudget, poolRate, goodPrice } = require('./math');
 
 const CHAIN = 'robinhood';
 const FABLES = '0xb63d07cef74be747231d601bb2faa6b252c68106';
@@ -189,13 +188,16 @@ function output(s) {
   validateBudget(s.budget, s.timestamp);
   const result = [],
     diagnostics = [];
+  const seen = new Set();
   for (const b of s.books) {
     const p = s.pools.find((p) => p.id === b.pool.id),
       id = b.pool.id;
+    if (!p || seen.has(id)) throw Error('Unknown or duplicate pool book');
+    seen.add(id);
     const tokens = [p.key.currency0, p.key.currency1].map(priceAddress);
     const coins = tokens.map((t) => s.prices[`${CHAIN}:${t}`]);
     const reward = s.prices[`${CHAIN}:${FABLES}`];
-    const rows = rates({
+    const row = poolRate({
       ...b,
       budget: s.budget,
       coins,
@@ -203,44 +205,40 @@ function output(s) {
       timestamp: s.timestamp,
       killed: s.state[id].killed,
     });
-    if (!rows.length && b.ranges.length)
+    if (!row) {
       diagnostics.push({
         pool: id,
         omitted: 'No fresh valuation or positive principal',
       });
-    for (const row of rows) {
-      const rangeId = ethersUtils.keccak256(
-        ethersUtils.defaultAbiCoder.encode(
-          ['bytes32', 'int24', 'int24'],
-          [id, row.tickLower, row.tickUpper]
-        )
-      );
-      result.push({
-        pool: `fables-${p.key.hooks}-${rangeId}-${CHAIN}`,
-        chain: 'Robinhood Chain',
-        project: 'fables',
-        symbol: coins
-          .map((c, i) =>
-            [p.key.currency0, p.key.currency1][i] === ZERO ? 'ETH' : c.symbol
-          )
-          .join('-'),
-        tvlUsd: row.tvlUsd,
-        apyReward: row.apyReward,
-        rewardTokens: [FABLES],
-        underlyingTokens: tokens,
-        token: null, // ERC-6909 range shares; the hook is NOT an ERC-20 receipt.
-        poolMeta: `Staked CL [${row.tickLower}, ${row.tickUpper}) • current APR, no compounding`,
-        url: `https://www.fables.fi/deposit/${id}`,
-        ...(!s.state[id].earning || s.state[id].killed ? { frozen: true } : {}),
-      });
-      diagnostics.push({
-        pool: id,
-        rangeId,
-        ...row,
-        liquidity: String(row.liquidity),
-        depth: String(row.depth),
-      });
+      continue;
     }
+    result.push({
+      pool: `fables-staked-${id}-${CHAIN}`,
+      chain: 'Robinhood Chain',
+      project: 'fables',
+      symbol: coins
+        .map((c, i) =>
+          [p.key.currency0, p.key.currency1][i] === ZERO ? 'ETH' : c.symbol
+        )
+        .join('-'),
+      tvlUsd: row.tvlUsd,
+      apyReward: row.apyReward,
+      rewardTokens: [FABLES],
+      underlyingTokens: tokens,
+      token: null, // ERC-6909 range shares; the hook is NOT an ERC-20 receipt.
+      poolMeta: 'Staked CL — in-range pool average APR',
+      url: `https://www.fables.fi/deposit/${id}`,
+      ...(!s.state[id].earning || s.state[id].killed ? { frozen: true } : {}),
+    });
+    diagnostics.push({
+      pool: id,
+      ...row,
+      ranges: row.ranges.map((r) => ({
+        ...r,
+        liquidity: String(r.liquidity),
+        depth: String(r.depth),
+      })),
+    });
   }
   return { pools: result, diagnostics };
 }

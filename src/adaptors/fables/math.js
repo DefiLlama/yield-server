@@ -2,7 +2,7 @@ const WEEK = 604800;
 const OFFSET = 432000; // Tuesday 00:00 UTC
 const Q96 = 1n << 96n;
 const ONE = 10n ** 18n;
-const YEAR = 365 * 86400;
+const YEAR = 52 * WEEK; // Same 364-day annualization as the app's staking APR.
 const epochOf = (timestamp) => Math.floor((timestamp - OFFSET) / WEEK);
 
 // Native-bigint port of Uniswap v3-sdk TickMath (MIT, notice below).
@@ -155,14 +155,14 @@ function value(raw, coins) {
   );
 }
 
-// One row per existing staked ERC-6909 range, NOT the pool average. The
-// denominator includes every eligible range, including rows too small to list.
-function rates({ pool, ranges, budget, coins, reward, timestamp, killed }) {
+// Range accounting supplies the depth and principal for ONE staking pool row.
+// TVL includes out-of-range stake; the APR denominator includes eligible stake.
+function poolRate({ pool, ranges, budget, coins, reward, timestamp, killed }) {
   if (
     !coins.every((c) => goodPrice(c, timestamp)) ||
     !goodPrice(reward, timestamp)
   )
-    return [];
+    return null;
   if (!Number.isInteger(pool.tick) || !pool.sqrtPriceX96)
     throw Error('Missing pool price');
   const p = uint(pool.sqrtPriceX96),
@@ -187,10 +187,35 @@ function rates({ pool, ranges, budget, coins, reward, timestamp, killed }) {
   const reference = uint(budget.refDepth[pool.id]);
   let hourly = killed ? 0n : releasePerHour(budget, pool.id, timestamp);
   if (totalDepth < reference) hourly = (hourly * totalDepth) / reference;
-  return rows
-    .filter(
-      (r) => r.liquidity > 0n && r.tvlUsd > 0 && Number.isFinite(r.tvlUsd)
-    )
+  const tvlUsd = rows.reduce((s, r) => s + r.tvlUsd, 0);
+  const inRangeUsd = eligible.reduce((s, r) => s + r.tvlUsd, 0);
+  if (!(tvlUsd > 0) || !Number.isFinite(tvlUsd)) return null;
+  const apyReward =
+    inRangeUsd > 0
+      ? (((Number(hourly) / 1e18) * reward.price * (YEAR / 3600)) /
+          inRangeUsd) *
+        100
+      : 0;
+  if (!Number.isFinite(apyReward)) return null;
+  return {
+    tvlUsd,
+    inRangeUsd,
+    apyReward,
+    hourlyFables: String(hourly),
+    totalDepth: String(totalDepth),
+    totalLiquidity: String(totalLiquidity),
+    ranges: rows.filter((r) => r.liquidity > 0n && r.tvlUsd > 0),
+  };
+}
+
+// Internal allocation check, not additional output rows. Settlement floors per
+// owner; this aggregate-range split is only a fixed-input accounting reference.
+function rates(args) {
+  const pool = poolRate(args);
+  if (!pool) return [];
+  const hourly = BigInt(pool.hourlyFables);
+  const totalLiquidity = BigInt(pool.totalLiquidity);
+  return pool.ranges
     .map((r) => {
       const emitted =
         r.depth > 0n && totalLiquidity > 0n
@@ -199,10 +224,10 @@ function rates({ pool, ranges, budget, coins, reward, timestamp, killed }) {
       return {
         ...r,
         hourlyFables: String(emitted),
-        totalDepth: String(totalDepth),
-        totalLiquidity: String(totalLiquidity),
+        totalDepth: pool.totalDepth,
+        totalLiquidity: pool.totalLiquidity,
         apyReward:
-          (((Number(emitted) / 1e18) * reward.price * (YEAR / 3600)) /
+          (((Number(emitted) / 1e18) * args.reward.price * (YEAR / 3600)) /
             r.tvlUsd) *
           100,
       };
@@ -224,5 +249,6 @@ module.exports = {
   releasePerHour,
   goodPrice,
   value,
+  poolRate,
   rates,
 };

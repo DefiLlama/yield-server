@@ -58,7 +58,7 @@ test('flat release excludes company/rebase and does not compound', () => {
   m.validateBudget(a.budget, timestamp);
   const [r] = m.rates(a);
   assert.equal(r.hourlyFables, String(m.ONE));
-  assert.equal(r.apyReward, (8760 / r.tvlUsd) * 100);
+  assert.equal(r.apyReward, (8736 / r.tvlUsd) * 100);
 });
 test('depth below target reduces release; above target cannot exceed budget', () => {
   const a = args(),
@@ -202,4 +202,137 @@ test('held, stale and errored indexer envelopes are refused', () => {
     () => _test.indexData({ ...fresh, data: { data: {}, errors: [{}] } }),
     /Incomplete/
   );
+});
+
+const FABLES = '0xb63d07cef74be747231d601bb2faa6b252c68106';
+const WETH = '0x0bd7d308f8e1639fab988df18a8011f41eacad73';
+const ZERO = `0x${'0'.repeat(40)}`;
+function snapshot(a = args()) {
+  return {
+    timestamp: a.timestamp,
+    budget: a.budget,
+    books: [{ pool: a.pool, ranges: a.ranges }],
+    pools: [{ id, key: { currency0: ZERO, currency1: FABLES } }],
+    state: { [id]: { killed: a.killed, earning: true } },
+    prices: {
+      [`robinhood:${WETH}`]: a.coins[0],
+      [`robinhood:${FABLES}`]: a.reward,
+    },
+  };
+}
+const close = (a, b) =>
+  assert.ok(
+    Math.abs(a - b) <= 1e-12 * Math.max(1, Math.abs(a), Math.abs(b)),
+    `${a} != ${b}`
+  );
+
+test('one pool row conserves all staked principal without range duplicates', () => {
+  const a = args();
+  a.ranges.push(range(-1000, 1000), range(100, 200));
+  const s = snapshot(a),
+    other = `0x${'2'.repeat(64)}`;
+  for (const field of ['lpBudgets', 'refDepth', 'refTick'])
+    s.budget[field][other] = s.budget[field][id];
+  s.budget.weeklyBudgetOnChain = String(336n * m.ONE);
+  s.books.push({ pool: { ...a.pool, id: other }, ranges: [range()] });
+  s.pools.push({ ...s.pools[0], id: other });
+  s.state[other] = { killed: false, earning: true };
+  const { pools } = _test.output(s);
+  assert.equal(pools.length, 2);
+  assert.equal(new Set(pools.map((p) => p.pool)).size, 2);
+  assert.equal(pools[0].pool, `fables-staked-${id}-robinhood`);
+  close(
+    pools.reduce((v, p) => v + p.tvlUsd, 0),
+    m.rates(a).reduce((v, r) => v + r.tvlUsd, 0) + m.poolRate(args()).tvlUsd
+  );
+  assert.equal(pools[0].token, null);
+  assert.deepEqual(pools[0].underlyingTokens, [WETH, FABLES]);
+  assert.equal(pools[0].symbol, 'ETH-T');
+  assert.equal(pools[0].apyBase, undefined);
+  assert.equal(pools[0].url, `https://www.fables.fi/deposit/${id}`);
+  s.books.push(s.books[0]);
+  assert.throws(() => _test.output(s), /duplicate pool/);
+});
+
+test('pool APR equals eligible capital-weighted range rates at aligned marks and year', () => {
+  const a = args();
+  a.ranges.push(range(-1000, 1000, 2n * m.ONE), range(100, 200, 4n * m.ONE));
+  a.coins = [price(6, 0.998), price(18, 1.4)];
+  a.reward = price(18, 0.056);
+  const pool = m.poolRate(a),
+    rows = m.rates(a);
+  const active = rows.filter((r) => r.depth > 0n);
+  close(
+    pool.inRangeUsd,
+    active.reduce((v, r) => v + r.tvlUsd, 0)
+  );
+  close(
+    pool.apyReward,
+    active.reduce((v, r) => v + r.tvlUsd * r.apyReward, 0) / pool.inRangeUsd
+  );
+  assert.ok(pool.tvlUsd > pool.inRangeUsd);
+  const allocated = rows.reduce((v, r) => v + BigInt(r.hourlyFables), 0n);
+  assert.ok(BigInt(pool.hourlyFables) >= allocated);
+  assert.ok(BigInt(pool.hourlyFables) - allocated < BigInt(active.length));
+  assert.equal(m.YEAR, 52 * m.WEEK);
+});
+
+test('out-of-range capital changes reported TVL but not the eligible pool rate', () => {
+  const a = args(),
+    before = m.poolRate(a);
+  a.ranges.push(range(100, 200, 100n * m.ONE));
+  const after = m.poolRate(a);
+  assert.ok(after.tvlUsd > before.tvlUsd * 10);
+  assert.equal(after.inRangeUsd, before.inRangeUsd);
+  assert.equal(after.apyReward, before.apyReward);
+});
+
+test('all-out-of-range pool retains TVL at zero APR; empty pool is omitted', () => {
+  const a = args();
+  a.ranges = [range(100, 200)];
+  const p = _test.output(snapshot(a)).pools;
+  assert.equal(p.length, 1);
+  assert.ok(p[0].tvlUsd > 0);
+  assert.equal(p[0].apyReward, 0);
+  a.ranges = [];
+  assert.deepEqual(_test.output(snapshot(a)).pools, []);
+  a.ranges = [range(-100, 100, 0n)];
+  assert.deepEqual(_test.output(snapshot(a)).pools, []);
+});
+
+test('missing or stale principal/reward mark omits the pool, never substitutes a peg', () => {
+  for (const token of [WETH, FABLES]) {
+    const s = snapshot();
+    s.prices[`robinhood:${token}`] = {
+      ...price(),
+      timestamp: timestamp - 10801,
+    };
+    assert.deepEqual(_test.output(s).pools, []);
+    delete s.prices[`robinhood:${token}`];
+    assert.deepEqual(_test.output(s).pools, []);
+  }
+});
+
+test('pool output observes reference depth, killed state and epoch validation', () => {
+  const a = args(),
+    baseline = _test.output(snapshot(a)).pools[0];
+  a.budget.refDepth[id] = String(m.depth(m.ONE, -100, 100, 0, 0) * 2n);
+  close(_test.output(snapshot(a)).pools[0].apyReward, baseline.apyReward / 2);
+  a.killed = true;
+  const killed = _test.output(snapshot(a)).pools[0];
+  assert.equal(killed.apyReward, 0);
+  assert.equal(killed.frozen, true);
+  a.timestamp = 2966 * m.WEEK + m.OFFSET;
+  assert.throws(() => _test.output(snapshot(a)), /current epoch/);
+});
+
+test('pool output uses a future scheduled hourly rhythm, not a flat weekly headline', () => {
+  const a = args(),
+    flat = m.poolRate(a).apyReward;
+  a.budget.rhythm = { [id]: Array(167).fill('0').concat(String(m.ONE)) };
+  assert.equal(_test.output(snapshot(a)).pools[0].apyReward, 0);
+  a.timestamp = 2965 * m.WEEK + m.OFFSET + 167 * 3600;
+  a.coins = [price(), price()].map((p) => ({ ...p, timestamp: a.timestamp }));
+  a.reward = { ...price(), timestamp: a.timestamp };
+  close(_test.output(snapshot(a)).pools[0].apyReward, flat * 168);
 });
