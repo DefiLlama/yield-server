@@ -19,24 +19,52 @@ const trimFailureDetail = (detail) =>
 
 function main() {
   const [, , log, outDir, adapter] = process.argv;
-  const file = stripAnsi(readFileSync(log, 'utf-8'));
+  let file = stripAnsi(readFileSync(log, 'utf-8'));
 
   const passed = /PASS\s+.*test\.js/.test(file);
   const failed = /FAIL\s+.*test\.js/.test(file);
 
   const MAX_FAILURE_DETAIL_CHARS = 20000;
+  const MAX_POOL_DETAIL_CHARS = 20000;
 
-  // On success: everything from "Test Suites:" onward (includes pool output from
-  // afterTests.js). On failure: the jest failure blocks too, capped, so the
-  // reason is visible in the comment and not just the counts.
-  const summaryIndex = file.indexOf('Test Suites:');
+  // On success: everything from "Test Suites:" onward. On failure: the jest
+  // failure blocks too, capped, so the reason is visible in the comment and
+  // not just the counts.
+  let summaryIndex = file.indexOf('Test Suites:');
   if (summaryIndex === -1) return;
+
+  // afterTests.js (a jest globalTeardown) writes the pool summary to stdout
+  // while jest writes its reporter output to stderr. Once that output fills
+  // the pipe (large adapters, e.g. morpho-blue), the rest is queued and the
+  // pool block can land BEFORE the jest summary, even inside the failure
+  // blocks, so slicing from "Test Suites:" drops it. Take the block explicitly
+  // and put it back after the summary, where it lands for regular adapters,
+  // skipping the per-test lines in between: including them
+  // pushed the comment past GitHub's 65536-character limit, so it failed to
+  // post at all.
+  const poolIndex = file.indexOf('Nb of pools:');
+  let poolDetail = '';
+  if (poolIndex !== -1 && poolIndex < summaryIndex) {
+    const rest = file.slice(poolIndex, summaryIndex);
+    const reporterStart = rest.match(/\n\s*(?:✓|✗|✕|●|PASS|FAIL)/);
+    const block = reporterStart ? rest.slice(0, reporterStart.index) : rest;
+    // cut it out of the log so the failure detail below cannot repeat it
+    file = file.slice(0, poolIndex) + file.slice(poolIndex + block.length);
+    summaryIndex -= block.length;
+    poolDetail = block.trimEnd();
+    if (poolDetail.length > MAX_POOL_DETAIL_CHARS) {
+      poolDetail =
+        poolDetail.substring(0, MAX_POOL_DETAIL_CHARS) +
+        '\n\n... pool output truncated ...';
+    }
+    poolDetail = `\n${poolDetail}\n`;
+  }
 
   const failureIndex = file.indexOf('●');
   const hasFailureDetail =
     failed && failureIndex !== -1 && failureIndex < summaryIndex;
 
-  let output = file.substring(summaryIndex);
+  let output = file.substring(summaryIndex) + poolDetail;
   if (hasFailureDetail) {
     let detail = trimFailureDetail(file.substring(failureIndex, summaryIndex));
     if (detail.length > MAX_FAILURE_DETAIL_CHARS) {
