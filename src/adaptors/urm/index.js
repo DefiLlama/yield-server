@@ -2,9 +2,10 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 // Fountain (fURM) -- yield vault of URM, the CDP stablecoin on Base.
-// tvlUsd  = URM owed to fURM holders x URM price
+// tvlUsd    = URM owed to fURM holders x URM price
 // apyBase   = realized 24h APY from fURM share-price growth (compounded)
 // apyBase7d = realized 7-day APY (longest available window while younger)
+// poolMeta  = live withdraw fee, read from the vault
 
 const CHAIN = 'base';
 const FURM = '0x95fa3FA511Ef8DD9e48453eaE76b241D1c1AC651';
@@ -19,17 +20,14 @@ const LOOKBACK_DAYS = [7, 6, 5, 4, 3, 2, 1];
 const abi = {
   totalAssets: 'function totalAssets() view returns (uint256)',
   convertToAssets: 'function convertToAssets(uint256 shares) view returns (uint256)',
+  previewRedeem: 'function previewRedeem(uint256 shares) view returns (uint256)',
   twap: 'function getUrmTwapUsdcPrice(uint256 amount, uint32 secondsAgo) view returns (uint256)',
 };
 
-// URM price: DefiLlama coins API first; if it has no price, the URM/USDC
-// Uniswap V3 TWAP from UrmOracle (USDC, 6 dec, per 1 URM). No hardcoded $1.
+// URM price: the URM/USDC Uniswap V3 TWAP from UrmOracle (USDC, 6 dec, per
+// 1 URM). The coins API is only a fallback, and only if its price is plausible
+// for a dollar stablecoin, so a bad coins price can't zero out tvlUsd.
 async function urmPrice() {
-  const key = `${CHAIN}:${URM}`;
-  try {
-    const { coins } = await utils.getData(`https://coins.llama.fi/prices/current/${key}`);
-    if (coins?.[key]?.price > 0) return coins[key].price;
-  } catch (e) {}
   for (const secondsAgo of [1800, 60]) {
     try {
       const { output } = await sdk.api.abi.call({
@@ -38,19 +36,35 @@ async function urmPrice() {
       if (Number(output) > 0) return Number(output) / 1e6;
     } catch (e) {}
   }
-  throw new Error('no URM price');
+  const key = `${CHAIN}:${URM}`;
+  const { coins } = await utils.getData(`https://coins.llama.fi/prices/current/${key}`);
+  const price = coins?.[key]?.price;
+  if (price > 0.5 && price < 1.5) return price;
+  throw new Error(`no usable URM price (coins: ${price})`);
 }
 
 // convertToAssets(1 fURM) at a block (latest if omitted). Read errors throw
-// rather than being mistaken for missing history.
-async function sharePrice(block) {
+// rather than being mistaken for missing history. Returned as a BigInt string
+// so the fee math below stays exact.
+async function sharePriceRaw(block) {
   const { output } = await sdk.api.abi.call({
     target: FURM, abi: abi.convertToAssets, params: [ONE], chain: CHAIN,
     ...(block ? { block } : {}),
   });
-  const pps = Number(output);
-  if (!(pps > 0)) throw new Error(`invalid fURM share price at block ${block ?? 'latest'}`);
-  return pps;
+  if (!(BigInt(output) > 0n)) throw new Error(`invalid fURM share price at block ${block ?? 'latest'}`);
+  return output;
+}
+const sharePrice = async (block) => Number(await sharePriceRaw(block));
+
+// Live withdraw fee in %, from the vault itself: previewRedeem is
+// convertToAssets minus the withdraw fee, so the label never goes stale.
+async function withdrawFeePct(grossRaw) {
+  const { output: net } = await sdk.api.abi.call({
+    target: FURM, abi: abi.previewRedeem, params: [ONE], chain: CHAIN,
+  });
+  const gross = BigInt(grossRaw);
+  const ppm = ((gross - BigInt(net)) * 1000000n) / gross; // parts per million
+  return Number((Number(ppm) / 10000).toFixed(2));
 }
 
 // True once the vault contract exists at `block`. This is the only case that
@@ -103,7 +117,9 @@ const getApy = async () => {
   const deposits = BigInt(owed) < BigInt(held) ? owed : held;
   const tvlUsd = (Number(deposits) / 1e18) * (await urmPrice());
 
-  const ppsNow = await sharePrice();
+  const ppsRaw = await sharePriceRaw();
+  const ppsNow = Number(ppsRaw);
+  const fee = await withdrawFeePct(ppsRaw);
 
   return [
     {
@@ -117,7 +133,7 @@ const getApy = async () => {
       underlyingTokens: [URM],
       token: FURM,
       pricePerShare: ppsNow / 1e18,
-      poolMeta: 'Fountain, 0.5% withdraw fee',
+      poolMeta: fee > 0 ? `Fountain, ${fee}% withdraw fee` : 'Fountain',
       url: POOL_URL,
     },
   ];
