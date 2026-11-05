@@ -20,9 +20,12 @@ app.use(require('morgan')('dev'));
 app.use(helmet());
 app.use(express.json());
 
+// new prefix: pre-TTL "data#" keys never expire and would be served forever
+const CACHE_PREFIX = "cache#"
+
 async function redisCache (req, res, next) {
   const {headers, nextCacheDate} = getCacheDates()
-  const cacheObject = await redis.get("data#"+req.url).catch(() => null)
+  const cacheObject = await redis.get(CACHE_PREFIX + req.url).catch(() => null)
   if(cacheObject !== null){
     res.set(headers)
       .status(200)
@@ -38,7 +41,7 @@ async function redisCache (req, res, next) {
         if(content){
           // expire at the next :22 rollover, same as the Expires header
           const ttl = Math.max(1, Math.ceil((nextCacheDate.getTime() - Date.now()) / 1000))
-          redis.set("data#" + res._apicache.url, content.toString(), "EX", ttl).catch(() => {})
+          redis.set(CACHE_PREFIX + res._apicache.url, content.toString(), "EX", ttl).catch(() => {})
         }
         res.set(headers)
       }
