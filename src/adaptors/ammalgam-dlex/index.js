@@ -29,8 +29,13 @@ const USDT = token('USDT', '0xdac17f958d2ee523a2206206994597c13d831ec7', 6);
 const WETH = token('WETH', '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', 18);
 const SFI = token('SFI', '0xb753428af26e81097e7fd17f40c88aaa3e04902c', 18);
 const INFI = token('INFI', '0xf40c07d7cd45f291b93ca674db66a15c8a98957e', 18);
+const WPLP_SIUSD_7JAN2027 = token(
+  'wPLP-siUSD-7JAN2027',
+  '0x6d3732801144aa45306e696a1452984223188a42',
+  18
+);
 
-const TOKENS = [USDC, USDT, WETH, SFI, INFI];
+const TOKENS = [USDC, USDT, WETH, SFI, INFI, WPLP_SIUSD_7JAN2027];
 const POOLS = [
   {
     pair: '0x728fd0a966b993fe518b00122d51e494f99abd6a',
@@ -59,6 +64,13 @@ const POOLS = [
     fromTimestamp: 1794931007,
     token: '0xe8ca3647eeea1a4a86332a0a39d6f63cfacbe6d3',
     tokens: [USDC, INFI],
+  },
+  {
+    pair: '0xadd04b093a713dfe292db95333f9cdab1ff92c42',
+    fromBlock: 26204764,
+    fromTimestamp: 1792149731,
+    token: '0x594c78224e4e343925b3a070c95e994a0976c273',
+    tokens: [WPLP_SIUSD_7JAN2027, USDC],
   },
 ].map((pool) => ({
   ...pool,
