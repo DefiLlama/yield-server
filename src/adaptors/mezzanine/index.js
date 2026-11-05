@@ -92,7 +92,6 @@ const apy = async () => {
 
 module.exports = {
   protocolId: '9245',
-  apyWindowDays: 7,
   timetravel: false,
   apy,
   url: 'https://app.mezz.finance',
