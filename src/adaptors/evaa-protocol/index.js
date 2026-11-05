@@ -494,6 +494,7 @@ async function getContractStateWithRetry(client, address, maxRetries = 3, initia
 const getApy = async () => {
   console.log('Requesting prices');
   let prices = await getPrices();
+  if (!prices) throw new Error('EVAA oracle prices unavailable');
   let distributions = await getDistributions();
   const client = new TonClient({
     endpoint: 'https://toncenter.com/api/v2/jsonRPC',

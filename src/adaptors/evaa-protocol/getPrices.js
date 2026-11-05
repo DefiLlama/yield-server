@@ -1,4 +1,4 @@
-const { Cell, Slice, Dictionary, beginCell } = require('@ton/core');
+const { Cell, Dictionary, beginCell } = require('@ton/core');
 const { signVerify } = require('@ton/crypto');
 
 const ORACLES = [
@@ -77,179 +77,6 @@ function getMedianPrice(pricesData, assetId) {
   } catch {
     return null;
   }
-}
-
-function packAssetsData(assetsData) {
-  if (assetsData.length === 0) {
-    throw new Error('No assets data to pack');
-  }
-  return assetsData.reduceRight(
-    (acc, { assetId, medianPrice }) =>
-      beginCell()
-        .storeUint(assetId, 256)
-        .storeCoins(medianPrice)
-        .storeMaybeRef(acc)
-        .endCell(),
-    null
-  );
-}
-
-function packPrices(assetsDataCell, oraclesDataCell) {
-  return beginCell()
-    .storeRef(assetsDataCell)
-    .storeRef(oraclesDataCell)
-    .endCell();
-}
-
-function readUnaryLength(slice) {
-  let res = 0;
-  while (slice.loadBit()) {
-    res++;
-  }
-  return res;
-}
-
-function doGenerateMerkleProof(prefix, slice, n, keys) {
-  // Reading label
-  const originalCell = slice.asCell();
-
-  if (keys.length == 0) {
-    // no keys to prove, prune the whole subdict
-    return convertToPrunedBranch(originalCell);
-  }
-
-  let lb0 = slice.loadBit() ? 1 : 0;
-  let prefixLength = 0;
-  let pp = prefix;
-
-  if (lb0 === 0) {
-    // Short label detected
-
-    // Read
-    prefixLength = readUnaryLength(slice);
-
-    // Read prefix
-    for (let i = 0; i < prefixLength; i++) {
-      pp += slice.loadBit() ? '1' : '0';
-    }
-  } else {
-    let lb1 = slice.loadBit() ? 1 : 0;
-    if (lb1 === 0) {
-      // Long label detected
-      prefixLength = slice.loadUint(Math.ceil(Math.log2(n + 1)));
-      for (let i = 0; i < prefixLength; i++) {
-        pp += slice.loadBit() ? '1' : '0';
-      }
-    } else {
-      // Same label detected
-      let bit = slice.loadBit() ? '1' : '0';
-      prefixLength = slice.loadUint(Math.ceil(Math.log2(n + 1)));
-      for (let i = 0; i < prefixLength; i++) {
-        pp += bit;
-      }
-    }
-  }
-
-  if (n - prefixLength === 0) {
-    return originalCell;
-  } else {
-    let sl = originalCell.beginParse();
-    let left = sl.loadRef();
-    let right = sl.loadRef();
-    // NOTE: Left and right branches are implicitly contain prefixes '0' and '1'
-    if (!left.isExotic) {
-      const leftKeys = keys.filter((key) => {
-        return pp + '0' === key.slice(0, pp.length + 1);
-      });
-      left = doGenerateMerkleProof(
-        pp + '0',
-        left.beginParse(),
-        n - prefixLength - 1,
-        leftKeys
-      );
-    }
-    if (!right.isExotic) {
-      const rightKeys = keys.filter((key) => {
-        return pp + '1' === key.slice(0, pp.length + 1);
-      });
-      right = doGenerateMerkleProof(
-        pp + '1',
-        right.beginParse(),
-        n - prefixLength - 1,
-        rightKeys
-      );
-    }
-
-    return beginCell().storeSlice(sl).storeRef(left).storeRef(right).endCell();
-  }
-}
-
-function generateMerkleProofDirect(dict, keys, keyObject) {
-  keys.forEach((key) => {
-    if (!dict.has(key)) {
-      throw new Error(
-        `Trying to generate merkle proof for a missing key "${key}"`
-      );
-    }
-  });
-  const s = beginCell().storeDictDirect(dict).asSlice();
-  return doGenerateMerkleProof(
-    '',
-    s,
-    keyObject.bits,
-    keys.map((key) =>
-      keyObject.serialize(key).toString(2).padStart(keyObject.bits, '0')
-    )
-  );
-}
-
-function endExoticCell(b) {
-  let c = b.endCell();
-  return new Cell({ exotic: true, bits: c.bits, refs: c.refs });
-}
-
-function convertToMerkleProof(c) {
-  return endExoticCell(
-    beginCell()
-      .storeUint(3, 8)
-      .storeBuffer(c.hash(0))
-      .storeUint(c.depth(0), 16)
-      .storeRef(c)
-  );
-}
-
-function createOracleDataProof(oracle, data, signature, assets) {
-  let prunedDict = generateMerkleProofDirect(
-    data.prices,
-    assets,
-    Dictionary.Keys.BigUint(256)
-  );
-  let prunedData = beginCell()
-    .storeUint(data.timestamp, 32)
-    .storeMaybeRef(prunedDict)
-    .endCell();
-  let merkleProof = convertToMerkleProof(prunedData);
-  let oracleDataProof = beginCell()
-    .storeUint(oracle.id, 32)
-    .storeRef(merkleProof)
-    .storeBuffer(signature)
-    .asSlice();
-  return oracleDataProof;
-}
-
-function packOraclesData(oraclesData, assets) {
-  if (oraclesData.length == 0) {
-    throw new Error('no oracles data to pack');
-  }
-  let proofs = oraclesData
-    .sort((d1, d2) => d1.oracle.id - d2.oracle.id)
-    .map(({ oracle, data, signature }) =>
-      createOracleDataProof(oracle, data, signature, assets)
-    );
-  return proofs.reduceRight(
-    (acc, val) => beginCell().storeSlice(val).storeMaybeRef(acc).endCell(),
-    null
-  );
 }
 
 async function getPrices(endpoint = 'api.evaa.space') {
@@ -368,28 +195,12 @@ async function getPrices(endpoint = 'api.evaa.space') {
       }))
       .filter((x) => x.medianPrice !== null);
 
-    const packedMedianData = packAssetsData(medianData);
-
-    const oraclesData = newerPrices.map((x) => ({
-      oracle: { id: x.oracleId, pubkey: x.pubkey },
-      data: { timestamp: x.timestamp, prices: x.dict },
-      signature: x.signature,
-    }));
-
-    const packedOracleData = packOraclesData(
-      oraclesData,
-      medianData.map((x) => x.assetId)
-    );
-
     const dict = Dictionary.empty();
     for (const { assetId, medianPrice } of medianData) {
       dict.set(assetId, medianPrice);
     }
 
-    return {
-      dict,
-      dataCell: packPrices(packedMedianData, packedOracleData),
-    };
+    return { dict };
   } catch (processingError) {
     console.error('Error processing prices:', processingError);
     return undefined;
