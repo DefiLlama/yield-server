@@ -175,7 +175,7 @@ async function loadPool(tranche, symbol, overrides = {}) {
 
   // Use vault token price if available, otherwise fall back to
   // totalAssets * underlying price (accurate for ERC4626 stablecoin vaults)
-  const decimals = ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', '0xCc5C22C7A6BCC25e66726AeF011dDE74289ED203'].includes(underlying) ? 6 : 18;
+  const decimals = ['0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', '0xCc5C22C7A6BCC25e66726AeF011dDE74289ED203', '0x23238f20b894f29041f48D88eE91131C395Aaa71'].includes(underlying) ? 6 : 18;
   const tvlUsd = price
     ? totalSupply * price
     : (totalAssetsRaw / (10 ** decimals)) * (underlyingPrice ?? 1);
@@ -194,27 +194,26 @@ async function loadPool(tranche, symbol, overrides = {}) {
 }
 
 const apy = async () => {
-  try {
-    return await Promise.all([
-      loadPool('ethena', 'srUSDe'),
-      loadPool('ethena', 'jrUSDe'),
-      loadPool('neutrl', 'srNUSD'),
-      loadPool('neutrl', 'jrNUSD'),
-      loadPool('mhyper', 'srmHYPER'),
-      loadPool('mhyper', 'jrmHYPER'),
-      loadPool('mm1usd', 'srmM1USD'),
-      loadPool('mm1usd', 'jrmM1USD'),
-      loadPool('saturn', 'srUSDat', { poolMeta: 'fixed-rate' }),// [FIX] constant APY by design
-      loadPool('saturn', 'jrUSDat'),
-      loadPool('figure', 'srPRIME'),
-      loadPool('figure', 'jrPRIME'),
-      loadPool('nestopal', 'srNOPAL'),
-      loadPool('nestopal', 'jrNOPAL'),
-    ]);
-  } catch (error) {
-    console.error('Error fetching APYs:', error);
-    throw error;
-  }
+  const results = await Promise.allSettled([
+    loadPool('ethena', 'srUSDe'),
+    loadPool('ethena', 'jrUSDe'),
+    loadPool('neutrl', 'srNUSD'),
+    loadPool('neutrl', 'jrNUSD'),
+    loadPool('mhyper', 'srmHYPER'),
+    loadPool('mhyper', 'jrmHYPER'),
+    loadPool('mm1usd', 'srmM1USD'),
+    loadPool('mm1usd', 'jrmM1USD'),
+    loadPool('saturn', 'srUSDat', { poolMeta: 'fixed-rate' }),// [FIX] constant APY by design
+    loadPool('saturn', 'jrUSDat'),
+    loadPool('figure', 'srPRIME'),
+    loadPool('figure', 'jrPRIME'),
+    loadPool('nestopal', 'srNOPAL'),
+    loadPool('nestopal', 'jrNOPAL'),
+  ]);
+  results
+    .filter((r) => r.status === 'rejected')
+    .forEach((r) => console.error('strata-markets: pool skipped:', r.reason?.message));
+  return results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
 };
 
 module.exports = {
