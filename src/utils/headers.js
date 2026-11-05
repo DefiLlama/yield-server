@@ -7,9 +7,10 @@ const customHeader = (cacheTime) => {
 };
 
 const getCacheDates = () => {
-  const date = new Date();
-  date.setMinutes(22);
-  if (date < new Date()) {
+  const now = new Date();
+  const date = new Date(now);
+  date.setMinutes(22, 0, 0);
+  if (date <= now) {
     // we are past the :22 mark, roll over to next hour
     date.setHours(date.getHours() + 1);
   }

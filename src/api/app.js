@@ -21,10 +21,8 @@ app.use(helmet());
 app.use(express.json());
 
 async function redisCache (req, res, next) {
-  const lastCacheUpdate = await redis.get("lastUpdate#"+req.url).catch(() => null)
   const {headers, nextCacheDate} = getCacheDates()
-  const cacheObject = lastCacheUpdate !== null && Number(lastCacheUpdate) > (nextCacheDate.getTime() - 3600e3)
-    ? await redis.get("data#"+req.url).catch(() => null) : null
+  const cacheObject = await redis.get("data#"+req.url).catch(() => null)
   if(cacheObject !== null){
     res.set(headers)
       .status(200)
@@ -36,8 +34,12 @@ async function redisCache (req, res, next) {
     }
     res.end = function(content, encoding) {
       if(res.statusCode === 200){
-        redis.set("data#" + res._apicache.url, content.toString()).catch(() => {})
-        redis.set("lastUpdate#" + res._apicache.url, Date.now()).catch(() => {})
+        // HEAD responses have no body to cache
+        if(content){
+          // expire at the next :22 rollover, same as the Expires header
+          const ttl = Math.max(1, Math.ceil((nextCacheDate.getTime() - Date.now()) / 1000))
+          redis.set("data#" + res._apicache.url, content.toString(), "EX", ttl).catch(() => {})
+        }
         res.set(headers)
       }
       return res._apicache.end.apply(this, arguments)
