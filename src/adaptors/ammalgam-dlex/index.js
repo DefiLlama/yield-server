@@ -27,8 +27,13 @@ const token = (symbol, address, decimals) => ({
 const USDC = token('USDC', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 6);
 const USDT = token('USDT', '0xdac17f958d2ee523a2206206994597c13d831ec7', 6);
 const WETH = token('WETH', '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', 18);
+const WPLP_SIUSD_7JAN2027 = token(
+  'wPLP-siUSD-7JAN2027',
+  '0x6d3732801144aa45306e696a1452984223188a42',
+  18
+);
 
-const TOKENS = [USDC, USDT, WETH];
+const TOKENS = [USDC, USDT, WETH, WPLP_SIUSD_7JAN2027];
 const POOLS = [
   {
     pair: '0x728fd0a966b993fe518b00122d51e494f99abd6a',
@@ -43,6 +48,13 @@ const POOLS = [
     fromTimestamp: 1787793803,
     token: '0xb2e1c416b97613a30a69c5b12ec369d8e986d5ac',
     tokens: [USDC, USDT],
+  },
+  {
+    pair: '0xadd04b093a713dfe292db95333f9cdab1ff92c42',
+    fromBlock: 26204764,
+    fromTimestamp: 1792149731,
+    token: '0x594c78224e4e343925b3a070c95e994a0976c273',
+    tokens: [WPLP_SIUSD_7JAN2027, USDC],
   },
 ].map((pool) => ({
   ...pool,
