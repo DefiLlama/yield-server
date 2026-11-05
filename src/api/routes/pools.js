@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const pools = require('../controllers/pools');
+const sunsetNotice = require('../sunsetNotice');
 
-router.route('/pools').get(pools.getPools);
-router.route('/lendBorrow').get(pools.getLendBorrow);
+router.route('/pools').get(sunsetNotice('/yields/v1/pools'), pools.getPools);
+router
+  .route('/lendBorrow')
+  .get(sunsetNotice('/yields/v1/poolsBorrow'), pools.getLendBorrow);
 
 module.exports = router;

@@ -1,17 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const enriched = require('../controllers/enriched');
+const sunsetNotice = require('../sunsetNotice');
 
-router.route('/poolsEnriched').get(enriched.getPoolEnriched);
+router
+  .route('/poolsEnriched')
+  .get(sunsetNotice('/yields/v1/pools'), enriched.getPoolEnriched);
 
 // PRO API routes
-router.route('/poolsPro').get(enriched.getPoolsEnrichedPro);
-router.route('/poolsOld').get((req, res, next) => {
-  res.set('Link', '</poolsPro>; rel="successor-version"');
-  res.set('X-Preferred-Route', '/poolsPro');
-  res.set('X-Notice', 'Prefer /poolsPro; this alias remains available.');
-  next();
-}, enriched.getPoolsEnrichedPro); // alias; prefer /poolsPro
-router.route('/poolsBorrow').get(enriched.getPoolsBorrow);
+router
+  .route('/poolsPro')
+  .get(sunsetNotice('/yields/v1/pools'), enriched.getPoolsEnrichedPro);
+router
+  .route('/poolsOld')
+  .get(sunsetNotice('/yields/v1/pools'), enriched.getPoolsEnrichedPro);
+router
+  .route('/poolsBorrow')
+  .get(sunsetNotice('/yields/v1/poolsBorrow'), enriched.getPoolsBorrow);
 
 module.exports = router;
