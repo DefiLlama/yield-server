@@ -32,8 +32,7 @@ const vaultPools = async () => {
 const apy = async () => (await vaultPools()).filter((p) => p.tvlUsd > 0);
 
 module.exports = {
-  // TODO: the Dexalot OmniVaults protocol id once its listing is live (DefiLlama-Adapters#22004)
-  protocolId: '',
+  protocolId: '9337',
   timetravel: false,
   apy,
   url: 'https://app.dexalot.com/vaults',
