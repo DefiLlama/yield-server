@@ -19,7 +19,7 @@ const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const apy = async () => {
   const { data } = await axios.get(API);
   return data.pools
-    .filter((p) => p.apy_basis === 'live' && p.apy_pct !== null)
+    .filter((p) => p.share_mint && p.apy_basis === 'live' && p.apy_pct !== null)
     .map((p) => ({
       pool: `${p.share_mint}-solana`,
       chain: utils.formatChain('solana'),
