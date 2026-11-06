@@ -5,7 +5,7 @@ const utils = require('../utils');
 // tvlUsd    = URM owed to fURM holders x URM price
 // apyBase   = realized 24h APY from fURM share-price growth (compounded)
 // apyBase7d = realized 7-day APY (longest available window while younger)
-// poolMeta  = live withdraw fee, read from the vault
+// poolMeta  = live withdraw fee, read from the vault at the same block
 
 const CHAIN = 'base';
 const FURM = '0x95fa3FA511Ef8DD9e48453eaE76b241D1c1AC651';
@@ -58,13 +58,25 @@ const sharePrice = async (block) => Number(await sharePriceRaw(block));
 
 // Live withdraw fee in %, from the vault itself: previewRedeem is
 // convertToAssets minus the withdraw fee, so the label never goes stale.
-async function withdrawFeePct(grossRaw) {
-  const { output: net } = await sdk.api.abi.call({
-    target: FURM, abi: abi.previewRedeem, params: [ONE], chain: CHAIN,
-  });
-  const gross = BigInt(grossRaw);
-  const ppm = ((gross - BigInt(net)) * 1000000n) / gross; // parts per million
-  return Number((Number(ppm) / 10000).toFixed(2));
+// Read at the same block as the share price. The fee is label metadata only,
+// so a failed read returns null (unknown) instead of failing the whole pool.
+async function withdrawFeePct(grossRaw, block) {
+  try {
+    const { output: net } = await sdk.api.abi.call({
+      target: FURM, abi: abi.previewRedeem, params: [ONE], chain: CHAIN, block,
+    });
+    const gross = BigInt(grossRaw);
+    const ppm = ((gross - BigInt(net)) * 1000000n) / gross; // parts per million
+    return Number((Number(ppm) / 10000).toFixed(2));
+  } catch (e) {
+    return null;
+  }
+}
+
+function feeLabel(fee) {
+  if (fee === null) return 'Fountain, withdraw fee applies'; // read failed
+  if (fee > 0) return `Fountain, ${fee}% withdraw fee`;
+  return 'Fountain'; // no fee (e.g. vault closed)
 }
 
 // True once the vault contract exists at `block`. This is the only case that
@@ -109,17 +121,22 @@ async function apy7d(ppsNow) {
 }
 
 const getApy = async () => {
+  // Pin every "current" read to one block, a few blocks behind the tip so a
+  // lagging RPC node can still serve it.
+  const { number: latest } = await sdk.api.util.getLatestBlock(CHAIN);
+  const block = latest - 5;
+
   const [{ output: owed }, { output: held }] = await Promise.all([
-    sdk.api.abi.call({ target: FURM, abi: abi.totalAssets, chain: CHAIN }),
-    sdk.api.abi.call({ target: URM, abi: 'erc20:balanceOf', params: [FURM], chain: CHAIN }),
+    sdk.api.abi.call({ target: FURM, abi: abi.totalAssets, chain: CHAIN, block }),
+    sdk.api.abi.call({ target: URM, abi: 'erc20:balanceOf', params: [FURM], chain: CHAIN, block }),
   ]);
   // owed to holders, capped by URM held (equal whenever the vault is funded)
   const deposits = BigInt(owed) < BigInt(held) ? owed : held;
   const tvlUsd = (Number(deposits) / 1e18) * (await urmPrice());
 
-  const ppsRaw = await sharePriceRaw();
+  const ppsRaw = await sharePriceRaw(block);
   const ppsNow = Number(ppsRaw);
-  const fee = await withdrawFeePct(ppsRaw);
+  const fee = await withdrawFeePct(ppsRaw, block);
 
   return [
     {
@@ -133,7 +150,7 @@ const getApy = async () => {
       underlyingTokens: [URM],
       token: FURM,
       pricePerShare: ppsNow / 1e18,
-      poolMeta: fee > 0 ? `Fountain, ${fee}% withdraw fee` : 'Fountain',
+      poolMeta: feeLabel(fee),
       url: POOL_URL,
     },
   ];
