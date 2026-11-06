@@ -85,7 +85,6 @@ functions:
       SAUCERSWAP_API_KEY: ${file(./env.js):SAUCERSWAP_API_KEY}
       DUNE_API_KEY: ${file(./env.js):DUNE_API_KEY}
       HYPERLIQUID_RPC: ${file(./env.js):HYPERLIQUID_RPC}
-      HYPERLIQUID_WHITELISTED_RPC: ${file(./env.js):HYPERLIQUID_WHITELISTED_RPC}
       PLASMA_RPC: ${file(./env.js):PLASMA_RPC}
       STARKNET_RPC: ${file(./env.js):STARKNET_RPC}
       MONAD_RPC: ${file(./env.js):MONAD_RPC}
