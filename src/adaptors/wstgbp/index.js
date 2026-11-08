@@ -11,13 +11,14 @@ const PIP = '0x6A79dCe61A12aa4b75449e0B03746260765D07dF';
 const SECONDS_PER_DAY = 86400;
 const DAYS_PER_YEAR = 365;
 const LOOKBACK_DAYS = 30;
-// The 120-day scan tolerates extended update delays; APY is null when it
-// contains no valid anchor at least 30 days before the latest poke.
+// Scan 120 days for an anchor at least 30 days before the latest poke.
+// APY is null when the scan contains no valid anchor.
 // Ingestion then omits the pool for that run; this is intentional whenever
 // there is insufficient history to support the 30d label.
 const SCAN_DAYS = 120;
 
-const eventPoke = 'event Poke(uint256 indexed price, uint256 indexed timestamp)';
+const eventPoke =
+  'event Poke(uint256 indexed price, uint256 indexed timestamp)';
 
 // wstGBP is not ERC-4626 and does not rebase. Yield accrues as the NAV oracle
 // price rises (tGBP per wstGBP). The NAV is published on a weekly cadence, so
@@ -49,6 +50,9 @@ const getApyBase = async () => {
   if (pokes.length < 2) return null;
 
   const end = pokes[pokes.length - 1];
+  // Allow two weekly update cycles before treating the NAV as stale.
+  if (latest.timestamp - end.ts > 14 * SECONDS_PER_DAY) return 0;
+
   const target = end.ts - LOOKBACK_DAYS * SECONDS_PER_DAY;
   let start = pokes[0];
   for (let i = pokes.length - 1; i >= 0; i--) {
@@ -95,7 +99,7 @@ const apy = async () => {
       underlyingTokens: [TGBP],
       pricePerShare,
       isIntrinsicSource: true,
-      poolMeta: 'APY · NAV, poke-anchored 30d',
+      poolMeta: '0.25% redeem fee',
       url: 'https://wstgbp.com',
     },
   ];
