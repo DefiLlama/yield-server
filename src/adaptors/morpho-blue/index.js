@@ -17,7 +17,8 @@ const CHAINS = {
   wc: 480,
   stable: 988,
   tempo: 4217,
-  robinhood: 4663
+  robinhood: 4663,
+  arc: 5042
 };
 
 // Maps chain keys to URL slugs used by app.morpho.org
