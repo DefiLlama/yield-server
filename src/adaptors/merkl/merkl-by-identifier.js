@@ -1,4 +1,4 @@
-const { merklGet, getRewardApr } = require('./merkl-client');
+const { merklGet, getRewardApr, isNonTokenReward } = require('./merkl-client');
 
 // Chain ID mapping for Merkl API
 const CHAIN_IDS = {
@@ -62,7 +62,8 @@ const getMerklRewardsByIdentifier = async (
 
     const rewardTokens =
       opportunity.rewardsRecord?.breakdowns
-        ?.map((b) => b.token?.address)
+        ?.filter((b) => !isNonTokenReward(b.token))
+        .map((b) => b.token?.address)
         .filter(Boolean) || [];
 
     // Use default reward token if none found

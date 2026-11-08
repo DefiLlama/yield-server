@@ -33,21 +33,45 @@ const TARGET_APR_DISTRIBUTION_TYPES = new Set([
   'AAVE_V4_NET_APR',
 ]);
 
-const getCampaignAprBreakdowns = (opportunity) =>
-  (opportunity.aprRecord?.breakdowns || [])
+// Points and pre-TGE tokens aren't tradable, so those campaigns add no APR.
+const NON_TOKEN_REWARD_TYPES = new Set(['POINT', 'PRETGE']);
+
+const isNonTokenReward = (token) => NON_TOKEN_REWARD_TYPES.has(token?.type);
+
+const campaignRewardTokens = (opportunity) => [
+  ...(opportunity.rewardsRecord?.breakdowns || []).map((x) => [
+    x.onChainCampaignId,
+    x.token,
+  ]),
+  ...(opportunity.campaigns || []).map((x) => [x.campaignId, x.rewardToken]),
+];
+
+const getCampaignAprBreakdowns = (opportunity) => {
+  const nonTokenCampaignIds = new Set(
+    campaignRewardTokens(opportunity)
+      .filter(([, token]) => isNonTokenReward(token))
+      .map(([campaignId]) => campaignId)
+  );
+  return (opportunity.aprRecord?.breakdowns || [])
     .filter((x) => x.type === 'CAMPAIGN')
     .map((x) => ({
       campaignId: x.identifier,
-      apr: TARGET_APR_DISTRIBUTION_TYPES.has(x.distributionType)
+      apr: nonTokenCampaignIds.has(x.identifier)
+        ? 0
+        : TARGET_APR_DISTRIBUTION_TYPES.has(x.distributionType)
         ? Math.max(0, x.value - (opportunity.nativeApr || 0))
         : x.value,
     }));
+};
 
 const getRewardApr = (opportunity) => {
   const breakdowns = getCampaignAprBreakdowns(opportunity);
-  if (!breakdowns.length) return opportunity.apr;
+  if (breakdowns.length) return breakdowns.reduce((acc, x) => acc + x.apr, 0);
 
-  return breakdowns.reduce((acc, x) => acc + x.apr, 0);
+  const rewards = campaignRewardTokens(opportunity);
+  return rewards.length && rewards.every(([, token]) => isNonTokenReward(token))
+    ? 0
+    : opportunity.apr;
 };
 
 module.exports = {
@@ -56,4 +80,5 @@ module.exports = {
   merklGet,
   getRewardApr,
   getCampaignAprBreakdowns,
+  isNonTokenReward,
 };
