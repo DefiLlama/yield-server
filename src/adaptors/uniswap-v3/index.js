@@ -91,7 +91,13 @@ const topLvl = async (
     let [dataNow, dataPrior, dataPrior7d] = await Promise.all([
       request(url, queryC.replace('<PLACEHOLDER>', block)),
       request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior)),
-      request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d)),
+      // Base subgraphs prune to under 7 days of history at 0.2s blocks.
+      request(url, queryPriorC.replace('<PLACEHOLDER>', blockPrior7d)).catch(
+        (e) => {
+          console.error(`${chainString}: no 7d prior data, skipping apyBase7d: ${e.message}`);
+          return { pools: null };
+        }
+      ),
     ]);
     dataNow = dataNow.pools;
     dataPrior = dataPrior.pools;
@@ -190,7 +196,7 @@ const topLvl = async (
     // new apy calc as a separate field
     // note re arbitrum: their subgraph is outdated (no tick data -> no uni v3 style apy calc)
     dataNow = dataNow.map((el) =>
-      utils.apy(el, dataPrior, dataPrior7d, version)
+      utils.apy(el, dataPrior, dataPrior7d || [], version)
     );
 
     const enableV3Apy = true;
@@ -263,11 +269,11 @@ const topLvl = async (
         symbol,
         tvlUsd: p.totalValueLockedUSD,
         apyBase: p.apy1d,
-        apyBase7d: p.apy7d,
+        apyBase7d: dataPrior7d ? p.apy7d : undefined,
         underlyingTokens,
         url,
         volumeUsd1d: p.volumeUSD1d,
-        volumeUsd7d: p.volumeUSD7d,
+        volumeUsd7d: dataPrior7d ? p.volumeUSD7d : undefined,
       };
     });
   } catch (e) {

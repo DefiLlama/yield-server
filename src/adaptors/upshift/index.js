@@ -9,11 +9,11 @@ const APYRegistry = "0x3161676467636Ce9027AC16268Fd351861b052b4";
 const nativeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 const chainMapping = {
-    ethereum: { chainId: '1', secondsPerBlock: 12 },
-    avax: { chainId: '43114', secondsPerBlock: 2 },
-    base: { chainId: '8453', secondsPerBlock: 2 },
-    hyperliquid: { chainId: '999', secondsPerBlock: 2 },
-    monad: { chainId: '143', secondsPerBlock: 0.4 },
+    ethereum: { chainId: '1' },
+    avax: { chainId: '43114' },
+    base: { chainId: '8453' },
+    hyperliquid: { chainId: '999' },
+    monad: { chainId: '143' },
 };
 
 const projectName = 'upshift';
@@ -76,11 +76,10 @@ const convertToAssetsAbi = {
 const calcApyBase7dBatch = async (standardPools, customPoolAddrs, vaultData, chainKey) => {
     const result = {};
     try {
-        const { secondsPerBlock } = chainMapping[chainKey];
-        const blocksPerDay = SECONDS_PER_DAY / secondsPerBlock;
-        const lookbackBlocks = Math.floor(blocksPerDay * LOOKBACK_DAYS);
-        const currentBlock = (await sdk.api.util.getLatestBlock(chainKey)).number;
-        const olderBlock = currentBlock - lookbackBlocks;
+        const [olderBlock] = await utils.getBlocksByTime(
+            [Math.floor(Date.now() / 1000) - LOOKBACK_DAYS * SECONDS_PER_DAY],
+            chainKey
+        );
 
         // Standard vaults: batch convertToAssets at current and historical block
         if (standardPools.length > 0) {
