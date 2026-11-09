@@ -26,6 +26,7 @@ const getApy = async () => {
     Object.keys(tokensPool).map(async (k) => {
       var symbol = String(tokensPool[k]);
       var pool_id = String(k.toLowerCase());
+      if (!amm_pools_data[k]) return; // pool dropped from amm-apy (e.g. XUSD-RBTC)
       var { tvlUsd, assets } = await getTvl(tvlAmm, 1, pool_id);
       var apyData = amm_pools_data[k].data;
       var apyDataArray = apyData[Object.keys(apyData)[0]];
