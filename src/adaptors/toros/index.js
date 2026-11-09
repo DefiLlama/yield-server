@@ -11,6 +11,9 @@ const TOROS_UNRESOLVABLE = {
 };
 const resolveTorosToken = (addr) => TOROS_UNRESOLVABLE[addr?.toLowerCase()] || addr;
 
+// mStable vault on dHEDGE infra; owned by mstable-v2.
+const EXCLUDED_VAULTS = new Set(['0xfec2adfa296fe189f53089fd5ccd8c28dd559cf2']);
+
 const DHEDGE_REWARDS_API_URL = 'https://app.dhedge.org/api/rewards';
 
 const DHEDGE_API_URL = 'https://api-v2.dhedge.org/graphql';
@@ -109,7 +112,11 @@ const listTorosYieldProducts = async () => {
     fetchRewardIncentivesData(),
   ]);
 
-  return products.map(
+  const vaults = products.filter(
+    ({ address }) => !EXCLUDED_VAULTS.has(address.toLowerCase())
+  );
+
+  return vaults.map(
     ({
       address,
       blockchainCode,
