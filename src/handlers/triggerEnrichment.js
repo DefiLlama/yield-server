@@ -16,6 +16,16 @@ const { getExcludedAdaptors } = require('../utils/exclude');
 const { checkStablecoin } = require('../adaptors/checkStablecoin');
 
 const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
+const PEGGED_USD_ALIASES = [
+  '3crv',
+  'fraxbp',
+  'usdr',
+  'more',
+  'ustb',
+  'usdn',
+  'aiusd',
+  'usdm',
+];
 
 module.exports.handler = async (event, context) => {
   await main();
@@ -111,27 +121,54 @@ const main = async () => {
 
   // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
-  const stablecoins = (
+  const fxRates = (await axios.get('https://stablecoins.llama.fi/rates')).data;
+  const latestFxRates = fxRates[fxRates.length - 1]?.rates ?? {};
+  const pegTickerOverrides = { peggedREAL: 'BRL' };
+  const pegPrice = (pegType) => {
+    if (!pegType || pegType === 'peggedUSD' || pegType === 'peggedVAR') return 1;
+    const ticker = pegTickerOverrides[pegType] ?? pegType.replace(/^pegged/, '');
+    const rate = latestFxRates[ticker];
+    return rate > 0 ? 1 / rate : 1;
+  };
+  const peggedAssets = (
     await axios.get(
       'https://stablecoins.llama.fi/stablecoins?includePrices=true'
     )
   ).data.peggedAssets
-    // removing any stable which a price 30% from 1usd
-    .filter((s) => s.price >= 0.7)
+    // removing any stable which is priced 30% away from its own peg
+    .filter((s) => s.price >= 0.7 * pegPrice(s.pegType));
+  const stablecoins = peggedAssets
     .map((s) => s.symbol.toLowerCase())
     .filter((s) => !['r', 'm'].includes(s));
-  if (!stablecoins.includes('eur')) stablecoins.push('eur');
-  if (!stablecoins.includes('3crv')) stablecoins.push('3crv');
-  if (!stablecoins.includes('fraxbp')) stablecoins.push('fraxbp');
-  if (!stablecoins.includes('usdr')) stablecoins.push('usdr');
-  if (!stablecoins.includes('more')) stablecoins.push('more');
-  if (!stablecoins.includes('ustb')) stablecoins.push('ustb');
-  if (!stablecoins.includes('usdn')) stablecoins.push('usdn');
-  if (!stablecoins.includes('aiusd')) stablecoins.push('aiusd');
-  if (!stablecoins.includes('usdm')) stablecoins.push('usdm');
+  const pegTypeBySymbol = {};
+  for (const s of peggedAssets) {
+    const symbol = s.symbol.toLowerCase();
+    if (['r', 'm'].includes(symbol)) continue;
+    pegTypeBySymbol[symbol] = s.pegType;
+  }
+  pegTypeBySymbol['eur'] = 'peggedEUR';
+  for (const symbol of PEGGED_USD_ALIASES) pegTypeBySymbol[symbol] = 'peggedUSD';
+  const knownPegSymbols = Object.keys(pegTypeBySymbol).sort(
+    (a, b) => b.length - a.length
+  );
+  const isCrossCurrency = (symbol) => {
+    const pegTypes = new Set();
+    for (const token of symbol.toLowerCase().split('-')) {
+      const tokenClean = token.replace(/\s*\(.*?\)\s*/g, '');
+      const hit = knownPegSymbols.find((s) => tokenClean.includes(s));
+      if (!hit) continue;
+      const pegType = pegTypeBySymbol[hit];
+      pegTypes.add(pegType === 'peggedVAR' ? 'peggedUSD' : pegType);
+    }
+    return pegTypes.size > 1;
+  };
+  for (const symbol of ['eur'].concat(PEGGED_USD_ALIASES))
+    if (!stablecoins.includes(symbol)) stablecoins.push(symbol);
 
   // get catgory data (we hardcode IL to true for options protocols)
-  dataEnriched = dataEnriched.map((el) => addPoolInfo(el, stablecoins, config));
+  dataEnriched = dataEnriched.map((el) =>
+    addPoolInfo(el, stablecoins, config, isCrossCurrency)
+  );
 
   // add ML and overview plot fields
   // expanding mean, expanding standard deviation,
@@ -454,7 +491,7 @@ const checkExposure = (el) => {
   return exposure;
 };
 
-const addPoolInfo = (el, stablecoins, config) => {
+const addPoolInfo = (el, stablecoins, config, isCrossCurrency) => {
   el['stablecoin'] = checkStablecoin(el, stablecoins);
 
   // complifi has single token exposure only cause the protocol
@@ -480,7 +517,7 @@ const addPoolInfo = (el, stablecoins, config) => {
           el.project
         ) && ['mlp', 'glp'].includes(el.symbol.toLowerCase())
       ? 'yes'
-      : el.stablecoin && el.symbol.toLowerCase().includes('eur')
+      : el.stablecoin && isCrossCurrency(el.symbol)
       ? checkIlRisk(el)
       : el.stablecoin
       ? 'no'
