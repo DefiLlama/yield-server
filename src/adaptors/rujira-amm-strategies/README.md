@@ -16,6 +16,10 @@ Rates are annualized source rates; the adapter adds no assumed compounding or
 incentive yield. Pools with no TVL or unavailable 24-hour yield are omitted.
 A funded pool with a measured 0% yield is included.
 
+Malformed strategy rows are logged and skipped so healthy pools can still update.
+The run fails if every row is malformed, or if the request, response structure,
+pagination or pool uniqueness checks fail.
+
 DCL is discovered and processed through the same query and mapping as CCL.
 There is no DCL zero-rate placeholder: funded DCL pools become available
 automatically when the API provides their yield.
