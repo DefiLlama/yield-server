@@ -22,8 +22,8 @@ const { xrpl } = sdk.chains;
 const POOL_LIST_URL = 'https://api.xrpscan.com/api/v1/amm/pools';
 const PAGE_SIZE = 5000;
 const MIN_TVL_USD = 10_000;
-// the list's XRP balances can be up to a day old: read every pool listed at half the floor or more
-const LIST_HINT_FACTOR = 0.5;
+// the list's XRP balances can lag the ledger: read every pool listed at a quarter of the floor or more
+const LIST_HINT_FACTOR = 0.25;
 // pin reads a few ledgers behind the newest validated ledger, so every endpoint has it
 const LEDGER_LAG = 10;
 // at least this share of the candidate pools must be read, or the run fails
@@ -155,10 +155,10 @@ const getAmm = async (account, ledgerIndex) => {
   }
 };
 
-// a pool younger than the window, or not readable at its start, gets no value for it
-const valueAt = (account, ledger) =>
+// a pool younger than the window gets no value for it; a failed read is counted in `errors`
+const valueAt = (account, ledger, errors) =>
   getAmm(account, ledger.number).then(valuePerLpToken, (e) => {
-    console.error(`xrpl-dex: ${account} at ${ledger.number}: ${e.message}`);
+    errors.push(`${account} at ${ledger.number}: ${e.message}`);
     return null;
   });
 
@@ -167,7 +167,9 @@ const apy = async () => {
   const prices = Object.fromEntries(
     Object.entries(PRICE_KEYS).map(([asset, key]) => [asset, coins[key]?.price])
   );
-  if (!(prices[XRP] > 0)) throw new Error('xrpl-dex: no XRP price');
+  for (const asset of Object.keys(PRICE_KEYS))
+    if (!(prices[asset] > 0))
+      throw new Error(`xrpl-dex: no price for ${PRICE_KEYS[asset]}`);
 
   const listed = await listPools();
   const candidates = [
@@ -214,11 +216,13 @@ const apy = async () => {
     )
   );
 
+  const dayErrors = [];
+  const weekErrors = [];
   const rows = await Promise.all(
     pools.map(async ({ amm, tvlUsd }) => {
       const [valueDayAgo, valueWeekAgo] = await Promise.all([
-        valueAt(amm.account, dayAgo),
-        valueAt(amm.account, weekAgo),
+        valueAt(amm.account, dayAgo, dayErrors),
+        valueAt(amm.account, weekAgo, weekErrors),
       ]);
       const valueNow = valuePerLpToken(amm);
       return {
@@ -247,6 +251,15 @@ const apy = async () => {
       };
     })
   );
+
+  // a pool with no 24h value is dropped below, so broad read failures must fail the run
+  for (const errors of [dayErrors, weekErrors]) {
+    if (errors.length) console.error('xrpl-dex: history reads failed', errors);
+    if (errors.length > pools.length * (1 - MIN_READ_RATIO))
+      throw new Error(
+        `xrpl-dex: ${errors.length} of ${pools.length} history reads failed`
+      );
+  }
 
   return rows.filter(utils.keepFinite);
 };
