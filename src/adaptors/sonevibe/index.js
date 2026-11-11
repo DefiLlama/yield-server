@@ -111,15 +111,26 @@ const getChainPools = async (chain, factory) => {
         r0Usd !== null && r1Usd !== null ? r0Usd + r1Usd : 2 * (r0Usd ?? r1Usd);
       if (!(tvlUsd > 0)) return null;
 
-      const logs = await sdk.getEventLogs({
-        chain,
-        target: pair,
-        eventAbi: SWAP_EVENT,
-        fromBlock,
-        toBlock: latest.number,
-        onlyArgs: true,
-        maxBlockRange: MAX_LOG_BLOCK_RANGE,
-      });
+      // skip this pool (instead of reporting apyBase 0) if its logs fail
+      let logs;
+      try {
+        logs = await sdk.getEventLogs({
+          chain,
+          target: pair,
+          eventAbi: SWAP_EVENT,
+          fromBlock,
+          toBlock: latest.number,
+          onlyArgs: true,
+          maxBlockRange: MAX_LOG_BLOCK_RANGE,
+        });
+      } catch (e) {
+        console.error(
+          `sonevibe: ${chain} ${pair} logs failed: ${
+            e?.message || JSON.stringify(e)
+          }`
+        );
+        return null;
+      }
 
       // volume = USD value of the input side; if an input token has no price,
       // fall back to the priced token's output amount
