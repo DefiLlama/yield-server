@@ -10,14 +10,13 @@ const {
 // wrap backing, minted into more wrap and allocated to the vault share price.
 // Protocol page: https://defillama.com/protocol/overlayer (id 9240).
 //
-// apyBase is the simple moving average of the last 7 one-day share-price APYs:
-// for each day i in [0..6], annualise pps(t-i) / pps(t-i-1), then average.
+// apyBase   = (pps(now) / pps(1d ago))^365 - 1
+// apyBase7d = (pps(now) / pps(7d ago))^(365/7) - 1
 
 const PROJECT = 'overlayer';
 const CHAIN = 'ethereum';
 const URL = 'https://app.overlayer.fi';
 const DAY = 24 * 3600;
-const LOOKBACK_DAYS = 7;
 const SHARE_UNIT = (10n ** 18n).toString(); // one whole share
 
 const CONVERT_TO_ASSETS_ABI =
@@ -54,30 +53,18 @@ const convertToAssets = async (vault, block) =>
     ).output
   );
 
-const sevenDayMovingAverageApy = (ppsSeries) => {
-  // ppsSeries[0] = now, [1] = 1d ago, ..., [7] = 7d ago
-  const dailyApys = [];
-  for (let i = 0; i < LOOKBACK_DAYS; i++) {
-    const newer = ppsSeries[i];
-    const older = ppsSeries[i + 1];
-    if (!(newer > 0) || !(older > 0)) continue;
-    const ratio = newer / older;
-    if (!(ratio > 0) || !Number.isFinite(ratio)) continue;
-    const annualised = (ratio ** 365 - 1) * 100;
-    if (Number.isFinite(annualised) && annualised > 0) {
-      dailyApys.push(annualised);
-    }
-  }
-  if (!dailyApys.length) return 0;
-  return dailyApys.reduce((a, b) => a + b, 0) / dailyApys.length;
+const annualise = (newer, older, days) => {
+  if (!(newer > 0) || !(older > 0)) return 0;
+  const ratio = newer / older;
+  if (!(ratio > 0) || !Number.isFinite(ratio)) return 0;
+  const apy = (ratio ** (365 / days) - 1) * 100;
+  return Number.isFinite(apy) && apy > 0 ? apy : 0;
 };
 
 const apy = async () => {
   const now = Math.floor(Date.now() / 1e3);
-  const timestamps = Array.from(
-    { length: LOOKBACK_DAYS + 1 },
-    (_, i) => now - i * DAY
-  );
+  // [0]=now, [1]=1d ago, [2]=7d ago
+  const timestamps = [now, now - DAY, now - 7 * DAY];
 
   const [{ pricesByAddress }, blocks] = await Promise.all([
     getPrices(
@@ -87,46 +74,50 @@ const apy = async () => {
     getBlocksByTime(timestamps, CHAIN),
   ]);
 
-  const pools = await Promise.all(
-    VAULTS.map(async (v) => {
-      const price = pricesByAddress[v.underlying.toLowerCase()];
-      if (!Number.isFinite(price) || price <= 0) {
-        throw new Error(`Missing price for ${v.underlying} on ${CHAIN}`);
-      }
+  const pools = (
+    await Promise.all(
+      VAULTS.map(async (v) => {
+        const price = pricesByAddress[v.underlying.toLowerCase()];
+        if (!Number.isFinite(price) || price <= 0) {
+          console.log(
+            `Missing price for ${v.underlying} on ${CHAIN}; skipping ${v.symbol}`
+          );
+          return null;
+        }
 
-      const [totalAssetsRes, ...ppsSeries] = await Promise.all([
-        sdk.api.abi.call({
-          target: v.vault,
-          abi: 'uint256:totalAssets',
-          chain: CHAIN,
-          block: blocks[0],
-        }),
-        ...blocks.map((block) => convertToAssets(v.vault, block)),
-      ]);
+        const [totalAssetsRes, ppsNow, pps1d, pps7d] = await Promise.all([
+          sdk.api.abi.call({
+            target: v.vault,
+            abi: 'uint256:totalAssets',
+            chain: CHAIN,
+            block: blocks[0],
+          }),
+          convertToAssets(v.vault, blocks[0]),
+          convertToAssets(v.vault, blocks[1]),
+          convertToAssets(v.vault, blocks[2]),
+        ]);
 
-      const tvlUsd = (Number(totalAssetsRes.output) / 1e18) * price;
-      if (!Number.isFinite(tvlUsd) || tvlUsd < 0) {
-        throw new Error(`Invalid tvlUsd for ${v.symbol}: ${tvlUsd}`);
-      }
+        const tvlUsd = (Number(totalAssetsRes.output) / 1e18) * price;
+        if (!Number.isFinite(tvlUsd) || tvlUsd < 0) {
+          throw new Error(`Invalid tvlUsd for ${v.symbol}: ${tvlUsd}`);
+        }
 
-      const pricePerShare = ppsSeries[0] / 1e18;
-      const apyBase = sevenDayMovingAverageApy(ppsSeries);
-
-      return {
-        pool: `${v.vault}-${CHAIN}`.toLowerCase(),
-        chain: formatChain(CHAIN),
-        project: PROJECT,
-        symbol: v.symbol,
-        tvlUsd,
-        apyBase,
-        pricePerShare,
-        underlyingTokens: [v.underlying],
-        token: v.vault,
-        url: URL,
-        poolMeta: 'Staking vault',
-      };
-    })
-  );
+        return {
+          pool: `${v.vault}-${CHAIN}`.toLowerCase(),
+          chain: formatChain(CHAIN),
+          project: PROJECT,
+          symbol: v.symbol,
+          tvlUsd,
+          apyBase: annualise(ppsNow, pps1d, 1),
+          apyBase7d: annualise(ppsNow, pps7d, 7),
+          pricePerShare: ppsNow / 1e18,
+          underlyingTokens: [v.underlying],
+          token: v.vault,
+          url: URL,
+        };
+      })
+    )
+  ).filter(Boolean);
 
   return pools;
 };
