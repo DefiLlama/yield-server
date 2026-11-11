@@ -152,9 +152,20 @@ const getChainPools = async (chain) => {
   return result;
 };
 
+// A failing chain (e.g. an RPC that rejects the log query) must not drop the pools of the other chains.
 const apy = async () => {
-  const pools = await Promise.all(Object.keys(CONFIG).map(getChainPools));
-  return pools.flat().filter((p) => utils.keepFinite(p));
+  const chains = Object.keys(CONFIG);
+  const results = await Promise.allSettled(chains.map(getChainPools));
+  const pools = results.flatMap((r, i) => {
+    if (r.status === 'fulfilled') return r.value;
+    console.error(
+      `${PROJECT}: ${chains[i]} failed: ${
+        r.reason?.message ?? JSON.stringify(r.reason)
+      }`
+    );
+    return [];
+  });
+  return pools.filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
