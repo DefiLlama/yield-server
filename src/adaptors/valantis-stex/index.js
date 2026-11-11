@@ -4,6 +4,7 @@ const { getPriceApiData } = require('../utils');
 
 const chain = 'hyperliquid';
 const stex = '0x39694eff3b02248929120c73f90347013aec834d';
+const sthype = '0xffaa4a3d97fe9107cef8a3f48c069f577ff76cc1';
 const whype = '0x5555555555555555555555555555555555555555';
 const originalModule = '0x40ba056b004edd0b572509a1276fd8530cf2bb7f';
 const deploymentBlock = 1937868;
@@ -126,7 +127,7 @@ const apy = async (timestamp) => {
       project: 'valantis-stex',
       symbol: 'stHYPE-HYPE',
       token: stex,
-      underlyingTokens: [whype],
+      underlyingTokens: [sthype, whype],
       tvlUsd,
       apyBase: annualized(
         state1d,
@@ -145,6 +146,7 @@ const apy = async (timestamp) => {
       pricePerShare: new BigNumber(state.assets.toString())
         .div(state.supply.toString())
         .toNumber(),
+      frozen: state.paused,
       poolMeta: state.paused ? 'Withdrawal-only' : 'STEX LP',
       url: 'https://app.valantis.xyz/vaults',
     },
