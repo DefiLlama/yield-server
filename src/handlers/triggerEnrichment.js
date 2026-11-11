@@ -121,14 +121,20 @@ const main = async () => {
 
   // add info about stablecoin, exposure etc.
   console.log('\nadding additional pool info fields');
-  const fxRates = (await axios.get('https://stablecoins.llama.fi/rates')).data;
-  const latestFxRates = fxRates[fxRates.length - 1]?.rates ?? {};
+  let latestFxRates = {};
+  try {
+    const fxRates = (await axios.get('https://stablecoins.llama.fi/rates')).data;
+    latestFxRates = fxRates[fxRates.length - 1]?.rates ?? {};
+  } catch (err) {
+    console.log('could not read fx rates, leaving non-USD pegs unfiltered');
+    console.log(err);
+  }
   const pegTickerOverrides = { peggedREAL: 'BRL' };
   const pegPrice = (pegType) => {
     if (!pegType || pegType === 'peggedUSD' || pegType === 'peggedVAR') return 1;
     const ticker = pegTickerOverrides[pegType] ?? pegType.replace(/^pegged/, '');
     const rate = latestFxRates[ticker];
-    return rate > 0 ? 1 / rate : 1;
+    return rate > 0 ? 1 / rate : null;
   };
   const peggedAssets = (
     await axios.get(
@@ -136,7 +142,10 @@ const main = async () => {
     )
   ).data.peggedAssets
     // removing any stable which is priced 30% away from its own peg
-    .filter((s) => s.price >= 0.7 * pegPrice(s.pegType));
+    .filter((s) => {
+      const peg = pegPrice(s.pegType);
+      return peg === null ? s.price > 0 : s.price >= 0.7 * peg;
+    });
   const stablecoins = peggedAssets
     .map((s) => s.symbol.toLowerCase())
     .filter((s) => !['r', 'm'].includes(s));
