@@ -105,6 +105,7 @@ const apy = async () => {
 };
 
 module.exports = {
+  protocolId: '9346',
   timetravel: false,
   apy,
   url: `${APP_URL}/markets`,
