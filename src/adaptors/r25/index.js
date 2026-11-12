@@ -17,21 +17,23 @@ const poolsFunction = async () => {
   const [{ supply, decimals }, current, historical] = await Promise.all([
     utils.suiCoinSupply(RCUSDP),
     utils.getPriceApiData(`/prices/current/${PRICE_KEYS}`),
-    utils
-      .getPriceApiData(
-        `/chart/${PRICE_KEYS}?start=${past}&span=${APY_LOOKBACK_DAYS}&period=1d`
-      )
-      .catch((error) => {
-        console.error('r25: price history unavailable:', error.message);
-        return { coins: {} };
-      }),
+    utils.getPriceApiData(
+      `/chart/${PRICE_KEYS}?start=${past}&span=${APY_LOOKBACK_DAYS}&period=1d`
+    ),
   ]);
 
-  const share = current.coins[KEY];
-  const underlying = current.coins[UNDERLYING_KEY];
+  const share = current.coins?.[KEY];
+  const underlying = current.coins?.[UNDERLYING_KEY];
   const isPrice = (price) => Number.isFinite(price) && price > 0;
-  if (!isPrice(share?.price) || !isPrice(underlying?.price)) return [];
-  if (share.timestamp !== underlying.timestamp) return [];
+  if (!isPrice(share?.price) || !isPrice(underlying?.price)) {
+    throw new Error('r25: missing or invalid current rcUSDp/rcUSD prices');
+  }
+  if (
+    !Number.isFinite(share.timestamp) ||
+    share.timestamp !== underlying.timestamp
+  ) {
+    throw new Error('r25: missing or mismatched current price timestamps');
+  }
 
   const pricePerShare = share.price / underlying.price;
   const tvlUsd = (Number(supply) / 10 ** decimals) * share.price;
@@ -50,14 +52,15 @@ const poolsFunction = async () => {
         underlyingHistory.has(point.timestamp)
     )
     .sort((a, b) => a.timestamp - b.timestamp)[0];
-  const elapsedDays = first ? (share.timestamp - first.timestamp) / DAY : 0;
-  const pastRate = first
-    ? first.price / underlyingHistory.get(first.timestamp)
-    : undefined;
+  if (!first) {
+    throw new Error(
+      'r25: no valid rcUSDp/rcUSD history pair in the APY window'
+    );
+  }
+  const elapsedDays = (share.timestamp - first.timestamp) / DAY;
+  const pastRate = first.price / underlyingHistory.get(first.timestamp);
   // Both USD prices include the same USDC quote; dividing cancels its movement.
-  const apyBase = first
-    ? ((pricePerShare / pastRate) ** (365 / elapsedDays) - 1) * 100
-    : 0;
+  const apyBase = ((pricePerShare / pastRate) ** (365 / elapsedDays) - 1) * 100;
 
   return [
     {
