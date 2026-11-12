@@ -9,7 +9,6 @@ const normalizeNativeAddress = (addr) =>
 
 const chains = {
   ethereum: 1,
-  fantom: 250,
   arbitrum: 42161,
   optimism: 10,
   base: 8453,
@@ -94,26 +93,34 @@ const getStyfiPools = async () => {
   }
 };
 
-// For Velodrome/Aerodrome LP vaults where the API doesn't provide underlying tokens,
-// fetch token0/token1 from the LP contract on-chain
-const getLpUnderlying = async (lpAddress, chain) => {
-  try {
-    const [t0, t1] = await Promise.all([
-      sdk.api.abi.call({ target: lpAddress, abi: 'address:token0', chain }),
-      sdk.api.abi.call({ target: lpAddress, abi: 'address:token1', chain }),
-    ]);
-    return [t0.output.toLowerCase(), t1.output.toLowerCase()];
-  } catch {
-    return undefined;
-  }
+const getLpUnderlying = async (vaults, chain) => {
+  const read = (abi) =>
+    sdk.api.abi
+      .multiCall({
+        chain,
+        abi,
+        calls: vaults.map((p) => ({ target: p.asset.address })),
+        permitFailure: true,
+      })
+      .then(({ output }) => output.map((o) => o.output))
+      .catch(() => []);
+  const [token0s, token1s] = await Promise.all([
+    read('address:token0'),
+    read('address:token1'),
+  ]);
+  return vaults.map((p, i) =>
+    token0s[i] && token1s[i]
+      ? [token0s[i], token1s[i]].map(normalizeNativeAddress)
+      : [normalizeNativeAddress(p.asset.address)]
+  );
 };
 
 // Yearn winds a vault down by zeroing its deposit limit, without marking it
-// retired in ydaemon. Returns the vaults that take no deposits from an
+// retired in the vault list. Returns the vaults that take no deposits from an
 // arbitrary address; a failed read keeps the vault listed.
 const getClosedVaults = async (vaults, chain) => {
-  const v3 = vaults.filter((p) => p.version.startsWith('3'));
-  const v2 = vaults.filter((p) => !p.version.startsWith('3'));
+  const v3 = vaults.filter((p) => p.v3);
+  const v2 = vaults.filter((p) => !p.v3);
   const read = (abi, list, params) =>
     sdk.api.abi
       .multiCall({
@@ -140,54 +147,44 @@ const getClosedVaults = async (vaults, chain) => {
 
 const getApy = async () => {
   const styfiPools = getStyfiPools();
+  const vaults = await utils
+    .getData('https://kong.yearn.fi/api/rest/list/vaults')
+    .catch((e) => {
+      console.error('failed to fetch yearn vaults from kong', e.message);
+      return [];
+    });
+
   const data = await Promise.all(
-    Object.entries(chains).map(async (chain) => {
-      // default page is 200 vaults in arbitrary order (featuringScore is 0
-      // for all); this route clamps limit to 1000
-      const data = await utils.getData(
-        `https://ydaemon.yearn.fi/${chain[1]}/vaults/all?limit=1000`
+    Object.entries(chains).map(async ([chain, chainId]) => {
+      const listed = vaults.filter(
+        (p) =>
+          p.chainId === chainId &&
+          p.origin === 'yearn' &&
+          p.asset &&
+          p.inclusion?.isYearn !== false &&
+          !p.isRetired &&
+          !p.isHidden
       );
-      const closed = await getClosedVaults(data, chain[0]);
+      const closed = await getClosedVaults(listed, chain);
+      const open = listed.filter((p) => !closed.has(p.address));
+      const underlying = await getLpUnderlying(open, chain);
 
-      return Promise.all(
-        data.map(async (p) => {
-          if (p.details.isRetired || p.details.isHidden || closed.has(p.address))
-            return {};
-
-          let underlying = p.token.underlyingTokensAddresses;
-
-          // If API provides no underlying, try to resolve from the deposit token
-          if (underlying.length === 0 && p.token.address) {
-            // Try LP token0/token1 first (for Velodrome/Aerodrome LP vaults)
-            const lpTokens = await getLpUnderlying(p.token.address, chain[0]);
-            underlying = lpTokens || [p.token.address.toLowerCase()];
-          }
-
-          underlying = underlying.map(normalizeNativeAddress);
-
-          // OP incentives via yvToken staking
-          const apyReward = p.apr?.extra?.stakingRewardsAPR * 100 ?? 0;
-
-          const forwardAPR = p.apr.forwardAPR?.netAPR;
-          const apyBase = (forwardAPR ?? p.apr.netAPR) * 100;
-
-          return {
-            pool: p.address,
-            chain: utils.formatChain(chain[0]),
-            project: 'yearn-finance',
-            symbol: p.token.display_symbol,
-            tvlUsd: p.tvl.tvl,
-            apyBase,
-            apyReward,
-            rewardTokens:
-              apyReward > 0 ? ['0x4200000000000000000000000000000000000042'] : [],
-            url: `https://yearn.fi/${
-                p.version.substring(0, 1) == '3' ? 'v3' : 'vaults'
-              }/${chains[chain[0]]}/${p.address}`,
-            underlyingTokens: underlying,
-          };
-        })
-      );
+      return open.map((p, i) => {
+        const { historical, oracle } = p.performance ?? {};
+        const netApy = historical?.net ?? oracle?.netAPR;
+        return {
+          pool: p.address,
+          chain: utils.formatChain(chain),
+          project: 'yearn-finance',
+          symbol: p.asset.symbol,
+          tvlUsd: p.tvl,
+          apyBase: netApy == null ? undefined : netApy * 100,
+          url: `https://yearn.fi/${p.v3 ? 'v3' : 'vaults'}/${chainId}/${
+            p.address
+          }`,
+          underlyingTokens: underlying[i],
+        };
+      });
     })
   );
 
