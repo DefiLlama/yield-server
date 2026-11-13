@@ -6,7 +6,7 @@
 //
 // Everything is read on-chain:
 //   tvlUsd        : totalAssets() (idle + staked + cooling DIEM, minus DIEM owed to settled redemptions)
-//                   x DIEM price from coins.llama.fi
+//                   x DIEM price from coins.llama.fi (rejected if older than 6h)
 //   pricePerShare : convertToAssets(1e18) / 1e18 (DIEM per wstDIEM)
 //   apyBase       : share-price growth over the trailing 7 days, annualised. Compounds land a few times
 //                   a day in lumps, so a 24h window swings with how many landed; 7 days is the honest
@@ -20,6 +20,7 @@ const VAULT = '0xe49FA849cB37b0e7A42B2335e333fb99474167ba'; // wstDIEM (Inferenc
 const DIEM = '0xF4d97F2da56e8c3098f3a8D538DB630A2606a024';
 const ONE = '1000000000000000000';
 const DAY = 86400;
+const MAX_PRICE_AGE = 6 * 3600; // refuse to report TVL off a DIEM price older than 6h
 
 const call = async (abi, params, block) =>
   (
@@ -47,10 +48,15 @@ const apy = async () => {
     throw new Error(`wstDIEM asset() is ${asset}, expected DIEM ${DIEM}`);
   }
   const key = `${CHAIN}:${DIEM}`;
-  const price = (await utils.getPriceApiData(`/prices/current/${key}`))?.coins?.[key]?.price;
+  const coin = (await utils.getPriceApiData(`/prices/current/${key}`))?.coins?.[key];
+  const price = coin?.price;
   if (!Number.isFinite(price) || price <= 0) throw new Error(`no DIEM price for ${key}`);
 
   const now = Math.floor(Date.now() / 1000);
+  const age = now - Number(coin.timestamp);
+  if (!Number.isFinite(age) || age > MAX_PRICE_AGE) {
+    throw new Error(`stale DIEM price for ${key}: ${age}s old (max ${MAX_PRICE_AGE}s)`);
+  }
   const [b7] = await utils.getBlocksByTime([now - 7 * DAY], CHAIN);
   const [ppsNow, pps7] = await Promise.all([pps(), pps(b7)]);
 
