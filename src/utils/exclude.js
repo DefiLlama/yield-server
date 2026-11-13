@@ -544,6 +544,7 @@ const excludedProtocols = [
   { id: '6047', slug: 'berapaw' }, // dead: berapaw.com 404/unresolvable, protocol deadUrl, LBGT unpriced; 41 rows ($41.7M) were Berachain PoL reward vaults owned by Kodiak/Bend/Beradrome etc, not BeraPaw
   { id: '9100', slug: 'hedgehood-stock-yield' }, // vaults ~empty: tvl $210 + $0 since 2026-11-02, every row below the 1k tvl floor
   { id: '7621', slug: 'zensats' }, // vaults drained ~2026-11-09 (WBTC $127, wstETH $22, apy -100%), every row below the 1k tvl floor
+  { id: '5906', slug: 'yuzu-finance' }, // winding down (announced 2026-10-29, servers off 2026-11-30): mainnet-api /v1/* 500 since ~2026-11-12, the only apy source
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
