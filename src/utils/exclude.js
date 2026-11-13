@@ -2616,10 +2616,33 @@ const getExcludedAdaptors = async () => {
   return new Set([...excludeAdaptors, ...flagged]);
 };
 
+// chain labels with deadFrom; empty on fetch failure
+const getDeadChains = async () => {
+  try {
+    const response = await fetch('https://api.llama.fi/config', {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const { chainCoingeckoIds = {} } = await response.json();
+    return new Set(
+      Object.entries(chainCoingeckoIds)
+        .filter(([, chain]) => chain?.deadFrom)
+        .map(([label]) => label)
+    );
+  } catch (err) {
+    console.log('Failed to fetch dead chains', err?.message || err);
+    return new Set();
+  }
+};
+
 module.exports = {
   excludedProtocols,
   excludeAdaptors,
   excludePools,
   boundaries,
   getExcludedAdaptors,
+  getDeadChains,
 };
