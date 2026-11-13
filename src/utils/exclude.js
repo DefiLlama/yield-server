@@ -545,6 +545,7 @@ const excludedProtocols = [
   { id: '9100', slug: 'hedgehood-stock-yield' }, // vaults ~empty: tvl $210 + $0 since 2026-11-02, every row below the 1k tvl floor
   { id: '7621', slug: 'zensats' }, // vaults drained ~2026-11-09 (WBTC $127, wstETH $22, apy -100%), every row below the 1k tvl floor
   { id: '5906', slug: 'yuzu-finance' }, // winding down (announced 2026-10-29, servers off 2026-11-30): mainnet-api /v1/* 500 since ~2026-11-12, the only apy source
+  { id: '3117', slug: 'astroport' }, // live pools only on Neutron (deadFrom 2026-07-01); adapter would only emit filtered rows
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
