@@ -4,5 +4,8 @@ const pools = require('../controllers/pools');
 const sunsetNotice = require('../sunsetNotice');
 
 router.route('/pools').get(sunsetNotice('/yields/v1/pools'), pools.getPools);
+router
+  .route('/lendBorrow')
+  .get(sunsetNotice('/yields/v1/poolsBorrow'), pools.getLendBorrow);
 
 module.exports = router;
