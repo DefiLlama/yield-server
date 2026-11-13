@@ -226,12 +226,12 @@ const calcApy = async (
       const blocks = (
         await Promise.all(
           [dateNow, date7daysPrior].map((d) =>
-            axios.get(utils.getPriceApiUrl(`/block/${chain}/${d}`))
+            utils.getPriceApiData(`/block/${chain}/${d}`)
           )
         )
       )
         .flat()
-        .map((i) => i.data?.height);
+        .map((i) => i?.height);
 
       const nbBlocksInOffset = blocks[0] - blocks[1];
       const secondsPerOffset = 86400 * offset;

@@ -174,20 +174,16 @@ const calculateAPR = async (config: AssetConfig, currentRate: number) => {
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
 
-  const block1dayAgoCall = axios.get(
-    utils.getPriceApiUrl(`/block/${chain}/${timestamp1dayAgo}`),
-  );
-  const block7dayAgoCall = axios.get(
-    utils.getPriceApiUrl(`/block/${chain}/${timestamp7dayAgo}`),
-  );
+  const block1dayAgoCall = utils.getPriceApiData(`/block/${chain}/${timestamp1dayAgo}`);
+  const block7dayAgoCall = utils.getPriceApiData(`/block/${chain}/${timestamp7dayAgo}`);
 
   const [block1dayAgoResponse, block7dayAgoResponse] = await Promise.all([
     block1dayAgoCall,
     block7dayAgoCall,
   ]);
 
-  const block1dayAgo = block1dayAgoResponse.data.height;
-  const block7dayAgo = block7dayAgoResponse.data.height;
+  const block1dayAgo = block1dayAgoResponse.height;
+  const block7dayAgo = block7dayAgoResponse.height;
 
   const [rate1dayAgo, rate7dayAgo] = await Promise.all([
     sdk.api.abi.call({

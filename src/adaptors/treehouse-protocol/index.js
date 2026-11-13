@@ -16,7 +16,7 @@ const convertToAssetsAbi = {
 const getJson = (url) => utils.withRetry(() => axios.get(url)).then((r) => r.data);
 
 const getBlock = async (chain, ts) => {
-    const d = await getJson(utils.getPriceApiUrl(`/block/${chain}/${ts}`));
+    const d = await utils.withRetry(() => utils.getPriceApiData(`/block/${chain}/${ts}`));
     if (typeof d?.height !== 'number') {
         throw new Error(
             `treehouse-protocol: invalid block response for ${chain} @ ${ts}: ${JSON.stringify(d)}`

@@ -19,8 +19,8 @@ const SHARES = BigInt('1000000000000000000000000')  // 1e24
 const SCALE  = BigInt('1000000000000')  
 
 async function getBlockAt(ts, chain = CHAIN) {
-  const { data } = await utils.withRetry(() =>
-    axios.get(utils.getPriceApiUrl(`/block/${chain}/${ts}`))
+  const data = await utils.withRetry(() =>
+    utils.getPriceApiData(`/block/${chain}/${ts}`)
   )
   return { block: data.height || data.number, ts: data.timestamp || ts }
 }

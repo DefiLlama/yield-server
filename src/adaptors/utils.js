@@ -37,8 +37,13 @@ const withCacheBust = (path) =>
     ? `${path}${path.includes('?') ? '&' : '?'}cachebust=${Date.now()}`
     : path;
 
-const getPriceApiData = async (path) =>
-  (await axios.get(getPriceApiUrl(withCacheBust(path)))).data;
+const BLOCK_PATH = /^\/?block\/([^/?]+)\/(\d+)$/;
+
+const getPriceApiData = async (path) => {
+  const blockPath = path.match(BLOCK_PATH);
+  if (blockPath) return getBlockByTime(Number(blockPath[2]), blockPath[1]);
+  return (await axios.get(getPriceApiUrl(withCacheBust(path)))).data;
+};
 
 exports.getPriceApiData = getPriceApiData;
 
@@ -323,18 +328,24 @@ exports.withRetry = async (fn, { retries = 3, delayMs = 500 } = {}) => {
   }
 };
 
-// retrive block based on unixTimestamp array
-const getBlocksByTime = async (timestamps, chainString) => {
+const getBlockByTime = async (timestamp, chainString) => {
   const chain = chainString === 'avalanche' ? 'avax' : chainString;
-  return Promise.all(
-    timestamps.map(async (timestamp) => {
-      const response = await axios.get(
-      getPriceApiUrl(`/block/${chain}/${timestamp}`)
-      );
-      return response.data.height;
-    })
-  );
+  try {
+    return (await axios.get(getPriceApiUrl(`/block/${chain}/${timestamp}`)))
+      .data;
+  } catch (e) {
+    console.error(
+      `coins block api failed for ${chain} ${timestamp}: ${e.message}, falling back to rpc`
+    );
+    const block = await sdk.blocks.getBlock(chain, Number(timestamp));
+    return { height: block.block, timestamp: block.timestamp };
+  }
 };
+
+const getBlocksByTime = async (timestamps, chainString) =>
+  Promise.all(
+    timestamps.map(async (t) => (await getBlockByTime(t, chainString)).height)
+  );
 
 exports.getBlocksByTime = getBlocksByTime;
 
@@ -731,12 +742,9 @@ exports.getERC4626Info = async (
 ) => {
   const DAY = 24 * 3600;
 
-  const [blockNow, blockYesterday] = await Promise.all(
-    [timestamp, timestamp - DAY].map((time) =>
-      axios
-        .get(getPriceApiUrl(`/block/${chain}/${time}`))
-        .then((r) => r.data.height)
-    )
+  const [blockNow, blockYesterday] = await getBlocksByTime(
+    [timestamp, timestamp - DAY],
+    chain
   );
   const [tvl, priceNow, priceYesterday, asset, shareDecimalsRes] = await Promise.all([
     sdk.api.abi.call({

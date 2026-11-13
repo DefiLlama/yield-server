@@ -18,10 +18,10 @@ const apy = async () => {
   const timestamp30d = timestampNow - 86400 * 30;
 
   const [blockNow, block7d, block30d] = await Promise.all([
-    axios.get(utils.getPriceApiUrl(`/block/ethereum/${timestampNow}`)),
-    axios.get(utils.getPriceApiUrl(`/block/ethereum/${timestamp7d}`)),
-    axios.get(utils.getPriceApiUrl(`/block/ethereum/${timestamp30d}`)),
-  ]).then((res) => res.map((r) => r.data.height));
+    utils.getPriceApiData(`/block/ethereum/${timestampNow}`),
+    utils.getPriceApiData(`/block/ethereum/${timestamp7d}`),
+    utils.getPriceApiData(`/block/ethereum/${timestamp30d}`),
+  ]).then((res) => res.map((r) => r.height));
 
   const callOracle = (block) =>
     sdk.api.abi.call({

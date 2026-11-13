@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getTotalSupply, getPriceApiUrl } = require('../utils');
+const { getTotalSupply, getPriceApiData } = require('../utils');
 
 const project = 'apollo-diversified-credit-securitize-fund';
 
@@ -18,9 +18,7 @@ const evmPools = [
 const SOLANA_TOKEN = 'FubtUcvhSCr3VPXEcxouoQjKQ7NWTCzXyECe76B7L3f8';
 
 const getBlock = (timestamp) =>
-  axios
-    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`))
-    .then((r) => r.data.height);
+  getPriceApiData(`/block/ethereum/${timestamp}`).then((b) => b.height);
 
 const getOraclePrice = (block) =>
   sdk.api.abi

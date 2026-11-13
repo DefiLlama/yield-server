@@ -26,10 +26,7 @@ const totalSharesAbi = {
 
 const getBlockNumberDaysBefore = async (chain, days) => {
   const timestamp = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
-  const response = await axios.get(
-    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
-  );
-  return response.data.height;
+  return (await utils.getPriceApiData(`/block/${chain}/${timestamp}`)).height;
 };
 
 const getSharePrice = async (address, chain, block = 'latest') => {

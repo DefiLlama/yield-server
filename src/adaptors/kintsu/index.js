@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const SECONDS_PER_DAY = 86400;
 const DAYS_PER_YEAR = 365;
@@ -19,9 +19,7 @@ const call = (chain, target, abi, block) =>
   sdk.api.abi.call({ target, abi, chain, block }).then((r) => r.output);
 
 const getBlock = (chain, timestamp) =>
-  axios
-    .get(getPriceApiUrl(`/block/${chain}/${timestamp}`))
-    .then((r) => r.data.height);
+  getPriceApiData(`/block/${chain}/${timestamp}`).then((b) => b.height);
 
 const getUsdPrice = (priceId) =>
   axios

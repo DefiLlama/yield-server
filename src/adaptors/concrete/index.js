@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getPriceApiUrl, getPriceApiData } = require('../utils');
+const { getPriceApiData } = require('../utils');
 
 const VAULTS_URL = 'https://apy.api.concrete.xyz/v1/vault:tvl/all';
 
@@ -19,9 +19,7 @@ const UNIT = '1000000000000000000';
 const CONVERT_ABI = 'function convertToAssets(uint256) view returns (uint256)';
 
 const getBlock = (chain, timestamp) =>
-  axios
-    .get(getPriceApiUrl(`/block/${chain}/${timestamp}`))
-    .then((r) => r.data.height);
+  getPriceApiData(`/block/${chain}/${timestamp}`).then((b) => b.height);
 
 const num = (x) => {
   const n = Number(x);

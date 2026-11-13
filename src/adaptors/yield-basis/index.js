@@ -57,11 +57,7 @@ const annualize = (current, previous, days) => {
 };
 
 const getBlock = async (timestamp) => {
-  const { data } = await axios.get(
-    `https://coins.llama.fi/block/${CHAIN}/${timestamp}`,
-    { timeout: 10_000 }
-  );
-  return data.height;
+  return (await utils.getPriceApiData(`/block/${CHAIN}/${timestamp}`)).height;
 };
 
 const multiCall = async ({ abi, calls, block, permitFailure = true }) => {

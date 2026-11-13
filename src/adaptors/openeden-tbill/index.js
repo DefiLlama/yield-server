@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getTotalSupply, getPriceApiUrl } = require('../utils');
+const { getTotalSupply, getPriceApiData } = require('../utils');
 
 const config = {
   ethereum: {
@@ -28,9 +28,7 @@ const project = 'openeden-tbill';
 const symbol = 'TBILL';
 
 const getBlock = (timestamp) =>
-  axios
-    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`))
-    .then((r) => r.data.height);
+  getPriceApiData(`/block/ethereum/${timestamp}`).then((b) => b.height);
 
 // Helper to fetch oracle price at a specific block
 const getOraclePrice = (block) =>

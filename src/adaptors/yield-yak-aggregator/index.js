@@ -134,8 +134,8 @@ const getVaultData = async (vaultConfig) => {
   // Get block numbers for historical data
   const chain = CHAIN_CONFIG[vaultConfig.chainId].chain;
   const [block1dayAgo, block7dayAgo] = await Promise.all([
-    axios.get(getPriceApiUrl(`/block/${chain}/${timestamp1dayAgo}`)),
-    axios.get(getPriceApiUrl(`/block/${chain}/${timestamp7dayAgo}`))
+    getPriceApiData(`/block/${chain}/${timestamp1dayAgo}`),
+    getPriceApiData(`/block/${chain}/${timestamp7dayAgo}`)
   ]);
 
   // Get exchange rates from accountant
@@ -154,13 +154,13 @@ const getVaultData = async (vaultConfig) => {
       target: vaultConfig.accountant,
       abi: VAULT_ACCOUNTANT_ABI,
       chain: chain,
-      block: block1dayAgo.data.height
+      block: block1dayAgo.height
     }),
     sdk.api.abi.call({
       target: vaultConfig.accountant,
       abi: VAULT_ACCOUNTANT_ABI,
       chain: chain,
-      block: block7dayAgo.data.height
+      block: block7dayAgo.height
     }),
     sdk.api.abi.call({
       target: vaultConfig.address,

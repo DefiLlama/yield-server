@@ -42,10 +42,7 @@ const multiCall = (targets, abi, chain, block = undefined) =>
 
 const getBlockNumber = async (timestamp, chain) => {
   try {
-    const response = await axios.get(
-      utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
-    );
-    return response.data.height;
+    return (await utils.getPriceApiData(`/block/${chain}/${timestamp}`)).height;
   } catch (e) {
     return null;
   }

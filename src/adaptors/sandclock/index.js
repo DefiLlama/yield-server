@@ -3,7 +3,7 @@ const sdk = require('@defillama/sdk');
 const abi = require('./abi');
 const BigNumber = require('bignumber.js'); // support decimal points
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const AMBER = '0xdb369eEB33fcfDCd1557E354dDeE7d6cF3146A11';
 const EMERALD = '0x4c406C068106375724275Cbff028770C544a1333';
@@ -98,10 +98,7 @@ function getTimestampDaysBefore(days) {
 }
 
 async function getBlockNumber(timestamp) {
-  const response = await axios.get(
-    getPriceApiUrl(`/block/ethereum/${timestamp}`)
-  );
-  return response.data.height;
+  return (await getPriceApiData(`/block/ethereum/${timestamp}`)).height;
 }
 
 async function calcErc4626PoolApy(vault, prices) {
