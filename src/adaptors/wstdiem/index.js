@@ -66,12 +66,12 @@ const apy = async () => {
       underlyingTokens: [DIEM],
       token: VAULT,
       isIntrinsicSource: true,
-      poolMeta: 'Venice inference yield, compounded in DIEM',
     },
   ];
 };
 
 module.exports = {
+  protocolId: '9223',
   timetravel: false,
   apy,
   url: 'https://app.liquidprotocol.org/vault',
