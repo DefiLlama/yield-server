@@ -4,7 +4,5 @@ const config = require('../controllers/config');
 
 router.route('/url').get(config.getUrl);
 router.route('/distinctID').get(config.getDistinctID);
-router.route('/configPool/:configID').get(config.getConfigPool);
-router.route('/allPools').get(config.getAllPools);
 
 module.exports = router;
