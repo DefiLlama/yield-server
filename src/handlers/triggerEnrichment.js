@@ -12,7 +12,7 @@ const { getStat } = require('../queries/stat');
 
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
-const { getExcludedAdaptors } = require('../utils/exclude');
+const { getExcludedAdaptors, getDeadChains } = require('../utils/exclude');
 const { checkStablecoin } = require('../adaptors/checkStablecoin');
 
 const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
@@ -37,6 +37,9 @@ const main = async () => {
 
   const excludedProjects = await getExcludedAdaptors();
   data = data.filter((p) => !excludedProjects.has(p.project));
+
+  const deadChains = await getDeadChains();
+  data = data.filter((p) => !deadChains.has(p.chain));
 
   // remove aave v2 frozen assets from dataEnriched (we keep ingesting into db, but don't
   // want to display frozen pools on the UI)
