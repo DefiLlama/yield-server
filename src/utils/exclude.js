@@ -542,6 +542,7 @@ const excludedProtocols = [
   { id: '5580', slug: 'latch' }, // winding down: withdrawals disabled on savings.latch.io, atUSD/atETH live on Gravity Alpha which shuts 2026-11-01, apy api 503 since 2026-10-29
   { id: '7244', slug: 'harbor' }, // winding down: all markets archived (deposits disabled, withdraw-only)
   { id: '6047', slug: 'berapaw' }, // dead: berapaw.com 404/unresolvable, protocol deadUrl, LBGT unpriced; 41 rows ($41.7M) were Berachain PoL reward vaults owned by Kodiak/Bend/Beradrome etc, not BeraPaw
+  { id: '9100', slug: 'hedgehood-stock-yield' }, // vaults ~empty: tvl $210 + $0 since 2026-11-02, every row below the 1k tvl floor
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
