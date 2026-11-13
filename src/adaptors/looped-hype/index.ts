@@ -82,12 +82,12 @@ const calculateAPY = async (currentRate, scalingFactor, chain = CHAIN) => {
   const t7d = now - 86400 * 7;
 
   const [b1, b7] = await Promise.all([
-    axios.get(utils.getPriceApiUrl(`/block/${chain}/${t1d}`)),
-    axios.get(utils.getPriceApiUrl(`/block/${chain}/${t7d}`)),
+    utils.getPriceApiData(`/block/${chain}/${t1d}`),
+    utils.getPriceApiData(`/block/${chain}/${t7d}`),
   ]);
 
-  const block1d = b1.data?.height;
-  const block7d = b7.data?.height;
+  const block1d = b1?.height;
+  const block7d = b7?.height;
 
   const [r1, r7] = await Promise.all([
     sdk.api.abi.call({

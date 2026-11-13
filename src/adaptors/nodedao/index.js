@@ -72,12 +72,8 @@ const getApy = async () => {
 
   const [{ height: block1dayAgo }, { height: block7dayAgo }] =
     await Promise.all([
-      axios
-        .get(utils.getPriceApiUrl(`/block/ethereum/${timestamp1dayAgo}`))
-        .then((r) => r.data),
-      axios
-        .get(utils.getPriceApiUrl(`/block/ethereum/${timestamp7dayAgo}`))
-        .then((r) => r.data),
+      utils.getPriceApiData(`/block/ethereum/${timestamp1dayAgo}`),
+      utils.getPriceApiData(`/block/ethereum/${timestamp7dayAgo}`),
     ]);
 
   const ethPriceKey = 'coingecko:ethereum';

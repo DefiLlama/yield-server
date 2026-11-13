@@ -1,18 +1,14 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const { getMerklRewardsByIdentifier } = require('../merkl/merkl-by-identifier');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const PUFETH = '0xD9A442856C234a39a81a089C06451EBAa4306a72';
 const CONVERT_TO_ASSETS_ABI =
   'function convertToAssets(uint256 shares) view returns (uint256 assets)';
 
 const getBlock = (timestamp) =>
-  axios
-    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`), {
-      timeout: 10_000,
-    })
-    .then((r) => r.data.height);
+  getPriceApiData(`/block/ethereum/${timestamp}`).then((b) => b.height);
 
 const apy = async () => {
   // Get current total supply of pufETH

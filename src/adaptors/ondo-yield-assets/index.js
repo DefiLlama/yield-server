@@ -189,10 +189,7 @@ const ousgOracleAbi = {
 };
 
 const getBlock = async (chain, timestamp) => {
-  const response = await axios.get(
-    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
-  );
-  return response.data.height;
+  return (await utils.getPriceApiData(`/block/${chain}/${timestamp}`)).height;
 };
 
 // Get USDY price using the dedicated oracle with historical timestamp support

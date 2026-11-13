@@ -16,9 +16,7 @@ const config = {
 const CANONICAL_TOKEN = config.ethereum;
 
 const getBlock = (timestamp) =>
-  axios
-    .get(utils.getPriceApiUrl(`/block/ethereum/${timestamp}`))
-    .then((r) => r.data.height);
+  utils.getPriceApiData(`/block/ethereum/${timestamp}`).then((b) => b.height);
 
 const getExchangeRate = (block) =>
   sdk.api.abi.call({

@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 // Time constants
 const SECONDS_PER_DAY = 86400;
@@ -30,12 +30,8 @@ const apy = async () => {
 
   // Fetch block numbers for current and 2 days ago
   const [blockNow, block2daysAgo] = await Promise.all([
-    axios
-      .get(getPriceApiUrl(`/block/monad/${now}`))
-      .then((r) => r.data.height),
-    axios
-      .get(getPriceApiUrl(`/block/monad/${timestamp2daysAgo}`))
-      .then((r) => r.data.height),
+    getPriceApiData(`/block/monad/${now}`).then((b) => b.height),
+    getPriceApiData(`/block/monad/${timestamp2daysAgo}`).then((b) => b.height),
   ]);
 
   if (!blockNow || !block2daysAgo) {

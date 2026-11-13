@@ -14,9 +14,7 @@ const UNIT = '1000000000000000000';
 const apy = async (timestamp = Math.floor(Date.now() / 1e3)) => {
   const [blockNow, blockYesterday, blockWeekAgo] = await Promise.all(
     [timestamp, timestamp - DAY, timestamp - WEEK].map((t) =>
-      axios
-        .get(utils.getPriceApiUrl(`/block/${CHAIN}/${t}`))
-        .then((r) => r.data.height)
+      utils.getPriceApiData(`/block/${CHAIN}/${t}`).then((b) => b.height)
     )
   );
 

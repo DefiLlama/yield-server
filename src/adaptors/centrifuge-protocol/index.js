@@ -55,10 +55,7 @@ const ABIS = {
 };
 
 async function getHistoricalBlock(chain, timestamp) {
-  const { data } = await http.get(
-    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
-  );
-  return data.height;
+  return (await utils.getPriceApiData(`/block/${chain}/${timestamp}`)).height;
 }
 
 async function fetchVaults() {

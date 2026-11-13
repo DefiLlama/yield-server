@@ -67,10 +67,7 @@ const calculateApr = (currentRate, pastRate, days) => {
 
 const getBlock = async (timestamp, chain = 'ethereum') => {
   try {
-    const response = await axios.get(
-      utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
-    );
-    return response.data.height;
+    return (await utils.getPriceApiData(`/block/${chain}/${timestamp}`)).height;
   } catch (e) {
     console.error(`Error fetching block for ${chain} at ${timestamp}:`, e.message);
     return null;

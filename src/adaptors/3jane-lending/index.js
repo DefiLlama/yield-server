@@ -15,10 +15,7 @@ const PPS_ABI = 'function pricePerShare() view returns (uint256)';
 const TOTAL_ASSETS_ABI = 'function totalAssets() view returns (uint256)';
 
 const getBlock = async (timestamp) => {
-  const res = await axios.get(
-    utils.getPriceApiUrl(`/block/${CHAIN}/${timestamp}`)
-  );
-  return res.data.height;
+  return (await utils.getPriceApiData(`/block/${CHAIN}/${timestamp}`)).height;
 };
 
 const getUsdcPrice = async () => {
