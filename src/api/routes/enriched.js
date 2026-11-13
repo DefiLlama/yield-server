@@ -9,9 +9,6 @@ router
 
 // PRO API routes
 router
-  .route('/poolsPro')
-  .get(sunsetNotice('/yields/v1/pools'), enriched.getPoolsEnrichedPro);
-router
   .route('/poolsOld')
   .get(sunsetNotice('/yields/v1/pools'), enriched.getPoolsEnrichedPro);
 router
