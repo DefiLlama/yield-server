@@ -7,8 +7,6 @@ const utils = require('../utils');
 const PROGRAM_ID = 'par1tyqusak2f2DXg9RHv78SVHNWXkJLSbtJZQSuWjV';
 const PAIRS = [
   { pair: 'EwqMpnBHKEd537E37kcsNU9Qi82uukjVAXsC8K5Kswt7', symbol: 'USDC', meta: 'exUSDC', slug: 'exUSDC' },
-  { pair: 'HwsGQqoXwQjGg5CDojLTipmeYFSmovoHtk7ZFtgrxSop', symbol: 'SOL', meta: 'exSOL', slug: 'exSOL' },
-  { pair: 'GpV9U2yY3L5u4DkWC6Unejsz42iNME4Usk5RzTaA23to', symbol: 'CBBTC', meta: 'exBTC', slug: 'exBTC' },
 ];
 
 const PRECISION = 10n ** 12n;
@@ -100,7 +98,7 @@ const apy = async () => {
     pools.push({
       pool: `${p.lstMint}-solana`,
       chain: 'Solana',
-      project: 'exceed-finance',
+      project: 'exceed-finance-exusdc',
       symbol: p.symbol,
       tvlUsd: baseAmount * price,
       apyBase,
@@ -118,5 +116,5 @@ module.exports = {
   protocolId: '9200',
   timetravel: false,
   apy,
-  url: 'https://app.exceed.finance/vaults',
+  url: 'https://app.exceed.finance/vaults/exUSDC',
 };
