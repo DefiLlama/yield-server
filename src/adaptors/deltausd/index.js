@@ -12,14 +12,6 @@ const NETWORKS = [
     collateralDecimals: 18,
     canonical: true,
   },
-  {
-    chain: 'xlayer',
-    name: 'X Layer',
-    token: '0x450fb16f202bdbd4f3ebfc2a82f179dd8c1ce8d4',
-    collateral: '0x779ded0c9e1022225f8e0630b35a9b54be713736',
-    collateralDecimals: 6,
-    canonical: false,
-  },
 ];
 const UINT_FIELDS = [
   'apr',
@@ -209,7 +201,7 @@ async function apy() {
 }
 
 module.exports = {
-  // Registered DeltaUSD protocol id, shared by both local deployments.
+  // Registered DeltaUSD protocol id.
   protocolId: '9420',
   timetravel: false,
   apy,
