@@ -10,11 +10,7 @@ const AMM = 'shield_swap.aleo';
 // https://shield.fi/docs/reference/mappings
 const INDEXER = 'https://api.swap.shield.fi';
 
-// The protocol keeps `fee_protocol / 16` of every swap fee and the position keeps the rest.
-// https://shield.fi/docs/reference/constants-and-limits
-const PROTOCOL_FEE_DENOMINATOR = 16;
-
-// Pool `fee` is a u16 count of parts per million (200 => 0.02%), same source as above.
+// pool_metadata.fee is a u16 count of parts per million (200 => 0.02%).
 const FEE_PPM_DENOMINATOR = 1e6;
 
 // Aleo has no on-chain decimal registry - "The AMM uses native token base units directly. It has no
@@ -35,6 +31,8 @@ const COINGECKO_IDS = {
     'usd-coin',
   '469367275872013076623969field': 'usd-coin',
   '549647506080797045256801field': 'tether',
+  '3137609573832290293291268277413025448658733942822255236455114969016435field':
+    'basic-attention-token',
 };
 
 // Both APIs are public and occasionally answer 429 or 5xx; retry those with backoff (permanent 4xx
@@ -117,18 +115,12 @@ const apy = async () => {
       // One unpriceable token drops its own pools, never the priceable ones alongside them.
       if (price0 === null || price1 === null) return null;
 
-      // Fee tier and protocol split are read from chain state rather than taken from the indexer.
-      // A pool whose reads still fail after retries is dropped on its own, so one bad call cannot
-      // take the other pools down with it.
+      // Pool metadata holds the current fee. `pools` is only the creation-time fallback and can be
+      // stale after an admin fee update.
       let feePpm;
-      let feeProtocol;
       try {
-        const [poolState, slot] = await Promise.all([
-          aleoMapping('pools', pool.key),
-          aleoMapping('slots', pool.key),
-        ]);
-        feePpm = aleoNumber(aleoStruct(poolState), 'fee');
-        feeProtocol = aleoNumber(aleoStruct(slot), 'fee_protocol');
+        const metadata = await aleoMapping('pool_metadata', pool.key);
+        feePpm = aleoNumber(aleoStruct(metadata), 'fee');
       } catch (e) {
         console.error(`shield-swap: skipping pool ${pool.key}: ${e.message}`);
         return null;
@@ -141,11 +133,19 @@ const apy = async () => {
         (Number(stat.reserve0) / 10 ** decimals0) * price0 +
         (Number(stat.reserve1) / 10 ** decimals1) * price1;
 
-      // volume_24h is the fee-bearing notional of the last 24h, in token0 base units.
+      // fee_24h is the realized LP share of swap fees, priced in token0 base units. The indexer
+      // derives it from execution receipts (fee0/fee1 less protocol_fee0/protocol_fee1), so it
+      // already includes fee discounts and the protocol split.
       const volumeUsd = (Number(stat.volume_24h) / 10 ** decimals0) * price0;
-      const positionFeesUsd =
-        ((volumeUsd * feePpm) / FEE_PPM_DENOMINATOR) *
-        ((PROTOCOL_FEE_DENOMINATOR - feeProtocol) / PROTOCOL_FEE_DENOMINATOR);
+      const hasRealizedFees =
+        stat.fee_24h !== null &&
+        stat.fee_24h !== undefined &&
+        stat.fee_24h !== '' &&
+        Number.isFinite(Number(stat.fee_24h)) &&
+        Number(stat.fee_24h) >= 0;
+      const positionFeesUsd = hasRealizedFees
+        ? (Number(stat.fee_24h) / 10 ** decimals0) * price0
+        : null;
 
       return {
         pool: `${pool.key}-aleo`,
@@ -154,7 +154,9 @@ const apy = async () => {
         symbol: `${pool.token0_info.symbol}-${pool.token1_info.symbol}`,
         tvlUsd,
         apyBase:
-          tvlUsd > 0 ? ((positionFeesUsd * 365) / tvlUsd) * 100 : undefined,
+          tvlUsd > 0 && positionFeesUsd !== null
+            ? ((positionFeesUsd * 365) / tvlUsd) * 100
+            : undefined,
         underlyingTokens: [pool.token0, pool.token1].map(
           (t) => `coingecko:${COINGECKO_IDS[t]}`
         ),
