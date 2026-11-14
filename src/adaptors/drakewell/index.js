@@ -1,9 +1,9 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
-// JUSD allocates deposited USDC across yield strategies, principally delta-neutral
-// funding trades plus lending, issued through two vaults: Accountable on Ethereum
-// and Venzo on Arbitrum. The yield is variable, so apyBase is the realized growth
+// Drakewell (formerly JUSD Finance) issues USDdw: deposited USDC is allocated across yield
+// strategies, principally delta-neutral funding trades plus lending, through two vaults:
+// Accountable on Ethereum and Venzo on Arbitrum. The yield is variable, so apyBase is the realized growth
 // of each vault's share price (convertToAssets of one share) over the past 7 days.
 const VAULTS = [
   {
@@ -44,15 +44,15 @@ const pool = async ({ chain, vault, usdc, issuer }) => {
   return {
     pool: `${vault}-${chain}`.toLowerCase(),
     chain: utils.formatChain(chain),
-    project: 'jusd-finance',
-    symbol: 'JUSD',
+    project: 'drakewell',
+    symbol: 'USDdw',
     token: vault,
     tvlUsd: (Number(assets.output) / 1e6) * usdcPrice,
     apyBase: (growth ** (365 / WINDOW_DAYS) - 1) * 100,
     pricePerShare: Number(priceNow.output) / 1e6,
     underlyingTokens: [usdc],
     poolMeta: `${issuer} vault`,
-    url: 'https://jusd.fi',
+    url: 'https://drakewell.fi',
   };
 };
 
@@ -62,5 +62,5 @@ module.exports = {
   protocolId: '8861',
   timetravel: false,
   apy,
-  url: 'https://jusd.fi',
+  url: 'https://drakewell.fi',
 };
