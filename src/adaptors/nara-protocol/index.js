@@ -14,6 +14,7 @@ const PRINCIPAL_LEDGER_V5 = '0x7F866a9fbe41D54F0d9C35b6892fcf27Ea766DB2';
 const EPOCH_ENGINE_V5 = '0xd93FbEbFb33FAc9288125074625D4750573B1a53';
 const REWARD_LEDGER_V5 = '0xC72671D9438388638547444524F6542b650C9264';
 const UNIV3_NARA_USDC_POOL = '0xEEd718D239C5508775e312F60Eb12792a49d4Bba';
+const UNIV3_WETH_USDC_POOL = '0xd0b53D9277642d899DF5C87A3966A349A798F224';
 
 const ABI = {
   principalAccounting:
@@ -64,24 +65,70 @@ const fetchPrices = async (keys) => {
  * Resolve the current NARA USD spot price from DefiLlama coins API with on-chain Uniswap v3 fallback.
  * @param {Record<string, { price?: number }>} coins Price map returned by DefiLlama coins API.
  * @param {number} usdcPrice Current USD price of Base USDC.
- * @returns {Promise<number>} NARA price in USD.
+ * @returns {Promise<number | null>} NARA price in USD, or null if unavailable.
  */
 const getNaraSpotPriceUsd = async (coins, usdcPrice) => {
   const coinKey = `${CHAIN}:${NARA}`;
-  if (coins[coinKey]?.price > 0) return coins[coinKey].price;
+  if (Number.isFinite(coins[coinKey]?.price) && coins[coinKey].price > 0) {
+    return coins[coinKey].price;
+  }
   const lowerKey = coinKey.toLowerCase();
-  if (coins[lowerKey]?.price > 0) return coins[lowerKey].price;
+  if (Number.isFinite(coins[lowerKey]?.price) && coins[lowerKey].price > 0) {
+    return coins[lowerKey].price;
+  }
 
   // Fallback: read spot price from the Base Uniswap v3 NARA/USDC pool (token0 = USDC 6d, token1 = NARA 18d)
-  const { output: s0 } = await sdk.api.abi.call({
-    chain: CHAIN,
-    target: UNIV3_NARA_USDC_POOL,
-    abi: ABI.slot0,
-  });
-  const sqrtPrice = Number(s0.sqrtPriceX96) / 2 ** 96;
-  const naraPerUsdcRaw = sqrtPrice * sqrtPrice; // NARA(1e18) per USDC(1e6)
-  if (!Number.isFinite(naraPerUsdcRaw) || naraPerUsdcRaw <= 0) return 0;
-  return (1e12 / naraPerUsdcRaw) * usdcPrice;
+  try {
+    const { output: s0 } = await sdk.api.abi.call({
+      chain: CHAIN,
+      target: UNIV3_NARA_USDC_POOL,
+      abi: ABI.slot0,
+    });
+    const sqrtPrice = Number(s0?.sqrtPriceX96) / 2 ** 96;
+    const naraPerUsdcRaw = sqrtPrice * sqrtPrice; // NARA(1e18) per USDC(1e6)
+    if (!Number.isFinite(naraPerUsdcRaw) || naraPerUsdcRaw <= 0) return null;
+    return (1e12 / naraPerUsdcRaw) * usdcPrice;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Resolve the current WETH USD spot price from DefiLlama coins API with on-chain Base Uniswap v3 fallback.
+ * @param {Record<string, { price?: number }>} coins Price map returned by DefiLlama coins API.
+ * @param {number} usdcPrice Current USD price of Base USDC.
+ * @returns {Promise<number | null>} WETH price in USD, or null if unavailable.
+ */
+const getEthSpotPriceUsd = async (coins, usdcPrice) => {
+  const coinKey = `${CHAIN}:${WETH}`;
+  if (Number.isFinite(coins[coinKey]?.price) && coins[coinKey].price > 0) {
+    return coins[coinKey].price;
+  }
+  const lowerKey = coinKey.toLowerCase();
+  if (Number.isFinite(coins[lowerKey]?.price) && coins[lowerKey].price > 0) {
+    return coins[lowerKey].price;
+  }
+  if (
+    Number.isFinite(coins['coingecko:ethereum']?.price) &&
+    coins['coingecko:ethereum'].price > 0
+  ) {
+    return coins['coingecko:ethereum'].price;
+  }
+
+  // Fallback: read spot price from the Base Uniswap v3 WETH/USDC 0.05% pool (token0 = WETH 18d, token1 = USDC 6d)
+  try {
+    const { output: s0 } = await sdk.api.abi.call({
+      chain: CHAIN,
+      target: UNIV3_WETH_USDC_POOL,
+      abi: ABI.slot0,
+    });
+    const sqrtPrice = Number(s0?.sqrtPriceX96) / 2 ** 96;
+    const usdcPerWethRaw = sqrtPrice * sqrtPrice; // USDC(1e6) per WETH(1e18)
+    if (!Number.isFinite(usdcPerWethRaw) || usdcPerWethRaw <= 0) return null;
+    return usdcPerWethRaw * 1e12 * usdcPrice;
+  } catch {
+    return null;
+  }
 };
 
 /**
@@ -128,29 +175,36 @@ const apy = async () => {
       target: REWARD_LEDGER_V5,
       abi: ABI.rewardState,
     }),
-    fetchPrices([`${CHAIN}:${NARA}`, `${CHAIN}:${USDC}`, `${CHAIN}:${WETH}`]),
+    fetchPrices([
+      `${CHAIN}:${NARA}`,
+      `${CHAIN}:${USDC}`,
+      `${CHAIN}:${WETH}`,
+      'coingecko:ethereum',
+    ]),
   ]);
 
+  const rawUsdcPrice =
+    coins[`${CHAIN}:${USDC}`]?.price ??
+    coins[`${CHAIN}:${USDC}`.toLowerCase()]?.price;
   const usdcPrice =
-    coins[`${CHAIN}:${USDC}`]?.price ||
-    coins[`${CHAIN}:${USDC}`.toLowerCase()]?.price ||
-    1;
-  const ethPrice =
-    coins[`${CHAIN}:${WETH}`]?.price ||
-    coins[`${CHAIN}:${WETH}`.toLowerCase()]?.price ||
-    0;
+    Number.isFinite(rawUsdcPrice) && rawUsdcPrice > 0 ? rawUsdcPrice : 1;
+
   const naraPrice = await getNaraSpotPriceUsd(coins, usdcPrice);
+  if (!Number.isFinite(naraPrice) || naraPrice <= 0) {
+    throw new Error('Unable to resolve valid NARA USD price');
+  }
 
   const totalPrincipalNara = Number(acct.principalInventory) / 1e18;
   const activeWeightNara = Number(acct.activeModelWeight) / 1e18;
   const tvlUsd = totalPrincipalNara * naraPrice;
 
   // 1. Unboosted (1.00x lower-bound) NARA emission APY from NARAEmissionModelV5
-  const modelFloat =
+  const rawModelFloat =
     SUPPLY -
     BigInt(acct.principalSnapshot) -
     BigInt(rState.protectedNaraSnapshot) -
     BigInt(fState.eligibleReserve);
+  const modelFloat = rawModelFloat > 0n ? rawModelFloat : 0n;
 
   const cfgTuple = toPlainTuple(eCfg, [
     'eMax',
@@ -197,7 +251,7 @@ const apy = async () => {
   const prevBoundary = Math.max(0, curBoundary - EPOCHS_PER_DAY);
   let apyBase = 0;
 
-  if (curBoundary > prevBoundary && naraPrice > 0) {
+  if (curBoundary > prevBoundary) {
     const [ethNow, ethPrev, usdcNow, usdcPrev] = await Promise.all([
       sdk.api.abi.call({
         chain: CHAIN,
@@ -226,22 +280,34 @@ const apy = async () => {
     ]);
 
     const deltaEthIndex =
-      ethNow.output.exists && ethPrev.output.exists
+      ethNow.output?.exists && ethPrev.output?.exists
         ? BigInt(ethNow.output.baseIndex) -
           BigInt(ethPrev.output.baseIndex) +
           (BigInt(ethNow.output.rarityIndex) - BigInt(ethPrev.output.rarityIndex))
         : 0n;
     const deltaUsdcIndex =
-      usdcNow.output.exists && usdcPrev.output.exists
+      usdcNow.output?.exists && usdcPrev.output?.exists
         ? BigInt(usdcNow.output.baseIndex) -
           BigInt(usdcPrev.output.baseIndex) +
           (BigInt(usdcNow.output.rarityIndex) - BigInt(usdcPrev.output.rarityIndex))
         : 0n;
 
     // SCALE = 1e27; per 1e18 weight -> raw units = deltaIndex / 1e9
-    const ethPerNara24h = Number(deltaEthIndex) / 1e27;
-    const usdcPerNara24h = Number(deltaUsdcIndex) / 1e15; // 1e9 * 1e6 decimals
-    const feeUsdPerNara24h = ethPerNara24h * ethPrice + usdcPerNara24h * usdcPrice;
+    let ethUsdPerNara24h = 0;
+    if (deltaEthIndex > 0n) {
+      const ethPrice = await getEthSpotPriceUsd(coins, usdcPrice);
+      if (!Number.isFinite(ethPrice) || ethPrice <= 0) {
+        throw new Error(
+          'Unable to resolve valid WETH USD price for positive ETH reward delta'
+        );
+      }
+      const ethPerNara24h = Number(deltaEthIndex) / 1e27;
+      ethUsdPerNara24h = ethPerNara24h * ethPrice;
+    }
+
+    const usdcUsdPerNara24h =
+      deltaUsdcIndex > 0n ? (Number(deltaUsdcIndex) / 1e15) * usdcPrice : 0; // 1e9 * 1e6 decimals
+    const feeUsdPerNara24h = ethUsdPerNara24h + usdcUsdPerNara24h;
 
     apyBase = ((feeUsdPerNara24h * 365) / naraPrice) * 100;
   }
