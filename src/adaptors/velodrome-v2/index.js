@@ -117,6 +117,17 @@ const apy = async () => {
     })
   ).output.map((o) => o.output);
 
+  // rewardRate stays set after periodFinish, but nothing accrues past it
+  const periodFinish = (
+    await sdk.api.abi.multiCall({
+      calls: gauges.map((i) => ({ target: i })),
+      chain,
+      abi: abiGauge.find((i) => i.name === 'periodFinish'),
+      permitFailure: true,
+    })
+  ).output.map((o) => o.output);
+  const now = Date.now() / 1000;
+
   const poolSupply = (
     await sdk.api.abi.multiCall({
       calls: allPools.map((i) => ({ target: i })),
@@ -186,8 +197,10 @@ const apy = async () => {
       stakedSupplyRatio = poolSupply[i] / gaugeSupply[i];
     }
 
+    const activeRewardRate = periodFinish[i] > now ? rewardRate[i] : 0;
+
     let apyReward =
-      (((rewardRate[i] / 1e18) *
+      (((activeRewardRate / 1e18) *
         86400 *
         365 *
         prices[`optimism:${velo}`]?.price) /
