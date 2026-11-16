@@ -141,11 +141,6 @@ const apy = async (timestampArg = null) => {
     calls: tokens.map((token) => ({ target: token })),
     chain: CHAIN,
   });
-  const { output: supplies } = await sdk.api.abi.multiCall({
-    abi: 'erc20:totalSupply',
-    calls: legs.map((leg) => ({ target: leg.lpToken })),
-    chain: CHAIN,
-  });
   const { output: decimals } = await sdk.api.abi.multiCall({
     abi: 'erc20:decimals',
     calls: tokens.map((token) => ({ target: token })),
