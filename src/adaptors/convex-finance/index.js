@@ -411,7 +411,10 @@ const main = async () => {
           : poolObj[0];
 
       const poolId = pool.isLendingVault ? pool.id : poolObj?.id;
-      const baseApy = poolId ? curveApys[poolId]?.baseApy : undefined;
+      // curve-apys keys pools as `ethereum-<pool address>` since 2026-11-08; keep the old id key as a fallback
+      const baseApy =
+        curveApys[`ethereum-${pool.address?.toLowerCase()}`]?.baseApy ??
+        (poolId ? curveApys[poolId]?.baseApy : undefined);
 
       return {
         pool: pool.lptoken,
