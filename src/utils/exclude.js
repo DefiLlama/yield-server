@@ -2576,6 +2576,10 @@ const excludePools = [
   // swap paid in, but the fallback subgraph reports 48.5M USDC ($97M tvl). BMD
   // (1.16e59 supply) has no price, so the pool has no measurable tvl (2026-10-26)
   '0xbddcef32a41bb9c9fa37b2442433ddffdd6095c7e6b0aeb1b0b979a5b5529e67-ethereum-uniswap-v4',
+  // upshift xUpUSDC (Multipli TAC USDC): closed and hidden on upshift, totalAssets marked
+  // down from $15.18M to $1.00M on 2026-11-12 with shares unchanged (pps 1.016 -> 0.067),
+  // vault holds 0 USDC. not depositable, so not a listable pool (2026-11-16)
+  '0x396A3f77EE1faf5A3C46e878bA7b7a2dcbe55517-Ethereum',
 ];
 
 const boundaries = {
