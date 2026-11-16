@@ -6,17 +6,22 @@ const BTC_POOL_CANISTER_ID = 'hkmli-faaaa-aaaar-qb4ba-cai'
 const USDT_POOL_CANISTER_ID = 'hnnn4-iyaaa-aaaar-qb4bq-cai'
 const USDC_POOL_CANISTER_ID = '6sna2-oiaaa-aaaar-qb66q-cai'
 const ICP_POOL_CANISTER_ID = 'r2pk3-4yaaa-aaaar-qb7zq-cai'
+const ETH_POOL_CANISTER_ID = 'qcg7y-syaaa-aaaar-qb75q-cai'
+const SOL_POOL_CANISTER_ID = 'xhh4q-qyaaa-aaaar-qci2q-cai'
 const ALLOWED_POOL_CANISTERS = new Set([
   BTC_POOL_CANISTER_ID,
   USDT_POOL_CANISTER_ID,
   USDC_POOL_CANISTER_ID,
   ICP_POOL_CANISTER_ID,
+  ETH_POOL_CANISTER_ID,
+  SOL_POOL_CANISTER_ID,
 ])
 const RAY = 10n ** 27n
 const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER)
 
 const ASSET_META = {
   BTC: { decimals: 8, coingeckoId: 'bitcoin' },
+  ETH: { decimals: 18, coingeckoId: 'ethereum' },
   SOL: { decimals: 9, coingeckoId: 'solana' },
   USDC: { decimals: 6, coingeckoId: 'usd-coin' },
   USDT: { decimals: 6, coingeckoId: 'tether' },
@@ -199,7 +204,7 @@ async function getSourceData() {
 }
 
 function buildPriceMap(prices) {
-  const priceMap = { BTC: null, SOL: null, USDC: 1, USDT: 1, ICP: null }
+  const priceMap = { BTC: null, ETH: null, SOL: null, USDC: 1, USDT: 1, ICP: null }
   for (const [pair, priceInt, decimals] of prices) {
     if (!pair.endsWith('_USDT')) continue
     const asset = pair.split('_')[0]
