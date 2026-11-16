@@ -10,7 +10,7 @@ const DAY = 86400;
 
 // Centrifuge API chain IDs → DefiLlama SDK chain names
 // Token symbols to exclude (equity products, not yield)
-const EXCLUDED_SYMBOLS = new Set(['deSPXA', 'SPXA']);
+const EXCLUDED_SYMBOLS = new Set(['deSPXA', 'SPXA', 'JQQQ']);
 
 const CHAIN_MAP = {
   1: 'ethereum',
