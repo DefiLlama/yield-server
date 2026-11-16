@@ -61,6 +61,7 @@ const apy = async () => {
       project: 'kelp',
       symbol: 'rsETH',
       underlyingTokens: tokens.map(normalizeNativeAddress),
+      searchTokenOverride: ZERO_ADDRESS,
       tvlUsd,
       apyBase,
       url: 'https://kelpdao.xyz/restake/',
