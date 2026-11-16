@@ -547,6 +547,7 @@ const excludedProtocols = [
   { id: '5906', slug: 'yuzu-finance' }, // winding down (announced 2026-10-29, servers off 2026-11-30): mainnet-api /v1/* 500 since ~2026-11-12, the only apy source
   { id: '3117', slug: 'astroport' }, // live pools only on Neutron (deadFrom 2026-07-01); adapter would only emit filtered rows
   { id: '1166', slug: 'defichain-dex' }, // ocean.defichain.com API unreachable (2026-11-14), the only apy source
+  { id: '7873', slug: 'kerne' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
