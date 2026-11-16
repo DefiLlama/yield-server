@@ -24,6 +24,8 @@ app.use(express.json());
 const CACHE_PREFIX = "cache#"
 
 async function redisCache (req, res, next) {
+  // only GET/HEAD use the cache: e.g. Express's auto OPTIONS reply ("GET,HEAD") would otherwise be cached under the GET key
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next()
   const {headers, nextCacheDate} = getCacheDates()
   const cacheObject = await redis.get(CACHE_PREFIX + req.url).catch(() => null)
   if(cacheObject !== null){
