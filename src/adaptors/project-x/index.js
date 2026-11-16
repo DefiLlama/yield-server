@@ -15,9 +15,8 @@ const poolsQuery = gql`
     pools(
       first: $first
       skip: $skip
-      orderBy: totalValueLockedUSD
-      orderDirection: desc
-      where: { totalValueLockedUSD_gt: 1000 }
+      orderBy: id
+      orderDirection: asc
     ) {
       id
       token0 {
@@ -34,16 +33,12 @@ const poolsQuery = gql`
       liquidity
       sqrtPrice
       tick
-      totalValueLockedUSD
-      totalValueLockedToken0
-      totalValueLockedToken1
-      volumeUSD
-      feesUSD
+      reserve0: totalValueLockedToken0
+      reserve1: totalValueLockedToken1
       poolDayData(first: 1, orderBy: date, orderDirection: desc) {
         date
-        volumeUSD
-        feesUSD
-        tvlUSD
+        volumeToken0
+        volumeToken1
       }
     }
   }
@@ -99,19 +94,30 @@ function calculateApyBase(feesUSD, tvlUSD) {
 
 async function apy() {
   try {
-    const pools = await fetchAllPools();
+    // The subgraph's USD fields come from its derivedETH pricing, which is
+    // broken (UBTC derivedETH ~216k, WHYPE-UBTC reported at $674M for ~$5M of
+    // tokens), so price the token amounts with coins.llama.fi instead
+    const pools = await utils.tvl(await fetchAllPools(), 'hyperliquid');
 
     const formattedPools = pools
       .map((pool) => {
+        // utils.tvl doubles the priced side when one price is missing, which
+        // a one-sided concentrated position makes meaningless, so skip those
+        if (!(pool.price0 > 0) || !(pool.price1 > 0)) return null;
+
         const dayData = pool.poolDayData?.[0];
-        const feesUSD = Number(dayData?.feesUSD || 0);
-        const tvlUSD = Number(dayData?.tvlUSD || pool.totalValueLockedUSD || 0);
-        const volumeUSD = Number(dayData?.volumeUSD || 0);
+        const tvlUSD = pool.totalValueLockedUSD;
+        // same as the subgraph's volumeUSD: average of both swap legs
+        const volumeUSD =
+          (Number(dayData?.volumeToken0 || 0) * pool.price0 +
+            Number(dayData?.volumeToken1 || 0) * pool.price1) /
+          2;
+        const feesUSD = (volumeUSD * Number(pool.feeTier)) / 1e6;
 
         const apyBase = calculateApyBase(feesUSD, tvlUSD);
 
         // Skip pools with no TVL or very low TVL
-        if (tvlUSD < 10000) return null;
+        if (!Number.isFinite(tvlUSD) || tvlUSD < 10000) return null;
 
         // Format pool metadata
         const feePercent = Number(pool.feeTier) / 10000;
