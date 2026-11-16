@@ -1,8 +1,5 @@
-const axios = require('axios');
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-
-const KAMINO_API = 'https://api.kamino.finance';
 
 const MIN_TVL_USD = 1000;
 const LOOKBACK_DAYS = 7;
@@ -25,28 +22,6 @@ const ETHEREUM_VAULTS = [
   {
     address: '0x3cC0D33B1AEac3d23eA89214b3AC5B4607032167',
     name: 'Sentora BTC',
-  },
-];
-
-const KAMINO_VAULTS = [
-  {
-    address: 'A2wsxhA7pF4B2UKVfXocb6TAAP9ipfPJam6oMKgDE5BK',
-    name: 'Kamino Sentora PYUSD',
-    url: 'https://kamino.com/lend/sentora-pyusd',
-    depositToken: {
-      address: '2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo',
-      symbol: 'PYUSD',
-    },
-    farmRewardToken: '2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo',
-  },
-  {
-    address: 'D1XVxx4ur7kiSgpuerUmoJXvZ3yEBFZWPx1uN7qBADFb',
-    name: 'Kamino USDG Ethena',
-    url: 'https://kamino.com/earn/lend/ethena-prime/vault-overview',
-    depositToken: {
-      address: '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH',
-      symbol: 'USDG',
-    },
   },
 ];
 
@@ -160,47 +135,13 @@ const buildEthereumPool = (vault, onchain) => {
   };
 };
 
-const buildKaminoPool = async (vault) => {
-  const { data: metrics } = await axios.get(
-    `${KAMINO_API}/kvaults/${vault.address}/metrics?env=mainnet-beta`
-  );
-
-  const pool = {
-    pool: `${vault.address}-Solana`,
-    chain: 'Solana',
-    project: 'sentora-curator',
-    poolMeta: vault.name,
-    url: vault.url,
-    symbol: vault.depositToken.symbol,
-    tvlUsd:
-      Number(metrics.tokensAvailableUsd) + Number(metrics.tokensInvestedUsd),
-    apyBase: Number(metrics.apy) * 100,
-    pricePerShare: Number(metrics.sharePrice),
-    underlyingTokens: [vault.depositToken.address],
-  };
-
-  const apyFarmRewards = Number(metrics.apyFarmRewards) * 100;
-  if (apyFarmRewards > 0) {
-    if (!vault.farmRewardToken) {
-      console.error(
-        `sentora: ${vault.address} pays ${apyFarmRewards}% farm apy but has no hardcoded farmRewardToken; omitting apyReward`
-      );
-    } else {
-      pool.apyReward = apyFarmRewards;
-      pool.rewardTokens = [vault.farmRewardToken];
-    }
-  }
-
-  return pool;
-};
-
 const apy = async () => {
   const onchain = await getEthereumVaultData(ETHEREUM_VAULTS);
 
-  const pools = await Promise.all([
-    ...ETHEREUM_VAULTS.map((v) => buildEthereumPool(v, onchain[v.address])),
-    ...KAMINO_VAULTS.map((v) => buildKaminoPool(v)),
-  ]);
+  // Kamino kvaults are listed by kamino-lend.
+  const pools = ETHEREUM_VAULTS.map((v) =>
+    buildEthereumPool(v, onchain[v.address])
+  );
 
   return pools
     .filter(Boolean)
