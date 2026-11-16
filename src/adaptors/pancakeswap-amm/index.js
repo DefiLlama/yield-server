@@ -18,6 +18,8 @@ const web3 = new Web3(RPC_URL);
 
 const CHAINS = ['bsc', 'base', 'ethereum', 'linea', 'zksync', 'arbitrum', 'opbnb', 'monad']
 const EXPLORER_API = 'https://explorer.pancakeswap.com/api/cached';
+// coins.llama.fi chain keys where they differ from the explorer's
+const LLAMA_CHAINS = { zksync: 'era', opbnb: 'op_bnb' };
 
 async function fetchExplorerJson(url, { retries = 3, timeoutMs = 15000 } = {}) {
   let lastErr;
@@ -64,8 +66,7 @@ async function fetchExplorerPoolsByAddress(chain, lpAddresses, concurrency = 10)
   return results;
 }
 
-const computeFeeApr = (p) => {
-  const tvl = Number(p.tvlUSD);
+const computeFeeApr = (p, tvl = Number(p.tvlUSD)) => {
   if (!tvl) return undefined;
   const apr = (Number(p.volumeUSD24h) * 0.0025 * 365 * 100) / tvl;
   return Number.isFinite(apr) ? apr : undefined;
@@ -74,7 +75,8 @@ const computeFeeApr = (p) => {
 function buildPoolFromExplorer(p, chain) {
   if (!p || !p.id) return null;
   if (!p.token0?.id || !p.token1?.id || !p.token0?.symbol || !p.token1?.symbol) return null;
-  const tvlUsd = Number(p.tvlUSD);
+  // priced from tvlToken0/1 in getPoolsApy, the explorer's tvlUSD can be off by orders of magnitude
+  const tvlUsd = p.totalValueLockedUSD;
   if (!tvlUsd) return null;
 
   const feeUsd7d = Number(p.volumeUSD7d) * 0.0025;
@@ -84,7 +86,7 @@ function buildPoolFromExplorer(p, chain) {
     project: PROJECT,
     symbol: p.token0.symbol + '-' + p.token1.symbol,
     tvlUsd,
-    apyBase: computeFeeApr(p),
+    apyBase: computeFeeApr(p, tvlUsd),
     apyBase7d: (feeUsd7d * 365 * 100) / 7 / tvlUsd,
     volumeUsd1d: Number(p.volumeUSD24h),
     volumeUsd7d: Number(p.volumeUSD7d),
@@ -108,7 +110,19 @@ async function getPoolsApy(chain) {
     );
     return [];
   }
-  return data.map((p) => buildPoolFromExplorer(p, chain)).filter(Boolean);
+  let priced;
+  try {
+    const pools = data
+      .filter((p) => p?.token0?.id && p?.token1?.id)
+      .map((p) => ({ ...p, reserve0: p.tvlToken0, reserve1: p.tvlToken1 }));
+    priced = await utils.withRetry(() =>
+      utils.tvl(pools, LLAMA_CHAINS[chain] ?? chain)
+    );
+  } catch (e) {
+    console.error(`pancakeswap-amm: failed to price ${chain} pools: ${e.message}`);
+    return [];
+  }
+  return priced.map((p) => buildPoolFromExplorer(p, chain)).filter(Boolean);
 }
 
 const calculateApy = (
