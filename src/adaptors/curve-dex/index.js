@@ -362,8 +362,6 @@ const main = async () => {
       const underlyingTokens = pool.coins.map((coin) => coin.address);
       const rewardTokens = extraRewards
         ? extraRewards.map((reward) => reward.tokenAddress)
-        : stETHPools.includes(address)
-        ? ['0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'] // LDO
         : address === '0xFF6DD348e6eecEa2d81D4194b60c5157CD9e64f4' // pool on moonbeam
         ? ['0xacc15dc74880c9944775448304b263d191c6077f'] // wglmr
         : address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501'
@@ -430,9 +428,7 @@ const main = async () => {
               ].includes(address)
             ? aprExtra
             : aprCrv + aprExtra,
-        rewardTokens: rewardTokens
-          .flat()
-          .filter((i) => i !== '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32'),
+        rewardTokens: rewardTokens.flat(),
         underlyingTokens,
         url,
       }
