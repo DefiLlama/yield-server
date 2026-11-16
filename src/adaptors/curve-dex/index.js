@@ -354,7 +354,7 @@ const main = async () => {
           address === '0xe9123CBC5d1EA65301D417193c40A72Ac8D53501' || // lvusd
           address === '0x056C6C5e684CeC248635eD86033378Cc444459B0' || // eur pool gnosis
           pool.gaugeRewards?.length
-        ? pool.gaugeRewards.slice(-1)[0]?.apy
+        ? pool.gaugeRewards.map((reward) => reward.apy).reduce((a, b) => a + b, 0)
         : 0;
 
       // tokens are listed using their contract addresses
@@ -371,7 +371,9 @@ const main = async () => {
         : address === '0x056C6C5e684CeC248635eD86033378Cc444459B0'
         ? ['0x6810e776880c02933d47db1b9fc05908e5386b96']
         : pool.gaugeRewards?.length
-        ? [pool.gaugeRewards.slice(-1)[0]?.tokenAddress]
+        ? pool.gaugeRewards
+            .filter((reward) => reward.apy > 0)
+            .map((reward) => reward.tokenAddress)
         : [];
       if (aprCrv) {
         rewardTokens.push(
