@@ -16,7 +16,8 @@ const TOTAL_BORROWS = 'totalBorrows';
 const TOTAL_RESERVES = 'totalReserves';
 const GET_CHASH = 'getCash';
 const UNDERLYING = 'underlying';
-const BLOCKS_PER_DAY = 86400 / 6;
+// Tectonic IRMs return blocksPerYear() = 63,072,000 (0.5s Cronos blocks since mid-2025).
+const BLOCKS_PER_DAY = 63_072_000 / 365;
 const PROJECT_NAME = 'tectonic';
 
 const NATIVE_TOKEN = {
