@@ -1,128 +1,92 @@
 // documentation:
 // https://wiki.sovryn.com/en/technical-documents/amm/AMM-FAQ
-// https://wiki.sovryn.com/en/sovryn-dapp/lending
 
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
-const { tokensPool, tokensLending } = require('./address');
-const { request, gql } = require('graphql-request');
-const subgraphUrl = 'https://subgraph.sovryn.app/subgraphs/name/DistributedCollective/sovryn-subgraph';
-const tokenPriceQuery = gql`
-  query getTokenRates {
-    tokens {
-      id
-      symbol
-      lastPriceBtc
-      lastPriceUsd
-    }
-  }
-  `;
+const { tokensPool } = require('./address');
+
+// bridged tokens with no rsk price on coins.llama.fi
+const priceKeys = {
+  '0xef213441a85df4d7acbdae0cf78004e1e486bb96': 'coingecko:tether', // rUSDT
+  '0x6d9659bdf5b1a1da217f7bbaf7dbaf8190e2e71b': 'coingecko:binancecoin', // BNBs
+};
+const priceKey = (token) => priceKeys[token] || `rsk:${token}`;
+
+// tvl from the converters' on-chain reserves, the subgraph and graph-wrapper
+// tvl feeds are unreliable
+const getPoolsTvl = async (converters) => {
+  const reserveCalls = (i) =>
+    sdk.api.abi.multiCall({
+      abi: 'function reserveTokens(uint256) view returns (address)',
+      calls: converters.map((target) => ({ target, params: [i] })),
+      chain: 'rsk',
+    });
+  const [res0, res1] = await Promise.all([reserveCalls(0), reserveCalls(1)]);
+  const reserves = converters.map((_, i) => [
+    res0.output[i].output.toLowerCase(),
+    res1.output[i].output.toLowerCase(),
+  ]);
+
+  const tokens = [...new Set(reserves.flat())];
+  const [balances, decimals, { pricesByAddress }] = await Promise.all([
+    sdk.api.abi.multiCall({
+      abi: 'erc20:balanceOf',
+      calls: reserves.flatMap((pair, i) =>
+        pair.map((target) => ({ target, params: [converters[i]] }))
+      ),
+      chain: 'rsk',
+    }),
+    sdk.api.abi.multiCall({
+      abi: 'erc20:decimals',
+      calls: tokens.map((target) => ({ target })),
+      chain: 'rsk',
+    }),
+    utils.getPrices(tokens.map(priceKey)),
+  ]);
+  const decimalsOf = Object.fromEntries(
+    tokens.map((t, i) => [t, Number(decimals.output[i].output)])
+  );
+
+  return reserves.map((pair, i) => {
+    const values = pair.map((token, j) => {
+      const price = pricesByAddress[priceKey(token).split(':')[1]];
+      const balance =
+        balances.output[i * 2 + j].output / 10 ** decimalsOf[token];
+      return price ? balance * price : null;
+    });
+    // an unpriced side is valued at the priced one: exact for 50/50 V1
+    // converters, an estimate for V2 ones (today only BPRO lacks a price)
+    const priced = values.filter((v) => v !== null);
+    const tvlUsd = priced.length === 2 ? priced[0] + priced[1] : priced[0] * 2;
+    return { tvlUsd, assets: pair };
+  });
+};
 
 const getApy = async () => {
-  const dataPool = [];
   const amm_pools_data = await utils.getData(`https://amm-apy.sovryn.app/amm`); // see https://github.com/DistributedCollective/sovryn-amm-apy
-  const { tvlAmm, tvlLending } = await utils.getData('https://graph-wrapper.sovryn.app/cmc/tvl'); //see https://github.com/DistributedCollective/Sovryn-graph-wrapper
-  const token_prices = await request(subgraphUrl, tokenPriceQuery, {});
-  const data = await Promise.all(
-    Object.keys(tokensPool).map(async (k) => {
-      var symbol = String(tokensPool[k]);
-      var pool_id = String(k.toLowerCase());
-      if (!amm_pools_data[k]) return; // pool dropped from amm-apy (e.g. XUSD-RBTC)
-      var { tvlUsd, assets } = await getTvl(tvlAmm, 1, pool_id);
-      var apyData = amm_pools_data[k].data;
-      var apyDataArray = apyData[Object.keys(apyData)[0]];
-      var apy = apyDataArray[apyDataArray.length - 1];
-      dataPool.push({
-        pool: pool_id,
+  const converters = Object.keys(tokensPool).filter((k) => amm_pools_data[k]); // pool dropped from amm-apy (e.g. XUSD-RBTC)
+  const tvls = await getPoolsTvl(converters);
+
+  return converters
+    .map((k, i) => {
+      const { tvlUsd, assets } = tvls[i];
+      const apyData = amm_pools_data[k].data;
+      const apyDataArray = apyData[Object.keys(apyData)[0]];
+      const apy = apyDataArray[apyDataArray.length - 1];
+      return {
+        pool: k.toLowerCase(),
         chain: utils.formatChain('Rootstock'),
         project: 'sovryn-dex',
-        tvlUsd: tvlUsd,
-        symbol: symbol,
-        apyBase: Number(apy.APY_rewards_pc),
-        apyReward: Number(apy.APY_fees_pc),
+        tvlUsd,
+        symbol: String(tokensPool[k]),
+        apyBase: Number(apy.APY_fees_pc),
+        apyReward: Number(apy.APY_rewards_pc),
         url: 'https://alpha.sovryn.app/yield-farm',
         rewardTokens: ['0xefc78fc7d48b64958315949279ba181c2114abbd'],
         underlyingTokens: assets,
-      });
+      };
     })
-  );
-
-  const dataLend = await Promise.all(
-    Object.keys(tokensLending).map(async (k) => {
-      var symbol = String(tokensLending[k]);
-      var id = String(k.toLowerCase());
-      var { tvlUsd, asset } = await getTvl(tvlLending, 0, id);
-      var asset_price = await getTokenPrice(token_prices, asset);
-      var apyData = await utils.getData(`https://graph-wrapper.sovryn.app/lendingApy/` + id);//see https://github.com/DistributedCollective/Sovryn-graph-wrapper
-      var apyDataArray = apyData[Object.keys(apyData)[0]];
-      var apy = apyData[apyData.length - 1];
-      var totalSupplyUsd = Number(apy.supply) * asset_price;
-      var totalBorrowUsd = totalSupplyUsd - tvlUsd;
-      dataPool.push({
-        pool: id,
-        chain: utils.formatChain('Rootstock'),
-        project: 'sovryn-dex',
-        tvlUsd: tvlUsd,
-        symbol: symbol,
-        apyBase: Number(apy.supply_apr),
-        apyBaseBorrow: Number(apy.borrow_apr),
-        totalSupplyUsd: totalSupplyUsd,
-        totalBorrowUsd: totalBorrowUsd,
-        url: 'https://alpha.sovryn.app/lend',
-        underlyingTokens: [asset],
-      });
-    })
-  );
-
-  return dataPool;
-};
-
-const getTokenPrice = async (object, asset) => {
-  const price = [];
-  await Promise.all(
-    Object.entries(object.tokens).map(async (k) => {
-      if (k[1].id == asset) {
-        price.push(k[1].lastPriceUsd);
-      }
-    })
-  );
-  const priceUsd = Number(price[0]);
-  return priceUsd;
-
-
-
-}
-
-const getTvl = async (tvl, type, id) => {
-  const tvlData = [];
-  const assets = [];
-  if (type == 1) {
-    await Promise.all(
-      Object.entries(tvl).map(async (k) => {
-        if (k[1].contract == id) {
-          tvlData.push(k[1].balanceUsd);
-          assets.push(k[1].asset);
-        }
-      })
-    );
-    const tvlPoolUsd = Number(tvlData[0]) + Number(tvlData[1]);
-    return { tvlUsd: tvlPoolUsd, assets };
-  }
-  else {
-    await Promise.all(
-      Object.entries(tvl).map(async (k) => {
-        if (k[1].contract == id) {
-          tvlData.push(k[1].balanceUsd);
-          assets.push(k[1].asset);
-
-        }
-
-      })
-    );
-    const tvlUsd = Number(tvlData[0]);
-    const asset = (assets[0]);
-    return { tvlUsd, asset };
-
-  }
+    .filter((p) => utils.keepFinite(p));
 };
 
 module.exports = {
