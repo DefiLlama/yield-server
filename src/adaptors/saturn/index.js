@@ -47,22 +47,28 @@ const getStrconSValueSteps = async () => {
   return [];
 };
 
-// STRCon reinvests STRC dividends into its sValue, stepped twice a month; the
-// latest step's growth over the time since the previous step is the current
-// dividend yield, free of STRC's price moves.
+// STRCon reinvests STRC dividends into its sValue. The steps post on an
+// irregular cadence since STRC moved to daily dividends, so one step's growth
+// no longer matches the gap since the previous step; compound every step in
+// the lookback and annualise over the time they span. Still the dividend
+// yield, free of STRC's price moves. Corporate actions are separate events
+// and stay out, as before.
 const getStrconDividendApy = async () => {
   const steps = await getStrconSValueSteps();
   if (steps.length < 2) {
     console.error('saturn: fewer than 2 STRCon sValue steps in lookback');
     return undefined;
   }
-  const [prev, last] = steps.slice(-2);
-  const [prevTs, lastTs] = await Promise.all(
-    [prev, last].map((l) => sdk.api.util.getTimestamp(l.blockNumber, CHAIN))
+  const first = steps[0];
+  const last = steps[steps.length - 1];
+  const [firstTs, lastTs] = await Promise.all(
+    [first, last].map((l) => sdk.api.util.getTimestamp(l.blockNumber, CHAIN))
   );
-  const periodDays = (lastTs - prevTs) / 86400;
-  const growth = Number(last.args.newSValue) / Number(last.args.oldSValue);
-  if (!(periodDays > 0) || !(growth > 0)) return undefined;
+  const periodDays = (lastTs - firstTs) / 86400;
+  const growth = steps
+    .slice(1)
+    .reduce((g, l) => g * (Number(l.args.newSValue) / Number(l.args.oldSValue)), 1);
+  if (!(periodDays > 0) || !(growth > 0) || !Number.isFinite(growth)) return undefined;
   return (growth ** (365 / periodDays) - 1) * 100;
 };
 
