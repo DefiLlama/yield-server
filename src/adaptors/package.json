@@ -12,11 +12,13 @@
   "dependencies": {
     "@aave/aave-v3-aptos-ts-sdk": "^0.0.61",
     "@blend-capital/blend-sdk": "3.0.1",
+    "@blnt-protocol/blnt-sdk": "1.0.0",
     "@defillama/sdk": "^5.0.242",
     "@polkadot/api": "^16.5.6",
     "@solana/spl-stake-pool": "^1.1.8",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.15.0",
+    "@stellar/stellar-sdk": "16.0.0",
     "@ton/ton": "14.0.0",
     "axios": "^1.7.2",
     "bignumber.js": "^9.1.1",
