@@ -12,6 +12,7 @@ const poolUrl = (receiptSymbol) =>
 
 const E9 = 1e9;
 const WEEK_SECONDS = 7 * 24 * 60 * 60;
+const SUI_LOOKBACK_SECONDS = 30 * 24 * 60 * 60;
 const MIN_TVL_USD = 10_000;
 const ONE_SHARE_E18 = (10n ** 18n).toString();
 
@@ -183,6 +184,13 @@ const fetchSuiPrices = async (addresses) => {
   return out;
 };
 
+// Sui vault objects store rate = receipt shares per deposit unit (1e9 scale),
+// so the share price is 1e9 / rate and its growth is rateThen / rateNow.
+const suiRates = async (addresses, atCheckpoint) =>
+  (await utils.suiObjectFields(addresses, atCheckpoint)).map((fields) =>
+    toNum(fields?.rate?.value)
+  );
+
 const buildSuiPools = async (vaults, chainKey) => {
   const display = CHAIN_DISPLAY[chainKey];
   const entries = collectVaultEntries(vaults, chainKey)
@@ -191,10 +199,31 @@ const buildSuiPools = async (vaults, chainKey) => {
   if (entries.length === 0) return [];
 
   const uniqueBaseAddrs = [...new Set(entries.map((e) => e.base.address))];
-  const prices = await fetchSuiPrices(uniqueBaseAddrs);
+  const vaultAddrs = entries.map((e) => e.details.address);
+  // Best effort: if the reads fail, every vault falls back to the API apy.
+  const readRates = async () => {
+    // Some vaults step their rate every few days; a longer window reduces step-count swings.
+    const checkpoint = await utils.suiCheckpointNear(
+      Date.now() - SUI_LOOKBACK_SECONDS * 1000
+    );
+    const [now, past] = await Promise.all([
+      suiRates(vaultAddrs),
+      suiRates(vaultAddrs, checkpoint.sequenceNumber),
+    ]);
+    const days = (Date.now() - Date.parse(checkpoint.timestamp)) / 86400000;
+    return { now, past, days };
+  };
+  const [prices, rates] = await Promise.all([
+    fetchSuiPrices(uniqueBaseAddrs),
+    readRates().catch((err) => {
+      console.error('ember: sui vault rates unavailable:', err.message);
+      return { now: [], past: [], days: 0 };
+    }),
+  ]);
 
   const pools = [];
-  for (const { vault, details, base, totalRaw } of entries) {
+  for (let i = 0; i < entries.length; i++) {
+    const { vault, details, base, totalRaw } = entries[i];
     const price = prices[base.address.toLowerCase()];
     if (!price) continue;
 
@@ -202,6 +231,13 @@ const buildSuiPools = async (vaults, chainKey) => {
     const tvlUsd = (totalRaw / 10 ** decimals) * price;
     if (tvlUsd < MIN_TVL_USD) continue;
 
+    const rateNow = rates.now[i];
+    const onChainApy =
+      rates.days >= 1
+        ? sharePriceApy(rates.past[i], rateNow, rates.days)
+        : null;
+    const apyBase =
+      onChainApy != null && onChainApy > 0 ? onChainApy : apiApy(vault);
     const apyReward = apiRewardApy(vault);
     const rewardTokens = rewardTokenAddresses(vault, apyReward);
     pools.push({
@@ -210,8 +246,9 @@ const buildSuiPools = async (vaults, chainKey) => {
       project: PROJECT,
       symbol: base.symbol || 'UNKNOWN',
       tvlUsd,
-      apyBase: apiApy(vault),
+      apyBase,
       ...(apyReward > 0 && { apyReward }),
+      ...(rateNow > 0 && { pricePerShare: E9 / rateNow }),
       underlyingTokens: [base.address],
       ...(rewardTokens && { rewardTokens }),
       poolMeta: vault.name,
