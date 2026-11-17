@@ -100,7 +100,7 @@ const apy = async () => {
     pools.push({
       pool: `${p.lstMint}-solana`,
       chain: 'Solana',
-      project: 'exceed-finance',
+      project: 'exceed-finance-exusdc',
       symbol: p.symbol,
       tvlUsd: baseAmount * price,
       apyBase,
