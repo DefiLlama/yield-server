@@ -12,6 +12,7 @@ const poolUrl = (receiptSymbol) =>
 
 const E9 = 1e9;
 const WEEK_SECONDS = 7 * 24 * 60 * 60;
+const SUI_LOOKBACK_SECONDS = 30 * 24 * 60 * 60;
 const MIN_TVL_USD = 10_000;
 const ONE_SHARE_E18 = (10n ** 18n).toString();
 
@@ -201,8 +202,9 @@ const buildSuiPools = async (vaults, chainKey) => {
   const vaultAddrs = entries.map((e) => e.details.address);
   // Best effort: if the reads fail, every vault falls back to the API apy.
   const readRates = async () => {
+    // Some vaults step their rate every few days; a longer window reduces step-count swings.
     const checkpoint = await utils.suiCheckpointNear(
-      Date.now() - WEEK_SECONDS * 1000
+      Date.now() - SUI_LOOKBACK_SECONDS * 1000
     );
     const [now, past] = await Promise.all([
       suiRates(vaultAddrs),
