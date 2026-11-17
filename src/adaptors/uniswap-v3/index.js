@@ -177,6 +177,24 @@ const topLvl = async (
     dataNow = dataNow.filter(
       (p) => p.totalValueLockedUSD >= utils.MIN_TVL_USD
     );
+
+    // with the fee switch on, the pool sends 1/feeProtocol of each swap fee to the
+    // protocol, so lps only earn the rest. token0's fee is the low nibble, token1's the
+    // high one. uniswap sets both to the same value, take the larger like uniswap-v4
+    const { output: slot0s } = await sdk.api.abi.multiCall({
+      abi: 'function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)',
+      calls: dataNow.map((p) => ({ target: p.id })),
+      chain: chainString,
+    });
+    const share = (n) => (n ? 1 / n : 0);
+    dataNow = dataNow.map((p, i) => {
+      const feeProtocol = Number(slot0s[i].output.feeProtocol);
+      const protocolFeeShare = Math.max(
+        share(feeProtocol & 0xf),
+        share(feeProtocol >> 4)
+      );
+      return { ...p, lpFeeShare: 1 - protocolFeeShare };
+    });
     // add the symbol for the stablecoin (we need to distinguish btw stable and non stable pools
     // so we apply the correct tick range)
     dataNow = dataNow.map((p) => {
@@ -198,6 +216,11 @@ const topLvl = async (
     dataNow = dataNow.map((el) =>
       utils.apy(el, dataPrior, dataPrior7d || [], version)
     );
+    dataNow = dataNow.map((p) => ({
+      ...p,
+      apy1d: p.apy1d * p.lpFeeShare,
+      apy7d: p.apy7d * p.lpFeeShare,
+    }));
 
     const enableV3Apy = true;
     if (enableV3Apy && chainString !== 'arbitrum') {
@@ -236,7 +259,8 @@ const topLvl = async (
           p.liquidity
         );
 
-        const apy7d = ((estimatedFee * 52) / investmentAmount) * 100;
+        const apy7d =
+          ((estimatedFee * 52) / investmentAmount) * 100 * p.lpFeeShare;
 
         return { ...p, estimatedFee, apy7d };
       });
