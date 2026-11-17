@@ -13,6 +13,11 @@ const chains = {
   ),
 };
 
+const factories = {
+  ethereum: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+  base: '0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6',
+};
+
 const query = gql`
   {
     pairs(first: 1000, orderBy: trackedReserveETH, orderDirection: desc block: {number: <PLACEHOLDER>}) {
@@ -87,6 +92,19 @@ const topLvl = async (
   dataNow = await utils.tvl(dataNow, chainString);
   // calculate apy
   dataNow = dataNow.map((el) => utils.apy(el, dataPrior, dataPrior7d, version));
+
+  // with feeTo set, pairs mint 1/6 of the fee growth to the protocol, so lps earn 0.25%
+  const { output: feeTo } = await sdk.api.abi.call({
+    target: factories[chainString],
+    abi: 'function feeTo() view returns (address)',
+    chain: chainString,
+  });
+  const lpFeeShare = /^0x0{40}$/i.test(feeTo) ? 1 : 5 / 6;
+  dataNow = dataNow.map((p) => ({
+    ...p,
+    apy1d: p.apy1d * lpFeeShare,
+    apy7d: p.apy7d * lpFeeShare,
+  }));
 
   return dataNow.map((p) => {
     const symbol = `${p.token0.symbol}-${p.token1.symbol}`;
