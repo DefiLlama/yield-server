@@ -16,6 +16,8 @@ const cliffSize = 100000; // * 1e18; //new cliff every 100,000 tokens
 const cliffCount = 1000; // 1,000 cliffs
 const maxSupply = 100000000; // * 1e18; //100 mil max supply
 const projectedAprTvlThr = 1e6;
+// max harvest lag (2x the 7d BaseRewardPool duration) for which we keep projecting a finished main reward
+const projectedAprMaxLag = 14 * 86400 * 1000;
 
 const main = async () => {
   const extraRewardsPrices = {};
@@ -298,15 +300,14 @@ const main = async () => {
     }
   }
 
-  const stEthRewards = '0x0A760466E1B4621579a82a39CB56Dda2F4E70f03';
   const poolExtraRewards = {};
-  extraRewardCalls.forEach(({ poolIdx, crvRewards }, i) => {
+  extraRewardCalls.forEach(({ poolIdx }, i) => {
     const pf = extraPeriodFinish[i];
     const rate = extraRewardRates[i];
     const token = extraRewardTokens[i];
     if (pf == null || rate == null || !token) return;
     const isFinished = Date.now() > Number(pf) * 1000;
-    if (isFinished && crvRewards !== stEthRewards) return;
+    if (isFinished) return;
     (poolExtraRewards[poolIdx] ||= []).push({
       extraRewardRate: Number(rate) / 1e18,
       token,
@@ -334,7 +335,10 @@ const main = async () => {
         };
       }
 
-      const isFinished = new Date() > periodFinish[idx] * 1000;
+      const isFinished = Date.now() > periodFinish[idx] * 1000;
+      const isStale = Date.now() > periodFinish[idx] * 1000 + projectedAprMaxLag;
+      const noRewards =
+        isFinished && (pool.cvxTvl < projectedAprTvlThr || isStale);
       const rate = rewardRates[idx] / 10 ** 18;
 
       const extraRewards = poolExtraRewards[idx] || [];
@@ -382,15 +386,14 @@ const main = async () => {
           ? (crvPerYear * prices[cvxCRV.toLowerCase()] * 100) / pool.cvxTvl
           : (crvPerYear * crvPrice * 100) / pool.cvxTvl;
       const extrApr = extraRewardsApr.reduce((acc, val) => acc + val, 0) || 0;
-      // we set 'CVX vAPR' and 'CRV vAPR' to 0 if both isFinished and tvl < THR;
-      // reason: sometimes even for very large pools rewards aren't streaming and require
-      // a harvest call. most often, for large pools the current apr (for CVX vAPR and CRV vAPR)
-      // thus drops to 0 because isFinished is true. for cvxTvl >= THR we use projected apr instead
-      // so we avoid cases where eg LDO rewards are 0 just because rewards haven't been harvested yet
+      // we set 'CVX vAPR' and 'CRV vAPR' to 0 once isFinished, except for pools with cvxTvl >= THR
+      // that are less than projectedAprMaxLag past periodFinish. rewards there often just wait on a
+      // harvest call, so we keep the projected apr (last rewardRate) instead of dropping to 0.
+      // past that lag the last rewardRate is stale, not pending a harvest.
       return {
         ...pool,
-        apr: isFinished && pool.cvxTvl < projectedAprTvlThr ? 0 : apr,
-        crvApr: isFinished && pool.cvxTvl < projectedAprTvlThr ? 0 : crvApr,
+        apr: noRewards ? 0 : apr,
+        crvApr: noRewards ? 0 : crvApr,
         extrApr,
         extraTokens: extraRewards.map(({ token }) => token),
       };
@@ -411,7 +414,10 @@ const main = async () => {
           : poolObj[0];
 
       const poolId = pool.isLendingVault ? pool.id : poolObj?.id;
-      const baseApy = poolId ? curveApys[poolId]?.baseApy : undefined;
+      // curve-apys keys pools as `ethereum-<pool address>` since 2026-11-08; keep the old id key as a fallback
+      const baseApy =
+        curveApys[`ethereum-${pool.address?.toLowerCase()}`]?.baseApy ??
+        (poolId ? curveApys[poolId]?.baseApy : undefined);
 
       return {
         pool: pool.lptoken,

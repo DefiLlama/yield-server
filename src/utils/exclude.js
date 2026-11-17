@@ -541,6 +541,13 @@ const excludedProtocols = [
   { id: '604', slug: 'sherlock' },
   { id: '5580', slug: 'latch' }, // winding down: withdrawals disabled on savings.latch.io, atUSD/atETH live on Gravity Alpha which shuts 2026-11-01, apy api 503 since 2026-10-29
   { id: '7244', slug: 'harbor' }, // winding down: all markets archived (deposits disabled, withdraw-only)
+  { id: '6047', slug: 'berapaw' }, // dead: berapaw.com 404/unresolvable, protocol deadUrl, LBGT unpriced; 41 rows ($41.7M) were Berachain PoL reward vaults owned by Kodiak/Bend/Beradrome etc, not BeraPaw
+  { id: '9100', slug: 'hedgehood-stock-yield' }, // vaults ~empty: tvl $210 + $0 since 2026-11-02, every row below the 1k tvl floor
+  { id: '7621', slug: 'zensats' }, // vaults drained ~2026-11-09 (WBTC $127, wstETH $22, apy -100%), every row below the 1k tvl floor
+  { id: '5906', slug: 'yuzu-finance' }, // winding down (announced 2026-10-29, servers off 2026-11-30): mainnet-api /v1/* 500 since ~2026-11-12, the only apy source
+  { id: '3117', slug: 'astroport' }, // live pools only on Neutron (deadFrom 2026-07-01); adapter would only emit filtered rows
+  { id: '1166', slug: 'defichain-dex' }, // ocean.defichain.com API unreachable (2026-11-14), the only apy source
+  { id: '7873', slug: 'kerne' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
@@ -2569,6 +2576,10 @@ const excludePools = [
   // swap paid in, but the fallback subgraph reports 48.5M USDC ($97M tvl). BMD
   // (1.16e59 supply) has no price, so the pool has no measurable tvl (2026-10-26)
   '0xbddcef32a41bb9c9fa37b2442433ddffdd6095c7e6b0aeb1b0b979a5b5529e67-ethereum-uniswap-v4',
+  // upshift xUpUSDC (Multipli TAC USDC): closed and hidden on upshift, totalAssets marked
+  // down from $15.18M to $1.00M on 2026-11-12 with shares unchanged (pps 1.016 -> 0.067),
+  // vault holds 0 USDC. not depositable, so not a listable pool (2026-11-16)
+  '0x396A3f77EE1faf5A3C46e878bA7b7a2dcbe55517-Ethereum',
 ];
 
 const boundaries = {
@@ -2611,10 +2622,33 @@ const getExcludedAdaptors = async () => {
   return new Set([...excludeAdaptors, ...flagged]);
 };
 
+// chain labels with deadFrom; empty on fetch failure
+const getDeadChains = async () => {
+  try {
+    const response = await fetch('https://api.llama.fi/config', {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const { chainCoingeckoIds = {} } = await response.json();
+    return new Set(
+      Object.entries(chainCoingeckoIds)
+        .filter(([, chain]) => chain?.deadFrom)
+        .map(([label]) => label)
+    );
+  } catch (err) {
+    console.log('Failed to fetch dead chains', err?.message || err);
+    return new Set();
+  }
+};
+
 module.exports = {
   excludedProtocols,
   excludeAdaptors,
   excludePools,
   boundaries,
   getExcludedAdaptors,
+  getDeadChains,
 };

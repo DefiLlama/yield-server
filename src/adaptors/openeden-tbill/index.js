@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getTotalSupply, getPriceApiUrl } = require('../utils');
+const { getTotalSupply, getPriceApiData } = require('../utils');
 
 const config = {
   ethereum: {
@@ -16,6 +16,8 @@ const config = {
   xrpl: {
     // TBL token issuer on XRPL
     issuer: 'rJNE2NNz83GJYtWVLwMvchDWEon3huWnFn',
+    // subscription operator: holds unissued TBL inventory, excluded from supply
+    vault: 'rB56JZWRKvpWNeyqM3QYfZwW4fS9YEyPWM',
     currency: 'TBL',
   },
 };
@@ -26,9 +28,7 @@ const project = 'openeden-tbill';
 const symbol = 'TBILL';
 
 const getBlock = (timestamp) =>
-  axios
-    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`))
-    .then((r) => r.data.height);
+  getPriceApiData(`/block/ethereum/${timestamp}`).then((b) => b.height);
 
 // Helper to fetch oracle price at a specific block
 const getOraclePrice = (block) =>
@@ -39,7 +39,7 @@ const getOraclePrice = (block) =>
     block,
   });
 
-// Fetch XRPL issued token supply via gateway_balances
+// Fetch XRPL circulating supply: issuer obligations excluding the vault (hot wallet)
 const getXrplSupply = async () => {
   try {
     const response = await axios.post('https://xrplcluster.com/', {
@@ -47,20 +47,12 @@ const getXrplSupply = async () => {
       params: [
         {
           account: config.xrpl.issuer,
+          hotwallet: [config.xrpl.vault],
           ledger_index: 'validated',
         },
       ],
     });
-
-    const obligations = response.data?.result?.obligations;
-    if (obligations && obligations[config.xrpl.currency]) {
-      // XRPL TBL token uses internal precision
-      // Raw obligations ~9.97B -> ~54.5M tokens at $1.13 = ~$61.6M TVL
-      // Decimal factor: 9.97B / 54.5M ≈ 183
-      const rawSupply = parseFloat(obligations[config.xrpl.currency]);
-      return rawSupply / 183;
-    }
-    return 0;
+    return Number(response.data?.result?.obligations?.[config.xrpl.currency] ?? 0);
   } catch (error) {
     console.error('OpenEden: Error fetching XRPL supply:', error.message);
     return 0;

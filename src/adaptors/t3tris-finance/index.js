@@ -80,11 +80,7 @@ const ratio1e18 = (numRaw, denRaw) => {
 
 const getBlockNumber = async (timestamp, chain) => {
   try {
-    const response = await axios.get(
-      `https://coins.llama.fi/block/${chain}/${timestamp}`,
-      { timeout: 10000 },
-    );
-    return response.data.height;
+    return (await utils.getPriceApiData(`/block/${chain}/${timestamp}`)).height;
   } catch {
     return null;
   }

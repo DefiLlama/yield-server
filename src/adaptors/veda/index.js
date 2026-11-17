@@ -67,10 +67,7 @@ const calculateApr = (currentRate, pastRate, days) => {
 
 const getBlock = async (timestamp, chain = 'ethereum') => {
   try {
-    const response = await axios.get(
-      utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
-    );
-    return response.data.height;
+    return (await utils.getPriceApiData(`/block/${chain}/${timestamp}`)).height;
   } catch (e) {
     console.error(`Error fetching block for ${chain} at ${timestamp}:`, e.message);
     return null;
@@ -174,8 +171,11 @@ const getApyFromApi = async (apiUrl) => {
         recent7d.length;
     }
 
+    // The share price only steps every 1-4 days, so the latest daily_apy is 0
+    // on flat days and a multiple of the real APR on step days. Use the 7d window
+    // (the vault's own performance API also reports a 7 day APY).
     return {
-      apyBase: latest.daily_apy || 0,
+      apyBase: apyBase7d ?? (latest.daily_apy || 0),
       apyBase7d,
     };
   } catch (e) {

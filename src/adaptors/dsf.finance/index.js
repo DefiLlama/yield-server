@@ -20,12 +20,11 @@ async function sleep(ms) {
 }
 
 async function getBlockAtTs(chain, ts) {
-  const url = utils.getPriceApiUrl(`/block/${chain}/${ts}`);
   let lastError;
 
   for (let i = 0; i < 4; i++) {
     try {
-      const res = await utils.getData(url);
+      const res = await utils.getPriceApiData(`/block/${chain}/${ts}`);
       const height = res?.height ?? res?.block;
 
       if (height == null) {

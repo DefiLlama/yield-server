@@ -10,7 +10,7 @@ const DAY = 86400;
 
 // Centrifuge API chain IDs → DefiLlama SDK chain names
 // Token symbols to exclude (equity products, not yield)
-const EXCLUDED_SYMBOLS = new Set(['deSPXA', 'SPXA']);
+const EXCLUDED_SYMBOLS = new Set(['deSPXA', 'SPXA', 'JQQQ']);
 
 const CHAIN_MAP = {
   1: 'ethereum',
@@ -55,10 +55,7 @@ const ABIS = {
 };
 
 async function getHistoricalBlock(chain, timestamp) {
-  const { data } = await http.get(
-    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
-  );
-  return data.height;
+  return (await utils.getPriceApiData(`/block/${chain}/${timestamp}`)).height;
 }
 
 async function fetchVaults() {

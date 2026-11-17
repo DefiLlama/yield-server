@@ -2,7 +2,7 @@ const axios = require('axios');
 const sdk = require('@defillama/sdk');
 
 const abi = require('./abi.json');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const spETH = '0xD06f6a56c5f599cB375B616DF306f32B7F6f4A0E';
 const mpETH = '0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710';
@@ -15,9 +15,9 @@ const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
   const timestamp1dayAgo = now - 86400;
   const timestamp7dayAgo = now - 86400 * 7;
-  const [{ data: block1d }, { data: block7d }] = await Promise.all([
-    axios.get(getPriceApiUrl(`/block/ethereum/${timestamp1dayAgo}`)),
-    axios.get(getPriceApiUrl(`/block/ethereum/${timestamp7dayAgo}`)),
+  const [block1d, block7d] = await Promise.all([
+    getPriceApiData(`/block/ethereum/${timestamp1dayAgo}`),
+    getPriceApiData(`/block/ethereum/${timestamp7dayAgo}`),
   ]);
   const block1dayAgo = block1d.height;
   const block7dayAgo = block7d.height;

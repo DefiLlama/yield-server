@@ -9,11 +9,11 @@ const APYRegistry = "0x3161676467636Ce9027AC16268Fd351861b052b4";
 const nativeToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 const chainMapping = {
-    ethereum: { chainId: '1', secondsPerBlock: 12 },
-    avax: { chainId: '43114', secondsPerBlock: 2 },
-    base: { chainId: '8453', secondsPerBlock: 2 },
-    hyperliquid: { chainId: '999', secondsPerBlock: 2 },
-    monad: { chainId: '143', secondsPerBlock: 0.4 },
+    ethereum: { chainId: '1' },
+    avax: { chainId: '43114' },
+    base: { chainId: '8453' },
+    hyperliquid: { chainId: '999' },
+    monad: { chainId: '143' },
 };
 
 const projectName = 'upshift';
@@ -63,6 +63,8 @@ const customVaults = {
 
 const SECONDS_PER_DAY = 86400;
 const LOOKBACK_DAYS = 7;
+// Registry rates are only used if they were updated within this window
+const REGISTRY_MAX_AGE = 30 * SECONDS_PER_DAY;
 
 const convertToAssetsAbi = {
     inputs: [{ type: 'uint256', name: 'shares' }],
@@ -76,11 +78,10 @@ const convertToAssetsAbi = {
 const calcApyBase7dBatch = async (standardPools, customPoolAddrs, vaultData, chainKey) => {
     const result = {};
     try {
-        const { secondsPerBlock } = chainMapping[chainKey];
-        const blocksPerDay = SECONDS_PER_DAY / secondsPerBlock;
-        const lookbackBlocks = Math.floor(blocksPerDay * LOOKBACK_DAYS);
-        const currentBlock = (await sdk.api.util.getLatestBlock(chainKey)).number;
-        const olderBlock = currentBlock - lookbackBlocks;
+        const [olderBlock] = await utils.getBlocksByTime(
+            [Math.floor(Date.now() / 1000) - LOOKBACK_DAYS * SECONDS_PER_DAY],
+            chainKey
+        );
 
         // Standard vaults: batch convertToAssets at current and historical block
         if (standardPools.length > 0) {
@@ -263,7 +264,10 @@ const getApy = async () => {
                 const data = vaultData[addr];
                 const custom = customVaults[addr];
                 const registryEntry = apyRegistryRes.output[i];
-                const registryInfo = registryEntry?.output ?? null;
+                const registryInfo =
+                    Number(registryEntry?.output?.updatedAt) >= Date.now() / 1000 - REGISTRY_MAX_AGE
+                        ? registryEntry.output
+                        : null;
 
                 const underlyingPrice = prices.pricesByAddress[data.underlying.toLowerCase()];
                 if (!underlyingPrice) continue;
@@ -272,7 +276,7 @@ const getApy = async () => {
 
                 let apyBase = registryInfo ? registryInfo.apyBase / 100 : 0;
                 const apyReward = registryInfo ? registryInfo.apyReward / 100 : 0;
-                // Fallback: use 7d share price APY when registry has no data
+                // Fallback: use 7d share price APY when registry has no fresh data
                 if (apyBase === 0 && apyReward === 0 && apyBase7dMap[addr]) {
                     apyBase = apyBase7dMap[addr];
                 }

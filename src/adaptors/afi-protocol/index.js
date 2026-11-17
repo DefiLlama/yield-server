@@ -14,10 +14,7 @@ const POOL = {
 };
 
 const getBlock = async (chain, timestamp) => {
-  const res = await axios.get(
-    utils.getPriceApiUrl(`/block/${chain}/${timestamp}`)
-  );
-  return res.data.height;
+  return (await utils.getPriceApiData(`/block/${chain}/${timestamp}`)).height;
 };
 
 const annualizedApy = (rateNow, rateAgo, days) =>

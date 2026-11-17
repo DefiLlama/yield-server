@@ -1,5 +1,6 @@
 const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+const { merklGet, isNonTokenReward } = require('../merkl/merkl-client');
 
 const API_URL = 'https://yield.accountable.capital/api/loan';
 const chainIdToName = { 1: 'ethereum', 56: 'bsc', 143: 'monad', 1672: 'pharos', 4114: 'citrea', 4663: 'robinhood' };
@@ -112,6 +113,29 @@ const getVaultStats = async(vaults, chain = 'monad') => {
     }, {});
 };
 
+const getNonTokenRewards = async(loans) => {
+    const keys = new Set(
+        loans.flatMap((item) =>
+            (item.rewards_apy_boost?.boosts_by_token || [])
+                .filter((b) => b?.token_address)
+                .map((b) => `${item.chain_id}:${b.token_address.toLowerCase()}`)
+        )
+    );
+    const nonToken = new Set();
+    await Promise.all(
+        [...keys].map(async(key) => {
+            const [chainId, address] = key.split(':');
+            try {
+                const [token] = await merklGet('/v4/tokens', { params: { chainId, address } });
+                if (isNonTokenReward(token)) nonToken.add(key);
+            } catch (e) {
+                console.error(`accountable: Merkl token type lookup failed for ${key}: ${e.message}`);
+            }
+        })
+    );
+    return nonToken;
+};
+
 const apy = async() => {
     const { items } = await utils.getData(API_URL);
     const activeLoans = items.filter(
@@ -158,6 +182,7 @@ const apy = async() => {
             }
         })
     );
+    const nonTokenRewards = await getNonTokenRewards(activeLoans);
 
     return Promise.all(
         activeLoans.map(async(item) => {
@@ -195,17 +220,27 @@ const apy = async() => {
 
             // Rewards must be live tokens only (DefiLlama policy). Points (e.g.
             // ACC, not yet launched) are excluded from apyReward / rewardTokens
-            // and surfaced via poolMeta instead.
+            // and surfaced via poolMeta instead; so are Merkl point and pre-TGE
+            // tokens (e.g. PIKU).
+            const boosts = item?.rewards_apy_boost?.boosts_by_token || [];
+            const isNonToken = (b) =>
+                nonTokenRewards.has(`${item.chain_id}:${b?.token_address?.toLowerCase()}`);
+            const nonTokenBoostPct = boosts
+                .filter(isNonToken)
+                .reduce((sum, b) => sum + Number(b.apy_boost_percent || 0), 0);
             const rewardTokens = Array.from(
                 new Set(
-                    (item?.rewards_apy_boost?.boosts_by_token || [])
+                    boosts
+                        .filter((b) => !isNonToken(b))
                         .map((b) => b?.token_address)
                         .filter(Boolean)
                         .map((addr) => addr.toLowerCase())
                 )
             );
 
-            const apyReward = rewardTokens.length ? rewardBoostPct || null : null;
+            const apyReward = rewardTokens.length
+                ? rewardBoostPct - nonTokenBoostPct || null
+                : null;
 
             const pointNames = (item?.all_points_apy_boost?.boosts_by_points || [])
                 .map((b) => b?.point_name)

@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiData } = require('../utils');
 
 const project = 'securitize-tokenized-aaa-clo-fund';
 
@@ -9,9 +9,7 @@ const TOKEN = '0x51C2d74017390CbBd30550179A16A1c28F7210fc';
 const ORACLE = '0xEdC6287D3D41b322AF600317628D7E226DD3add4';
 
 const getBlock = (timestamp) =>
-  axios
-    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`))
-    .then((r) => r.data.height);
+  getPriceApiData(`/block/ethereum/${timestamp}`).then((b) => b.height);
 
 const getOraclePrice = (block) =>
   sdk.api.abi

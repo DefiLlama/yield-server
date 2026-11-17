@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const stellarSdk = require('@stellar/stellar-sdk');
-const { getPriceApiUrl, formatChain } = require('../utils');
+const { getPriceApiUrl, formatChain, getPriceApiData } = require('../utils');
 
 const VAULTS = [
   // ETHEREUM — Lagoon
@@ -181,9 +181,9 @@ async function processChain(sdkChain, vaults) {
 
   try {
     const [b1Resp, b7Resp, b30Resp] = await Promise.all([
-      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - ONE_DAY}`)),
-      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - ONE_WEEK}`)),
-      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - THIRTY_DAYS}`)),
+      getPriceApiData(`/block/${sdkChain}/${now - ONE_DAY}`),
+      getPriceApiData(`/block/${sdkChain}/${now - ONE_WEEK}`),
+      getPriceApiData(`/block/${sdkChain}/${now - THIRTY_DAYS}`),
     ]);
 
     if (b1Resp?.height > 0) {
@@ -281,8 +281,8 @@ async function processMidas(sdkChain, vaults) {
   let price30d = vaults.map(() => null);
   try {
     const [b7Resp, b30Resp] = await Promise.all([
-      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - ONE_WEEK}`)),
-      fetchJson(getPriceApiUrl(`/block/${sdkChain}/${now - THIRTY_DAYS}`)),
+      getPriceApiData(`/block/${sdkChain}/${now - ONE_WEEK}`),
+      getPriceApiData(`/block/${sdkChain}/${now - THIRTY_DAYS}`),
     ]);
     if (b7Resp?.height > 0) price7d = await multi(sdkChain, ABI.getDataInBase18, feedTargets, b7Resp.height);
     if (b30Resp?.height > 0) price30d = await multi(sdkChain, ABI.getDataInBase18, feedTargets, b30Resp.height);

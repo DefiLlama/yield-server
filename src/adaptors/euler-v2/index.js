@@ -123,6 +123,41 @@ const MAX_SANE_AMOUNT = 2n ** 112n - 1n;
 const isCapFrozen = (cap) => toBigInt(cap) === 0n;
 const isCapUnbounded = (cap) => toBigInt(cap) >= MAX_SANE_AMOUNT;
 
+// Deprecation is an off-chain Euler label with no on-chain equivalent; this is
+// the labels API the Euler app reads. Deprecated vaults are reported as frozen,
+// not dropped, since Euler can un-deprecate a vault.
+const LABELS_API = 'https://v3.euler.finance/v3/labels/vaults';
+const LABELS_PAGE_SIZE = 100; // API max
+
+const getDeprecatedVaults = async (chain, config) => {
+  try {
+    const deprecated = new Set();
+    for (let offset = 0; ; offset += LABELS_PAGE_SIZE) {
+      const { data } = await axios.get(LABELS_API, {
+        params: {
+          labelSet: 'public',
+          version: 'latest',
+          view: 'resolved',
+          chainId: config.networkId,
+          limit: LABELS_PAGE_SIZE,
+          offset,
+        },
+        timeout: 30_000,
+      });
+      data.data.forEach((v) => {
+        if (v.deprecated) deprecated.add(v.address.toLowerCase());
+      });
+      if (data.data.length < LABELS_PAGE_SIZE) return deprecated;
+    }
+  } catch (err) {
+    console.error(
+      `Error fetching Euler labels for ${chain}, using cap-only frozen:`,
+      err.message || err
+    );
+    return new Set();
+  }
+};
+
 const getAvailableBorrowUsd = (info, price, decimals) => {
   const cash = toBigInt(info.totalCash);
   const borrowed = toBigInt(info.totalBorrowed);
@@ -299,10 +334,15 @@ const getApys = async () => {
   const chainResults = await Promise.all(
     Object.entries(chains).map(async ([chain, config]) => {
       try {
-        const [evkData, verifiedEarnVaults] = await Promise.all([
-          querySubgraph(config.subgraph, EVK_QUERY),
-          getVerifiedEarnVaults(chain, config),
-        ]);
+        const [evkData, verifiedEarnVaults, deprecatedVaults] =
+          await Promise.all([
+            querySubgraph(config.subgraph, EVK_QUERY),
+            getVerifiedEarnVaults(chain, config),
+            getDeprecatedVaults(chain, config),
+          ]);
+        const isVaultFrozen = (info, vault) =>
+          isCapFrozen(info.supplyCap) ||
+          deprecatedVaults.has(vault.toLowerCase());
         const earnVaults = await getEulerEarnVaults(
           chain,
           config,
@@ -394,7 +434,7 @@ const getApys = async () => {
               underlyingTokens: [assetAddr],
               borrowToken: assetAddr,
               borrowable: availableBorrowUsd > 0,
-              frozen: isCapFrozen(info.supplyCap),
+              frozen: isVaultFrozen(info, vaultAddr),
               ltv: 0,
               url: `https://app.euler.finance/lend/${vaultAddr}?network=${config.urlChain}`,
             };
@@ -411,7 +451,7 @@ const getApys = async () => {
             const debtVaultAddr = ethersUtils.getAddress(debtInfo.vault || v.id);
             const debtRouteGroupKey = debtVaultAddr.toLowerCase();
             if (!evkPoolRouteGroupKeys.has(debtRouteGroupKey)) return [];
-            if (isCapFrozen(debtInfo.supplyCap)) return [];
+            if (isVaultFrozen(debtInfo, debtVaultAddr)) return [];
 
             return (debtInfo.collateralLTVInfo || []).map((ltvInfo) => {
               const borrowLtv = getBorrowLtv(ltvInfo);
@@ -422,7 +462,7 @@ const getApys = async () => {
               const collateralInfo =
                 evkVaultInfoMap[collateralVault.toLowerCase()];
               if (!collateralInfo) return null;
-              if (isCapFrozen(collateralInfo.supplyCap)) return null;
+              if (isVaultFrozen(collateralInfo, collateralVault)) return null;
 
               const collateralPrice =
                 prices.coins[`${chain}:${collateralInfo.asset}`]?.price;
@@ -516,6 +556,7 @@ const getApys = async () => {
               tvlUsd,
               apyBase,
               underlyingTokens: [earnAssetAddr],
+              frozen: deprecatedVaults.has(earnAddr.toLowerCase()),
               url: `https://app.euler.finance/earn/${earnAddr}?network=${config.urlChain}`,
             };
           })

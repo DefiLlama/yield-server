@@ -1,5 +1,10 @@
 const { networks, chainAliases } = require('./config');
-const { merklGet, getCampaignAprBreakdowns } = require('./merkl-client');
+const {
+  merklGet,
+  getCampaignAprBreakdowns,
+  getRewardApr,
+  isNonTokenReward,
+} = require('./merkl-client');
 
 const getChainAliases = (canonical) => chainAliases[canonical] || [canonical];
 
@@ -32,14 +37,9 @@ const toContributions = (opportunity, campaignsById) => {
   );
   const breakdowns = getCampaignAprBreakdowns(opportunity);
   if (!breakdowns.length) {
-    return opportunity.apr > 0
-      ? [
-          {
-            id: `opportunity:${opportunity.id}`,
-            ancestors: new Set(),
-            apr: opportunity.apr,
-          },
-        ]
+    const apr = getRewardApr(opportunity);
+    return apr > 0
+      ? [{ id: `opportunity:${opportunity.id}`, ancestors: new Set(), apr }]
       : [];
   }
   return breakdowns.map(({ campaignId, apr }) => {
@@ -57,7 +57,8 @@ const toCandidate = (opportunity, campaignsById) => ({
   rewardTokens: [
     ...new Set(
       opportunity.rewardsRecord?.breakdowns
-        ?.map((x) => x.token?.address)
+        ?.filter((x) => !isNonTokenReward(x.token))
+        .map((x) => x.token?.address)
         .filter(Boolean) || []
     ),
   ],

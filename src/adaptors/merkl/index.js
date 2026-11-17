@@ -2,6 +2,7 @@ const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 
 const { networks } = require('./config');
+const { getRewardApr, isNonTokenReward } = require('./merkl-client');
 
 // Protocols that should not be listed under Merkl
 // as they already have their own adapters that integrate Merkl rewards.
@@ -317,8 +318,14 @@ const main = async () => {
         const tvlUsd = pool.tvl;
 
         const rewardTokens =
-          pool.rewardsRecord?.breakdowns.map((x) => x.token.address) || [];
-        const apyReward = pool.apr;
+          pool.rewardsRecord?.breakdowns
+            .filter((x) => !isNonTokenReward(x.token))
+            .map((x) => x.token.address) || [];
+        const apyReward = pool.rewardsRecord?.breakdowns.some((x) =>
+          isNonTokenReward(x.token)
+        )
+          ? getRewardApr(pool)
+          : pool.apr;
 
         const action = pool.action || null;
         // For multi-asset POOL/STAKE, tokens are in the symbol — no vault name needed

@@ -11,10 +11,10 @@ const VAULTS = {
     symbol: 'yscvxCRV',
     underlying: '0x62B9c7356A2Dc64a1969e19C23e4f579F9810Aa7',
   },
-  yscvgcvx: {
-    address: '0x8ED5AB1BA2b2E434361858cBD3CA9f374e8b0359',
-    symbol: 'yscvgCVX',
-    underlying: '0x2191DF768ad71140F9F3E96c1e4407A4aA31d082',
+  yscvx: {
+    address: '0x1Fd0A85084fC61c397AC619c4F0bA2350eA1cE9e',
+    symbol: 'ysCVX',
+    underlying: '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B',
   },
 };
 

@@ -34,37 +34,16 @@ const formatRawUsd = (amount, decimals, price = 0) =>
 
 const toUsdNumber = (amount) => Number(Number(amount).toFixed(2));
 
-const SILO_V2_BASE_URL = 'https://v2.silo.finance';
-const SILO_API_URL = `${SILO_V2_BASE_URL}/api/display-markets`;
+const SILO_APP_URL = 'https://app.silo.finance';
+const SILO_API_URL = `${SILO_APP_URL}/api/borrow`;
 const SILO_API_MARKETS_LIMIT = 1000;
 
 const getSiloUiChain = (chain) => (chain === 'avax' ? 'avalanche' : chain);
 
 const checksumAddress = (address) => ethers.utils.getAddress(address);
 
-const slugifySiloSymbol = (symbol) =>
-  String(symbol || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\+/g, 'plus')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-const getSiloMarketSlug = (siloPair) => {
-  const orderedPair = [...siloPair].sort(
-    ([, a], [, b]) => Number(a.siloIndex || 0) - Number(b.siloIndex || 0)
-  );
-  const marketId = orderedPair[0]?.[1]?.marketId;
-  const tokenSlug = orderedPair
-    .map(([, siloInfo]) => slugifySiloSymbol(siloInfo.assetSymbol))
-    .filter(Boolean)
-    .join('-');
-
-  return `${tokenSlug}-${marketId}`;
-};
-
-const getSiloMarketUrl = (chain, marketSlug, action) =>
-  `${SILO_V2_BASE_URL}/markets/${getSiloUiChain(chain)}/${marketSlug}?action=${action}`;
+const getSiloMarketUrl = (chain, siloInfo, mode) =>
+  `${SILO_APP_URL}/markets/${getSiloUiChain(chain)}-${siloInfo.siloConfig}?${mode ? `mode=${mode}&` : ''}asset=${siloInfo.siloIndex}`;
 
 const blacklistedSilos = ["0x6543ee07cf5dd7ad17aeecf22ba75860ef3bbaaa",];
 
@@ -454,23 +433,24 @@ async function getSilosViaApi(chainApi, deploymentData) {
   let siloAddressesToSiloConfigAddress = {};
   let siloAddressToIndex = {};
 
-  const markets = await utils.getData(
+  const { pools } = await utils.getData(
     SILO_API_URL,
     {
-      search: null,
-      chainKey,
-      sort: null,
+      chainKeys: [chainKey],
+      versions: ['v2'],
       limit: SILO_API_MARKETS_LIMIT,
       offset: 0,
-      isCurated: true,
     },
     { 'Content-Type': 'application/json' }
   );
-  if (!Array.isArray(markets)) throw new Error('invalid Silo API market response');
+  if (!Array.isArray(pools)) throw new Error('invalid Silo API market response');
 
-  const siloConfigs = markets
-    .filter((market) => market?.chainKey === chainKey && market?.configAddress)
-    .map((market) => checksumAddress(market.configAddress));
+  // marketId is `${chainKey}-${siloConfig}`; one entry per borrow direction
+  const siloConfigs = [...new Set(
+    pools
+      .filter((pool) => pool?.chainKey === chainKey && pool?.marketId?.startsWith(`${chainKey}-`))
+      .map((pool) => checksumAddress(pool.marketId.slice(chainKey.length + 1)))
+  )];
   if (!siloConfigs.length) return { siloAddresses, siloAddressesToSiloConfigAddress, siloAddressToIndex };
 
   const siloResults = await chainApi.multiCall({
@@ -535,7 +515,6 @@ const main = async () => {
 
         for(const siloPair of Object.values(silosByConfig)) {
           if (siloPair.some(([, siloInfo]) => siloInfo.hasBadDebt)) continue;
-          const marketSlug = getSiloMarketSlug(siloPair);
 
           for (const [siloAddress, siloInfo] of siloPair) {
             let marketPoolId = `${siloInfo.marketId}-${siloAddress}-${chain}`;
@@ -548,7 +527,7 @@ const main = async () => {
               symbol: siloInfo.assetSymbol,
               tvlUsd: toUsdNumber(siloInfo.totalSupplyValueUSD),
               apyBase: new BigNumber(siloInfo.assetDepositAprFormatted).toNumber(),
-              url: getSiloMarketUrl(chain, marketSlug, 'deposit'),
+              url: getSiloMarketUrl(chain, siloInfo),
               underlyingTokens: [siloInfo.assetAddress],
               poolMeta: `id ${siloInfo.marketId}`,
               ...(siloInfo.boostedAprFormatted && {
@@ -565,7 +544,6 @@ const main = async () => {
         for(const siloPair of Object.values(silosByConfig)) {
           if (siloPair.length !== 2) continue;
           if (siloPair.some(([, siloInfo]) => siloInfo.hasBadDebt)) continue;
-          const marketSlug = getSiloMarketSlug(siloPair);
 
           for (const [borrowSiloAddress, borrowInfo] of siloPair) {
             const collateralEntry = siloPair.find(([siloAddress]) => siloAddress !== borrowSiloAddress);
@@ -592,7 +570,7 @@ const main = async () => {
               tvlUsd: availableBorrowUsd,
               apy: 0,
               apyBaseBorrow: new BigNumber(borrowInfo.assetBorrowAprFormatted).toNumber(),
-              url: getSiloMarketUrl(chain, marketSlug, 'borrow'),
+              url: getSiloMarketUrl(chain, borrowInfo, 'borrow'),
               underlyingTokens: [collateralInfo.assetAddress],
               ltv,
               totalSupplyUsd,

@@ -35,12 +35,8 @@ const main = async () => {
       chain: 'avax',
       abi: abi.totalPooledAvax,
     }),
-    axios
-      .get(utils.getPriceApiUrl(`/block/avax/${timestamp1dAgo}`))
-      .then((r) => r.data.height),
-    axios
-      .get(utils.getPriceApiUrl(`/block/avax/${timestamp7dAgo}`))
-      .then((r) => r.data.height),
+    utils.getPriceApiData(`/block/avax/${timestamp1dAgo}`).then((b) => b.height),
+    utils.getPriceApiData(`/block/avax/${timestamp7dAgo}`).then((b) => b.height),
   ]);
 
   const [rateNow, rate1dAgo, rate7dAgo] = await Promise.all([

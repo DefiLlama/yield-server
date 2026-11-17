@@ -620,6 +620,17 @@ const farmsAPY = async () => {
       ilk: 'LSEV2-SKY-A',
       url: 'https://app.sky.money/?network=ethereum&widget=stake',
     },
+    {
+      // SKY staking engine -> USDS rewards; each urn stakes into one farm, so
+      // this is separate lsSKY from the SKY farm above. The ilk debt is shared
+      // and already reported on the SKY farm row
+      address: '0x38E4254bD82ED5Ee97CD1C4278FAae748d998865',
+      stakeSymbol: 'SKY',
+      stakeToken: SKY,
+      rewardToken: USDS,
+      poolMeta: 'SKY Staking Engine (USDS rewards)',
+      url: 'https://app.sky.money/?network=ethereum&widget=stake',
+    },
   ];
 
   const priceKeys = [
@@ -652,7 +663,10 @@ const farmsAPY = async () => {
 
       const tvlUsd = (totalSupplyRes.output / 1e18) * priceStake;
       const rewardRate = rewardRateRes.output / 1e18;
-      const isActive = Date.now() / 1000 < Number(periodFinishRes.output);
+      // the USDS farm runs ~45 min periods that its keeper refills a minute or
+      // two after they end, so allow an hour before treating a farm as ended
+      const isActive =
+        Date.now() / 1000 < Number(periodFinishRes.output) + HOUR;
       const priceReward = prices[`ethereum:${farm.rewardToken}`]?.price;
       const secPerDay = 86400;
       const apyReward =

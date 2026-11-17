@@ -13,8 +13,8 @@ const apy = async () => {
     const sevenDaysAgo = now - 7 * DAY;
 
     const [blockNow, block7d] = await Promise.all([
-      axios.get(`https://coins.llama.fi/block/base/${now}`).then((r) => r.data.height),
-      axios.get(`https://coins.llama.fi/block/base/${sevenDaysAgo}`).then((r) => r.data.height),
+      utils.getPriceApiData(`/block/base/${now}`).then((b) => b.height),
+      utils.getPriceApiData(`/block/base/${sevenDaysAgo}`).then((b) => b.height),
     ]);
 
     const [totalAssets, ppsNow, pps7d] = await Promise.all([

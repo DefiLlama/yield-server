@@ -2,17 +2,14 @@ const axios = require('axios');
 const { default: BigNumber } = require('bignumber.js');
 const { convertToAssets, totalAssets } = require('./queries');
 const { getProvider } = require('@defillama/sdk/build/general');
-const { getPriceApiUrl, getPriceApiData } = require('../utils');
+const { getPriceApiData } = require('../utils');
 const provider = getProvider('ethereum');
 
 // ****
 // HELPER FUNCTIONS
 // ****
 const getBlockNumberFromTimestamp = async (timestamp) => {
-  const response = await axios.get(
-    getPriceApiUrl(`/block/ethereum/${timestamp}`)
-  );
-  return response.data.height;
+  return (await getPriceApiData(`/block/ethereum/${timestamp}`)).height;
 };
 
 const getTokenPrice = async (tokenAddress) => {

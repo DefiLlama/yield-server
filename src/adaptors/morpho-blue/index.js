@@ -17,7 +17,8 @@ const CHAINS = {
   wc: 480,
   stable: 988,
   tempo: 4217,
-  robinhood: 4663
+  robinhood: 4663,
+  arc: 5042
 };
 
 // Maps chain keys to URL slugs used by app.morpho.org
@@ -285,6 +286,17 @@ const RED_WARNING_ALLOWLIST = new Set([
 
 const isAllowlisted = (item) =>
   RED_WARNING_ALLOWLIST.has(item.address?.toLowerCase());
+
+const MIN_MERKL_WHITELIST_ELIGIBLE_TVL_USD = 100_000;
+
+const keepMorphoMerklOpportunity = (opportunity) => {
+  if (!/WHITELIST_CAMPAIGN$/i.test(opportunity?.identifier || '')) return true;
+  const eligibleTvlUsd = Number(opportunity.tvl);
+  return (
+    Number.isFinite(eligibleTvlUsd) &&
+    eligibleTvlUsd >= MIN_MERKL_WHITELIST_ELIGIBLE_TVL_USD
+  );
+};
 
 const buildVaultV2Pools = (earnV2, chain) =>
   earnV2
@@ -568,7 +580,8 @@ const apy = async () => {
     (p) => {
       const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
       return match ? match[0] : p.pool;
-    }
+    },
+    keepMorphoMerklOpportunity
   );
 
   // Phase 2: for vault pools that didn't get merkl rewards, try by-identifier

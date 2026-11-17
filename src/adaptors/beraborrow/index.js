@@ -3,7 +3,7 @@ const sdk = require('@defillama/sdk');
 const abi = require('./abi');
 const BigNumber = require('bignumber.js');
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const BB_SNECT = '0x1d22592F66Fc92e0a64eE9300eAeca548cd466c5';
 const NECT = '0x1ce0a25d13ce4d52071ae7e02cf1f6606f4c79d3';
@@ -69,10 +69,7 @@ function getTimestampDaysBefore(days) {
 }
 
 async function getBlockNumber(timestamp) {
-  const response = await axios.get(
-    getPriceApiUrl(`/block/berachain/${timestamp}`)
-  );
-  return response.data.height;
+  return (await getPriceApiData(`/block/berachain/${timestamp}`)).height;
 }
 
 async function calcErc4626PoolApy(vault, prices) {

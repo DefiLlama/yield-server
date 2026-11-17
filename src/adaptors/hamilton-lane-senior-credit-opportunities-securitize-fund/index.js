@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiData } = require('../utils');
 
 const project = 'hamilton-lane-senior-credit-opportunities-securitize-fund';
 
@@ -26,9 +26,7 @@ const evmPools = [
 ];
 
 const getBlock = (timestamp) =>
-  axios
-    .get(getPriceApiUrl(`/block/ethereum/${timestamp}`))
-    .then((r) => r.data.height);
+  getPriceApiData(`/block/ethereum/${timestamp}`).then((b) => b.height);
 
 const getOraclePrice = (block) =>
   sdk.api.abi

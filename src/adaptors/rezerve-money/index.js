@@ -3,7 +3,7 @@ const sdk = require('@defillama/sdk');
 
 const BigNumber = require('bignumber.js');
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const abi = {
   balanceOf: 'erc20:balanceOf',
@@ -75,10 +75,7 @@ function getTimestampDaysBefore(days) {
 }
 
 async function getBlockNumber(timestamp) {
-  const response = await axios.get(
-    getPriceApiUrl(`/block/sonic/${timestamp}`)
-  );
-  return response.data.height;
+  return (await getPriceApiData(`/block/sonic/${timestamp}`)).height;
 }
 
 async function calcErc4626PoolApy(vault, prices) {

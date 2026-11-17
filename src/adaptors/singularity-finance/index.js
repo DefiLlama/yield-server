@@ -118,9 +118,7 @@ async function multiGetERC4626Infos(
 
   const [blockNow, blockYesterday] = await Promise.all(
     [timestamp, timestamp - DAY].map((time) =>
-      axios
-        .get(utils.getPriceApiUrl(`/block/${chain}/${time}`))
-        .then((r) => r.data.height)
+      utils.getPriceApiData(`/block/${chain}/${time}`).then((b) => b.height)
     )
   );
 

@@ -194,6 +194,17 @@ const getGaugeApy = async () => {
         .then((r) => r.output.map((o) => o.output)),
     ]);
 
+  // rewardRate stays set after periodFinish, but nothing accrues past it
+  const periodFinish = await sdk.api.abi
+    .multiCall({
+      calls: validGauges.map((i) => ({ target: i })),
+      abi: abiGauge.find((m) => m.name === 'periodFinish'),
+      chain: CHAIN,
+      permitFailure: true,
+    })
+    .then((r) => r.output.map((o) => o.output));
+  const now = Date.now() / 1000;
+
   const tokens = [
     ...new Set(
       metaData
@@ -241,13 +252,15 @@ const getGaugeApy = async () => {
     }
 
     const apyReward =
-      (((rewardRate[i] / 1e18) *
-        86400 *
-        365 *
-        prices[`${CHAIN}:${AERO}`]?.price) /
-        tvlUsd) *
-      stakedSupplyRatio *
-      100;
+      periodFinish[i] > now
+        ? (((rewardRate[i] / 1e18) *
+            86400 *
+            365 *
+            prices[`${CHAIN}:${AERO}`]?.price) /
+            tvlUsd) *
+          stakedSupplyRatio *
+          100
+        : 0;
 
     return {
       pool: utils.formatAddress(p),

@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiData } = require('../utils');
 
 const project = 'blockchain-capital';
 
@@ -9,9 +9,7 @@ const TOKEN = '0x57fD71a86522Dc06D6255537521886057c1772A3';
 const ORACLE = '0x0eF2418216476Ab5264821070B8c24b6B458F796';
 
 const getBlock = (timestamp) =>
-  axios
-    .get(getPriceApiUrl(`/block/era/${timestamp}`))
-    .then((r) => r.data.height);
+  getPriceApiData(`/block/era/${timestamp}`).then((b) => b.height);
 
 const getOraclePrice = (block) =>
   sdk.api.abi

@@ -75,11 +75,19 @@ const main = async (timestamp = null) => {
   let data = (
     await Promise.all(
       pools.map(async (pool) => {
-        let { begin_fee, state_changes, begin_liq } = await pool_state_changes(
-          pool.id,
-          block_start,
-          block_end
-        );
+        let begin_fee, state_changes;
+        try {
+          ({ begin_fee, state_changes } = await pool_state_changes(
+            pool.id,
+            block_start,
+            block_end
+          ));
+        } catch (e) {
+          console.error(
+            `solidly-v3: skipping ${pool.id}: ${e.message.slice(-120)}`
+          );
+          return null;
+        }
         let current_fee = begin_fee;
         let fee_per_token = {};
 
@@ -168,20 +176,22 @@ const main = async (timestamp = null) => {
         return pool;
       })
     )
-  ).map((pool) => {
-    return {
-      pool: pool.id,
-      chain: 'ethereum',
-      project: 'solidly-v3',
-      symbol: pool.symbol,
-      tvlUsd: pool.tvl,
-      apyBase: pool.apyBase,
-      apyReward: pool.apyReward,
-      rewardTokens: [...new Set(pool.rewardTokens)],
-      url: `https://solidly.com/liquidity/manage/${pool.id}/`,
-      underlyingTokens: [pool.token0.id, pool.token1.id],
-    };
-  });
+  )
+    .filter(Boolean)
+    .map((pool) => {
+      return {
+        pool: pool.id,
+        chain: 'ethereum',
+        project: 'solidly-v3',
+        symbol: pool.symbol,
+        tvlUsd: pool.tvl,
+        apyBase: pool.apyBase,
+        apyReward: pool.apyReward,
+        rewardTokens: [...new Set(pool.rewardTokens)],
+        url: `https://solidly.com/liquidity/manage/${pool.id}/`,
+        underlyingTokens: [pool.token0.id, pool.token1.id],
+      };
+    });
   // console.log(data);
 
   // throw '';

@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const BigNumber = require('bignumber.js');
-const { getTotalSupply, getPriceApiUrl } = require('../utils');
+const { getTotalSupply, getPriceApiData } = require('../utils');
 
 // USDO is a rebasing stablecoin, cUSDO is wrapped non-rebasing version
 // Both earn the same yield - we track USDO supply for TVL, cUSDO rate for APY
@@ -31,10 +31,7 @@ const symbol = 'USDO';
 
 // Helper to fetch block number for a timestamp
 const getBlock = async (chain, timestamp) => {
-  const response = await axios.get(
-    getPriceApiUrl(`/block/${chain}/${timestamp}`)
-  );
-  return response.data.height;
+  return (await getPriceApiData(`/block/${chain}/${timestamp}`)).height;
 };
 
 // Get cUSDO exchange rate (assets per share) at a specific block

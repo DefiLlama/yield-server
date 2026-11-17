@@ -37,8 +37,13 @@ const withCacheBust = (path) =>
     ? `${path}${path.includes('?') ? '&' : '?'}cachebust=${Date.now()}`
     : path;
 
-const getPriceApiData = async (path) =>
-  (await axios.get(getPriceApiUrl(withCacheBust(path)))).data;
+const BLOCK_PATH = /^\/?block\/([^/?]+)\/(\d+)$/;
+
+const getPriceApiData = async (path) => {
+  const blockPath = path.match(BLOCK_PATH);
+  if (blockPath) return getBlockByTime(Number(blockPath[2]), blockPath[1]);
+  return (await axios.get(getPriceApiUrl(withCacheBust(path)))).data;
+};
 
 exports.getPriceApiData = getPriceApiData;
 
@@ -323,18 +328,24 @@ exports.withRetry = async (fn, { retries = 3, delayMs = 500 } = {}) => {
   }
 };
 
-// retrive block based on unixTimestamp array
-const getBlocksByTime = async (timestamps, chainString) => {
+const getBlockByTime = async (timestamp, chainString) => {
   const chain = chainString === 'avalanche' ? 'avax' : chainString;
-  return Promise.all(
-    timestamps.map(async (timestamp) => {
-      const response = await axios.get(
-      getPriceApiUrl(`/block/${chain}/${timestamp}`)
-      );
-      return response.data.height;
-    })
-  );
+  try {
+    return (await axios.get(getPriceApiUrl(`/block/${chain}/${timestamp}`)))
+      .data;
+  } catch (e) {
+    console.error(
+      `coins block api failed for ${chain} ${timestamp}: ${e.message}, falling back to rpc`
+    );
+    const block = await sdk.blocks.getBlock(chain, Number(timestamp));
+    return { height: block.block, timestamp: block.timestamp };
+  }
 };
+
+const getBlocksByTime = async (timestamps, chainString) =>
+  Promise.all(
+    timestamps.map(async (t) => (await getBlockByTime(t, chainString)).height)
+  );
 
 exports.getBlocksByTime = getBlocksByTime;
 
@@ -731,12 +742,9 @@ exports.getERC4626Info = async (
 ) => {
   const DAY = 24 * 3600;
 
-  const [blockNow, blockYesterday] = await Promise.all(
-    [timestamp, timestamp - DAY].map((time) =>
-      axios
-        .get(getPriceApiUrl(`/block/${chain}/${time}`))
-        .then((r) => r.data.height)
-    )
+  const [blockNow, blockYesterday] = await getBlocksByTime(
+    [timestamp, timestamp - DAY],
+    chain
   );
   const [tvl, priceNow, priceYesterday, asset, shareDecimalsRes] = await Promise.all([
     sdk.api.abi.call({
@@ -1136,14 +1144,24 @@ const SUI_OBJECTS_QUERY = `query ($keys: [ObjectKey!]!) {
 }`;
 
 // maxMultiGetSize is 200 but the 5KB query payload cap bites first, at 60 keys
+// (around 30 once each key also carries atCheckpoint)
 const SUI_OBJECTS_PER_QUERY = 50;
+const SUI_OBJECTS_AT_CHECKPOINT_PER_QUERY = 25;
 
-// Move struct fields per object id, positionally matching ids (null if absent)
-exports.suiObjectFields = async (ids) => {
+// Move struct fields per object id, positionally matching ids (null if absent).
+// Pass atCheckpoint to read the objects as they were at that checkpoint.
+exports.suiObjectFields = async (ids, atCheckpoint) => {
   const batches = await Promise.all(
-    chunkArray(ids, SUI_OBJECTS_PER_QUERY).map(async (batch) => {
+    chunkArray(
+      ids,
+      atCheckpoint === undefined
+        ? SUI_OBJECTS_PER_QUERY
+        : SUI_OBJECTS_AT_CHECKPOINT_PER_QUERY
+    ).map(async (batch) => {
       const { multiGetObjects } = await suiGraphql(SUI_OBJECTS_QUERY, {
-        keys: batch.map((address) => ({ address })),
+        keys: batch.map((address) =>
+          atCheckpoint === undefined ? { address } : { address, atCheckpoint }
+        ),
       });
       return batch.map(
         (_, i) => multiGetObjects?.[i]?.asMoveObject?.contents?.json ?? null
@@ -1151,6 +1169,43 @@ exports.suiObjectFields = async (ids) => {
     })
   );
   return batches.flat();
+};
+
+const SUI_CHECKPOINT_QUERY = `query ($seq: UInt53) {
+  checkpoint(sequenceNumber: $seq) { sequenceNumber timestamp }
+}`;
+
+// Checkpoint closest to targetMs. Sui's checkpoint cadence is near-constant
+// over a multi-day window, so a calibration read plus one correction pass
+// lands within minutes of the target. Omitting $seq returns the latest one.
+exports.suiCheckpointNear = async (targetMs) => {
+  const getCheckpoint = async (seq) =>
+    (await suiGraphql(SUI_CHECKPOINT_QUERY, { seq })).checkpoint;
+
+  const latest = await getCheckpoint(null);
+  const latestSeq = latest.sequenceNumber;
+  const latestMs = Date.parse(latest.timestamp);
+
+  const calibrationSeq = Math.max(1, latestSeq - 1_000_000);
+  const calibration = await getCheckpoint(calibrationSeq);
+  const msPerCheckpoint =
+    (latestMs - Date.parse(calibration.timestamp)) /
+    (latestSeq - calibrationSeq);
+  if (!(msPerCheckpoint > 0)) return latest;
+
+  const clamp = (seq) => Math.min(Math.max(Math.round(seq), 1), latestSeq);
+
+  const estimateSeq = clamp(
+    latestSeq - (latestMs - targetMs) / msPerCheckpoint
+  );
+  let estimate = await getCheckpoint(estimateSeq);
+  const correctionSeq = clamp(
+    estimateSeq - (Date.parse(estimate.timestamp) - targetMs) / msPerCheckpoint
+  );
+  if (correctionSeq !== estimateSeq)
+    estimate = await getCheckpoint(correctionSeq);
+
+  return estimate;
 };
 
 const SUI_COIN_SUPPLY_QUERY = `query ($coinType: String!) {

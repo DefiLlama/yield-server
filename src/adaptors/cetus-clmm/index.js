@@ -63,7 +63,12 @@ const apy = async (chain) => {
 
 const main = async () => {
   const pools = await Promise.all(
-    Object.keys(chains).map((chain) => apy(chain))
+    Object.keys(chains).map((chain) =>
+      apy(chain).catch((e) => {
+        console.error(`cetus-clmm ${chain}: ${e.message}`);
+        return [];
+      })
+    )
   );
 
   return pools.flat();

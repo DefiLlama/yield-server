@@ -1,6 +1,6 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 // Liquid ETH Vault (liquidETH) - same address on Ethereum and Scroll
 const liquidETH = '0xf0bb20865277aBd641a307eCe5Ee04E79073416C';
@@ -30,10 +30,7 @@ const SECONDS_PER_DAY = 86400;
 const getBlocksByTime = async (timestamps, chain = 'ethereum') => {
   const blocks = await Promise.all(
     timestamps.map(async (t) => {
-      const response = await axios.get(
-        getPriceApiUrl(`/block/${chain}/${t}`)
-      );
-      return response.data.height;
+      return (await getPriceApiData(`/block/${chain}/${t}`)).height;
     })
   );
   return blocks;

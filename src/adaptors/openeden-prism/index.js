@@ -1,7 +1,7 @@
 const sdk = require('@defillama/sdk');
 const axios = require('axios');
 const BigNumber = require('bignumber.js');
-const { getPriceApiUrl } = require('../utils');
+const { getPriceApiUrl, getPriceApiData } = require('../utils');
 
 const PRISM = '0x06Bb4ab600b7D22eB2c312f9bAbC22Be6a619046';
 const xPRISM = '0x12E04c932D682a2999b4582F7c9B86171B73220D';
@@ -10,10 +10,7 @@ const USDO = '0x8238884ec9668ef77b90c6dff4d1a9f4f4823bfe';
 const project = 'openeden-prism';
 
 const getBlock = async (timestamp) => {
-  const response = await axios.get(
-    getPriceApiUrl(`/block/ethereum/${timestamp}`)
-  );
-  return response.data.height;
+  return (await getPriceApiData(`/block/ethereum/${timestamp}`)).height;
 };
 
 // Get xPRISM exchange rate (assets per share) at a specific block

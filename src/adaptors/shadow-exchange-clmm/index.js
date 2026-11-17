@@ -90,6 +90,8 @@ async function apy() {
       if (!apiPool.id) continue;
       const id = apiPool.id.toLowerCase();
       if (subgraphPoolIds.has(id)) continue;
+      // Legacy pairs have no feeTier; shadow-exchange-legacy owns them.
+      if (apiPool.feeTier == null) continue;
       if (!apiPool.gaugeV2?.isAlive) continue;
 
       pools.push({
