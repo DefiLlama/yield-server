@@ -16,6 +16,7 @@ const BLNT_USDC_COMET_ID =
   'CDQMIKIHKA5UY3FQJ2UDTLNX3GOPD3GPNZWSPTOBVOHEUMQJQXOPC7Y3';
 // The production Comet pool weights BLNT:USDC at 80:20.
 const BLNT_TO_USDC_WEIGHT_RATIO = 4;
+const COMET_SNAPSHOT_MAX_ATTEMPTS = 3;
 const POOLS = [
   {
     id: 'CACSQWCMKG45TUHCQ3LXHOB7YEEJH4W376ZHQPXH2IZ3TE4NJHFZMCY7',
@@ -58,14 +59,35 @@ const callContract = async (contractId, method, addressArgs = []) => {
       }`
     );
   }
-  return scValToNative(simulation.result.retval);
+  return {
+    value: scValToNative(simulation.result.retval),
+    ledger: simulation.latestLedger,
+  };
 };
 
 const getBlntPriceInUsdc = async () => {
-  const [blntReserve, usdcReserve] = await Promise.all([
-    callContract(BLNT_USDC_COMET_ID, 'get_balance', [BLNT_ID]),
-    callContract(BLNT_USDC_COMET_ID, 'get_balance', [USDC_ID]),
-  ]);
+  let blntReserve;
+  let usdcReserve;
+  let lastLedgers;
+  for (let attempt = 0; attempt < COMET_SNAPSHOT_MAX_ATTEMPTS; attempt++) {
+    const [blntResult, usdcResult] = await Promise.all([
+      callContract(BLNT_USDC_COMET_ID, 'get_balance', [BLNT_ID]),
+      callContract(BLNT_USDC_COMET_ID, 'get_balance', [USDC_ID]),
+    ]);
+    if (blntResult.ledger === usdcResult.ledger) {
+      blntReserve = blntResult.value;
+      usdcReserve = usdcResult.value;
+      break;
+    }
+    lastLedgers = [blntResult.ledger, usdcResult.ledger];
+  }
+  if (blntReserve === undefined || usdcReserve === undefined) {
+    throw new Error(
+      `Unable to read BLNT:USDC Comet reserves from one ledger after ${COMET_SNAPSHOT_MAX_ATTEMPTS} attempts (last ledgers: ${
+        lastLedgers?.join(', ') ?? 'unknown'
+      })`
+    );
+  }
   if (blntReserve <= 0n || usdcReserve <= 0n) {
     throw new Error('Canonical BLNT:USDC Comet pool has no reserves');
   }
@@ -160,7 +182,10 @@ const getPoolApys = async (poolConfig, pool, prices, blntPrice) => {
       totalBorrowUsd,
       availableBorrowUsd,
       borrowable: reserve.config.enabled && reserve.config.l_factor > 0,
-      frozen: pool.metadata.status >= 4,
+      frozen:
+        pool.metadata.status >= 4 ||
+        !reserve.config.enabled ||
+        reserve.poolAuthorized === false,
       apyBaseBorrow: reserve.estBorrowApy * 100,
       ...(borrowEmissionsApr !== undefined && {
         apyRewardBorrow: borrowEmissionsApr * 100,
