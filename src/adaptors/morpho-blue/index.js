@@ -569,7 +569,10 @@ const apy = async () => {
     (p) => {
       const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
       return match ? match[0] : p.pool;
-    }
+    },
+    // WHITELIST_CAMPAIGN opportunities gate eligibility with hooks (Coinbase or
+    // Robinhood app users); a direct vault depositor earns none of it.
+    (o) => !/WHITELIST_CAMPAIGN$/i.test(o.identifier)
   );
 
   // Phase 2: for vault pools that didn't get merkl rewards, try by-identifier
