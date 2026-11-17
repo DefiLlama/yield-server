@@ -4,7 +4,7 @@ const axios = require('axios');
 
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
-const { EstimatedFees } = require('./estimateFee');
+const { EstimatedFees, parseProtocolFees } = require('./estimateFee');
 const { getCakeAprs, CAKE, chainIds } = require('./cakeReward');
 
 const chains = {
@@ -40,7 +40,6 @@ const query = gql`
       totalValueLockedToken1
       volumeUSD
       feeTier
-      feeProtocol
       liquidity
       token0 {
         symbol
@@ -148,6 +147,18 @@ const topLvl = async (
     dataNow = dataNow.filter(
       (p) => p.totalValueLockedUSD >= utils.MIN_TVL_USD
     );
+
+    // the subgraph's feeProtocol lags SetFeeProtocol (opbnb's still has the old 32-34%
+    // while slot0 reads 12% since 2026-11-12), so read it on-chain
+    const { output: slot0s } = await sdk.api.abi.multiCall({
+      abi: 'function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint32 feeProtocol, bool unlocked)',
+      calls: dataNow.map((p) => ({ target: p.id })),
+      chain: chainString,
+    });
+    dataNow = dataNow.map((p, i) => ({
+      ...p,
+      feeProtocol: slot0s[i].output.feeProtocol,
+    }));
     // add the symbol for the stablecoin (we need to distinguish btw stable and non stable pools
     // so we apply the correct tick range)
     dataNow = dataNow.map((p) => {
@@ -168,6 +179,11 @@ const topLvl = async (
     dataNow = dataNow.map((el) =>
       utils.apy(el, dataPrior, dataPrior7d || [], version)
     );
+    // lps only get the fee minus the protocol's cut, same as the 7d estimate below
+    dataNow = dataNow.map((p) => ({
+      ...p,
+      apy1d: p.apy1d * (1 - parseProtocolFees(p.feeProtocol)[0]),
+    }));
 
     const enableV3Apy = true;
     if (enableV3Apy && dataNow.length) {
