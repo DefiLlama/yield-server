@@ -10,6 +10,8 @@ const axios = require('axios');
 const masterchef = '0x55401A4F396b3655f66bf6948A1A4DC61Dfc21f4';
 const factory = '0x6EcCab422D763aC031210895C81787E87B43A652';
 const GRAIL = '0x3d9907f9a368ad0a51be60f7da3b97cf940982d8';
+// mirrors the factory's OWNER_FEE_SHARE_MAX denominator
+const OWNER_FEE_SHARE_MAX = 100000;
 
 const utils = require('../utils');
 
@@ -162,6 +164,19 @@ const topLvl = async (chainString, timestamp, url) => {
     604800
   );
 
+  const feeInfo = (
+    await sdk.api.abi.call({
+      target: factory,
+      abi: factoryAbi.find((m) => m.name === 'feeInfo'),
+      chain: chainString,
+      block,
+    })
+  ).output;
+
+  const lpFeeShare = /^0x0{40}$/i.test(feeInfo._feeTo)
+    ? 1
+    : 1 - Number(feeInfo._ownerFeeShare) / OWNER_FEE_SHARE_MAX;
+
   let data = (await request(url, query.replace('<PLACEHOLDER>', block))).pairs;
 
   // pull 24h offset data to calculate fees from swap volume
@@ -190,6 +205,13 @@ const topLvl = async (chainString, timestamp, url) => {
 
   // calculate apy
   data = data.map((el) => utils.apy(el, dataPrior, dataPrior7d, 'v3'));
+
+  // camelot mints the owner fee share of fee growth to feeTo
+  data = data.map((el) => ({
+    ...el,
+    apy1d: el.apy1d * lpFeeShare,
+    apy7d: el.apy7d * lpFeeShare,
+  }));
 
   // build pool objects
   data = data.map((p) => {
