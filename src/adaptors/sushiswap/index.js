@@ -41,6 +41,14 @@ const SUSHI = {
   polygon: '0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a',
 };
 
+const factories = {
+  ethereum: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac',
+  arbitrum: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4',
+  polygon: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4',
+  avalanche: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4',
+  base: '0x71524B4f93c58fcbF659783284E38825f0622859',
+};
+
 // masterchef/minichef for arbitrum/polygon
 const CHEF = {
   ethereum: {
@@ -147,6 +155,20 @@ const topLvl = async (chainString, urlExchange, urlRewards, chainId) => {
 
     data = await utils.tvl(data, chainString);
     data = data.map((p) => utils.apy(p, dataPrior, dataPrior7d, 'v2'));
+
+    // with feeTo set, pairs mint 1/6 of the fee growth to the protocol, so lps earn 0.25%
+    const { output: feeTo } = await sdk.api.abi.call({
+      target: factories[chainString],
+      abi: 'function feeTo() view returns (address)',
+      chain: chainString === 'avalanche' ? 'avax' : chainString,
+    });
+    const lpFeeShare = /^0x0{40}$/i.test(feeTo) ? 1 : 5 / 6;
+    data = data.map((p) => ({
+      ...p,
+      apy1d: p.apy1d * lpFeeShare,
+      apy7d: p.apy7d * lpFeeShare,
+    }));
+
     data = data.map((p) => ({
       ...p,
       totalValueLockedUSDlp: p.totalValueLockedUSD,
