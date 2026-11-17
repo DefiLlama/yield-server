@@ -1144,14 +1144,24 @@ const SUI_OBJECTS_QUERY = `query ($keys: [ObjectKey!]!) {
 }`;
 
 // maxMultiGetSize is 200 but the 5KB query payload cap bites first, at 60 keys
+// (around 30 once each key also carries atCheckpoint)
 const SUI_OBJECTS_PER_QUERY = 50;
+const SUI_OBJECTS_AT_CHECKPOINT_PER_QUERY = 25;
 
-// Move struct fields per object id, positionally matching ids (null if absent)
-exports.suiObjectFields = async (ids) => {
+// Move struct fields per object id, positionally matching ids (null if absent).
+// Pass atCheckpoint to read the objects as they were at that checkpoint.
+exports.suiObjectFields = async (ids, atCheckpoint) => {
   const batches = await Promise.all(
-    chunkArray(ids, SUI_OBJECTS_PER_QUERY).map(async (batch) => {
+    chunkArray(
+      ids,
+      atCheckpoint === undefined
+        ? SUI_OBJECTS_PER_QUERY
+        : SUI_OBJECTS_AT_CHECKPOINT_PER_QUERY
+    ).map(async (batch) => {
       const { multiGetObjects } = await suiGraphql(SUI_OBJECTS_QUERY, {
-        keys: batch.map((address) => ({ address })),
+        keys: batch.map((address) =>
+          atCheckpoint === undefined ? { address } : { address, atCheckpoint }
+        ),
       });
       return batch.map(
         (_, i) => multiGetObjects?.[i]?.asMoveObject?.contents?.json ?? null
@@ -1159,6 +1169,43 @@ exports.suiObjectFields = async (ids) => {
     })
   );
   return batches.flat();
+};
+
+const SUI_CHECKPOINT_QUERY = `query ($seq: UInt53) {
+  checkpoint(sequenceNumber: $seq) { sequenceNumber timestamp }
+}`;
+
+// Checkpoint closest to targetMs. Sui's checkpoint cadence is near-constant
+// over a multi-day window, so a calibration read plus one correction pass
+// lands within minutes of the target. Omitting $seq returns the latest one.
+exports.suiCheckpointNear = async (targetMs) => {
+  const getCheckpoint = async (seq) =>
+    (await suiGraphql(SUI_CHECKPOINT_QUERY, { seq })).checkpoint;
+
+  const latest = await getCheckpoint(null);
+  const latestSeq = latest.sequenceNumber;
+  const latestMs = Date.parse(latest.timestamp);
+
+  const calibrationSeq = Math.max(1, latestSeq - 1_000_000);
+  const calibration = await getCheckpoint(calibrationSeq);
+  const msPerCheckpoint =
+    (latestMs - Date.parse(calibration.timestamp)) /
+    (latestSeq - calibrationSeq);
+  if (!(msPerCheckpoint > 0)) return latest;
+
+  const clamp = (seq) => Math.min(Math.max(Math.round(seq), 1), latestSeq);
+
+  const estimateSeq = clamp(
+    latestSeq - (latestMs - targetMs) / msPerCheckpoint
+  );
+  let estimate = await getCheckpoint(estimateSeq);
+  const correctionSeq = clamp(
+    estimateSeq - (Date.parse(estimate.timestamp) - targetMs) / msPerCheckpoint
+  );
+  if (correctionSeq !== estimateSeq)
+    estimate = await getCheckpoint(correctionSeq);
+
+  return estimate;
 };
 
 const SUI_COIN_SUPPLY_QUERY = `query ($coinType: String!) {
