@@ -4,6 +4,9 @@ const axios = require('axios');
 
 const utils = require('../utils');
 
+// globalState community fee is in 1/1000.
+const COMMUNITY_FEE_DENOMINATOR = 1000;
+
 const url = sdk.graph.modifyEndpoint(
   '3utanEBA9nqMjPnuQP1vMCCys6enSM3EawBpKTVwnUw2'
 );
@@ -100,9 +103,24 @@ const topLvl = async (chainString, timestamp, url) => {
 
   data = await utils.tvl(data, chainString);
 
-  data = data.map((p) => ({
+  // the pool sends the community fee to the algebra vault on every swap, so lps
+  // only earn the rest. net each direction's fee before averaging, since the
+  // community fee is set per token
+  const { output: globalStates } = await sdk.api.abi.multiCall({
+    abi: 'function globalState() view returns (uint160 price, int24 tick, uint16 feeZtO, uint16 feeOtZ, uint16 timepointIndex, uint8 communityFeeToken0, uint8 communityFeeToken1, bool unlocked)',
+    calls: data.map((p) => ({ target: p.id })),
+    chain: chainString,
+    block,
+  });
+
+  const lpShare = (communityFee) =>
+    1 - Number(communityFee) / COMMUNITY_FEE_DENOMINATOR;
+  data = data.map((p, i) => ({
     ...p,
-    feeTier: (Number(p.feeOtZ) + Number(p.feeZtO)) / 2,
+    feeTier:
+      (Number(p.feeZtO) * lpShare(globalStates[i].output.communityFeeToken0) +
+        Number(p.feeOtZ) * lpShare(globalStates[i].output.communityFeeToken1)) /
+      2,
   }));
   data = data.map((el) => utils.apy(el, dataPrior, dataPrior7d, 'v3'));
 
