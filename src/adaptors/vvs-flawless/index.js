@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 
 const utils = require('../utils');
@@ -16,7 +17,6 @@ const poolsQuery = gql`
     ) {
       id
       feeTier
-      feeProtocol
       volumeUSD
       totalValueLockedToken0
       totalValueLockedToken1
@@ -48,9 +48,13 @@ const poolsPriorQuery = gql`
   }
 `;
 
-// feeProtocol packs the protocol fee as two uniswap style denominators
+const slot0Abi =
+  'function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)';
+
+// slot0.feeProtocol packs the protocol fee as two uniswap style denominators
 // (token0 in the low nibble, token1 in the high nibble), share = 1/n, 0 = off.
-// currently 0x44 -> the protocol keeps 1/4 of swap fees, LPs earn the rest
+// 0x44 -> the protocol keeps 1/4 of swap fees, LPs earn the rest. the switch is
+// per pool: most vvs v3 pools leave it off and pay LPs the whole fee
 const lpFeeShare = (feeProtocol) => {
   const fp0 = feeProtocol % 16;
   const fp1 = feeProtocol >> 4;
@@ -84,19 +88,30 @@ const main = async (timestamp = null) => {
     chain
   );
 
+  pools = pools.filter((p) => p.totalValueLockedUSD >= utils.MIN_TVL_USD);
+
+  // the subgraph's pool.feeProtocol field is not the live switch: it reads 68 on
+  // every pool it indexes, including ones whose slot0().feeProtocol has been 0
+  // since the block they were created. read the switch off the pool instead
+  const { output: slot0s } = await sdk.api.abi.multiCall({
+    abi: slot0Abi,
+    calls: pools.map((p) => ({ target: p.id })),
+    chain,
+  });
+
   return pools
-    .filter((p) => p.totalValueLockedUSD >= utils.MIN_TVL_USD)
-    .map((p) =>
-      utils.apy(
+    .map((p, i) => {
+      const lpShare = lpFeeShare(Number(slot0s[i].output.feeProtocol));
+      return utils.apy(
         {
           ...p,
           feeTierFull: Number(p.feeTier),
-          feeTier: Number(p.feeTier) * lpFeeShare(Number(p.feeProtocol)),
+          feeTier: Number(p.feeTier) * lpShare,
         },
         dataPrior.pools,
         dataPrior7d.pools
-      )
-    )
+      );
+    })
     .map((p) => ({
       pool: p.id,
       chain: utils.formatChain(chain),
