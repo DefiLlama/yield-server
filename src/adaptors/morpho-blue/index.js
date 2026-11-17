@@ -287,6 +287,17 @@ const RED_WARNING_ALLOWLIST = new Set([
 const isAllowlisted = (item) =>
   RED_WARNING_ALLOWLIST.has(item.address?.toLowerCase());
 
+const MIN_MERKL_WHITELIST_ELIGIBLE_TVL_USD = 100_000;
+
+const keepMorphoMerklOpportunity = (opportunity) => {
+  if (!/WHITELIST_CAMPAIGN$/i.test(opportunity?.identifier || '')) return true;
+  const eligibleTvlUsd = Number(opportunity.tvl);
+  return (
+    Number.isFinite(eligibleTvlUsd) &&
+    eligibleTvlUsd >= MIN_MERKL_WHITELIST_ELIGIBLE_TVL_USD
+  );
+};
+
 const buildVaultV2Pools = (earnV2, chain) =>
   earnV2
     // Filter vaults to only include those with allowed adapter types
@@ -570,9 +581,7 @@ const apy = async () => {
       const match = p.pool.match(/0x[a-fA-F0-9]{40}/);
       return match ? match[0] : p.pool;
     },
-    // WHITELIST_CAMPAIGN opportunities gate eligibility with hooks (Coinbase or
-    // Robinhood app users); a direct vault depositor earns none of it.
-    (o) => !/WHITELIST_CAMPAIGN$/i.test(o.identifier)
+    keepMorphoMerklOpportunity
   );
 
   // Phase 2: for vault pools that didn't get merkl rewards, try by-identifier
