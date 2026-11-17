@@ -94,8 +94,10 @@ const buildChainPools = async (displayChain, vaultMap, timestamp) => {
       const pn = num(pNow.output[i]?.output);
       const p1 = num(p1d.output[i]?.output);
       const p7 = num(p7d.output[i]?.output);
-      const apyBase = annualize(pn, p1, 365) ?? 0;
+      // Some vaults move their share price weekly or skip days, so a 1d read
+      // swings between 0% and a multiple of the rate. Use 7d, 1d if no 7d value.
       const apyBase7d = annualize(pn, p7, 365 / 7);
+      const apyBase = apyBase7d ?? annualize(pn, p1, 365) ?? 0;
       const shareDec = Number(shareDecimals.output[i]?.output) || 18;
       const pricePerShare = pn / 10 ** (18 + priceInfo.decimals - shareDec);
 
