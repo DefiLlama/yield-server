@@ -16,7 +16,6 @@ const query = {
         assets
         strategiesDeployed
         principalOut
-        collateralValue
         weeklyApy
         asset {
           id
@@ -48,10 +47,11 @@ const apy = async () => {
           new BigNumber(10).pow(priceDecimals)
         );
 
+        // lender-supplied pool capital: cash + strategies + principal out on loans.
+        // borrower collateral is not lender capital and is excluded.
         const totalAssets = new BigNumber(pool.assets || 0)
           .plus(pool.strategiesDeployed || 0)
-          .plus(pool.principalOut || 0)
-          .plus(pool.collateralValue || 0);
+          .plus(pool.principalOut || 0);
 
         const tvlUsd = totalAssets
           .multipliedBy(tokenPrice)
