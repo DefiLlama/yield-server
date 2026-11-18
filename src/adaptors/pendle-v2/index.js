@@ -79,7 +79,19 @@ const chains = {
     chainSlug: 'monad',
     PENDLE: '0x5E49E1f85813F2B65858860A3FA231b4186f2e0E',
     ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
-  }
+  },
+  196: {
+    chainName: 'xlayer',
+    chainSlug: 'xlayer',
+    PENDLE: '0x5E49E1f85813F2B65858860A3FA231b4186f2e0E',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+  },
+  4663: {
+    chainName: 'robinhood',
+    chainSlug: 'robinhood',
+    PENDLE: '0x5E49E1f85813F2B65858860A3FA231b4186f2e0E',
+    ROUTERS: ['0x888888888889758F76e7103c6CbF23ABbF58F946'],
+  },
 };
 
 function splitId(id) {
