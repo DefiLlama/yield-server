@@ -191,6 +191,8 @@ function parseProtocolFees(feeProtocol) {
   return [token0ProtocolFee / FEE_BASE, token1ProtocolFee / FEE_BASE];
 }
 
+module.exports.parseProtocolFees = parseProtocolFees;
+
 module.exports.EstimatedFees = (
   priceAssumptionValue,
   priceRangeValue,
