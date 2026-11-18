@@ -1,55 +1,94 @@
+const axios = require('axios');
 const utils = require('../utils');
 
-const VAULTS_URL = 'https://api5.storm.tg/api/vaults';
 const TON_ADDRESS = 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
+const WINDOW_DAYS = 7;
+const YEAR = 365 * 24 * 60 * 60;
 
-const getApr = async () => {
-  let vaults;
-  try {
-    vaults = await utils.getEgressData('storm-trade/api/vaults', VAULTS_URL);
-  } catch (e) {
-    if (e.response?.status === 404) return [];
-    throw e;
-  }
-  if (!Array.isArray(vaults)) return [];
+const VAULTS = [
+  { address: '0:33e9e84d7cbefff0d23b395875420e3a1ecb82e241692be89c7ea2bd27716b77', name: 'USDT', asset: '0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe' },
+  { address: '0:e926764ff3d272c73ddeb836975c5521c025ad68e7919a25094e2de3198805f1', name: 'TON', asset: TON_ADDRESS },
+  { address: '0:06f3f073c255a49aa6fdcc89abf512638e065908b30e4173fd3d1d01d4f607bd', name: 'NOT', asset: '0:2f956143c461769579baef2e32cc2d7bc18283f40d20bb03e432cd603ac33ffc' },
+  { address: '0:f29d17a209e2bcc652916d802ba69e23cb366e17afad61f8453343b9ba53ace4', name: 'jUSDT', asset: '0:729c13b6df2c07cbf0a06ab63d34af454f3d320ec1bcd8fb5c6d24d0806a17c2' },
+  { address: '0:c4f862706efb41ea606b437e5ff847555db8ef493169543b26eb359cbef26faf', name: 'USDe', asset: '0:086fa2a675f74347b08dd4606a549b8fdb98829cb282bc1949d3b12fbaed9dcc' },
+  { address: '0:fa87bdeb3c237eb2b6daf71b35095011b31fbc7115de332c148af3887d5c73d9', name: 'tgUSD', asset: '0:89ec04b13a423a5ace4187c27be1765b457f3ceb58c5813653e360d7bfbd7e50' },
+];
 
-  const priceKeys = vaults.map((v) => {
-    const assetId = v.config.asset.assetId;
-    return `ton:${assetId === 'TON' ? TON_ADDRESS : assetId}`;
+const apiKey = process.env.TONCENTER_API_KEY;
+const requestOptions = {
+  timeout: 30000,
+  maxRedirects: 0,
+  headers: apiKey ? { 'X-API-Key': apiKey } : {},
+};
+const pause = () =>
+  apiKey ? undefined : new Promise((resolve) => setTimeout(resolve, 1100));
+
+const masterchainSeqno = async (unixtime) => {
+  await pause();
+  const { data } = await axios.get('https://toncenter.com/api/v2/lookupBlock', {
+    ...requestOptions,
+    params: { workchain: -1, shard: '-9223372036854775808', unixtime },
   });
+  if (!data.ok) throw new Error(`lookupBlock: ${JSON.stringify(data)}`);
+  return data.result.seqno;
+};
 
-  const prices = (
-    await utils.getPriceApiData(`/prices/current/${priceKeys.join(',')}`)
-  ).coins;
+// get_vault_data stack: [1] LP rate (1e9 = 1), [3] free balance, [4] locked balance
+const vaultData = async (address, seqno) => {
+  await pause();
+  const { data } = await axios.post(
+    'https://toncenter.com/api/v2/runGetMethod',
+    { address, method: 'get_vault_data', stack: [], ...(seqno ? { seqno } : {}) },
+    requestOptions
+  );
+  const result = data.result;
+  if (!data.ok || result.exit_code !== 0) {
+    throw new Error(`get_vault_data ${address}: ${JSON.stringify(data)}`);
+  }
+  const num = (i) => Number(BigInt(result.stack[i][1]));
+  return { rate: num(1), balance: num(3) + num(4) };
+};
 
-  return vaults
-    .map((vault, i) => {
-      const price = prices[priceKeys[i]]?.price ?? 0;
-      const apr = parseFloat(vault.apr.year);
+const apy = async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const then = now - WINDOW_DAYS * 86400;
+  const pastSeqno = await masterchainSeqno(then);
 
-      return {
+  const priceKeys = VAULTS.map((v) => `ton:${v.asset}`);
+  const prices = await utils.getPriceApiCoins(priceKeys);
+
+  const pools = [];
+  for (const vault of VAULTS) {
+    try {
+      const current = await vaultData(vault.address);
+      const past = await vaultData(vault.address, pastSeqno);
+      const price = prices[`ton:${vault.asset}`]?.price;
+      if (!price) {
+        console.error(`storm-trade: no price for ${vault.name}`);
+        continue;
+      }
+      pools.push({
         pool: `${vault.address}-ton`.toLowerCase(),
         chain: 'Ton',
         project: 'storm-trade',
-        symbol: vault.config.asset.name === 'TON' ? 'GRAM' : vault.config.asset.name,
-        tvlUsd:
-          ((Number(vault.freeBalance) + Number(vault.lockedBalance)) / 1e9) *
-          price,
-        apyBase: isNaN(apr) ? 0 : apr,
-        underlyingTokens: [
-          vault.config.asset.assetId === 'TON'
-            ? TON_ADDRESS
-            : vault.config.asset.assetId,
-        ],
-        url: `https://app.storm.tg/vault/${vault.config.asset.name}`,
-      };
-    })
-    .filter((p) => p.tvlUsd > 0);
+        symbol: vault.name === 'TON' ? 'GRAM' : vault.name,
+        tvlUsd: (current.balance / 1e9) * price,
+        apyBase:
+          (Math.pow(current.rate / past.rate, YEAR / (now - then)) - 1) * 100,
+        underlyingTokens: [vault.asset],
+        url: `https://app.storm.tg/vault/${vault.name}`,
+      });
+    } catch (e) {
+      console.error(`storm-trade: ${vault.name} failed: ${e.message}`);
+    }
+  }
+  return pools.filter((p) => p.tvlUsd > 0);
 };
 
 module.exports = {
   protocolId: '3883',
+  apyWindowDays: WINDOW_DAYS,
   timetravel: false,
-  apy: getApr,
+  apy,
   url: 'https://storm.tg/',
 };
