@@ -1,3 +1,4 @@
+const sdk = require('@defillama/sdk');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
@@ -6,6 +7,10 @@ const PROJECT = 'hyperswap-v2';
 const CHAIN = 'hyperevm';
 const MIN_TVL_USD = 1000;
 const FEE_RATE = 0.003;
+// While the factory's feeTo is set, each pair's _mintFee mints feeTo 2/5 of the
+// fee growth (checked against real feeTo mints), so LPs keep 0.18% of the 0.3%.
+const FACTORY = '0x724412C00059bf7d6ee7d4a1d0D5cd4de3ea1C48';
+const PROTOCOL_FEE_SHARE = 0.4;
 const SUBGRAPH_URL =
   'https://api.subgraph.ormilabs.com/api/public/33c67399-d625-4929-b239-5709cd66e422/subgraphs/hyperswap-v2/v1.0.0/gn';
 
@@ -101,11 +106,24 @@ async function fetchPairDayVolumes() {
   return byPair;
 }
 
+// Throws when feeTo can't be read, rather than crediting LPs with the gross fee.
+async function getLpFeeShare() {
+  const { output: feeTo } = await sdk.api.abi.call({
+    target: FACTORY,
+    abi: 'function feeTo() view returns (address)',
+    chain: 'hyperliquid',
+  });
+  if (typeof feeTo !== 'string') throw new Error('hyperswap-v2: no feeTo');
+  return /^0x0{40}$/i.test(feeTo) ? 1 : 1 - PROTOCOL_FEE_SHARE;
+}
+
 async function apy() {
-  const [pairs, dayVolumesByPair] = await Promise.all([
+  const [pairs, dayVolumesByPair, lpFeeShare] = await Promise.all([
     fetchAllPairs(),
     fetchPairDayVolumes(),
+    getLpFeeShare(),
   ]);
+  const lpFeeRate = FEE_RATE * lpFeeShare;
 
   const formatted = pairs.map((p) => {
     const tvlUsd = Number(p.reserveUSD);
@@ -114,12 +132,12 @@ async function apy() {
       (sum, h) => sum + Number(h.hourlyVolumeUSD || 0),
       0
     );
-    const feesUsd1d = volumeUsd1d * FEE_RATE;
+    const feesUsd1d = volumeUsd1d * lpFeeRate;
     const apyBase = (feesUsd1d * 365) / tvlUsd * 100;
 
     const dailyVols = dayVolumesByPair.get(p.id) || [];
     const volumeUsd7d = dailyVols.reduce((s, v) => s + v, 0);
-    const fees7d = volumeUsd7d * FEE_RATE;
+    const fees7d = volumeUsd7d * lpFeeRate;
     const apyBase7d = dailyVols.length
       ? ((fees7d / dailyVols.length) * 365) / tvlUsd * 100
       : NaN;
