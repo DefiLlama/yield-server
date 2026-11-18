@@ -10,7 +10,7 @@ const sparkBaseUrl = 'https://app.spark.fi/savings'
 
 const MAINNET_SUSDS = '0xa3931d71877c0e7a3148cb7eb4463524fec27fbd'
 
-type Chain = 'ethereum' | 'avax' | 'base' | 'arbitrum' | 'robinhood'
+type Chain = 'ethereum' | 'avax' | 'base' | 'arbitrum' | 'robinhood' | 'xlayer'
 interface VaultConfig {
   assetSymbol: string
   address: string
@@ -55,11 +55,29 @@ const sparkSavings: Record<Chain, VaultConfig[]> = {
     },
   ],
   base: [],
-  arbitrum: [],
+  arbitrum: [
+    {
+      assetSymbol: 'USDT',
+      address: '0x45d91340B3B7B96985A72b5c678F7D9e8D664b62',
+      decimals: 6,
+    },
+  ],
   robinhood: [
     {
       assetSymbol: 'USDG',
       address: '0xde770c84FE66E063336b31737cFE9790f18c4087',
+      decimals: 6,
+    },
+  ],
+  xlayer: [
+    {
+      assetSymbol: 'USDC',
+      address: '0xf90E63079D97a0A1f479b2b168457F420CAFf6ba',
+      decimals: 6,
+    },
+    {
+      assetSymbol: 'USDT',
+      address: '0xc358c90D32375721Cb3924320Fdc2F8B694347Ca',
       decimals: 6,
     },
   ],
@@ -238,6 +256,7 @@ const chainToAppChain: Record<Chain, string> = {
   base: 'base',
   arbitrum: 'arbitrum',
   robinhood: 'robinhood',
+  xlayer: 'xlayer',
 }
 
 const yearInSeconds = 31536000
