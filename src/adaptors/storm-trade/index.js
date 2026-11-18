@@ -1,5 +1,7 @@
-const axios = require('axios');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
+
+const ton = sdk.chains.ton;
 
 const TON_ADDRESS = 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
 const WINDOW_DAYS = 7;
@@ -14,45 +16,23 @@ const VAULTS = [
   { address: '0:fa87bdeb3c237eb2b6daf71b35095011b31fbc7115de332c148af3887d5c73d9', name: 'tgUSD', asset: '0:89ec04b13a423a5ace4187c27be1765b457f3ceb58c5813653e360d7bfbd7e50' },
 ];
 
-const apiKey = process.env.TONCENTER_API_KEY;
-const requestOptions = {
-  timeout: 30000,
-  maxRedirects: 0,
-  headers: apiKey ? { 'X-API-Key': apiKey } : {},
-};
-const pause = () =>
-  apiKey ? undefined : new Promise((resolve) => setTimeout(resolve, 1100));
-
-const masterchainSeqno = async (unixtime) => {
-  await pause();
-  const { data } = await axios.get('https://toncenter.com/api/v2/lookupBlock', {
-    ...requestOptions,
-    params: { workchain: -1, shard: '-9223372036854775808', unixtime },
-  });
-  if (!data.ok) throw new Error(`lookupBlock: ${JSON.stringify(data)}`);
-  return data.result.seqno;
-};
-
 // get_vault_data stack: [1] LP rate (1e9 = 1), [3] free balance, [4] locked balance
 const vaultData = async (address, seqno) => {
-  await pause();
-  const { data } = await axios.post(
-    'https://toncenter.com/api/v2/runGetMethod',
-    { address, method: 'get_vault_data', stack: [], ...(seqno ? { seqno } : {}) },
-    requestOptions
-  );
-  const result = data.result;
-  if (!data.ok || result.exit_code !== 0) {
-    throw new Error(`get_vault_data ${address}: ${JSON.stringify(data)}`);
+  const res = await ton.toncenterPost({
+    path: 'runGetMethod',
+    body: { address, method: 'get_vault_data', stack: [], seqno },
+  });
+  if (!res?.ok || res.result.exit_code !== 0) {
+    throw new Error(`get_vault_data ${address}: ${JSON.stringify(res)}`);
   }
-  const num = (i) => Number(BigInt(result.stack[i][1]));
+  const num = (i) => Number(BigInt(res.result.stack[i][1]));
   return { rate: num(1), balance: num(3) + num(4) };
 };
 
 const apy = async () => {
   const now = Math.floor(Date.now() / 1000);
   const then = now - WINDOW_DAYS * 86400;
-  const pastSeqno = await masterchainSeqno(then);
+  const { number: pastSeqno } = await ton.getBlockAtTimestamp({ timestamp: then });
 
   const priceKeys = VAULTS.map((v) => `ton:${v.asset}`);
   const prices = await utils.getPriceApiCoins(priceKeys);
