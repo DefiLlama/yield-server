@@ -6,7 +6,7 @@ const TON_ADDRESS = 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
 const getApr = async () => {
   let vaults;
   try {
-    vaults = await utils.getData(VAULTS_URL);
+    vaults = await utils.getEgressData('storm-trade/api/vaults', VAULTS_URL);
   } catch (e) {
     if (e.response?.status === 404) return [];
     throw e;
