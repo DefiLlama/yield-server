@@ -8,6 +8,7 @@ const minichefAbi = require('./minichefAbi');
 const url = sdk.graph.modifyEndpoint(
   '7PRKughAkeESafrGZ8A2x1YsbNMQnFbxQ1bpeNjktwZk'
 );
+const factory = '0xefa94DE7a4656D787667C749f7E1223D71E9FD88';
 const minichef = '0x1f806f7C8dED893fd3caE279191ad7Aa3798E928';
 const PNG = '0x60781c2586d68229fde47564546784ab3faca982';
 
@@ -86,6 +87,20 @@ const topLvl = async (chainString, timestamp, url, version) => {
 
   // calculate apy
   data = data.map((el) => utils.apy(el, dataPrior, dataPrior7d, version));
+
+  // with feeTo set, pairs mint 1/6 of the fee growth to the protocol, so lps earn 0.25%
+  const { output: feeTo } = await sdk.api.abi.call({
+    target: factory,
+    abi: 'function feeTo() view returns (address)',
+    chain: 'avax',
+    block,
+  });
+  const lpFeeShare = /^0x0{40}$/i.test(feeTo) ? 1 : 5 / 6;
+  data = data.map((p) => ({
+    ...p,
+    apy1d: p.apy1d * lpFeeShare,
+    apy7d: p.apy7d * lpFeeShare,
+  }));
 
   // build pool objects
   data = data
