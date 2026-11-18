@@ -28,8 +28,9 @@ const USDC = token('USDC', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 6);
 const USDT = token('USDT', '0xdac17f958d2ee523a2206206994597c13d831ec7', 6);
 const WETH = token('WETH', '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', 18);
 const SFI = token('SFI', '0xb753428af26e81097e7fd17f40c88aaa3e04902c', 18);
+const INFI = token('INFI', '0xf40c07d7cd45f291b93ca674db66a15c8a98957e', 18);
 
-const TOKENS = [USDC, USDT, WETH, SFI];
+const TOKENS = [USDC, USDT, WETH, SFI, INFI];
 const POOLS = [
   {
     pair: '0x728fd0a966b993fe518b00122d51e494f99abd6a',
@@ -51,6 +52,13 @@ const POOLS = [
     fromTimestamp: 1791518687,
     token: '0x1e50fb9713b7dfeea15ab60072a9e695b8c41b93',
     tokens: [USDC, SFI],
+  },
+  {
+    pair: '0x3cb6a404cb8f5b4ef679db08997ac94162ac518e',
+    fromBlock: 26435803,
+    fromTimestamp: 1794931007,
+    token: '0xe8ca3647eeea1a4a86332a0a39d6f63cfacbe6d3',
+    tokens: [USDC, INFI],
   },
 ].map((pool) => ({
   ...pool,
