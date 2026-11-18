@@ -6,6 +6,7 @@ const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 const url = sdk.graph.modifyEndpoint(
   'FUWdkXWpi8JyhAnhKL5pZcVshpxuaUQG8JHMDqNCxjPd'
 );
+const factory = '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32';
 
 const query = gql`
   {
@@ -89,6 +90,20 @@ const topLvl = async (chainString, timestamp, url, version) => {
 
   // calculate apy
   data = data.map((el) => utils.apy(el, result.prior1d, result.prior7d, version));
+
+  // with feeTo set, pairs mint 1/6 of the fee growth to the protocol, so lps earn 0.25%
+  const { output: feeTo } = await sdk.api.abi.call({
+    target: factory,
+    abi: 'function feeTo() view returns (address)',
+    chain: chainString,
+    block,
+  });
+  const lpFeeShare = /^0x0{40}$/i.test(feeTo) ? 1 : 5 / 6;
+  data = data.map((p) => ({
+    ...p,
+    apy1d: p.apy1d * lpFeeShare,
+    apy7d: p.apy7d * lpFeeShare,
+  }));
 
   // build pool objects
   data = data.map((el) => buildPool(el, chainString));
