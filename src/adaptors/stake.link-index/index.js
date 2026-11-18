@@ -2,7 +2,7 @@ const utils = require('../utils');
 const axios = require('axios');
 
 const SUBGRAPH_URL =
-  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-production';
+  'https://graph-readonly.linkpool.pro/subgraphs/name/stakedotlink-ethereum-mainnet';
 const CHAIN_NAME = 'Ethereum';
 
 const getData = async (url, query = null) => {
