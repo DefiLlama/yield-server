@@ -21,6 +21,34 @@ const EXPLORER_API = 'https://explorer.pancakeswap.com/api/cached';
 // coins.llama.fi chain keys where they differ from the explorer's
 const LLAMA_CHAINS = { zksync: 'era', opbnb: 'op_bnb' };
 
+// PancakeSwap V2 factories. Pairs charge 0.25% per swap and, while the factory's
+// feeTo is set, _mintFee mints feeTo 8/25 of the fee growth, so LPs keep 0.17%:
+// https://sourcify.dev/server/v2/contract/56/0x58F876857a02D6762E0101bb5C46A8c1ED44Dc16
+const FACTORIES = {
+  bsc: '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73',
+  ethereum: '0x1097053Fd2ea711dad45caCcc45EfF7548fCB362',
+  zksync: '0xd03D8D566183F0086d8D09A84E1e30b58Dd5619d',
+  base: '0x02a84c1b3BBD7401a5f7fa98a384EBC70bB5749E',
+  linea: '0x02a84c1b3BBD7401a5f7fa98a384EBC70bB5749E',
+  arbitrum: '0x02a84c1b3BBD7401a5f7fa98a384EBC70bB5749E',
+  opbnb: '0x02a84c1b3BBD7401a5f7fa98a384EBC70bB5749E',
+  monad: '0x02a84c1b3BBD7401a5f7fa98a384EBC70bB5749E',
+};
+const SWAP_FEE = 0.0025;
+const PROTOCOL_FEE_SHARE = 8 / 25;
+
+// Share of the swap fee that LPs keep on this chain. Throws when feeTo can't be
+// read, so callers drop the fee apy instead of crediting LPs with the gross fee.
+async function getLpFeeShare(chain) {
+  const { output: feeTo } = await sdk.api.abi.call({
+    target: FACTORIES[chain],
+    abi: 'function feeTo() view returns (address)',
+    chain: LLAMA_CHAINS[chain] ?? chain,
+  });
+  if (typeof feeTo !== 'string') throw new Error(`no feeTo for ${chain}`);
+  return /^0x0{40}$/i.test(feeTo) ? 1 : 1 - PROTOCOL_FEE_SHARE;
+}
+
 async function fetchExplorerJson(url, { retries = 3, timeoutMs = 15000 } = {}) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -66,27 +94,27 @@ async function fetchExplorerPoolsByAddress(chain, lpAddresses, concurrency = 10)
   return results;
 }
 
-const computeFeeApr = (p, tvl = Number(p.tvlUSD)) => {
+const computeFeeApr = (p, lpFeeShare, tvl = Number(p.tvlUSD)) => {
   if (!tvl) return undefined;
-  const apr = (Number(p.volumeUSD24h) * 0.0025 * 365 * 100) / tvl;
+  const apr = (Number(p.volumeUSD24h) * SWAP_FEE * lpFeeShare * 365 * 100) / tvl;
   return Number.isFinite(apr) ? apr : undefined;
 };
 
-function buildPoolFromExplorer(p, chain) {
+function buildPoolFromExplorer(p, chain, lpFeeShare) {
   if (!p || !p.id) return null;
   if (!p.token0?.id || !p.token1?.id || !p.token0?.symbol || !p.token1?.symbol) return null;
   // priced from tvlToken0/1 in getPoolsApy, the explorer's tvlUSD can be off by orders of magnitude
   const tvlUsd = p.totalValueLockedUSD;
   if (!tvlUsd) return null;
 
-  const feeUsd7d = Number(p.volumeUSD7d) * 0.0025;
+  const feeUsd7d = Number(p.volumeUSD7d) * SWAP_FEE * lpFeeShare;
   return {
     pool: utils.formatAddress(p.id),
     chain: utils.formatChain(chain),
     project: PROJECT,
     symbol: p.token0.symbol + '-' + p.token1.symbol,
     tvlUsd,
-    apyBase: computeFeeApr(p, tvlUsd),
+    apyBase: computeFeeApr(p, lpFeeShare, tvlUsd),
     apyBase7d: (feeUsd7d * 365 * 100) / 7 / tvlUsd,
     volumeUsd1d: Number(p.volumeUSD24h),
     volumeUsd7d: Number(p.volumeUSD7d),
@@ -95,6 +123,13 @@ function buildPoolFromExplorer(p, chain) {
 }
 
 async function getPoolsApy(chain) {
+  let lpFeeShare;
+  try {
+    lpFeeShare = await getLpFeeShare(chain);
+  } catch (e) {
+    console.error(`pancakeswap-amm: failed to read ${chain} feeTo: ${e.message}`);
+    return [];
+  }
   let data;
   try {
     data = await fetchExplorerPools(chain);
@@ -122,7 +157,9 @@ async function getPoolsApy(chain) {
     console.error(`pancakeswap-amm: failed to price ${chain} pools: ${e.message}`);
     return [];
   }
-  return priced.map((p) => buildPoolFromExplorer(p, chain)).filter(Boolean);
+  return priced
+    .map((p) => buildPoolFromExplorer(p, chain, lpFeeShare))
+    .filter(Boolean);
 }
 
 const calculateApy = (
@@ -214,10 +251,18 @@ const getPoolsBsc = async () => {
   const poolsInfo = poolsRes.output.map((res) => res.output);
   const lpTokens = lpTokensRes.output.map((res) => res.output);
 
-  const explorerPools = await fetchExplorerPools('bsc').catch(() => []);
+  // without feeTo, farms keep their reward apy but get no fee apy
+  const lpFeeShare = await getLpFeeShare('bsc').catch((e) => {
+    console.error(`pancakeswap-amm: failed to read bsc feeTo: ${e.message}`);
+    return undefined;
+  });
+  const explorerPools =
+    lpFeeShare === undefined
+      ? []
+      : await fetchExplorerPools('bsc').catch(() => []);
   const feeAprByLp = {};
   for (const p of explorerPools) {
-    const apr = computeFeeApr(p);
+    const apr = computeFeeApr(p, lpFeeShare);
     if (apr !== undefined) feeAprByLp[p.id.toLowerCase()] = apr;
   }
   const missingLps = Array.from(
@@ -228,10 +273,13 @@ const getPoolsBsc = async () => {
         .filter((lp) => !(lp in feeAprByLp))
     )
   );
-  const fallback = await fetchExplorerPoolsByAddress('bsc', missingLps);
+  const fallback =
+    lpFeeShare === undefined
+      ? []
+      : await fetchExplorerPoolsByAddress('bsc', missingLps);
   fallback.forEach((p, i) => {
     if (!p) return;
-    const apr = computeFeeApr(p);
+    const apr = computeFeeApr(p, lpFeeShare);
     if (apr !== undefined) feeAprByLp[missingLps[i]] = apr;
   });
 
