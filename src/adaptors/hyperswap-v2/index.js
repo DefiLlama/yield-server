@@ -7,10 +7,10 @@ const PROJECT = 'hyperswap-v2';
 const CHAIN = 'hyperevm';
 const MIN_TVL_USD = 1000;
 const FEE_RATE = 0.003;
-// While the factory's feeTo is set, each pair's _mintFee mints feeTo 2/5 of the
-// fee growth (checked against real feeTo mints), so LPs keep 0.18% of the 0.3%.
+// factory.feeInfo() is (ownerFeeShare, feeTo). _mintFee sends the protocol
+// ownerFeeShare/1e5 of the fee growth. 40000 today, so LPs keep 0.18% of 0.3%.
 const FACTORY = '0x724412C00059bf7d6ee7d4a1d0D5cd4de3ea1C48';
-const PROTOCOL_FEE_SHARE = 0.4;
+const FEE_SHARE_DENOM = 1e5;
 const SUBGRAPH_URL =
   'https://api.subgraph.ormilabs.com/api/public/33c67399-d625-4929-b239-5709cd66e422/subgraphs/hyperswap-v2/v1.0.0/gn';
 
@@ -106,15 +106,19 @@ async function fetchPairDayVolumes() {
   return byPair;
 }
 
-// Throws when feeTo can't be read, rather than crediting LPs with the gross fee.
+// Throws when feeInfo can't be read, rather than crediting LPs with the gross fee.
 async function getLpFeeShare() {
-  const { output: feeTo } = await sdk.api.abi.call({
+  const { output } = await sdk.api.abi.call({
     target: FACTORY,
-    abi: 'function feeTo() view returns (address)',
+    abi: 'function feeInfo() view returns (uint256 ownerFeeShare, address feeTo)',
     chain: 'hyperliquid',
   });
-  if (typeof feeTo !== 'string') throw new Error('hyperswap-v2: no feeTo');
-  return /^0x0{40}$/i.test(feeTo) ? 1 : 1 - PROTOCOL_FEE_SHARE;
+  const raw = Array.isArray(output) ? output[0] : output?.ownerFeeShare;
+  const ownerFeeShare = Number(raw);
+  if (!Number.isFinite(ownerFeeShare) || ownerFeeShare < 0 || ownerFeeShare > FEE_SHARE_DENOM) {
+    throw new Error('hyperswap-v2: bad ownerFeeShare');
+  }
+  return 1 - ownerFeeShare / FEE_SHARE_DENOM;
 }
 
 async function apy() {
@@ -138,8 +142,9 @@ async function apy() {
     const dailyVols = dayVolumesByPair.get(p.id) || [];
     const volumeUsd7d = dailyVols.reduce((s, v) => s + v, 0);
     const fees7d = volumeUsd7d * lpFeeRate;
+    // PairDayData omits days with no swaps, so divide by the 7-day window.
     const apyBase7d = dailyVols.length
-      ? ((fees7d / dailyVols.length) * 365) / tvlUsd * 100
+      ? (fees7d * 365) / 7 / tvlUsd * 100
       : NaN;
 
     const token0 = p.token0.id;
