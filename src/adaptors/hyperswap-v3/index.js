@@ -1,9 +1,11 @@
 const { request, gql } = require('graphql-request');
+const sdk = require('@defillama/sdk');
 const utils = require('../utils');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
 const PROJECT = 'hyperswap-v3';
 const CHAIN = 'hyperevm';
+const SDK_CHAIN = 'hyperliquid';
 const MIN_TVL_USD = 10000;
 const SUBGRAPH_URL =
   'https://api.subgraph.ormilabs.com/api/public/33c67399-d625-4929-b239-5709cd66e422/subgraphs/hyperswap-v3/v0.1.2/gn';
@@ -50,10 +52,29 @@ async function fetchAllPools() {
   return all;
 }
 
+// with the fee switch on, the pool sends 1/feeProtocol of each swap fee to the
+// protocol, so lps only earn the rest. token0's cut is the low nibble, token1's
+// the high one; take the larger, as uniswap-v3 does. a pool whose slot0 read
+// fails gets null, so it is dropped rather than shown at the gross fee
+const getLpFeeShares = async (poolIds) => {
+  const { output } = await sdk.api.abi.multiCall({
+    abi: 'function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)',
+    calls: poolIds.map((target) => ({ target })),
+    chain: SDK_CHAIN,
+    permitFailure: true,
+  });
+  const share = (n) => (n ? 1 / n : 0);
+  return output.map(({ output: slot0 }) => {
+    if (!slot0) return null;
+    const feeProtocol = Number(slot0.feeProtocol);
+    return 1 - Math.max(share(feeProtocol & 0xf), share(feeProtocol >> 4));
+  });
+};
+
 async function apy() {
   const pools = await fetchAllPools();
 
-  const formatted = pools
+  let formatted = pools
     .map((p) => {
       const days = p.poolDayData || [];
       const day = days[0];
@@ -92,6 +113,20 @@ async function apy() {
         volumeUsd7d: volume7d,
       };
     })
+    .filter(Boolean);
+
+  // the subgraph's feesUSD is volume x fee tier, before the protocol cut
+  const lpFeeShares = await getLpFeeShares(formatted.map((p) => p.pool));
+  formatted = formatted
+    .map((p, i) =>
+      lpFeeShares[i] === null
+        ? null
+        : {
+            ...p,
+            apyBase: p.apyBase * lpFeeShares[i],
+            apyBase7d: p.apyBase7d * lpFeeShares[i],
+          }
+    )
     .filter(Boolean);
 
   const withRewards = await addMerklRewardApy(formatted, 'hyperswap');
