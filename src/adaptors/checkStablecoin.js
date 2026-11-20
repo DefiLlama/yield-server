@@ -43,6 +43,14 @@ const checkStablecoin = (el, stablecoins) => {
   } else if (el.project === 'strata-markets') {
     stable = true;
   } else if (
+    el.project === 'phoenix-protocol' &&
+    tokens.length === 1 &&
+    tokens[0] === 'phusd'
+  ) {
+    // phUSD (stablecoin id 374) has no DefiLlama coins price, so it is dropped
+    // from the priced stablecoin list before this check runs
+    stable = true;
+  } else if (
     el.project === 'aura' &&
     [
       '0xa13a9247ea42d743238089903570127dda72fe44',
