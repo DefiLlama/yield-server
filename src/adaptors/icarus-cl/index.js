@@ -13,14 +13,16 @@ const DAY = 86400;
 const Q128 = 2n ** 128n;
 const U256 = 2n ** 256n;
 
-const multiCall = (abi, targets, block) =>
+// Reads throw on failure unless permitFailure is set, so an RPC error fails
+// the run instead of yielding nulls that skew TVL or APY.
+const multiCall = (abi, targets, block, permitFailure = false) =>
   sdk.api.abi
     .multiCall({
       abi,
       chain: CHAIN,
       block,
       calls: targets.map((target) => ({ target })),
-      permitFailure: true,
+      permitFailure,
     })
     .then((r) => r.output.map((o) => o.output));
 
@@ -58,8 +60,8 @@ const apy = async () => {
     multiCall('uint256:feeGrowthGlobal0X128', POOLS),
     multiCall('uint256:feeGrowthGlobal1X128', POOLS),
     // fails for pools created within the last day; those get a null apyBase
-    multiCall('uint256:feeGrowthGlobal0X128', POOLS, block1d),
-    multiCall('uint256:feeGrowthGlobal1X128', POOLS, block1d),
+    multiCall('uint256:feeGrowthGlobal0X128', POOLS, block1d, true),
+    multiCall('uint256:feeGrowthGlobal1X128', POOLS, block1d, true),
   ]);
 
   const balances = (target, owners) =>
@@ -89,9 +91,9 @@ const apy = async () => {
     })
   ).output.map((o) => o.output === true);
   const [rewardRates, periodFinishes, rewardTokens] = await Promise.all([
-    multiCall('uint256:rewardRate', gauges),
-    multiCall('uint256:periodFinish', gauges),
-    multiCall('address:rewardToken', gauges),
+    multiCall('uint256:rewardRate', gauges, undefined, true),
+    multiCall('uint256:periodFinish', gauges, undefined, true),
+    multiCall('address:rewardToken', gauges, undefined, true),
   ]);
 
   const tokens = [

@@ -41,8 +41,9 @@ const apy = async () => {
     utils.getPrices([asset], CHAIN),
   ]);
 
-  const tvlUsd =
-    (totalAssets / 10 ** decimals) * pricesByAddress[asset.toLowerCase()];
+  const price = pricesByAddress[asset.toLowerCase()];
+  if (price === undefined) throw new Error(`risex: no price for ${asset}`);
+  const tvlUsd = (totalAssets / 10 ** decimals) * price;
 
   return [
     {

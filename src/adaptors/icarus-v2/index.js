@@ -10,14 +10,16 @@ const VOTER = '0xFB3773f03EFB35198b065e455090E55eE25D3177';
 const DAY = 86400;
 const ZERO = '0x0000000000000000000000000000000000000000';
 
-const multiCall = (abi, targets, block) =>
+// Reads throw on failure unless permitFailure is set, so an RPC error fails
+// the run instead of yielding nulls that skew TVL or APY.
+const multiCall = (abi, targets, block, permitFailure = false) =>
   sdk.api.abi
     .multiCall({
       abi,
       chain: CHAIN,
       block,
       calls: targets.map((target) => ({ target })),
-      permitFailure: true,
+      permitFailure,
     })
     .then((r) => r.output.map((o) => o.output));
 
@@ -27,7 +29,6 @@ const callEach = (abi, target, params) =>
       abi,
       chain: CHAIN,
       calls: params.map((p) => ({ target, params: p })),
-      permitFailure: true,
     })
     .then((r) => r.output.map((o) => o.output));
 
@@ -58,8 +59,8 @@ const apy = async () => {
     multiCall('uint256:index0', POOLS),
     multiCall('uint256:index1', POOLS),
     // fails for pools created within the last day; those get a null apyBase
-    multiCall('uint256:index0', POOLS, block1d),
-    multiCall('uint256:index1', POOLS, block1d),
+    multiCall('uint256:index0', POOLS, block1d, true),
+    multiCall('uint256:index1', POOLS, block1d, true),
     callEach(
       'function gauges(address) view returns (address)',
       VOTER,
@@ -82,10 +83,11 @@ const apy = async () => {
         VOTER,
         gaugeTargets.map((g) => [g])
       ),
-      multiCall('uint256:rewardRate', gaugeTargets),
-      multiCall('uint256:periodFinish', gaugeTargets),
-      multiCall('address:rewardToken', gaugeTargets),
-      multiCall('uint256:totalSupply', gaugeTargets),
+      // pools without a gauge point at VOTER, where these reads fail
+      multiCall('uint256:rewardRate', gaugeTargets, undefined, true),
+      multiCall('uint256:periodFinish', gaugeTargets, undefined, true),
+      multiCall('address:rewardToken', gaugeTargets, undefined, true),
+      multiCall('uint256:totalSupply', gaugeTargets, undefined, true),
     ]);
 
   const tokens = [
@@ -109,7 +111,7 @@ const apy = async () => {
     const t1 = token1s[i].toLowerCase();
     const p0 = prices[t0];
     const p1 = prices[t1];
-    if (p0 === undefined || p1 === undefined || !reserves[i]) return null;
+    if (p0 === undefined || p1 === undefined) return null;
     const d0 = 10 ** meta[t0].decimals;
     const d1 = 10 ** meta[t1].decimals;
 
