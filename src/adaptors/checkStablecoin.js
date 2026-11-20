@@ -1,6 +1,15 @@
+const INVISIBLE = /[\u200b\u200c\u200d\u200e\u200f\u202a-\u202e\u034f\ufeff]/g;
+const GLYPH_ALIASES = { '\u20ae': 't' };
+
+const normalizeSymbol = (symbol) =>
+  [...String(symbol ?? '').replace(INVISIBLE, '')]
+    .map((ch) => GLYPH_ALIASES[ch] ?? ch)
+    .join('');
+
 const checkStablecoin = (el, stablecoins) => {
-  let tokens = el.symbol.split('-').map((el) => el.toLowerCase());
-  const symbolLC = el.symbol.toLowerCase();
+  const symbol = normalizeSymbol(el.symbol);
+  let tokens = symbol.split('-').map((el) => el.toLowerCase());
+  const symbolLC = symbol.toLowerCase();
 
   // tokens that merely CONTAIN a stablecoin symbol substring but are NOT stablecoins.
   // e.g. 'pufeth'.includes('feth') or 'lanternsol'.includes('ern') otherwise flag these
@@ -81,4 +90,4 @@ const checkStablecoin = (el, stablecoins) => {
   return stable;
 };
 
-module.exports = { checkStablecoin };
+module.exports = { checkStablecoin, normalizeSymbol };

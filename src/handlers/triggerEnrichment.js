@@ -13,7 +13,10 @@ const { getStat } = require('../queries/stat');
 const { welfordUpdate } = require('../utils/welford');
 const poolsResponseColumns = require('../utils/enrichedColumns');
 const { getExcludedAdaptors, getDeadChains } = require('../utils/exclude');
-const { checkStablecoin } = require('../adaptors/checkStablecoin');
+const {
+  checkStablecoin,
+  normalizeSymbol,
+} = require('../adaptors/checkStablecoin');
 
 const ZERO_TVL_CATEGORIES = ['Lending', 'Uncollateralized Lending'];
 const PEGGED_USD_ALIASES = [
@@ -165,7 +168,7 @@ const main = async () => {
   );
   const isCrossCurrency = (symbol) => {
     const pegTypes = new Set();
-    for (const token of symbol.toLowerCase().split('-')) {
+    for (const token of normalizeSymbol(symbol).toLowerCase().split('-')) {
       const tokenClean = token.replace(/\s*\(.*?\)\s*/g, '');
       const hit = knownPegSymbols.find((s) => tokenClean.includes(s));
       if (!hit) continue;
@@ -437,7 +440,7 @@ const checkIlRisk = (el) => {
   // (independent governance/utility tokens). Without this, e.g. 'ethfi'.includes('eth')
   // collapses ETHFI into the ETH family and mislabels ETHFI-ETH pools as ilRisk 'no'.
   const notCorrelated = ['ethfi', 'sethfi', 'ethdydx', 'ethix'];
-  const symbol = el.symbol.toLowerCase();
+  const symbol = normalizeSymbol(el.symbol).toLowerCase();
   const tokens = symbol.split('-');
 
   ilRisk = '';
