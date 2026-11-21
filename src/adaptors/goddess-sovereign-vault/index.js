@@ -6,6 +6,7 @@ const VAULT_ADDRESS = '0xbF732B50C1003E12B978cC85B36Bd9455BF0e91f';
 const ARBITRUM_USDC = '0xaf88d065e77c8cc2239327c5edb3a432268e5831';
 const VAULT_URL = `https://arbiscan.io/address/${VAULT_ADDRESS}`;
 
+const DEPLOYMENT_BLOCK = 525756465;
 const SECONDS_PER_DAY = 86_400;
 const LOOKBACK_DAYS = 7;
 const USDC_DECIMALS = 6;
@@ -40,7 +41,7 @@ async function apy() {
   const now = Math.floor(Date.now() / 1000);
   const lookback = now - LOOKBACK_DAYS * SECONDS_PER_DAY;
 
-  const [[previousBlock, currentBlock], { pricesByAddress }] =
+  const [[lookbackBlock, currentBlock], { pricesByAddress }] =
     await Promise.all([
       getBlocksByTime([lookback, now], CHAIN),
       getPrices([ARBITRUM_USDC], CHAIN),
@@ -51,11 +52,20 @@ async function apy() {
     throw new Error(`Missing or invalid USDC price for ${CHAIN}:${ARBITRUM_USDC}`);
   }
 
-  const [totalAssets, previousSharePrice, currentSharePrice] = await Promise.all([
-    readVault(TOTAL_ASSETS_ABI, currentBlock),
-    readVault(SHARE_PRICE_ABI, previousBlock),
-    readVault(SHARE_PRICE_ABI, currentBlock),
-  ]);
+  const previousBlock = Math.max(lookbackBlock, DEPLOYMENT_BLOCK);
+  const [startBlock, endBlock, totalAssets, previousSharePrice, currentSharePrice] =
+    await Promise.all([
+      provider.getBlock(previousBlock),
+      provider.getBlock(currentBlock),
+      readVault(TOTAL_ASSETS_ABI, currentBlock),
+      readVault(SHARE_PRICE_ABI, previousBlock),
+      readVault(SHARE_PRICE_ABI, currentBlock),
+    ]);
+
+  const elapsedSeconds = endBlock?.timestamp - startBlock?.timestamp;
+  if (!Number.isFinite(elapsedSeconds) || elapsedSeconds <= 0) {
+    throw new Error('The vault has no measurable share-price history');
+  }
 
   if (
     !Number.isFinite(previousSharePrice) ||
@@ -68,8 +78,10 @@ async function apy() {
 
   const tvlUsd = (totalAssets / 10 ** USDC_DECIMALS) * usdcPrice;
   const apyBase =
-    ((currentSharePrice / previousSharePrice) ** (365 / LOOKBACK_DAYS) - 1) *
-    100;
+    Math.expm1(
+      Math.log(currentSharePrice / previousSharePrice) *
+        ((365 * SECONDS_PER_DAY) / elapsedSeconds)
+    ) * 100;
 
   return [
     {
