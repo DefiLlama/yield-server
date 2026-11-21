@@ -13,6 +13,11 @@ const WETH = '0x4200000000000000000000000000000000000006';
 const PRINCIPAL_LEDGER_V5 = '0x7F866a9fbe41D54F0d9C35b6892fcf27Ea766DB2';
 const EPOCH_ENGINE_V5 = '0xd93FbEbFb33FAc9288125074625D4750573B1a53';
 const REWARD_LEDGER_V5 = '0xC72671D9438388638547444524F6542b650C9264';
+const UNISWAP_V4_STATE_VIEW = '0xA3c0c9b65baD0b08107Aa264b0f3dB444b867A71';
+// Canonical Uniswap v4 USDC/NARA poolId: keccak256(abi.encode(USDC, NARA, 3000, 60, 0x07d8F2Dfd121B10dE3176DeAb6A8C0eaa2646aCC))
+const NARA_USDC_V4_POOL_ID =
+  '0x4a475299ef674bcc3d2c87c3917cfbecd38cf7237646a3553e37daba67da6e5f';
+const Q192 = 1n << 192n;
 
 const ABI = {
   principalAccounting:
@@ -31,6 +36,10 @@ const ABI = {
     'function rewardState() view returns ((bool initialized, uint64 openedEpoch, uint64 nextCheckpoint, uint256 protectedNaraSnapshot, int256 pendingNaraDelta, uint256 naraAdmissionHeadroom, bool receiptPrepared))',
   indicesAt:
     'function indicesAt(uint8 asset, uint64 boundary) view returns (bool exists, uint256 baseIndex, uint256 rarityIndex)',
+  getSlot0:
+    'function getSlot0(bytes32 poolId) view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)',
+  getLiquidity:
+    'function getLiquidity(bytes32 poolId) view returns (uint128 liquidity)',
 };
 
 /**
@@ -42,21 +51,60 @@ const ABI = {
 const toPlainTuple = (obj, keys) => keys.map((k) => String(obj[k]));
 
 /**
+ * Resolve NARA USD price from DefiLlama coins API, falling back to the canonical
+ * Uniswap v4 USDC/NARA pool on Base via StateView when coins.llama.fi has not yet indexed NARA.
+ * @param {Record<string, number>} pricesByAddress Lowercased token price map from coins.llama.fi.
+ * @param {number} usdcPrice Resolved USD price per 1 USDC.
+ * @returns {Promise<number>} USD price per 1 NARA, or 0 if unavailable.
+ */
+const resolveNaraUsdPrice = async (pricesByAddress, usdcPrice) => {
+  const indexedPrice = pricesByAddress[NARA.toLowerCase()];
+  if (Number.isFinite(indexedPrice) && indexedPrice > 0) {
+    return indexedPrice;
+  }
+
+  const [{ output: slot0 }, { output: liquidity }] = await Promise.all([
+    sdk.api.abi.call({
+      chain: CHAIN,
+      target: UNISWAP_V4_STATE_VIEW,
+      abi: ABI.getSlot0,
+      params: [NARA_USDC_V4_POOL_ID],
+    }),
+    sdk.api.abi.call({
+      chain: CHAIN,
+      target: UNISWAP_V4_STATE_VIEW,
+      abi: ABI.getLiquidity,
+      params: [NARA_USDC_V4_POOL_ID],
+    }),
+  ]);
+
+  const sqrtPriceX96 = BigInt(String(slot0?.sqrtPriceX96 ?? slot0?.[0] ?? 0));
+  const activeLiquidity = BigInt(String(liquidity?.liquidity ?? liquidity ?? 0));
+  if (sqrtPriceX96 <= 0n || activeLiquidity <= 0n) {
+    return 0;
+  }
+
+  // currency0 = USDC (6 decimals), currency1 = NARA (18 decimals)
+  // USDC per 1 NARA = (10^12 * 2^192) / sqrtPriceX96^2; scale by 1e6 for micro-USDC precision
+  const microUsdcPerNara = (10n ** 18n * Q192) / (sqrtPriceX96 * sqrtPriceX96);
+  return (Number(microUsdcPerNara) / 1e6) * usdcPrice;
+};
+
+/**
  * Compute live TVL, realized 24h fee APY, and forward 1.00x lower-bound NARA emission APY for NARA Protocol V5 on Base.
- * Returns `[]` until NARA is priced on `coins.llama.fi`.
  * @returns {Promise<Array<Record<string, unknown>>>} DefiLlama yield pool descriptor array.
  */
 const apy = async () => {
   const { pricesByAddress } = await utils.getPrices([NARA, USDC, WETH], CHAIN);
 
-  const naraPrice = pricesByAddress[NARA.toLowerCase()];
-  if (!Number.isFinite(naraPrice) || naraPrice <= 0) {
-    return [];
-  }
-
   const rawUsdcPrice = pricesByAddress[USDC.toLowerCase()];
   const usdcPrice =
     Number.isFinite(rawUsdcPrice) && rawUsdcPrice > 0 ? rawUsdcPrice : 1;
+
+  const naraPrice = await resolveNaraUsdPrice(pricesByAddress, usdcPrice);
+  if (!Number.isFinite(naraPrice) || naraPrice <= 0) {
+    return [];
+  }
 
   const [
     { output: acct },
