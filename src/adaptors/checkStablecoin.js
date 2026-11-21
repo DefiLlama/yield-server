@@ -1,4 +1,4 @@
-const INVISIBLE = /[\u200b\u200c\u200d\u200e\u200f\u202a-\u202e\u034f\ufeff]/g;
+const INVISIBLE = /[\p{Cf}\u034f]/gu;
 const GLYPH_ALIASES = { '\u20ae': 't' };
 
 const normalizeSymbol = (symbol) =>
