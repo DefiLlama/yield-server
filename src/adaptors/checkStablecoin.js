@@ -14,7 +14,25 @@ const checkStablecoin = (el, stablecoins) => {
   // tokens that merely CONTAIN a stablecoin symbol substring but are NOT stablecoins.
   // e.g. 'pufeth'.includes('feth') or 'lanternsol'.includes('ern') otherwise flag these
   // volatile assets (restaked ETH, a SOL LST, TRON SUN) as stablecoin: true.
-  const notStable = ['pufeth', 'lanternsol', 'sunold'];
+  const notStable = [
+    'pufeth',
+    'lanternsol',
+    'sunold',
+    'wfrax',
+    'rush',
+    'mmrush',
+    '80brush',
+    'supernvda',
+    'neuralink',
+    'rail',
+    'rain',
+    'archai',
+    'chain',
+    'cashcat',
+    'avail',
+    'kvai',
+    'paid',
+  ];
   if (tokens.some((t) => notStable.includes(t.replace(/\s*\(.*?\)\s*/g, ''))))
     return false;
 
