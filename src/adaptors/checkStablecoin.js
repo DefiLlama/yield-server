@@ -18,6 +18,14 @@ const checkStablecoin = (el, stablecoins) => {
   if (tokens.some((t) => notStable.includes(t.replace(/\s*\(.*?\)\s*/g, ''))))
     return false;
 
+  if (
+    symbolLC.includes('cvxcrv') ||
+    symbolLC.includes('tricrypto') ||
+    symbolLC.includes('3crypto') ||
+    (symbolLC.includes('crvusd') && symbolLC.includes('eth'))
+  )
+    return false;
+
   let stable;
   if (
     el.project === 'curve' &&
