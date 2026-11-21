@@ -1,4 +1,4 @@
-const sdk = require('@defillama/sdk');
+const { ethers } = require('ethers');
 const { getBlocksByTime, getPrices } = require('../utils');
 
 const CHAIN = 'arbitrum';
@@ -10,18 +10,30 @@ const SECONDS_PER_DAY = 86_400;
 const LOOKBACK_DAYS = 7;
 const USDC_DECIMALS = 6;
 
-const TOTAL_ASSETS_ABI = 'function totalAssets() view returns (uint256)';
-const SHARE_PRICE_ABI = 'function currentSharePrice() view returns (uint256)';
+const TOTAL_ASSETS_ABI = 'totalAssets';
+const SHARE_PRICE_ABI = 'currentSharePrice';
 
-async function readVault(abi, block) {
-  const { output } = await sdk.api.abi.call({
-    target: VAULT_ADDRESS,
-    chain: CHAIN,
-    abi,
-    block,
-  });
+const vaultInterface = new ethers.utils.Interface([
+  'function totalAssets() view returns (uint256)',
+  'function currentSharePrice() view returns (uint256)',
+]);
 
-  return Number(output);
+const provider = new ethers.providers.StaticJsonRpcProvider(
+  'https://arb1.arbitrum.io/rpc',
+  { name: 'arbitrum', chainId: 42161 }
+);
+
+async function readVault(method, block) {
+  try {
+    const data = vaultInterface.encodeFunctionData(method, []);
+    const result = await provider.call({ to: VAULT_ADDRESS, data }, block);
+    const [value] = vaultInterface.decodeFunctionResult(method, result);
+    return Number(value.toString());
+  } catch (error) {
+    throw new Error(
+      `Vault ${method}() failed on Arbitrum at block ${block}: ${error.message}`
+    );
+  }
 }
 
 async function apy() {
