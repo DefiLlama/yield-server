@@ -19,15 +19,21 @@ const vaultInterface = new ethers.utils.Interface([
   'function currentSharePrice() view returns (uint256)',
 ]);
 
+const network = { name: 'arbitrum', chainId: 42161 };
 const provider = new ethers.providers.StaticJsonRpcProvider(
   'https://arb1.arbitrum.io/rpc',
-  { name: 'arbitrum', chainId: 42161 }
+  network
 );
+const archiveProviders = [
+  'https://arbitrum-one-rpc.publicnode.com',
+  'https://arbitrum.drpc.org',
+  'https://arbitrum.gateway.tenderly.co',
+].map((url) => new ethers.providers.StaticJsonRpcProvider(url, network));
 
-async function readVault(method, block) {
+async function readVault(method, block, rpc = provider) {
   try {
     const data = vaultInterface.encodeFunctionData(method, []);
-    const result = await provider.call({ to: VAULT_ADDRESS, data }, block);
+    const result = await rpc.call({ to: VAULT_ADDRESS, data }, block);
     const [value] = vaultInterface.decodeFunctionResult(method, result);
     return Number(value.toString());
   } catch (error) {
@@ -35,6 +41,18 @@ async function readVault(method, block) {
       `Vault ${method}() failed on Arbitrum at block ${block}: ${error.message}`
     );
   }
+}
+
+async function readHistoricalSharePrice(block) {
+  let lastError;
+  for (const rpc of archiveProviders) {
+    try {
+      return await readVault(SHARE_PRICE_ABI, block, rpc);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
 
 async function apy() {
@@ -58,7 +76,7 @@ async function apy() {
       provider.getBlock(previousBlock),
       provider.getBlock(currentBlock),
       readVault(TOTAL_ASSETS_ABI, currentBlock),
-      readVault(SHARE_PRICE_ABI, previousBlock),
+      readHistoricalSharePrice(previousBlock),
       readVault(SHARE_PRICE_ABI, currentBlock),
     ]);
 
