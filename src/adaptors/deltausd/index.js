@@ -10,7 +10,6 @@ const NETWORKS = [
     token: '0x1851302297e318d658829fd94b89d5ae6528cb9e',
     collateral: '0x55d398326f99059ff775485246999027b3197955',
     collateralDecimals: 18,
-    canonical: true,
   },
 ];
 const UINT_FIELDS = [
@@ -194,7 +193,6 @@ async function apy() {
       ),
       poolMeta: `Owner-set APR ${configuredApr}%; linear accrual; ${waitDays}d redemption wait with no accrual; USDT liquidity required`,
       frozen: state.paused,
-      isIntrinsicSource: network.canonical,
       url: URL,
     };
   });
