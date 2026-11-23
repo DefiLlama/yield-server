@@ -548,6 +548,7 @@ const excludedProtocols = [
   { id: '3117', slug: 'astroport' }, // live pools only on Neutron (deadFrom 2026-07-01); adapter would only emit filtered rows
   { id: '1166', slug: 'defichain-dex' }, // ocean.defichain.com API unreachable (2026-11-14), the only apy source
   { id: '7873', slug: 'kerne' },
+  { id: '7674', slug: 'travessia-credit' },
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
