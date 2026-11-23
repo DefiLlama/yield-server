@@ -22,6 +22,8 @@ const RPC_URL = 'https://soroban-rpc.creit.tech/';
 const SECONDS_PER_YEAR = 31_536_000;
 const SCALAR_7 = 10_000_000n;
 const SCALAR_12 = 1_000_000_000_000n;
+const PROTOCOL_INTEREST_FEE_RATE = 20_000n;
+const MIN_OPERATIONAL_B_RATE = SCALAR_12 / 10n;
 const UTIL_95_PERCENT = 9_500_000n;
 const UTIL_5_PERCENT = 500_000n;
 
@@ -191,8 +193,14 @@ const getRates = (reserve, backstopTakeRate) => {
     borrowRate = extraRate + intersection;
   }
 
-  const supplyCapture = mulFloor(
+  // The protocol fee comes off first; the backstop takes its share of the rest.
+  const supplierShare = mulFloor(
+    SCALAR_7 - PROTOCOL_INTEREST_FEE_RATE,
     SCALAR_7 - BigInt(backstopTakeRate),
+    SCALAR_7
+  );
+  const supplyCapture = mulFloor(
+    supplierShare,
     utilization,
     SCALAR_7
   );
@@ -318,6 +326,7 @@ const getPoolApys = (poolConfig, pool, prices, blntPrice) => {
       frozen:
         pool.config.status >= 4 ||
         !reserve.config.enabled ||
+        reserve.data.b_rate < MIN_OPERATIONAL_B_RATE ||
         reserve.poolAuthorized === false,
       apyBaseBorrow: rates.borrowApy * 100,
       ...(borrowEmissionsApr !== undefined && {
