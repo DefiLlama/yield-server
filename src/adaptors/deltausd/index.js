@@ -3,21 +3,20 @@ const axios = require('axios');
 
 const PROJECT = 'deltausd';
 const URL = 'https://deltausd.com/protocol';
-const NETWORKS = [
-  {
-    chain: 'bsc',
-    name: 'Binance',
-    token: '0x1851302297e318d658829fd94b89d5ae6528cb9e',
-    collateral: '0x55d398326f99059ff775485246999027b3197955',
-    collateralDecimals: 18,
-  },
-];
+const RESERVE_TVL_URL = 'https://api.llama.fi/protocol/deltausd';
+const MAX_RESERVE_AGE = 2 * 86400;
+const NETWORK = {
+  chain: 'bsc',
+  name: 'Binance',
+  token: '0x1851302297e318d658829fd94b89d5ae6528cb9e',
+  collateral: '0x55d398326f99059ff775485246999027b3197955',
+  collateralDecimals: 18,
+};
 const UINT_FIELDS = [
   'apr',
   'basePrice',
   'startTime',
   'getCurrentPrice',
-  'totalSupply',
   'holdPeriod',
   'APR_DENOMINATOR',
   'SECONDS_IN_YEAR',
@@ -132,74 +131,54 @@ function holdingReturn(state) {
   );
 }
 
-function collateralPrice(coin, now) {
+async function reserveTvlUsd() {
+  const { data } = await axios.get(RESERVE_TVL_URL, { timeout: 20000 });
+  const latest = Array.isArray(data?.tvl) ? data.tvl.at(-1) : undefined;
+  const now = Math.floor(Date.now() / 1000);
   if (
-    !coin ||
-    !Number.isFinite(coin.timestamp) ||
-    Math.abs(now - coin.timestamp) > 6 * 3600 ||
-    (coin.confidence !== undefined &&
-      (!Number.isFinite(coin.confidence) ||
-        coin.confidence < 0.5 ||
-        coin.confidence > 1))
+    String(data?.id) !== module.exports.protocolId ||
+    !Number.isSafeInteger(latest?.date) ||
+    latest.date > now + 300 ||
+    now - latest.date > MAX_RESERVE_AGE
   ) {
-    throw new Error('Missing, stale or low-confidence collateral USD price');
+    throw new Error('Missing or stale DeltaUSD reserve TVL');
   }
-  return positiveNumber(coin.price, 'collateral USD price');
+  // Reuse the existing on-chain reserve adapter's net TVL, across strategy chains.
+  return positiveNumber(latest.totalLiquidityUSD, 'reserve TVL', true);
 }
 
 async function apy() {
-  const states = await Promise.all(NETWORKS.map(readState));
-  const keys = NETWORKS.map(
-    (network) => `${network.chain}:${network.collateral}`
-  );
-  // Only the USDT/USD quote is external. APR, supply, price/share, pauses and
-  // redemption terms are read from the deployed contracts, never the website.
-  const { data } = await axios.get(
-    `https://coins.llama.fi/prices/current/${keys.join(',')}`,
+  const [state, tvlUsd] = await Promise.all([
+    readState(NETWORK),
+    reserveTvlUsd(),
+  ]);
+  const apyBase = holdingReturn(state);
+  const configuredApr = (
+    (Number(state.apr) / Number(state.APR_DENOMINATOR)) * 100
+  ).toFixed(2);
+  const waitDays = Number((Number(state.holdPeriod) / 86400).toFixed(2));
+  return [
     {
-      timeout: 20000,
-    }
-  );
-  const now = Math.floor(Date.now() / 1000);
-  return NETWORKS.map((network, i) => {
-    const state = states[i];
-    const apyBase = holdingReturn(state);
-    const usdPrice = collateralPrice(data.coins?.[keys[i]], now);
-    // Yield-pool TVL values the locally issued dUSD at its contract redemption
-    // quote. It is a formula-valued claim, NOT the separate reserve-wallet TVL.
-    const collateralValue =
-      (state.totalSupply * state.USDT_UNIT * state.getCurrentPrice) /
-      (state.DUSD_UNIT * state.PRICE_SCALE);
-    const tvlUsd = positiveNumber(
-      (Number(collateralValue) / Number(state.USDT_UNIT)) * usdPrice,
-      'TVL',
-      true
-    );
-    const configuredApr =
-      (Number(state.apr) / Number(state.APR_DENOMINATOR)) * 100;
-    const waitDays = Number(state.holdPeriod) / 86400;
-    return {
-      pool: `${network.token}-${network.chain}`,
-      chain: network.name,
+      pool: `${NETWORK.token}-${NETWORK.chain}`,
+      chain: NETWORK.name,
       project: PROJECT,
       symbol: 'dUSD',
-      token: network.token,
-      underlyingTokens: [network.collateral],
+      token: NETWORK.token,
+      underlyingTokens: [NETWORK.collateral],
       tvlUsd,
       apyBase,
       pricePerShare: positiveNumber(
         Number(state.getCurrentPrice) / Number(state.PRICE_SCALE),
         'price per share'
       ),
-      poolMeta: `Owner-set APR ${configuredApr}%; linear accrual; ${waitDays}d redemption wait with no accrual; USDT liquidity required`,
+      poolMeta: `Owner-set APR ${configuredApr}%; ${waitDays}d redemption wait`,
       frozen: state.paused,
       url: URL,
-    };
-  });
+    },
+  ];
 }
 
 module.exports = {
-  // Registered DeltaUSD protocol id.
   protocolId: '9420',
   timetravel: false,
   apy,
