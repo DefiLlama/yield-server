@@ -342,6 +342,7 @@ const withOnChainState = async (chainString, pools) => {
       const amounts = principal[pool.id];
       return {
         ...pool,
+        sqrtPrice: amounts.sqrtPriceX96,
         reserve0:
           Number(amounts.coreAmount0) / 10 ** Number(pool.token0.decimals),
         reserve1:
