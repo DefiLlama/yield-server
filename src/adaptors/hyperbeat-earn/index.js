@@ -16,7 +16,7 @@ const pricerParamsAbi =
 
 const vaults = [
   {
-    symbol: 'USDC-USDT0',
+    symbol: 'USDC',
     poolMeta: 'USD+',
     vault: '0x9065E3153B1393Bb5f76520cdc1e08E49eb04B03',
     pricer: '0x5362454e5648C6Ac7F03969E8a62CFc61F99b9D6',
@@ -41,9 +41,10 @@ const getPricerParams = async (pricer, block) => {
   };
 };
 
-// The exchange rate is only updated on business days, at irregular times, so a
-// fixed lookback window holds a varying amount of accrual. Annualise over the
-// time between the two rate updates instead of over the window length.
+// The exchange rate is updated at irregular intervals, from a few hours to
+// several days apart, so a fixed lookback window holds a varying amount of
+// accrual. Annualise over the time between the two rate updates instead of
+// over the window length.
 const annualize = (now, prior) => {
   const elapsed = now.updatedAt - prior.updatedAt;
   if (elapsed <= 0 || prior.rate <= 0) return null;
