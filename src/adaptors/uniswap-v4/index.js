@@ -1,4 +1,6 @@
 const sdk = require('@defillama/sdk');
+const { ethers } = require('ethers');
+const _ = require('lodash');
 const { request, gql } = require('graphql-request');
 const utils = require('../utils');
 
@@ -50,6 +52,29 @@ const POOL_MANAGERS = {
   monad: '0x188d586ddcf52439676ca21a244753fa19f9ea8e',
 };
 
+// each one's poolManager() is the entry above
+const STATE_VIEWS = {
+  ethereum: '0x7ffe42c4a5deea5b0fec41c94c136cf115597227',
+  base: '0xa3c0c9b65bad0b08107aa264b0f3db444b867a71',
+  arbitrum: '0x76fd297e2d437cd7f76d50f01afe6160f86e9990',
+  polygon: '0x5ea1bd7974c8a611cbab0bdcafcb1d9cc9b3ba5a',
+  unichain: '0x86e8631a016f9068c3f085faf484ee3f5fdee8f2',
+  bsc: '0xd13dd3d6e93f276fafc9db9e6bb47c1180aee0c4',
+  avax: '0xc3c9e198c735a4b97e3e683f391ccbdd60b69286',
+  optimism: '0xc18a3169788f4f75a170290584eca6395c75ecdb',
+  monad: '0x77395f3b2e73ae90843717371294fa97cc419d64',
+};
+
+// Uniswap's ReservesLens, same address on every chain: a pool's liquidity
+// principal. the subgraphs' reserves also keep every fee ever paid
+const RESERVES_LENS = '0x0000001b173C3bbF3984D417d8614E3eed34865B';
+const POOLS_PRINCIPAL_ABI =
+  'function getPoolTVLBatch(address manager, tuple(address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks)[] keys) view returns (tuple(uint256 coreAmount0, uint256 coreAmount1, uint256 hookReserves0, uint256 hookReserves1, uint256 hookEffective0, uint256 hookEffective1, uint160 sqrtPriceX96, int24 tick, uint128 activeLiquidity, uint256 blockNumber, address statsProvider, uint16 hookPermissions, bool hasCustomAccounting, uint8 statsStatus)[])';
+// the lens reads every tick bitmap word, ~33M gas at tick spacing 1 and less
+// in proportion above it, so wider-spaced pools share a call
+const poolsPerCall = (pool) =>
+  _.clamp(Math.floor(Number(pool.tickSpacing) / 5), 1, 10);
+
 // the ethereum subgraph above halts on a deterministic indexing error every so
 // often; _meta keeps reporting a fresh head while no indexer can attest a block
 // past the halt, so every pool query fails and the chain silently drops out.
@@ -77,29 +102,11 @@ const fallbackChains = {
   },
 };
 
-// third-party deployment whose fees include the protocol fee
+// third-party deployment, used when the one above returns nothing
 const backupChains = {
-  optimism: {
-    url: sdk.graph.modifyEndpoint(
-      'Ab7CAcb1yPXUU2j9Bha1BPDHjE5QqUtjC3rPYyAyodJA'
-    ),
-    stateView: '0xc18a3169788f4f75a170290584eca6395c75ecdb',
-  },
-};
-
-// packs one 12-bit fee per direction; take the larger
-const fetchProtocolFees = async (chain, stateView, poolIds) => {
-  const { output } = await sdk.api.abi.multiCall({
-    chain,
-    abi: 'function getSlot0(bytes32 poolId) view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)',
-    calls: poolIds.map((id) => ({ target: stateView, params: [id] })),
-  });
-  return Object.fromEntries(
-    output.map(({ output: slot0 }, i) => {
-      const fee = Number(slot0.protocolFee);
-      return [poolIds[i], Math.max(fee & 0xfff, fee >> 12)];
-    })
-  );
+  optimism: sdk.graph.modifyEndpoint(
+    'Ab7CAcb1yPXUU2j9Bha1BPDHjE5QqUtjC3rPYyAyodJA'
+  ),
 };
 
 // v4 reports the fee actually charged on every swap, so summing the logs prices
@@ -125,6 +132,8 @@ const POOL_FIELDS = `
       totalValueLockedToken0
       totalValueLockedToken1
       createdAtTimestamp
+      tickSpacing
+      hooks
       token0 {
         symbol
         decimals
@@ -204,7 +213,7 @@ const formatPool = (chainString, p) => {
   if (isDynamic) {
     poolMeta = 'Dynamic fee (hook)';
   } else {
-    const feePercent = (Number(p.feeTier) / 1e4).toFixed(2);
+    const feePercent = (Number(p.lpFee ?? p.feeTier) / 1e4).toFixed(2);
     poolMeta = `${feePercent}%`;
   }
 
@@ -234,6 +243,125 @@ const hasSuspiciousTvlVolume = (pool) =>
   pool.tvlUsd > SUSPECT_TVL_USD &&
   Number(pool.volumeUsd1d || 0) / pool.tvlUsd < MIN_VOLUME_TO_TVL_RATIO;
 
+const poolIdOf = (poolKey) =>
+  ethers.utils.keccak256(
+    ethers.utils.defaultAbiCoder.encode(
+      ['address', 'address', 'uint24', 'int24', 'address'],
+      poolKey
+    )
+  );
+
+// a static pool's key carries its lp fee, a dynamic one the flag; the right one
+// hashes back to the pool id
+const poolKeyOf = (pool, lpFee) => {
+  const keyWithFee = (fee) => [
+    pool.token0.id,
+    pool.token1.id,
+    fee,
+    Number(pool.tickSpacing),
+    pool.hooks,
+  ];
+  const fee = [lpFee, DYNAMIC_FEE_FLAG].find(
+    (candidate) => poolIdOf(keyWithFee(candidate)) === pool.id.toLowerCase()
+  );
+  return fee === undefined ? undefined : keyWithFee(fee);
+};
+
+// one pool the lens reverts on fails its whole call, so a failed call is read
+// again a pool at a time
+const readPrincipal = (chainString, pools) =>
+  sdk.api.abi
+    .call({
+      chain: chainString,
+      target: RESERVES_LENS,
+      abi: POOLS_PRINCIPAL_ABI,
+      params: [POOL_MANAGERS[chainString], pools.map((pool) => pool.poolKey)],
+    })
+    .then(({ output }) => output.map((amounts, i) => [pools[i].id, amounts]))
+    .catch(async () =>
+      pools.length === 1
+        ? []
+        : (
+            await Promise.all(
+              pools.map((pool) => readPrincipal(chainString, [pool]))
+            )
+          ).flat()
+    );
+
+const fetchPrincipal = async (chainString, pools) =>
+  Object.fromEntries(
+    (
+      await sdk.util.runInPromisePool({
+        items: Object.values(_.groupBy(pools, poolsPerCall)).flatMap(
+          (sameSize) => _.chunk(sameSize, poolsPerCall(sameSize[0]))
+        ),
+        concurrency: 10,
+        processor: (sharingACall) => readPrincipal(chainString, sharingACall),
+      })
+    ).flat()
+  );
+
+// slot0 packs one 12-bit protocol fee per direction; take the larger. a pool
+// whose principal read fails sits the run out rather than publish the
+// subgraph's inflated reserves
+const withOnChainState = async (chainString, pools) => {
+  const { output: slot0s } = await sdk.api.abi.multiCall({
+    chain: chainString,
+    target: STATE_VIEWS[chainString],
+    abi: 'function getSlot0(bytes32 poolId) view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)',
+    calls: pools.map((pool) => ({ params: [pool.id] })),
+    permitFailure: true,
+  });
+  const withFees = pools.map((pool, i) => {
+    const slot0 = slot0s[i].output;
+    if (!slot0) return pool;
+    const lpFee = Number(slot0.lpFee);
+    const protocolFee = Number(slot0.protocolFee);
+    return {
+      ...pool,
+      lpFee,
+      protocolFee: Math.max(protocolFee & 0xfff, protocolFee >> 12),
+      poolKey: poolKeyOf(pool, lpFee),
+    };
+  });
+
+  const principal = await fetchPrincipal(
+    chainString,
+    withFees.filter((pool) => pool.poolKey)
+  );
+
+  const unread = pools.length - Object.keys(principal).length;
+  if (unread)
+    console.error(
+      `uniswap-v4: ${chainString} principal unread for ${unread}/${pools.length} pools, leaving them out of this run`
+    );
+
+  return withFees
+    .filter((pool) => principal[pool.id])
+    .map((pool) => {
+      const amounts = principal[pool.id];
+      return {
+        ...pool,
+        reserve0:
+          Number(amounts.coreAmount0) / 10 ** Number(pool.token0.decimals),
+        reserve1:
+          Number(amounts.coreAmount1) / 10 ** Number(pool.token1.decimals),
+      };
+    });
+};
+
+// a swap pays the lp fee plus the protocol fee. the Swap logs and the
+// subgraphs that store the last swap's fee in feeTier price a day's fees at
+// that total; the older deployments (arbitrum, optimism) price them at the
+// PoolKey's fee, which is the lp fee alone and must not be netted again
+const protocolFeeInSubgraphFees = (pool) =>
+  Number(pool.feeTier) === pool.lpFee ? 0 : pool.protocolFee;
+
+const lpFeesUsd = (feesUsd, volumeUsd, protocolFee) =>
+  feesUsd && protocolFee
+    ? Math.max(0, feesUsd - (volumeUsd * protocolFee) / 1e6)
+    : feesUsd;
+
 const token1PerToken0 = (pool) =>
   (Number(pool.sqrtPrice) / 2 ** 96) ** 2 *
   10 ** (Number(pool.token0.decimals) - Number(pool.token1.decimals));
@@ -246,9 +374,15 @@ const isAtMarketPrice = (pool) => {
   );
 };
 
-const withUnpricedSideAtPoolPrice = (pool) => {
+const withTvlAtCoinsPrices = (pool) => {
   const { price0, price1 } = pool;
-  if ((price0 === undefined) === (price1 === undefined)) return pool;
+  if (price0 === undefined && price1 === undefined) return pool;
+  if (price0 !== undefined && price1 !== undefined)
+    return {
+      ...pool,
+      totalValueLockedUSD:
+        Number(pool.reserve0) * price0 + Number(pool.reserve1) * price1,
+    };
   const [priced, unpriced] =
     price0 === undefined
       ? [
@@ -265,17 +399,24 @@ const withUnpricedSideAtPoolPrice = (pool) => {
 // >2x off the coins price ratio means nobody arbitrages the pool: a mispriced
 // token (ANVL-USDT at $6M, 2026-10-27) or an abandoned pool. an unpriced side
 // takes the pool's price, capped at the priced side, instead of utils.tvl's x2
-const priceAboveTvlMin = async (pools, chainString) =>
-  (await utils.tvl(pools, chainString))
-    .filter(isAtMarketPrice)
-    .map(withUnpricedSideAtPoolPrice)
-    .filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+// the subgraph reserves only shortlist the pools worth an on-chain read
+const priceAboveTvlMin = async (pools, chainString, atHead = true) => {
+  const aboveTvlMin = (pricedPools) =>
+    pricedPools
+      .map(withTvlAtCoinsPrices)
+      .filter((pool) => pool.totalValueLockedUSD >= TVL_MIN);
+  const shortlist = aboveTvlMin(
+    (await utils.tvl(pools, chainString)).filter(isAtMarketPrice)
+  );
+  if (!atHead) return shortlist;
+  return aboveTvlMin(await withOnChainState(chainString, shortlist));
+};
 
 /**
  * Prices volume and APY from the last completed UTC day. Pools without a full
  * day of history are omitted rather than annualizing a partial day.
  */
-const topLvl = async (chainString, url, timestamp, stateView) => {
+const topLvl = async (chainString, url, timestamp) => {
   try {
     const [block] = await utils.getBlocks(chainString, timestamp, [url]);
     const previousDay =
@@ -301,25 +442,8 @@ const topLvl = async (chainString, url, timestamp, stateView) => {
     }));
     dataNow = dataNow.filter((p) => !hasInvalidTokenTvl(p));
 
-    dataNow = await priceAboveTvlMin(dataNow, chainString);
-
-    if (stateView) {
-      const protocolFees = await fetchProtocolFees(
-        chainString,
-        stateView,
-        dataNow.map((pool) => pool.id)
-      );
-      dataNow = dataNow.map((pool) => {
-        const protocolFee = protocolFees[pool.id];
-        const volumes = volumesByPoolId[pool.id];
-        if (volumes)
-          volumes.feeUSD1d = Math.max(
-            0,
-            volumes.feeUSD1d - (volumes.volumeUSD1d * protocolFee) / 1e6
-          );
-        return { ...pool, feeTier: Number(pool.feeTier) - protocolFee };
-      });
-    }
+    // fees and the principal are read at the current block
+    dataNow = await priceAboveTvlMin(dataNow, chainString, timestamp === null);
 
     const hookFeesUsd = await fetchHookFeesUsd(
       chainString,
@@ -336,9 +460,13 @@ const topLvl = async (chainString, url, timestamp, stateView) => {
         : undefined;
       const feeUSD1d = !hasFullDay
         ? undefined
-        : isDynamicFeePool(pool.feeTier)
-        ? hookFeesUsd[pool.id]
-        : Number(volumes?.feeUSD1d ?? 0);
+        : lpFeesUsd(
+            isDynamicFeePool(pool.feeTier)
+              ? hookFeesUsd[pool.id]
+              : Number(volumes?.feeUSD1d ?? 0),
+            volumeUSD1d,
+            protocolFeeInSubgraphFees(pool)
+          );
 
       let apy;
       if (feeUSD1d === undefined) {
@@ -514,11 +642,19 @@ const topLvlDayData = async (chainString, url) => {
         : undefined;
       const feeUSD1d = !hasFullDay
         ? undefined
-        : isDynamic
-        ? hookFeesUsd[pool.id]
-        : Number(volumes?.feeUSD1d ?? 0);
+        : lpFeesUsd(
+            isDynamic ? hookFeesUsd[pool.id] : Number(volumes?.feeUSD1d ?? 0),
+            volumeUSD1d,
+            protocolFeeInSubgraphFees(pool)
+          );
       const feeUSD7d =
-        hasFullWeek && !isDynamic ? Number(volumes?.feeUSD7d ?? 0) : undefined;
+        hasFullWeek && !isDynamic
+          ? lpFeesUsd(
+              Number(volumes?.feeUSD7d ?? 0),
+              volumeUSD7d,
+              protocolFeeInSubgraphFees(pool)
+            )
+          : undefined;
 
       const toApy = (annualFeesUsd) =>
         pool.totalValueLockedUSD > 0 && annualFeesUsd > 0
@@ -554,6 +690,8 @@ const fallbackPoolsQuery = (idCursor, feeField, sqrtPriceField) => gql`
       totalValueLockedToken0
       totalValueLockedToken1
       createdAtTimestamp
+      tickSpacing
+      hooks
       token0 {
         symbol
         decimals
@@ -827,10 +965,14 @@ const topLvlFallback = async (
           0
         : undefined;
       const feeUSD1d = hasFullDay
-        ? (totals &&
-            (toUsd(totals.fees0, pool.token0, pool.price0) ??
-              toUsd(totals.fees1, pool.token1, pool.price1))) ||
-          0
+        ? lpFeesUsd(
+            (totals &&
+              (toUsd(totals.fees0, pool.token0, pool.price0) ??
+                toUsd(totals.fees1, pool.token1, pool.price1))) ||
+              0,
+            volumeUSD1d,
+            pool.protocolFee
+          )
         : undefined;
 
       // snapshot volume is priced by this subgraph, which gets some tokens badly
@@ -883,10 +1025,10 @@ const main = async (timestamp = null) => {
   const data = await Promise.all([
     ...Object.entries(chains).map(async ([chain, url]) => {
       const pools = await topLvl(chain, url, timestamp);
-      // protocol fees are read at the current block
+      // its fees include the protocol fee, which is only netted at the current block
       const backup = backupChains[chain];
       if (backup && !pools.length && timestamp === null)
-        return topLvl(chain, backup.url, timestamp, backup.stateView);
+        return topLvl(chain, backup, timestamp);
 
       const fallback = fallbackChains[chain];
       // the fallback subgraph prunes history, so it can only serve the live run
