@@ -22,7 +22,7 @@ const vaultPools = async () => {
       apyBase7d: v.fee_apy_7d,
       apyReward: hasRewards ? v.reward_apr || null : null,
       rewardTokens: hasRewards ? v.reward_tokens : null,
-      underlyingTokens: v.underlying_tokens.length > 0 ? v.underlying_tokens : undefined,
+      underlyingTokens: v.underlying_tokens,
       volumeUsd1d: v.volume_usd_1d,
       volumeUsd7d: v.volume_usd_7d,
       poolMeta: v.name,
