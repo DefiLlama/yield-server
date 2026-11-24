@@ -87,22 +87,28 @@ const apy = async () => {
   // Only fetch past prices for the vaults that need the fallback.
   const zeroAprIdx = vaults
     .map((_, i) => i)
-    .filter((i) => tranches[i] && Number(aprs[i]) === 0);
+    .filter((i) => tranches[i] && aprs[i] != null && Number(aprs[i]) === 0);
   const fallbackAprs = {};
   if (zeroAprIdx.length) {
-    const ts = Math.floor(Date.now() / 1000) - 86400 * FALLBACK_DAYS;
-    const { height: priorBlock } = await utils.getPriceApiData(
-      `/block/${CHAIN}/${ts}`
-    );
-    const priorPrices = await multiCall(
-      'function virtualPrice(address) view returns (uint256)',
-      zeroAprIdx.map((i) => ({ target: vaults[i], params: [tranches[i]] })),
-      priorBlock
-    );
-    zeroAprIdx.forEach((i, j) => {
-      const apr = realisedApr(sharePrices[i], priorPrices[j]);
-      if (apr !== null) fallbackAprs[i] = apr;
-    });
+    // Optional: if the historical lookup fails, every pool still reports its
+    // current getApr() and the zero-APR vaults simply keep 0.
+    try {
+      const ts = Math.floor(Date.now() / 1000) - 86400 * FALLBACK_DAYS;
+      const { height: priorBlock } = await utils.getPriceApiData(
+        `/block/${CHAIN}/${ts}`
+      );
+      const priorPrices = await multiCall(
+        'function virtualPrice(address) view returns (uint256)',
+        zeroAprIdx.map((i) => ({ target: vaults[i], params: [tranches[i]] })),
+        priorBlock
+      );
+      zeroAprIdx.forEach((i, j) => {
+        const apr = realisedApr(sharePrices[i], priorPrices[j]);
+        if (apr !== null) fallbackAprs[i] = apr;
+      });
+    } catch (e) {
+      console.log('pareto-credit: 30d virtualPrice fallback skipped', e.message);
+    }
   }
 
   const { pricesByAddress: prices } = await utils.getPrices(
