@@ -12,15 +12,39 @@ const LEGACY_VAULTS = [
   '0x433D5B175148dA32Ffe1e1A37a939E1b7e79be4d',
 ];
 
-const multiCall = async (abi, calls) =>
+// getApr() is gross of the CDO performance fee (fee() / FULL_ALLOC, e.g.
+// 10000 / 100000 = 10%), while virtualPrice already nets it. Report the net
+// rate. If fee() cannot be read, keep the gross getApr() rather than guess.
+const FULL_ALLOC = 100000;
+const netApr = (apr, fee) => {
+  const gross = apr / 1e18;
+  if (fee == null) return gross;
+  return gross * (1 - Number(fee) / FULL_ALLOC);
+};
+
+const multiCall = async (abi, calls, block) =>
   (
     await sdk.api.abi.multiCall({
       chain: CHAIN,
       abi,
       calls,
+      block,
       permitFailure: true,
     })
   ).output.map((o) => o.output);
+
+// Some legacy CDOs (e.g. Fasanara) return getApr() == 0 while their tranche
+// price keeps rising. For those, fall back to the realised 30-day growth of
+// virtualPrice. 30 days, not 7: tranche prices step once per epoch, so a 7-day
+// window often lands between two steps and reads 0 as well.
+const FALLBACK_DAYS = 30;
+
+const realisedApr = (priceNow, pricePrior) => {
+  if (!priceNow || !pricePrior || Number(pricePrior) <= 0) return null;
+  const growth = Number(priceNow) / Number(pricePrior) - 1;
+  if (!(growth > 0)) return null;
+  return growth * (365 / FALLBACK_DAYS) * 100;
+};
 
 const vaultName = (trancheName, tokenSymbol) => {
   if (!trancheName) return undefined;
@@ -50,10 +74,11 @@ const apy = async () => {
   }
 
   const vaultCalls = vaults.map((target) => ({ target }));
-  const [tokens, tranches, contractValues] = await Promise.all([
+  const [tokens, tranches, contractValues, fees] = await Promise.all([
     multiCall('address:token', vaultCalls),
     multiCall('address:AATranche', vaultCalls),
     multiCall('uint256:getContractValue', vaultCalls),
+    multiCall('uint256:fee', vaultCalls),
   ]);
 
   const [aprs, sharePrices, trancheNames, symbols, decimals] = await Promise.all([
@@ -69,6 +94,33 @@ const apy = async () => {
     multiCall('erc20:symbol', tokens.map((target) => ({ target }))),
     multiCall('erc20:decimals', tokens.map((target) => ({ target }))),
   ]);
+
+  // Only fetch past prices for the vaults that need the fallback.
+  const zeroAprIdx = vaults
+    .map((_, i) => i)
+    .filter((i) => tranches[i] && aprs[i] != null && Number(aprs[i]) === 0);
+  const fallbackAprs = {};
+  if (zeroAprIdx.length) {
+    // Optional: if the historical lookup fails, every pool still reports its
+    // current getApr() and the zero-APR vaults simply keep 0.
+    try {
+      const ts = Math.floor(Date.now() / 1000) - 86400 * FALLBACK_DAYS;
+      const { height: priorBlock } = await utils.getPriceApiData(
+        `/block/${CHAIN}/${ts}`
+      );
+      const priorPrices = await multiCall(
+        'function virtualPrice(address) view returns (uint256)',
+        zeroAprIdx.map((i) => ({ target: vaults[i], params: [tranches[i]] })),
+        priorBlock
+      );
+      zeroAprIdx.forEach((i, j) => {
+        const apr = realisedApr(sharePrices[i], priorPrices[j]);
+        if (apr !== null) fallbackAprs[i] = apr;
+      });
+    } catch (e) {
+      console.log('pareto-credit: 30d virtualPrice fallback skipped', e.message);
+    }
+  }
 
   const { pricesByAddress: prices } = await utils.getPrices(
     [...new Set(tokens.filter(Boolean))],
@@ -89,7 +141,7 @@ const apy = async () => {
       symbol: symbols[i],
       poolMeta: vaultName(trancheNames[i], symbols[i]),
       tvlUsd,
-      apyBase: aprs[i] / 1e18,
+      apyBase: fallbackAprs[i] ?? netApr(aprs[i], fees[i]),
       token: tranches[i].toLowerCase(),
       underlyingTokens: [token],
       pricePerShare: sharePrices[i] / 10 ** decimals[i],
