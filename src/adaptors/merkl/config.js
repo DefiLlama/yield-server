@@ -19,6 +19,7 @@ exports.networks = {
   9745: 'plasma',
   747474: 'katana',
   4663: 'robinhood',
+  43111: 'hemi',
 };
 
 // Chain name aliases for pool-matching helpers. Some protocols use a
