@@ -103,29 +103,37 @@ const apy = async () => {
   const supplies = {};
   await Promise.all(
     chains.map(async (chain) => {
-      const entries = Object.entries(FUNDS).filter(([, f]) => f.tokens[chain]);
-      const calls = entries.map(([, f]) => ({ target: f.tokens[chain] }));
-      const [supplyRes, decimalsRes] = await Promise.all([
-        sdk.api.abi.multiCall({
-          chain,
-          abi: 'erc20:totalSupply',
-          calls,
-          permitFailure: true,
-        }),
-        sdk.api.abi.multiCall({
-          chain,
-          abi: 'erc20:decimals',
-          calls,
-          permitFailure: true,
-        }),
-      ]);
-      entries.forEach(([symbol], i) => {
-        const supply = supplyRes.output[i].output;
-        const decimals = decimalsRes.output[i].output;
-        if (supply == null || decimals == null) return;
-        supplies[`${symbol}-${chain}`] =
-          Number(supply) / 10 ** Number(decimals);
-      });
+      // Isolated per chain: an RPC outage on one chain drops only that
+      // chain's pools, not every fund on every chain.
+      try {
+        const entries = Object.entries(FUNDS).filter(
+          ([, f]) => f.tokens[chain]
+        );
+        const calls = entries.map(([, f]) => ({ target: f.tokens[chain] }));
+        const [supplyRes, decimalsRes] = await Promise.all([
+          sdk.api.abi.multiCall({
+            chain,
+            abi: 'erc20:totalSupply',
+            calls,
+            permitFailure: true,
+          }),
+          sdk.api.abi.multiCall({
+            chain,
+            abi: 'erc20:decimals',
+            calls,
+            permitFailure: true,
+          }),
+        ]);
+        entries.forEach(([symbol], i) => {
+          const supply = supplyRes.output[i].output;
+          const decimals = decimalsRes.output[i].output;
+          if (supply == null || decimals == null) return;
+          supplies[`${symbol}-${chain}`] =
+            Number(supply) / 10 ** Number(decimals);
+        });
+      } catch (e) {
+        console.log(`spiko: ${chain} supply read skipped`, e.message);
+      }
     })
   );
 
