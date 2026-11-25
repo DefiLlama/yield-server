@@ -166,7 +166,7 @@ const getUzrPool = async (prices) => {
       ? (roi * SECONDS_PER_YEAR) / secondsToMaturity
       : 0;
 
-  const [marketData, collateralBalanceRes] = await Promise.all([
+  const [marketData, collateralBalanceRes, marketParamsRes] = await Promise.all([
     sdk.api.abi.call({
       target: UZRLendingMarket,
       abi: marketAbi,
@@ -177,6 +177,12 @@ const getUzrPool = async (prices) => {
       target: USD0PP,
       abi: 'erc20:balanceOf',
       params: [UZRLendingMarket],
+      chain: CHAIN,
+    }),
+    sdk.api.abi.call({
+      target: UZRLendingMarket,
+      abi: idToMarketParamsAbi,
+      params: [UZRLendingMarketId],
       chain: CHAIN,
     }),
   ]);
@@ -194,16 +200,20 @@ const getUzrPool = async (prices) => {
   const totalBorrowUsd = totalBorrowAssets * USD0price;
   let availableBorrowUsd = Math.max(totalLoanSupplyUsd - totalBorrowUsd, 0);
   const tvlUsd = availableBorrowUsd;
+  const apyBaseBorrow = toApyPercent(
+    await getVariableBorrowRate(marketParamsRes.output, marketData.output)
+  );
   const denom = 1 - LTV / (bUSD0price || 1);
   const maxLeverage = denom > 0 && Number.isFinite(denom) ? 1 / denom : 1;
 
-  // TODO: decide final UZR shape. Docs describe UZR as an isolated borrow
-  // market: users deposit bUSD0 as collateral and borrow USD0 against it, while
-  // the Usual DAO is the sole lender supplying USD0 liquidity. That means users
-  // cannot lend into this market for Fira supply yield. The displayed yield is
-  // bUSD0's implied discount-to-maturity carry from holding/looping bUSD0, not
-  // Fira paying supply-side APY. For now, preserve this adapter's prior UZR
-  // output shape and keep the maturity carry on apyBase.
+  // TODO: decide the final UZR supply side. Docs describe UZR as an isolated
+  // borrow market: users deposit bUSD0 as collateral and borrow USD0 against
+  // it, while the Usual DAO is the sole lender supplying USD0 liquidity. That
+  // means users cannot lend into this market for Fira supply yield. The
+  // displayed yield is bUSD0's implied discount-to-maturity carry from
+  // holding/looping bUSD0, not Fira paying supply-side APY, so the carry stays
+  // on apyBase for now. The borrow side is the market's own IRM, the same call
+  // every other market in this file uses.
   return {
     pool: UZRLendingMarket.toLowerCase(),
     chain: utils.formatChain(CHAIN),
@@ -211,12 +221,13 @@ const getUzrPool = async (prices) => {
     symbol: 'UZR',
     tvlUsd,
     apyBase: apr,
-    apyBaseBorrow: 0,
+    apyBaseBorrow,
     totalSupplyUsd,
     totalBorrowUsd,
     availableBorrowUsd,
     underlyingTokens: [USD0PP],
     borrowToken: USD0,
+    mintedCoin: 'USD0',
     rewardTokens: [],
     borrowable: availableBorrowUsd > 0,
     borrowMarketOnly: true,
