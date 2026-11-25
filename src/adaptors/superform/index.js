@@ -10,6 +10,7 @@ const CHAIN_MAPPING = {
   '1': 'ethereum',
   '8453': 'base',
   '14': 'flare',
+  '747474': 'katana',
 };
 
 const main = async () => {
