@@ -13,6 +13,7 @@ const {
   BLOCKCHAINID_TO_REGISTRIES,
   OVERRIDE_DATA,
 } = require('./config');
+const { getStellarPools } = require('./stellar');
 
 const assetTypeMapping = {
   btc: 'ethereum:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
@@ -481,7 +482,15 @@ const main = async () => {
     rewardTokens: correct.includes(p.pool) ? [] : p.rewardTokens,
   }));
 
-  return addMerklRewardApy(pools, 'curve', (p) => p.pool.split('-')[0]);
+  const stellarPools = await getStellarPools().catch((error) => {
+    console.error('curve-dex: stellar failed', error?.message);
+    return [];
+  });
+
+  return [
+    ...(await addMerklRewardApy(pools, 'curve', (p) => p.pool.split('-')[0])),
+    ...stellarPools,
+  ];
 };
 
 module.exports = {
