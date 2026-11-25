@@ -12,6 +12,16 @@ const LEGACY_VAULTS = [
   '0x433D5B175148dA32Ffe1e1A37a939E1b7e79be4d',
 ];
 
+// getApr() is gross of the CDO performance fee (fee() / FULL_ALLOC, e.g.
+// 10000 / 100000 = 10%), while virtualPrice already nets it. Report the net
+// rate. If fee() cannot be read, keep the gross getApr() rather than guess.
+const FULL_ALLOC = 100000;
+const netApr = (apr, fee) => {
+  const gross = apr / 1e18;
+  if (fee == null) return gross;
+  return gross * (1 - Number(fee) / FULL_ALLOC);
+};
+
 const multiCall = async (abi, calls, block) =>
   (
     await sdk.api.abi.multiCall({
@@ -64,10 +74,11 @@ const apy = async () => {
   }
 
   const vaultCalls = vaults.map((target) => ({ target }));
-  const [tokens, tranches, contractValues] = await Promise.all([
+  const [tokens, tranches, contractValues, fees] = await Promise.all([
     multiCall('address:token', vaultCalls),
     multiCall('address:AATranche', vaultCalls),
     multiCall('uint256:getContractValue', vaultCalls),
+    multiCall('uint256:fee', vaultCalls),
   ]);
 
   const [aprs, sharePrices, trancheNames, symbols, decimals] = await Promise.all([
@@ -130,7 +141,7 @@ const apy = async () => {
       symbol: symbols[i],
       poolMeta: vaultName(trancheNames[i], symbols[i]),
       tvlUsd,
-      apyBase: fallbackAprs[i] ?? aprs[i] / 1e18,
+      apyBase: fallbackAprs[i] ?? netApr(aprs[i], fees[i]),
       token: tranches[i].toLowerCase(),
       underlyingTokens: [token],
       pricePerShare: sharePrices[i] / 10 ** decimals[i],
