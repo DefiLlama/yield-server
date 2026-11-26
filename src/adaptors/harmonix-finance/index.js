@@ -1,6 +1,5 @@
 const axios = require('axios');
 const sdk = require('@defillama/sdk');
-const ethers = require('ethers');
 const utils = require('../utils')
 
 // ABI for totalValueLocked function
@@ -75,23 +74,21 @@ const getApy = async () => {
       let tvlUsd = 0
 
       if (chainId === 'hyperliquid') {
-        const provider = new ethers.providers.JsonRpcProvider("https://rpc.hyperliquid.xyz/evm");
-
-        const contractAddress = "0xe9d69CdD6Fe41e7B621B4A688C5D1a68cB5c8ADc";
-        const abi = [
-          "function getPriceUnsafe(bytes32) view returns (tuple(int64, uint64, int32, uint256))"
-        ];
-
-        const priceFeed = "0x4279e31cc369bbcc2faf022b382b080e32a8e689ff20fbc530d2a603eb6cd98b";
-
-      
-        const contract = new ethers.Contract(contractAddress, abi, provider);
-        const [price, conf, expo, timestamp] = await contract.getPriceUnsafe(priceFeed);
-        const normalizedPrice = Number(price) * 10 ** expo;
-        
-      
-        tvlUsd = normalizedPrice * v.tvl;
-    
+        const token = assets[chainId]?.[v.vault_currency?.toLowerCase()];
+        if (!token)
+          throw new Error(
+            `harmonix-finance: no ${v.vault_currency} address on ${chainId}`
+          );
+        const tokenKey = `${chainId}:${token}`;
+        const priceData = await axios.get(
+          utils.getPriceApiUrl(`/prices/current/${tokenKey}`)
+        );
+        const tokenPrice = priceData.data.coins[tokenKey]?.price;
+        if (!tokenPrice)
+          throw new Error(
+            `harmonix-finance: no price for ${v.vault_currency} on ${chainId}`
+          );
+        tvlUsd = v.tvl * tokenPrice;
       }
       else {
         const tvl = await getTvl(v.contract_address, chainId);
