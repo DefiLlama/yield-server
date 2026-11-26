@@ -9,15 +9,14 @@ const SUBGRAPH_URL =
 
 const LP_FEE_SHARE = 0.86;
 
-// GraphQL query for fetching pools from Project X V3 subgraph
+const MIN_TVL_USD = 10000;
+
+// nested poolDayData makes paging through all ~4k pools take minutes (and a
+// 1000-pool page times out), so page pools without it and fetch day data only
+// for the pools that pass the TVL floor
 const poolsQuery = gql`
-  query getPools($first: Int!, $skip: Int!) {
-    pools(
-      first: $first
-      skip: $skip
-      orderBy: id
-      orderDirection: asc
-    ) {
+  query getPools($first: Int!, $lastId: String!) {
+    pools(first: $first, where: { id_gt: $lastId }, orderBy: id) {
       id
       token0 {
         id
@@ -30,13 +29,17 @@ const poolsQuery = gql`
         decimals
       }
       feeTier
-      liquidity
-      sqrtPrice
-      tick
       reserve0: totalValueLockedToken0
       reserve1: totalValueLockedToken1
+    }
+  }
+`;
+
+const dayDataQuery = gql`
+  query getDayData($ids: [ID!]!) {
+    pools(first: 1000, where: { id_in: $ids }) {
+      id
       poolDayData(first: 1, orderBy: date, orderDirection: desc) {
-        date
         volumeToken0
         volumeToken1
       }
@@ -44,36 +47,33 @@ const poolsQuery = gql`
   }
 `;
 
-/**
- * Fetch all pools from the subgraph
- */
 async function fetchAllPools() {
+  const first = 1000;
   let allPools = [];
-  let skip = 0;
-  const first = 100;
+  let lastId = '';
 
   while (true) {
-    try {
-      const poolsData = await request(SUBGRAPH_URL, poolsQuery, {
-        first,
-        skip,
-      });
-      const pools = poolsData.pools;
-
-      if (pools.length === 0) break;
-
-      allPools = allPools.concat(pools);
-
-      if (pools.length < first) break;
-
-      skip += first;
-    } catch (error) {
-      console.error('Error fetching pools from subgraph:', error);
-      throw error;
-    }
+    const { pools } = await request(SUBGRAPH_URL, poolsQuery, {
+      first,
+      lastId,
+    });
+    allPools = allPools.concat(pools);
+    if (pools.length < first) break;
+    lastId = pools[pools.length - 1].id;
   }
 
   return allPools;
+}
+
+async function fetchDayData(ids) {
+  const dayData = {};
+  for (let i = 0; i < ids.length; i += 100) {
+    const { pools } = await request(SUBGRAPH_URL, dayDataQuery, {
+      ids: ids.slice(i, i + 100),
+    });
+    for (const p of pools) dayData[p.id] = p.poolDayData?.[0];
+  }
+  return dayData;
 }
 
 /**
@@ -93,59 +93,47 @@ function calculateApyBase(feesUSD, tvlUSD) {
 }
 
 async function apy() {
-  try {
-    // The subgraph's USD fields come from its derivedETH pricing, which is
-    // broken (UBTC derivedETH ~216k, WHYPE-UBTC reported at $674M for ~$5M of
-    // tokens), so price the token amounts with coins.llama.fi instead
-    const pools = await utils.tvl(await fetchAllPools(), 'hyperliquid');
+  // The subgraph's USD fields come from its derivedETH pricing, which is
+  // broken (UBTC derivedETH ~216k, WHYPE-UBTC reported at $674M for ~$5M of
+  // tokens), so price the token amounts with coins.llama.fi instead.
+  // utils.tvl doubles the priced side when one price is missing, which a
+  // one-sided concentrated position makes meaningless, so skip those
+  const pools = (await utils.tvl(await fetchAllPools(), 'hyperliquid')).filter(
+    (p) =>
+      p.price0 > 0 &&
+      p.price1 > 0 &&
+      Number.isFinite(p.totalValueLockedUSD) &&
+      p.totalValueLockedUSD >= MIN_TVL_USD
+  );
 
-    const formattedPools = pools
-      .map((pool) => {
-        // utils.tvl doubles the priced side when one price is missing, which
-        // a one-sided concentrated position makes meaningless, so skip those
-        if (!(pool.price0 > 0) || !(pool.price1 > 0)) return null;
+  const dayData = await fetchDayData(pools.map((p) => p.id));
 
-        const dayData = pool.poolDayData?.[0];
-        const tvlUSD = pool.totalValueLockedUSD;
-        // same as the subgraph's volumeUSD: average of both swap legs
-        const volumeUSD =
-          (Number(dayData?.volumeToken0 || 0) * pool.price0 +
-            Number(dayData?.volumeToken1 || 0) * pool.price1) /
-          2;
-        const feesUSD = (volumeUSD * Number(pool.feeTier)) / 1e6;
+  return pools.map((pool) => {
+    const day = dayData[pool.id];
+    const tvlUSD = pool.totalValueLockedUSD;
+    // same as the subgraph's volumeUSD: average of both swap legs
+    const volumeUSD =
+      (Number(day?.volumeToken0 || 0) * pool.price0 +
+        Number(day?.volumeToken1 || 0) * pool.price1) /
+      2;
+    const feesUSD = (volumeUSD * Number(pool.feeTier)) / 1e6;
 
-        const apyBase = calculateApyBase(feesUSD, tvlUSD);
-
-        // Skip pools with no TVL or very low TVL
-        if (!Number.isFinite(tvlUSD) || tvlUSD < 10000) return null;
-
-        // Format pool metadata
-        const feePercent = Number(pool.feeTier) / 10000;
-        const poolMeta = `${feePercent}%`;
-
-        return {
-          pool: pool.id.toLowerCase(),
-          chain: utils.formatChain(CHAIN),
-          project: PROJECT,
-          symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
-          tvlUsd: tvlUSD,
-          apyBase: apyBase || 0,
-          url: `https://www.prjx.com/deposit?tokenA=${pool.token0.id}&tokenB=${pool.token1.id}&fee=${pool.feeTier}`,
-          underlyingTokens: [
-            pool.token0.id.toLowerCase(),
-            pool.token1.id.toLowerCase(),
-          ],
-          poolMeta,
-          volumeUsd1d: volumeUSD,
-        };
-      })
-      .filter((pool) => pool !== null);
-
-    return formattedPools;
-  } catch (error) {
-    console.error('Error in Project X adapter:', error);
-    throw error;
-  }
+    return {
+      pool: pool.id.toLowerCase(),
+      chain: utils.formatChain(CHAIN),
+      project: PROJECT,
+      symbol: `${pool.token0.symbol}-${pool.token1.symbol}`,
+      tvlUsd: tvlUSD,
+      apyBase: calculateApyBase(feesUSD, tvlUSD),
+      url: `https://www.prjx.com/deposit?tokenA=${pool.token0.id}&tokenB=${pool.token1.id}&fee=${pool.feeTier}`,
+      underlyingTokens: [
+        pool.token0.id.toLowerCase(),
+        pool.token1.id.toLowerCase(),
+      ],
+      poolMeta: `${Number(pool.feeTier) / 10000}%`,
+      volumeUsd1d: volumeUSD,
+    };
+  });
 }
 
 module.exports = {
