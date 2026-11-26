@@ -30,6 +30,15 @@ const ASSET_META = {
 
 const STABLES = new Set(['USDC', 'USDT'])
 
+// USDC and USDT are deposited straight from Ethereum and held on ICP as
+// ckUSDC/ckUSDT, so they are listed under Ethereum with the Ethereum tokens.
+const ETHEREUM_STABLES = {
+  USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+}
+const APP_URL = 'https://app.liquidium.fi'
+const UTM_PARAMS = 'utm_source=defillama&utm_medium=yields'
+
 const CANDID_LABELS = [
   'optimal_utilization_rate',
   'principal',
@@ -126,6 +135,13 @@ function fixedPointToNumber(value, decimals, field = 'value') {
   const fractionValue = Number(`0.${fractionText}`)
   const result = integerValue + fractionValue
   return negative ? -result : result
+}
+
+// Scaled supply/debt times the pool index gives native units, rounded half up
+// like the canister's ray_mul. A zero index counts as 1, as in its guard_one.
+function rayMul(value, index) {
+  const safeIndex = index === 0n ? RAY : index
+  return (value * safeIndex + RAY / 2n) / RAY
 }
 
 function clampRay(value) {
@@ -277,18 +293,16 @@ const apy = async () => {
         return null
       }
 
-      const totalSupplyRaw = toBigInt(pool.total_supply_at_last_sync, 'total_supply_at_last_sync')
-      const totalBorrowRaw = toBigInt(pool.total_debt_at_last_sync, 'total_debt_at_last_sync')
-      const totalSupply = fixedPointToNumber(
-        totalSupplyRaw,
-        meta.decimals,
-        'total_supply_at_last_sync'
+      const totalSupplyRaw = rayMul(
+        toBigInt(pool.total_supply_at_last_sync, 'total_supply_at_last_sync'),
+        toBigInt(pool.lending_index, 'lending_index')
       )
-      const totalBorrow = fixedPointToNumber(
-        totalBorrowRaw,
-        meta.decimals,
-        'total_debt_at_last_sync'
+      const totalBorrowRaw = rayMul(
+        toBigInt(pool.total_debt_at_last_sync, 'total_debt_at_last_sync'),
+        toBigInt(pool.borrow_index, 'borrow_index')
       )
+      const totalSupply = fixedPointToNumber(totalSupplyRaw, meta.decimals, 'total_supply')
+      const totalBorrow = fixedPointToNumber(totalBorrowRaw, meta.decimals, 'total_debt')
 
       const utilizationRay =
         totalSupplyRaw > 0n ? clampRay((totalBorrowRaw * RAY) / totalSupplyRaw) : 0n
@@ -315,19 +329,26 @@ const apy = async () => {
       const ltv = toSafeInteger(pool.max_ltv, 'max_ltv') / 10000
 
       const poolId = `${pool.principal.toString()}-${asset}`
-      const underlyingToken = getUnderlyingToken(pool, meta)
+      const ethereumToken =
+        chainKey === 'ETH' && STABLES.has(asset) ? ETHEREUM_STABLES[asset] : null
+      const underlyingToken = ethereumToken || getUnderlyingToken(pool, meta)
 
       return {
         pool: poolId,
-        chain: utils.formatChain('ICP'),
-        project: 'liquidium',
+        chain: utils.formatChain(ethereumToken ? 'ethereum' : 'ICP'),
+        project: 'liquidium-cross-chain',
         symbol: asset,
         tvlUsd,
         apyBase,
         apyReward: null,
         apyBaseBorrow,
         underlyingTokens: underlyingToken ? [underlyingToken] : undefined,
-        poolMeta: `Asset chain: ${chainKey}`,
+        poolMeta: ethereumToken
+          ? `Deposit ${asset} from Ethereum (held as ck${asset} on ICP)`
+          : `Asset chain: ${chainKey}`,
+        url: ethereumToken
+          ? `${APP_URL}/insights/${asset.toLowerCase()}?${UTM_PARAMS}`
+          : undefined,
         totalSupplyUsd,
         totalBorrowUsd,
         availableBorrowUsd,
