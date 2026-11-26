@@ -156,6 +156,9 @@ const apy = async () => {
         tvlUsd: supply * price,
         apyBase,
         apyBase7d,
+        // NAV per share from the fund's feed (6 decimals), in the fund's own
+        // currency: USD for USTBL/SAFO, EUR for EUTBL/eurSAFO.
+        pricePerShare: navNow[i].nav / 1e6,
         underlyingTokens: [address],
         url: 'https://www.spiko.io',
       });
