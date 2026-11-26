@@ -7,6 +7,7 @@ const MIN_TVL = 10_000;
 
 const apy = async () => {
   const pools = [];
+  const seen = new Set();
 
   // pools are sorted by tvl desc, stop once a page drops below the tvl floor
   for (let page = 1; page <= MAX_PAGES; page++) {
@@ -18,6 +19,9 @@ const apy = async () => {
 
     for (const p of rows) {
       if (p.is_blacklisted || !(p.tvl >= MIN_TVL)) continue;
+      // the tvl ordering is live, a pool can show up on two pages
+      if (seen.has(p.address)) continue;
+      seen.add(p.address);
 
       pools.push({
         pool: p.address,
