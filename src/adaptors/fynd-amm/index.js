@@ -127,7 +127,9 @@ const getChainPools = async (chain) => {
 
     const tvlUsd = toUsd(row.tvl0_total, row.tvl1_total);
     const depthUsd = toUsd(row.depth0, row.depth1);
-    if (tvlUsd < MIN_TVL_USD || !depthUsd) continue;
+    // Same as the Fynd pools page: APR on the depth, except on Robinhood, where it is on the TVL.
+    const liquidityUsd = chain === 'robinhood' ? tvlUsd : depthUsd;
+    if (tvlUsd < MIN_TVL_USD || !liquidityUsd) continue;
     const feesUsd =
       toUsd(fees[BigInt(pool.token0)] ?? 0, fees[BigInt(pool.token1)] ?? 0) *
       lpFeeShare;
@@ -138,8 +140,8 @@ const getChainPools = async (chain) => {
       project: PROJECT,
       symbol: `${coin0.symbol}-${coin1.symbol}`,
       tvlUsd,
-      // APR on the liquidity near the price, net of the Ekubo protocol fee.
-      apyBase: ((feesUsd * 365) / depthUsd) * 100,
+      // Net of the Ekubo protocol fee.
+      apyBase: ((feesUsd * 365) / liquidityUsd) * 100,
       underlyingTokens: [pool.token0, pool.token1],
       poolMeta:
         row.depth_percent != null
