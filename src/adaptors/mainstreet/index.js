@@ -28,12 +28,16 @@ const poolsFunction = async () => {
 
   const apy = (Math.pow(1 + apr / 1e18 / 365, 365) - 1) * 100;
 
+  const { pricesByAddress } = await utils.getPrices([msUSD.address], CHAIN_NAME);
+  const price = pricesByAddress[msUSD.address.toLowerCase()];
+  if (!price) throw new Error('mainstreet: no price for msUSD');
+
   const msUSDPool = {
     pool: msUSD.address,
     chain: utils.formatChain('ethereum'),
     project: 'mainstreet',
     symbol: 'msUSD',
-    tvlUsd: Number(totalSupply) / 1e18,
+    tvlUsd: (Number(totalSupply) / 1e18) * price,
     apyBase: apy,
     apyReward: 0,
     rewardTokens: [msUSD.address],
