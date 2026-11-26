@@ -2,7 +2,7 @@ const axios = require('axios');
 const BN = require('bignumber.js');
 const { request, gql } = require('graphql-request');
 
-const { formatChain } = require('../utils');
+const { formatChain, withRetry } = require('../utils');
 
 // Tokens from dHEDGE fund composition that don't resolve in the price API
 const TOROS_UNRESOLVABLE = {
@@ -11,17 +11,25 @@ const TOROS_UNRESOLVABLE = {
 };
 const resolveTorosToken = (addr) => TOROS_UNRESOLVABLE[addr?.toLowerCase()] || addr;
 
-// mStable vault on dHEDGE infra; owned by mstable-v2.
-const EXCLUDED_VAULTS = new Set(['0xfec2adfa296fe189f53089fd5ccd8c28dd559cf2']);
+// mStable vaults on dHEDGE infra (owned by mstable-v2, mstable-yield), and
+// BTCSHORTVOL, whose API apy (~1700%) contradicts its own performance metrics.
+const EXCLUDED_VAULTS = new Set([
+  '0xfec2adfa296fe189f53089fd5ccd8c28dd559cf2',
+  '0x9c6de13d4648a6789017641f6b1a025816e66228',
+  '0x8c068d7033d66c4aacab25ce8219e5688c60155f',
+]);
 
 const DHEDGE_REWARDS_API_URL = 'https://app.dhedge.org/api/rewards';
 
 const DHEDGE_API_URL = 'https://api-v2.dhedge.org/graphql';
 
-const YIELD_PRODUCTS_QUERY = gql`
-  query YieldProducts {
+const VAULT_ADDRESSES_QUERY = gql`
+  query VaultAddresses {
     yieldProducts {
       address
+    }
+    apyForTorosFunds {
+      fundAddress
     }
   }
 `;
@@ -78,22 +86,39 @@ const calcApy = (blockTime, metrics) => {
     : (formatValue(metrics.week) - 1) * 52 * 100;
 };
 
-const fetchTorosYieldProducts = async () => {
+const fetchVaultAddresses = async () => {
   try {
-    const response = await request(DHEDGE_API_URL, YIELD_PRODUCTS_QUERY);
-    const products = await Promise.all(
-      response.yieldProducts.map(async ({ address }) => {
-        const { fund } = await request(DHEDGE_API_URL, POOL_DATA_QUERY, {
-          address,
-        });
-        return fund;
-      })
+    const { yieldProducts, apyForTorosFunds } = await withRetry(() =>
+      request(DHEDGE_API_URL, VAULT_ADDRESSES_QUERY)
     );
-    return products;
+    return [
+      ...new Set(
+        [
+          ...yieldProducts.map(({ address }) => address),
+          ...apyForTorosFunds.map(({ fundAddress }) => fundAddress),
+        ].map((address) => address.toLowerCase())
+      ),
+    ];
   } catch (err) {
-    console.error('Failed to fetch toros yield pools: ', err);
+    console.error('Failed to fetch toros vault list: ', err);
     return [];
   }
+};
+
+// Sequential: the dHEDGE API answers a burst of vault queries with 429s.
+const fetchTorosYieldProducts = async () => {
+  const products = [];
+  for (const address of await fetchVaultAddresses()) {
+    try {
+      const { fund } = await withRetry(() =>
+        request(DHEDGE_API_URL, POOL_DATA_QUERY, { address })
+      );
+      if (fund) products.push(fund);
+    } catch (err) {
+      console.error(`Failed to fetch toros vault ${address}: `, err);
+    }
+  }
+  return products;
 };
 
 const fetchRewardIncentivesData = async () => {
