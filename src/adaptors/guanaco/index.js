@@ -73,7 +73,7 @@ async function apy() {
   const [markets, history, prices, metadata] = await Promise.all([
     getMarkets(), get(api + '/market-history', { protocol: 'guanaco' }),
     get('https://coins.llama.fi/prices/current/coingecko:bitcoin-cash'),
-    get('https://guanaco.fi/api/tokens'),
+    get('https://guanaco.fi/api/tokens').catch(() => []),
   ]);
   const end = Math.min(history.indexedThrough, history.end);
   const now = Date.now() / 1000;
@@ -84,7 +84,7 @@ async function apy() {
   const price = prices.coins['coingecko:bitcoin-cash'];
   if (!(price.price > 0) || !(Math.abs(now - price.timestamp) < 3 * 3600))
     throw new Error('Missing or stale BCH price');
-  const symbols = new Map(metadata.map(token => [token.token_id, token.bcmr?.token?.symbol]));
+  const symbols = new Map((Array.isArray(metadata) ? metadata : []).map(token => [token?.token_id, token?.bcmr?.token?.symbol]));
   const histories = new Map(history.assets.map(asset => [asset.category, asset]));
   const volumes = new Map();
   const pools = [];
