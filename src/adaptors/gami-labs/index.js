@@ -179,9 +179,6 @@ async function processChain(sdkChain, vaults) {
   let tsHist7d = vaults.map(() => null);
   let taHist30d = vaults.map(() => null);
   let tsHist30d = vaults.map(() => null);
-  // True once the chain's 7d-ago block was resolved and read, so a null 7d ratio means the
-  // vault itself has no 7d history yet (not deployed / no supply), not a missing archive RPC.
-  let hist7dRead = false;
 
   try {
     const [b1Resp, b7Resp, b30Resp] = await Promise.all([
@@ -201,7 +198,6 @@ async function processChain(sdkChain, vaults) {
         multi(sdkChain, ABI.totalAssets, targets, b7Resp.height),
         multi(sdkChain, ABI.totalSupply, targets, b7Resp.height),
       ]);
-      hist7dRead = true;
     }
     if (b30Resp?.height > 0) {
       [taHist30d, tsHist30d] = await Promise.all([
@@ -249,6 +245,10 @@ async function processChain(sdkChain, vaults) {
     // like Spectra MetaVaults); fall back to 7d then 1d if archive RPC unavailable on chain.
     // Vaults younger than 7 days (no share price 7d ago) report 0 rather than a 1d
     // annualisation of their first NAV marks, which is too noisy to be meaningful.
+    // Judged per vault: multi() uses permitFailure, so a failed archive read yields null
+    // values (keep the 1d fallback); only values read back with no share price (e.g. zero
+    // supply 7d ago) mean the vault is too young.
+    const hist7dRead = taHist7d[i] != null && tsHist7d[i] != null;
     const tooYoungFor7d = hist7dRead && r7d == null;
     let apyBase = apyBase30d;
     if (apyBase === 0 && apyBase7d > 0) apyBase = apyBase7d;
