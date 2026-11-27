@@ -7,6 +7,21 @@ const { EstimatedFees } = require('./estimateFee.ts');
 const getOnchainPools = require('./onchain');
 const { addMerklRewardApy } = require('../merkl/merkl-additional-reward');
 
+// tvl values each reserve at the coins.llama.fi price. when the pool's own price is far from those prices, the tvl
+// rests on a stale or manipulated price, or on liquidity nobody can trade against: polygon VOLLAR-USDT 1% on
+// 2026-11-23 held 211M VOLLAR and 5.5k USDT, priced at a stale $0.22 per VOLLAR (the pool said $0.0000025), so
+// it published $46.4m of tvl and a 9,907% apy. skip those pools.
+const MAX_PRICE_DEVIATION = 10;
+const poolPriceMatchesPrices = (p) => {
+  // one-sided pools are valued from the priced token only
+  if (!p.price0 || !p.price1) return true;
+  const sqrtPrice = Number(p.sqrtPriceX96) / 2 ** 96;
+  const decimalsShift = Number(p.token0.decimals) - Number(p.token1.decimals);
+  const poolPrice = sqrtPrice ** 2 * 10 ** decimalsShift;
+  const ratio = poolPrice / (p.price0 / p.price1);
+  return ratio <= MAX_PRICE_DEVIATION && ratio >= 1 / MAX_PRICE_DEVIATION;
+};
+
 const chains = {
   ethereum: sdk.graph.modifyEndpoint(
     '5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV'
@@ -187,14 +202,20 @@ const topLvl = async (
       chain: chainString,
     });
     const share = (n) => (n ? 1 / n : 0);
-    dataNow = dataNow.map((p, i) => {
-      const feeProtocol = Number(slot0s[i].output.feeProtocol);
-      const protocolFeeShare = Math.max(
-        share(feeProtocol & 0xf),
-        share(feeProtocol >> 4)
-      );
-      return { ...p, lpFeeShare: 1 - protocolFeeShare };
-    });
+    dataNow = dataNow
+      .map((p, i) => {
+        const feeProtocol = Number(slot0s[i].output.feeProtocol);
+        const protocolFeeShare = Math.max(
+          share(feeProtocol & 0xf),
+          share(feeProtocol >> 4)
+        );
+        return {
+          ...p,
+          lpFeeShare: 1 - protocolFeeShare,
+          sqrtPriceX96: slot0s[i].output.sqrtPriceX96,
+        };
+      })
+      .filter(poolPriceMatchesPrices);
     // add the symbol for the stablecoin (we need to distinguish btw stable and non stable pools
     // so we apply the correct tick range)
     dataNow = dataNow.map((p) => {
