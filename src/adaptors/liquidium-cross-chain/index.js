@@ -30,12 +30,6 @@ const ASSET_META = {
 
 const STABLES = new Set(['USDC', 'USDT'])
 
-// USDC and USDT are deposited straight from Ethereum and held on ICP as
-// ckUSDC/ckUSDT, so they are listed under Ethereum with the Ethereum tokens.
-const ETHEREUM_STABLES = {
-  USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-  USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-}
 const APP_URL = 'https://app.liquidium.fi'
 const UTM_PARAMS = 'utm_source=defillama&utm_medium=yields'
 
@@ -329,13 +323,14 @@ const apy = async () => {
       const ltv = toSafeInteger(pool.max_ltv, 'max_ltv') / 10000
 
       const poolId = `${pool.principal.toString()}-${asset}`
-      const ethereumToken =
-        chainKey === 'ETH' && STABLES.has(asset) ? ETHEREUM_STABLES[asset] : null
-      const underlyingToken = ethereumToken || getUnderlyingToken(pool, meta)
+      // USDC and USDT are deposited straight from Ethereum and held on ICP as
+      // ckUSDC/ckUSDT.
+      const fromEthereum = chainKey === 'ETH' && STABLES.has(asset)
+      const underlyingToken = getUnderlyingToken(pool, meta)
 
       return {
         pool: poolId,
-        chain: utils.formatChain(ethereumToken ? 'ethereum' : 'ICP'),
+        chain: utils.formatChain('ICP'),
         project: 'liquidium-cross-chain',
         symbol: asset,
         tvlUsd,
@@ -343,10 +338,10 @@ const apy = async () => {
         apyReward: null,
         apyBaseBorrow,
         underlyingTokens: underlyingToken ? [underlyingToken] : undefined,
-        poolMeta: ethereumToken
+        poolMeta: fromEthereum
           ? `Deposit ${asset} from Ethereum (held as ck${asset} on ICP)`
           : `Asset chain: ${chainKey}`,
-        url: ethereumToken
+        url: fromEthereum
           ? `${APP_URL}/insights/${asset.toLowerCase()}?${UTM_PARAMS}`
           : undefined,
         totalSupplyUsd,
