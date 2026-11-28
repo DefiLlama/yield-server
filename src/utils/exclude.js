@@ -550,6 +550,7 @@ const excludedProtocols = [
   { id: '7873', slug: 'kerne' },
   { id: '7674', slug: 'travessia-credit' },
   { id: '7029', slug: 'kuru-clob' }, // vaults ~empty since 2026-11-17 ($657 + $655 + $0, zero volume), every row below the tvl floor
+  { id: '1881', slug: 'toros' }, // yield vaults deprecated on toros.finance (2026-11-27); live products are leveraged tokens with $482 tvl, below the 1k tvl floor
 ];
 
 const excludeAdaptors = excludedProtocols.map((protocol) => protocol.slug);
