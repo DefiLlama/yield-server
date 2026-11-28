@@ -69,7 +69,7 @@ const getApy = async () => {
   });
 
   const pools = await Promise.all(response.data.map(async vault => {
-    return Promise.all(vault.vaults.map(async v => {
+    return Promise.allSettled(vault.vaults.map(async v => {
       const chainId = chains[v.network_chain];
       let tvlUsd = 0
 
@@ -134,7 +134,10 @@ const getApy = async () => {
     }));
   }));
 
-  return pools.flat(); // flatten the array of pools
+  return pools.flat().flatMap(({ value, reason }) => {
+    if (reason) console.error(`harmonix-finance: skipping vault: ${reason}`);
+    return value ?? [];
+  });
 };
 
 module.exports = {
