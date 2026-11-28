@@ -14,7 +14,8 @@ const tvlUsd = (pool, prices) => {
   };
   const priceA = priceOf(pool.mintA);
   const priceB = priceOf(pool.mintB);
-  if ((priceA === undefined) === (priceB === undefined)) return pool.tvl;
+  if (priceA === undefined && priceB === undefined) return 0;
+  if (priceA !== undefined && priceB !== undefined) return pool.tvl;
   const [priced, unpriced] =
     priceA === undefined
       ? [pool.mintAmountB * priceB, pool.mintAmountA * pool.price * priceB]
