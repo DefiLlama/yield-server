@@ -76,6 +76,28 @@ const resolveOsmosisToken = (denom) => {
   return denom;
 };
 
+// data.osmosis.zone has published 8-figure `liquidity` for pools holding a few
+// base units (#2704, #2791). sqs values each pool from its on-chain balances,
+// so cap the summary figure by it.
+const SQS_BATCH = 100;
+
+const getSqsLiquidity = async (poolIds) => {
+  const caps = {};
+  for (let i = 0; i < poolIds.length; i += SQS_BATCH) {
+    const ids = poolIds.slice(i, i + SQS_BATCH).join(',');
+    const pools = await utils.getData(
+      `https://sqs.osmosis.zone/pools?IDs=${ids}`
+    );
+    for (const p of pools) {
+      if (p.liquidity_cap_error) continue;
+      const cap = Number(p.liquidity_cap);
+      const id = p.chain_model.pool_id ?? p.chain_model.id;
+      if (Number.isFinite(cap)) caps[String(id)] = cap;
+    }
+  }
+  return caps;
+};
+
 const apy = async () => {
   const tvlData = await utils.getData(
     'https://data.osmosis.zone/pairs/v2/summary'
@@ -88,6 +110,15 @@ const apy = async () => {
     },
   });
 
+  const poolIds = [
+    ...new Set(
+      tvlData.data
+        .filter((pool) => aprData.data.some((i) => i.pool_id === pool.pool_id))
+        .map((pool) => String(pool.pool_id))
+    ),
+  ];
+  const sqsLiquidity = await getSqsLiquidity(poolIds);
+
   const data = tvlData.data.map((pool) => {
     const symbol = `${pool.base_symbol}-${pool.quote_symbol}`;
 
@@ -96,13 +127,16 @@ const apy = async () => {
     const apr = aprData.data.find((i) => i.pool_id === pool.pool_id);
     if (!apr) return null;
     const apyBase = apr.swap_fees.lower;
+    const sqsTvl = sqsLiquidity[String(pool.pool_id)];
+    const tvlUsd =
+      sqsTvl === undefined ? pool.liquidity : Math.min(pool.liquidity, sqsTvl);
 
     return {
       pool: `osmosis-${pool.pool_id}`,
       chain: 'Osmosis',
       project: 'osmosis-dex',
       symbol: symbol,
-      tvlUsd: pool.liquidity,
+      tvlUsd,
       apyBase,
       apyBase7d: apyBase,
       volumeUsd1d: pool.volume_24h,
