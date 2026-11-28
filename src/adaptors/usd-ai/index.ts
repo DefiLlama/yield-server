@@ -213,13 +213,53 @@ const getLoanAccrualInterestUsd = async (timestamp: number): Promise<number> => 
   return interestUsd;
 };
 
+// Realised yield: what the sUSDai share price returned over the last 7 days.
+// The accrual rates above give the rate interest is accruing at right now, which
+// misses income booked in one go (the share price steps up a few times a month).
+// convertToAssets uses depositSharePrice (OPTIMISTIC: includes loan interest accrued
+// but not yet paid) and moves with every accrual. Redemptions settle at
+// redemptionSharePrice (CONSERVATIVE), which only catches up when interest is paid,
+// so a 7-day window on it swings between ~1.5% and ~16%. Over 30 days the two agree
+// (8.395% vs 8.394% to 27 Nov 2026), so the smoother deposit price is used here.
+const WEEK = 7 * 24 * 3600;
+const CONVERT_TO_ASSETS_ABI = 'function convertToAssets(uint256) view returns (uint256)';
+
+const getBlock = (timestamp: number): Promise<number> =>
+  utils.getPriceApiData(`/block/arbitrum/${timestamp}`).then((b) => b.height);
+
+const getRealisedApy7d = async (timestamp: number): Promise<number | null> => {
+  try {
+    const [blockNow, block7d] = await Promise.all([
+      getBlock(timestamp),
+      getBlock(timestamp - WEEK),
+    ]);
+    const [now, past] = await Promise.all(
+      [blockNow, block7d].map((block) =>
+        SDK.api.abi.call({
+          abi: CONVERT_TO_ASSETS_ABI,
+          target: SUSDAI_ADDRESS,
+          params: ['1000000000000000000'],
+          chain: 'arbitrum',
+          block,
+        })
+      )
+    );
+    const ratio = Number(now.output) / Number(past.output);
+    const apy = (ratio ** (365 / 7) - 1) * 100;
+    return Number.isFinite(apy) && apy > -100 ? apy : null;
+  } catch (error) {
+    console.error('usd-ai: realised 7d apy unavailable:', error);
+    return null;
+  }
+};
+
 // --- Entry point ---
 
 const apy = async (timestamp: number) => {
   try {
     const ts = timestamp || Math.floor(Date.now() / 1000);
 
-    const [fixedPools, loanInterestPerYear, prices, totalSharesResult, pricePerShareResult] =
+    const [fixedPools, loanInterestPerYear, prices, totalSharesResult, pricePerShareResult, realisedApy7d] =
       await Promise.all([
         getUnderlyingYields(),
         getLoanAccrualInterestUsd(ts),
@@ -234,6 +274,7 @@ const apy = async (timestamp: number) => {
           target: SUSDAI_ADDRESS,
           chain: 'arbitrum',
         }),
+        getRealisedApy7d(ts),
       ]);
 
     const pyusdPrice = prices.pricesByAddress[PYUSD_ADDRESS.toLowerCase()] ?? 1;
@@ -253,8 +294,13 @@ const apy = async (timestamp: number) => {
     const totalInterestPerYear = fixedInterestPerYear + loanInterestPerYear;
     const netInterestPerYear = totalInterestPerYear * (1 - ADMIN_FEE_RATE);
 
-    // APY to sUSDai holders = interest earned net of admin fees / on-chain redemption value
-    const apyBase = Math.round((netInterestPerYear / redemptionValueUsd) * 100 * 100) / 100;
+    // Forward rate to sUSDai holders = interest earned net of admin fees / on-chain
+    // redemption value. The per-second rates annualise linearly, so this is an APR;
+    // holders compound, so convert it. Used only when the realised read is unavailable.
+    const forwardApy = utils.aprToApy((netInterestPerYear / redemptionValueUsd) * 100, 365);
+
+    const round2 = (x: number) => Math.round(x * 100) / 100;
+    const apyBase = round2(realisedApy7d ?? forwardApy);
 
     return [
       {
@@ -264,6 +310,7 @@ const apy = async (timestamp: number) => {
         symbol: 'sUSDai',
         tvlUsd: redemptionValueUsd,
         apyBase,
+        ...(realisedApy7d != null && { apyBase7d: round2(realisedApy7d) }),
         ...(Number(pricePerShareResult.output) / 1e18 > 0 && { pricePerShare: Number(pricePerShareResult.output) / 1e18 }),
         underlyingTokens: [USDAI],
         poolMeta: '30d unlock',
