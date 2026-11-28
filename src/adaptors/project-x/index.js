@@ -35,11 +35,13 @@ const poolsQuery = gql`
   }
 `;
 
+// the newest poolDayData bucket is the current UTC day so far, so annualizing
+// it reads near zero after midnight. take the last completed day instead
 const dayDataQuery = gql`
-  query getDayData($ids: [ID!]!) {
+  query getDayData($ids: [ID!]!, $date: Int!) {
     pools(first: 1000, where: { id_in: $ids }) {
       id
-      poolDayData(first: 1, orderBy: date, orderDirection: desc) {
+      poolDayData(where: { date: $date }) {
         volumeToken0
         volumeToken1
       }
@@ -67,9 +69,11 @@ async function fetchAllPools() {
 
 async function fetchDayData(ids) {
   const dayData = {};
+  const date = (Math.floor(Date.now() / 1000 / 86400) - 1) * 86400;
   for (let i = 0; i < ids.length; i += 100) {
     const { pools } = await request(SUBGRAPH_URL, dayDataQuery, {
       ids: ids.slice(i, i + 100),
+      date,
     });
     for (const p of pools) dayData[p.id] = p.poolDayData?.[0];
   }
