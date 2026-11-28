@@ -5,6 +5,7 @@ const { getPriceApiUrl, formatChain, getPriceApiData } = require('../utils');
 const VAULTS = [
   // ETHEREUM — Lagoon
   { sdkChain: 'ethereum', address: '0xdae854d0896ad2fee335689a3f7b4a95fd1a3e46', name: 'Gami USDC', url: 'https://gamilabs.io/vaults/1/0xdae854d0896ad2fee335689a3f7b4a95fd1a3e46' },
+  { sdkChain: 'ethereum', address: '0x9ff1883ec71d6f6990cb50575cce8ee83f9b8fed', name: 'Gami USDC High Yield', url: 'https://gamilabs.io/vaults/1/0x9ff1883ec71d6f6990cb50575cce8ee83f9b8fed' },
   { sdkChain: 'ethereum', address: '0x33e1339567c183fbadcb43f72d11c47229d468ab', name: 'Gami Stake DAO USDC', url: 'https://gamilabs.io/vaults/1/0x33e1339567c183fbadcb43f72d11c47229d468ab' },
   { sdkChain: 'ethereum', address: '0x57e6824a8b15b709cefb4ccef644ba1349057e77', name: 'xBTCY', url: 'https://gamilabs.io/vaults/1/0x57e6824a8b15b709cefb4ccef644ba1349057e77' },
   { sdkChain: 'ethereum', address: '0x2a676c2744421b4fae65ce86b47adacb620047d4', name: 'Gami hemiBTC', url: 'https://gamilabs.io/vaults/1/0x2a676c2744421b4fae65ce86b47adacb620047d4' },
@@ -242,9 +243,16 @@ async function processChain(sdkChain, vaults) {
 
     // Use 30d as primary apyBase for stability (smooths through harvest-driven PPS jumps
     // like Spectra MetaVaults); fall back to 7d then 1d if archive RPC unavailable on chain.
+    // Vaults younger than 7 days (no share price 7d ago) report 0 rather than a 1d
+    // annualisation of their first NAV marks, which is too noisy to be meaningful.
+    // Judged per vault: multi() uses permitFailure, so a failed archive read yields null
+    // values (keep the 1d fallback); only values read back with no share price (e.g. zero
+    // supply 7d ago) mean the vault is too young.
+    const hist7dRead = taHist7d[i] != null && tsHist7d[i] != null;
+    const tooYoungFor7d = hist7dRead && r7d == null;
     let apyBase = apyBase30d;
     if (apyBase === 0 && apyBase7d > 0) apyBase = apyBase7d;
-    if (apyBase === 0 && apy1d > 0) apyBase = apy1d;
+    if (apyBase === 0 && apy1d > 0 && !tooYoungFor7d) apyBase = apy1d;
 
     return {
       pool: `${v.address.toLowerCase()}-${sdkChain}`,
